@@ -8,13 +8,13 @@ const ASPECT_RATIOS = [
   { label: 'Landscape (16:9)', value: '16:9' },
   { label: 'Portrait (9:16)', value: '9:16' },
 ];
-
 export function ImageGeneratePanel() {
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const addShape = useStore(state => state.addShape);
 
   const handleGenerate = async () => {
@@ -25,6 +25,7 @@ export function ImageGeneratePanel() {
 
     try {
       const imageUrl = await generateImage(prompt.trim(), aspectRatio);
+      setPreviewUrl(imageUrl);
       
       // Calculate dimensions based on aspect ratio
       let width = 512;
@@ -61,6 +62,21 @@ export function ImageGeneratePanel() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const renderPreview = () => {
+    if (previewUrl) {
+      return (
+        <div className="mt-3 rounded-md overflow-hidden border border-gray-200">
+          <img 
+            src={previewUrl} 
+            alt="Generated preview" 
+            className="w-full h-auto object-cover"
+          />
+        </div>
+      );
+    }
+    return null;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -136,6 +152,8 @@ export function ImageGeneratePanel() {
           <Sparkles className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
           {isGenerating ? 'Generating...' : 'Generate'}
         </button>
+
+        {renderPreview()}
       </div>
     </div>
   );
