@@ -45,3 +45,18 @@ create trigger set_updated_at
 -- Create indexes
 create index projects_user_id_idx on projects(user_id);
 create index projects_updated_at_idx on projects(updated_at desc);
+
+create table generated_images (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade,
+  url text not null,
+  prompt text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Add policies
+create policy "Users can view own generated images" 
+  on generated_images for select using (auth.uid() = user_id);
+
+create policy "Users can insert own generated images" 
+  on generated_images for insert with check (auth.uid() = user_id);
