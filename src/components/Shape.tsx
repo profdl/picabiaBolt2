@@ -43,13 +43,15 @@ export function ShapeComponent({ shape }: ShapeProps) {
     const initialPosition = { ...shape.position };
 
     if (e.shiftKey) {
-      setSelectedShapes(prev => 
-        prev.includes(shape.id) 
-          ? prev.filter(id => id !== shape.id)
-          : [...prev, shape.id]
+      const currentSelected = Array.isArray(selectedShapes) ? selectedShapes : [];
+      setSelectedShapes(
+        currentSelected.includes(shape.id) 
+          ? currentSelected.filter(id => id !== shape.id)
+          : [...currentSelected, shape.id]
       );
     } else {
-      if (!selectedShapes.includes(shape.id)) {
+      const currentSelected = Array.isArray(selectedShapes) ? selectedShapes : [];
+      if (!currentSelected.includes(shape.id)) {
         setSelectedShapes([shape.id]);
       }
       
@@ -68,7 +70,10 @@ export function ShapeComponent({ shape }: ShapeProps) {
       const dx = (e.clientX - dragStart.x) / zoom;
       const dy = (e.clientY - dragStart.y) / zoom;
 
-      if (selectedShapes.includes(shape.id)) {
+      // Add type safety check
+      const isSelected = Array.isArray(selectedShapes) && selectedShapes.includes(shape.id);
+
+      if (isSelected) {
         selectedShapes.forEach(id => {
           updateShape(id, {
             position: {
@@ -272,8 +277,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
     top: shape.position.y,
     width: shape.width,
     height: shape.height,
-    backgroundColor: shape.type === 'image' ? 'transparent' : shape.color,
-    cursor: tool === 'select' ? 'move' : 'default',
+    backgroundColor: shape.type === 'image' || shape.color === 'transparent' 
+    ? 'transparent' 
+    : shape.color,    cursor: tool === 'select' ? 'move' : 'default',
     border: isSelected ? '2px solid #2196f3' : 'none',
     borderRadius: shape.type === 'circle' ? '50%' : shape.type === 'sticky' ? '8px' : '4px',
     display: 'flex',

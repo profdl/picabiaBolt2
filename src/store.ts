@@ -5,7 +5,7 @@ const MAX_HISTORY = 50;
 
 const initialState: CanvasState = {
   shapes: [],
-  selectedShapes: [],
+  selectedShapes: [] as string[],
   zoom: 1,
   offset: { x: 0, y: 0 },
   isDragging: false,
