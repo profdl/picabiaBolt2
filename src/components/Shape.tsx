@@ -8,7 +8,15 @@ interface ShapeProps {
 }
 
 export function ShapeComponent({ shape }: ShapeProps) {
-  const { selectedShapes, setSelectedShapes, updateShape, deleteShape, tool, zoom } = useStore();
+  const { 
+    selectedShapes, 
+    setSelectedShapes, 
+    updateShape, 
+    deleteShape, 
+    tool, 
+    zoom,
+    shapes 
+  } = useStore();
   const [isEditing, setIsEditing] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -41,20 +49,27 @@ export function ShapeComponent({ shape }: ShapeProps) {
     e.stopPropagation();
 
     const initialPosition = { ...shape.position };
+    const currentSelected = Array.isArray(selectedShapes) ? selectedShapes : [];
 
     if (e.shiftKey) {
-      const currentSelected = Array.isArray(selectedShapes) ? selectedShapes : [];
-      setSelectedShapes(
-        currentSelected.includes(shape.id) 
-          ? currentSelected.filter(id => id !== shape.id)
-          : [...currentSelected, shape.id]
-      );
+      const newSelection = currentSelected.includes(shape.id) 
+        ? currentSelected.filter(id => id !== shape.id)
+        : [...currentSelected, shape.id];
+      
+      setSelectedShapes(newSelection);
+      
+      // Set dragStart immediately if shape is in the new selection
+      if (newSelection.includes(shape.id)) {
+        setDragStart({
+          x: e.clientX,
+          y: e.clientY,
+          initialPosition
+        });
+      }
     } else {
-      const currentSelected = Array.isArray(selectedShapes) ? selectedShapes : [];
       if (!currentSelected.includes(shape.id)) {
         setSelectedShapes([shape.id]);
       }
-      
       setDragStart({
         x: e.clientX,
         y: e.clientY,
@@ -70,17 +85,26 @@ export function ShapeComponent({ shape }: ShapeProps) {
       const dx = (e.clientX - dragStart.x) / zoom;
       const dy = (e.clientY - dragStart.y) / zoom;
 
-      // Add type safety check
-      const isSelected = Array.isArray(selectedShapes) && selectedShapes.includes(shape.id);
+      if (Array.isArray(selectedShapes) && selectedShapes.includes(shape.id)) {
+        // Store initial positions of all selected shapes
+        const initialPositions = new Map(
+          selectedShapes.map(id => {
+            const shape = shapes.find(s => s.id === id);
+            return [id, shape?.position];
+          })
+        );
 
-      if (isSelected) {
+        // Update each selected shape maintaining relative positions
         selectedShapes.forEach(id => {
-          updateShape(id, {
-            position: {
-              x: dragStart.initialPosition.x + dx,
-              y: dragStart.initialPosition.y + dy
-            }
-          });
+          const initialPos = initialPositions.get(id);
+          if (initialPos) {
+            updateShape(id, {
+              position: {
+                x: initialPos.x + dx,
+                y: initialPos.y + dy
+              }
+            });
+          }
         });
       }
     };
