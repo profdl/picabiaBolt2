@@ -36,6 +36,9 @@ export const Toolbar: React.FC = () => {
         imageUrl: url,
         rotation: 0,
       });
+      setTool('select');
+
+
       return;
     }
 

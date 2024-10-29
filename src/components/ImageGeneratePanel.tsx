@@ -15,10 +15,11 @@ export function ImageGeneratePanel() {
   const [error, setError] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const { zoom, offset, addShape } = useStore(state => ({
+  const { zoom, offset, addShape, setTool } = useStore(state => ({
     zoom: state.zoom,
     offset: state.offset,
-    addShape: state.addShape
+    addShape: state.addShape,
+    setTool: state.setTool
   }));
 
   const handleGenerate = async () => {
@@ -68,6 +69,9 @@ addShape({
   rotation: 0,
   aspectRatio: width / height,
 });
+setTool('select');
+
+    
       setPrompt('');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate image';

@@ -35,13 +35,15 @@ export const useStore = create<CanvasState>((set, get) => ({
 
   // Rest of the store implementation remains unchanged...
   addShape: (shape: Shape) => {
-    const { shapes, historyIndex, history } = get();
-    const newShapes = [...shapes, shape];
-    set({
-      shapes: newShapes,
-      history: [...history.slice(0, historyIndex + 1), newShapes].slice(-MAX_HISTORY),
-      historyIndex: historyIndex + 1,
-    });
+    set(state => {
+      const newShapes = [...state.shapes, shape];
+      return {
+        shapes: newShapes,
+        tool: shape.type === 'drawing' ? state.tool : 'select', // Keep pen tool active for drawings
+        history: [...state.history.slice(0, state.historyIndex + 1), newShapes],
+        historyIndex: state.historyIndex + 1
+      };
+    })
   },
 
   addShapes: (newShapes: Shape[]) => {
