@@ -15,7 +15,11 @@ export function ImageGeneratePanel() {
   const [error, setError] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const addShape = useStore(state => state.addShape);
+  const { zoom, offset, addShape } = useStore(state => ({
+    zoom: state.zoom,
+    offset: state.offset,
+    addShape: state.addShape
+  }));
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
@@ -37,23 +41,33 @@ export function ImageGeneratePanel() {
       } else if (h > w) {
         width = (512 * w) / h;
       }
+const getViewportCenter = () => {
+  const rect = document.querySelector('#root')?.getBoundingClientRect();
+  if (!rect) return { x: 0, y: 0 };
+  
+  return {
+    x: (rect.width / 2 - offset.x) / zoom,
+    y: (rect.height / 2 - offset.y) / zoom
+  };
+};
 
-      // Add the generated image to the canvas
-      addShape({
-        id: Math.random().toString(36).substr(2, 9),
-        type: 'image',
-        position: {
-          x: window.innerWidth / 4,
-          y: window.innerHeight / 4,
-        },
-        width,
-        height,
-        color: 'transparent',
-        imageUrl,
-        rotation: 0,
-        aspectRatio: width / height,
-      });
+// In handleGenerate, replace the position calculation:
+const center = getViewportCenter();
 
+addShape({
+  id: Math.random().toString(36).substr(2, 9),
+  type: 'image',
+  position: {
+    x: center.x - width / 2,  // Center horizontally
+    y: center.y - height / 2, // Center vertically
+  },
+  width,
+  height,
+  color: 'transparent',
+  imageUrl,
+  rotation: 0,
+  aspectRatio: width / height,
+});
       setPrompt('');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate image';
