@@ -302,8 +302,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
     width: shape.width,
     height: shape.height,
     backgroundColor: shape.type === 'image' || shape.color === 'transparent' 
-    ? 'transparent' 
-    : shape.color,    cursor: tool === 'select' ? 'move' : 'default',
+      ? 'transparent' 
+      : shape.color,
+    cursor: tool === 'select' ? 'move' : 'default',
     border: isSelected ? '2px solid #2196f3' : 'none',
     borderRadius: shape.type === 'circle' ? '50%' : shape.type === 'sticky' ? '8px' : '4px',
     display: 'flex',
@@ -313,14 +314,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
     fontSize: shape.fontSize || 16,
     padding: '8px',
     boxShadow: shape.type === 'sticky' ? '0 4px 6px rgba(0, 0, 0, 0.1)' : undefined,
-    overflow: 'hidden',
+    overflow: isSelected ? 'visible' : 'hidden',
     transform: `rotate(${shape.rotation || 0}deg)`,
     transformOrigin: 'center center',
     transition: 'box-shadow 0.2s ease-in-out',
     zIndex: isSelected ? 100 : 1,
     pointerEvents: tool === 'select' ? 'all' : 'none',
   };
-
   return (
     <div
       id={shape.id}
