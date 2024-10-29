@@ -16,12 +16,6 @@ export function ImageGeneratePanel() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const addShape = useStore(state => state.addShape);
-  const [generatedImages, setGeneratedImages] = useState<Array<{
-    id: string;
-    url: string;
-    prompt: string;
-    createdAt: Date;
-  }>>([]);
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
@@ -31,26 +25,7 @@ export function ImageGeneratePanel() {
 
     try {
       const imageUrl = await generateImage(prompt.trim(), aspectRatio);
-      const newImage = {
-        id: Math.random().toString(36).substr(2, 9),
-        url: imageUrl,
-        prompt: prompt.trim(),
-        createdAt: new Date()
-      };
-      
-      setGeneratedImages(prev => [newImage, ...prev]);
       setPreviewUrl(imageUrl);
-
-      // Save to Supabase
-      const { error } = await supabase
-        .from('generated_images')
-        .insert([{
-          url: imageUrl,
-          prompt: prompt.trim(),
-          user_id: auth.user()?.id
-        }]);
-
-      if (error) throw error;
       
       // Calculate dimensions based on aspect ratio
       let width = 512;
@@ -88,43 +63,6 @@ export function ImageGeneratePanel() {
       setIsGenerating(false);
     }
   };
-
-  <div className="mt-4 space-y-3">
-    <h4 className="font-medium text-gray-900">Generated Images</h4>
-    <div className="grid grid-cols-2 gap-2">
-      {generatedImages.map(img => (
-        <div 
-          key={img.id} 
-          className="relative group"
-          title={img.prompt}
-        >
-          <img
-            src={img.url}
-            alt={img.prompt}
-            className="w-full h-auto rounded-md cursor-move"
-            draggable="true"
-            onDragStart={(e) => handleDragStart(e, img.url)}
-            onClick={() => {
-              const center = getViewportCenter();
-              addShape({
-                id: Math.random().toString(36).substr(2, 9),
-                type: 'image',
-                position: {
-                  x: center.x - 256,
-                  y: center.y - 256,
-                },
-                width: 512,
-                height: 512,
-                color: 'transparent',
-                imageUrl: img.url,
-                rotation: 0,
-              });
-            }}
-          />
-        </div>
-      ))}
-    </div>
-  </div>
 
   const renderPreview = () => {
     if (previewUrl) {
