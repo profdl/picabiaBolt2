@@ -49,7 +49,7 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    const { prompt, aspectRatio = '1:1' } = body;
+    const { prompt, aspectRatio = '1:1', steps } = body;
 
     if (!prompt) {
       return {
@@ -72,7 +72,7 @@ export const handler: Handler = async (event) => {
           prompt,
           negative_prompt: 'blurry, bad quality, distorted',
           aspect_ratio: aspectRatio,
-          steps: 30
+          steps: steps // Use the steps value from the request body
         }
       })
     });

@@ -18,8 +18,10 @@ export function ImageGeneratePanel() {
     numInferenceSteps: 50,
     guidanceScale: 7.5,
     scheduler: 'DPMSolverMultistep',
-    seed: Math.floor(Math.random() * 1000000)
-  });  const { addShape, setTool, zoom, offset } = useStore((state) => ({
+    seed: Math.floor(Math.random() * 1000000),
+    steps: 30
+  });
+  const { addShape, setTool, zoom, offset } = useStore((state) => ({
     addShape: state.addShape,
     setTool: state.setTool,
     zoom: state.zoom,
@@ -93,7 +95,11 @@ export function ImageGeneratePanel() {
     setError(null);
 
     try {
-      const imageUrl = await generateImage(prompt.trim(), aspectRatio);
+      const imageUrl = await generateImage(
+        prompt.trim(), 
+        aspectRatio,
+        advancedSettings.steps // Pass the actual steps value from the slider
+      );
       setPreviewUrl(imageUrl);
       
       // Save to Supabase
@@ -296,18 +302,19 @@ export function ImageGeneratePanel() {
                 />
               </div>
 
-              {/* Inference Steps Slider */}
-              <div className="space-y-2">
-                <label className="block text-sm text-gray-700">Inference Steps ({advancedSettings.numInferenceSteps})</label>
-                <input
-                  type="range"
-                  min="1"
-                  max="100"
-                  value={advancedSettings.numInferenceSteps}
-                  onChange={(e) => setAdvancedSettings({...advancedSettings, numInferenceSteps: parseInt(e.target.value)})}
-                  className="w-full"
-                />
-              </div>
+{/* Steps Slider */}
+<div className="space-y-2">
+  <label className="block text-sm text-gray-700">Steps ({advancedSettings.steps})</label>
+  <input
+    type="range"
+    min="10"
+    max="150"
+    value={advancedSettings.steps}
+    onChange={(e) => setAdvancedSettings({...advancedSettings, steps: parseInt(e.target.value)})}
+    className="w-full"
+  />
+</div>
+
 
               {/* Guidance Scale Slider */}
               <div className="space-y-2">
@@ -367,4 +374,5 @@ export function ImageGeneratePanel() {
     </div>
   );
 }
+
 
