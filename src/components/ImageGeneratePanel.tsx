@@ -1,26 +1,11 @@
-import { useStore } from '../store';
-
+import { Sparkles, AlertCircle, X, ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { Sparkles, AlertCircle, X } from 'lucide-react';
-import { generateImage } from '../lib/replicate';
+import { useStore } from '../store';import { generateImage } from '../lib/replicate';
 import { supabase } from '../lib/supabase';
 
-
-const ASPECT_RATIOS = [
-  { label: 'Square (1:1)', value: '1:1' },
-  { label: 'Landscape (16:9)', value: '16:9' },
-  { label: 'Portrait (9:16)', value: '9:16' },
-];
-
-type SavedImage = {
-  aspect_ratio: string;
-  id: string;
-  image_url: string;
-  prompt: string;
-  created_at: string;
-}
-
 export function ImageGeneratePanel() {
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -34,7 +19,19 @@ export function ImageGeneratePanel() {
     zoom: state.zoom,
     offset: state.offset
   }));
-
+  const ASPECT_RATIOS = [
+    { label: 'Square (1:1)', value: '1:1' },
+    { label: 'Landscape (16:9)', value: '16:9' },
+    { label: 'Portrait (9:16)', value: '9:16' },
+  ];
+  
+  type SavedImage = {
+    aspect_ratio: string;
+    id: string;
+    image_url: string;
+    prompt: string;
+    created_at: string;
+  }
   const handleGalleryImageClick = (image: SavedImage) => {
     const getViewportCenter = () => {
       const rect = document.querySelector('#root')?.getBoundingClientRect();
@@ -273,14 +270,33 @@ export function ImageGeneratePanel() {
           {isGenerating ? 'Generating...' : 'Generate'}
         </button>
 
+        <div className="mt-4 border-t border-gray-200 pt-4">
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            {showAdvanced ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            <span className="text-sm font-medium">Advanced Settings</span>
+          </button>
+
+          {showAdvanced && (
+            <div className="mt-3 space-y-3">
+              {/* Advanced settings content will go here */}
+              <div className="space-y-2">
+                <label className="block text-sm text-gray-700">Negative Prompt</label>
+                <textarea
+                  className="w-full h-20 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  placeholder="Elements to exclude from the generation..."
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
         {renderPreview()}
         {renderImageGallery()}
       </div>
     </div>
   );
 }
-
-
-
-
 
