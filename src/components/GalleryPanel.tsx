@@ -26,7 +26,25 @@ export const GalleryPanel: React.FC<{ onClose: () => void; refreshTrigger?: numb
           .order('created_at', { ascending: false });
           
         if (error) throw error;
-        setImages(data || []);
+        
+        console.log('Raw data from DB:', data);
+        
+        const imagesWithPublicUrls = data?.map(image => {
+          const publicUrl = supabase.storage
+            .from('generated-images')
+            .getPublicUrl(image.image_url.split('/').pop() || '')
+            .data.publicUrl;
+            
+          console.log('Original URL:', image.image_url);
+          console.log('Public URL:', publicUrl);
+          
+          return {
+            ...image,
+            image_url: publicUrl
+          };
+        });
+        
+        setImages(imagesWithPublicUrls || []);
       } catch (err) {
         console.error('Error fetching images:', err);
       } finally {
@@ -58,22 +76,28 @@ export const GalleryPanel: React.FC<{ onClose: () => void; refreshTrigger?: numb
   };
 
   return (
-    <DraggablePanel title="Gallery" onClose={onClose}>
-      <div className="grid grid-cols-2 gap-2 p-2">
+    <DraggablePanel title="Generated Images" onClose={onClose}>
+      <div className="grid grid-cols-2 gap-4 p-4">
         {loading ? (
-          <div>Loading...</div>
+          <div className="col-span-2 text-center">Loading images...</div>
         ) : (
           images.map(image => (
             <div 
               key={image.id}
               onClick={() => handleImageClick(image)}
-              className="cursor-pointer hover:opacity-80 transition-opacity"
+              className="group relative cursor-pointer rounded-lg overflow-hidden border border-gray-200 hover:border-blue-500 transition-all"
             >
               <img 
                 src={image.image_url} 
                 alt={image.prompt}
-                className="w-full h-32 object-cover rounded"
+                className="w-full h-32 object-cover"
               />
+              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-sm">
+                <p className="truncate">{image.prompt}</p>
+                <p className="text-xs text-gray-300">
+                  {new Date(image.created_at).toLocaleDateString()}
+                </p>
+              </div>
             </div>
           ))
         )}

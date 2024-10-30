@@ -13,13 +13,17 @@ export function RegisterForm() {
     setLoading(true);
 
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
+      const signUp = async (email: string, password: string) => {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        
+        if (error) throw error;
+        return data;
+      };
+
+      const { error: signUpError } = await signUp(email, password);
 
       if (signUpError) {
         setError(handleAuthError(signUpError));

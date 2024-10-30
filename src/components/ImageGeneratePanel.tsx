@@ -48,7 +48,13 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
-    
+  
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setError('Please sign in to generate and save images');
+      return;
+    }
+  
     setIsGenerating(true);
     setError(null);
 
@@ -64,16 +70,16 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
         advancedSettings.seed
       );
       console.log('Replicate generation successful:', imageUrl);
-      
+    
       console.log('Saving to Supabase...');
       await saveGeneratedImage(imageUrl, prompt.trim(), aspectRatio);
       console.log('Supabase save successful');
-      
+    
       setPreviewUrl(imageUrl);
-      
+    
       let width = 512;
       let height = 512;
-      
+    
       const [w, h] = aspectRatio.split(':').map(Number);
       if (w > h) {
         height = (512 * h) / w;
@@ -106,7 +112,6 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
       setIsGenerating(false);
     }
   };
-
   const renderPreview = () => {
     if (previewUrl) {
       return (
@@ -264,3 +269,5 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
     </DraggablePanel>
   );
 };
+
+import { supabase } from '../lib/supabase';
