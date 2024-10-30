@@ -24,7 +24,7 @@ interface UnsplashImage {
 interface UnsplashPanelProps {
   onClose: () => void;
 }
-export const UnsplashPanel: React.FC<UnsplashPanelProps> = ({ onClose }) => {
+export const UnsplashPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [query, setQuery] = useState('');
   const [images, setImages] = useState<UnsplashImage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -177,7 +177,11 @@ export const UnsplashPanel: React.FC<UnsplashPanelProps> = ({ onClose }) => {
   
 
   return (
-    <DraggablePanel title="Unsplash Images" onClose={onClose}>
+    <DraggablePanel 
+      title="Unsplash Images" 
+      onClose={onClose}
+      initialPosition="left"
+    >
       <div className="p-4">
         <div className="relative mb-3">
           <input
