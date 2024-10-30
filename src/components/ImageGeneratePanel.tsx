@@ -13,7 +13,13 @@ export function ImageGeneratePanel() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
-  const { addShape, setTool, zoom, offset } = useStore((state) => ({
+  const [advancedSettings, setAdvancedSettings] = useState({
+    negativePrompt: '',
+    numInferenceSteps: 50,
+    guidanceScale: 7.5,
+    scheduler: 'DPMSolverMultistep',
+    seed: Math.floor(Math.random() * 1000000)
+  });  const { addShape, setTool, zoom, offset } = useStore((state) => ({
     addShape: state.addShape,
     setTool: state.setTool,
     zoom: state.zoom,
@@ -154,7 +160,6 @@ export function ImageGeneratePanel() {
       setIsGenerating(false);
     }
   };
-
   const renderImageGallery = () => (
     <div className="mt-4 space-y-4">
       <h4 className="font-medium text-gray-900">Generated Images</h4>
@@ -278,16 +283,79 @@ export function ImageGeneratePanel() {
             {showAdvanced ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             <span className="text-sm font-medium">Advanced Settings</span>
           </button>
-
           {showAdvanced && (
             <div className="mt-3 space-y-3">
-              {/* Advanced settings content will go here */}
+              {/* Negative Prompt */}
               <div className="space-y-2">
                 <label className="block text-sm text-gray-700">Negative Prompt</label>
                 <textarea
+                  value={advancedSettings.negativePrompt}
+                  onChange={(e) => setAdvancedSettings({...advancedSettings, negativePrompt: e.target.value})}
                   className="w-full h-20 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   placeholder="Elements to exclude from the generation..."
                 />
+              </div>
+
+              {/* Inference Steps Slider */}
+              <div className="space-y-2">
+                <label className="block text-sm text-gray-700">Inference Steps ({advancedSettings.numInferenceSteps})</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={advancedSettings.numInferenceSteps}
+                  onChange={(e) => setAdvancedSettings({...advancedSettings, numInferenceSteps: parseInt(e.target.value)})}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Guidance Scale Slider */}
+              <div className="space-y-2">
+                <label className="block text-sm text-gray-700">Guidance Scale ({advancedSettings.guidanceScale})</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="20"
+                  step="0.1"
+                  value={advancedSettings.guidanceScale}
+                  onChange={(e) => setAdvancedSettings({...advancedSettings, guidanceScale: parseFloat(e.target.value)})}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Scheduler Dropdown */}
+              <div className="space-y-2">
+                <label className="block text-sm text-gray-700">Scheduler</label>
+                <select
+                  value={advancedSettings.scheduler}
+                  onChange={(e) => setAdvancedSettings({...advancedSettings, scheduler: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="DPMSolverMultistep">DPM Solver Multistep</option>
+                  <option value="DDIM">DDIM</option>
+                  <option value="K_EULER">K Euler</option>
+                  <option value="K_EULER_ANCESTRAL">K Euler Ancestral</option>
+                  <option value="PNDM">PNDM</option>
+                </select>
+              </div>
+
+              {/* Seed Input with Random Button */}
+              <div className="space-y-2">
+                <label className="block text-sm text-gray-700">Seed</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={advancedSettings.seed}
+                    onChange={(e) => setAdvancedSettings({...advancedSettings, seed: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    onClick={() => setAdvancedSettings({...advancedSettings, seed: Math.floor(Math.random() * 1000000)})}
+                    className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    🎲
+                  </button>
+                </div>
               </div>
             </div>
           )}
