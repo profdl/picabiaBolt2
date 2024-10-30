@@ -28,38 +28,41 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-export const handleSupabaseError = (error: any): string => {
+export const handleSupabaseError = (error: unknown): string => {
   if (!navigator.onLine) {
     return 'No internet connection. Please check your network.';
   }
   
-  if (error?.message?.includes('Failed to fetch') || error?.message?.includes('NetworkError')) {
-    return 'Unable to connect to the server. Please check your connection and try again.';
-  }
-  
-  if (error?.code === '23505') {
-    return 'A record with this information already exists.';
-  }
-  
-  if (error?.code === '42501') {
-    return 'You don\'t have permission to perform this action.';
-  }
+  if (typeof error === 'object' && error !== null) {
+    const errorObj = error as { message?: string; code?: string };
+    
+    if (errorObj.message?.includes('Failed to fetch') || errorObj.message?.includes('NetworkError')) {
+      return 'Unable to connect to the server. Please check your connection and try again.';
+    }
+    
+    if (errorObj.code === '23505') {
+      return 'A record with this information already exists.';
+    }
+    
+    if (errorObj.code === '42501') {
+      return 'You don\'t have permission to perform this action.';
+    }
 
-  if (error?.code === 'PGRST116') {
-    return 'Resource not found. The project may have been deleted or you may not have permission to access it.';
-  }
+    if (errorObj.code === 'PGRST116') {
+      return 'Resource not found. The project may have been deleted or you may not have permission to access it.';
+    }
 
-  if (error?.message?.includes('JWT')) {
-    return 'Your session has expired. Please log in again.';
-  }
-  
-  if (error?.message) {
-    return error.message;
+    if (errorObj.message?.includes('JWT')) {
+      return 'Your session has expired. Please log in again.';
+    }
+    
+    if (errorObj.message) {
+      return errorObj.message;
+    }
   }
   
   return 'An unexpected error occurred. Please try again.';
 };
-
 export const retryOperation = async <T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
@@ -84,3 +87,19 @@ export const retryOperation = async <T>(
   
   throw lastError || new Error('Operation failed after multiple retries');
 };
+
+export const saveGeneratedImage = async (imageUrl: string, prompt: string) => {
+  const { data, error } = await supabase
+    .from('projects')
+    .insert([
+      { 
+        image_url: imageUrl, 
+        prompt: prompt,
+        created_at: new Date().toISOString()
+      }
+    ])
+    .select()
+    
+  if (error) throw error
+  return data[0]
+}
