@@ -58,5 +58,15 @@ create table generated_images (
 create policy "Users can view own generated images" 
   on generated_images for select using (auth.uid() = user_id);
 
-create policy "Users can insert own generated images" 
-  on generated_images for insert with check (auth.uid() = user_id);
+-- Add policy for inserting into generated_images table
+create policy "Users can insert own generated images"
+  on generated_images for insert
+  with check (auth.uid() = user_id);
+
+-- Enable RLS on the storage bucket
+create policy "Users can upload generated images"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'generated-images' AND
+    auth.uid() = owner
+  );

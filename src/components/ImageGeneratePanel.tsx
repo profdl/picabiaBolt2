@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { DraggablePanel } from './DraggablePanel';
 import { generateImage } from '../lib/replicate';
 import { Sparkles, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useStore } from '../store';
-import { supabase } from '../lib/supabase';
+import { saveGeneratedImage } from '../lib/supabase';
 
-interface ImageGeneratePanelProps {
-  onClose: () => void;
-}
 
 export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -16,7 +13,7 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
+  const [galleryRefresh, setGalleryRefresh] = useState(0);
   const [advancedSettings, setAdvancedSettings] = useState({
     negativePrompt: '',
     numInferenceSteps: 50,
@@ -25,70 +22,30 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
     seed: Math.floor(Math.random() * 1000000),
     steps: 30
   });
+
   const { addShape, setTool, zoom, offset } = useStore((state) => ({
     addShape: state.addShape,
     setTool: state.setTool,
     zoom: state.zoom,
     offset: state.offset
   }));
+
   const ASPECT_RATIOS = [
     { label: 'Square (1:1)', value: '1:1' },
     { label: 'Landscape (16:9)', value: '16:9' },
     { label: 'Portrait (9:16)', value: '9:16' },
   ];
-  
-  type SavedImage = {
-    aspect_ratio: string;
-    id: string;
-    image_url: string;
-    prompt: string;
-    created_at: string;
-  }
-  const handleGalleryImageClick = (image: SavedImage) => {
-    const getViewportCenter = () => {
-      const rect = document.querySelector('#root')?.getBoundingClientRect();
-      if (!rect) return { x: 0, y: 0 };
-      
-      return {
-        x: (rect.width / 2 - offset.x) / zoom,
-        y: (rect.height / 2 - offset.y) / zoom
-      };
+
+  const getViewportCenter = () => {
+    const rect = document.querySelector('#root')?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    
+    return {
+      x: (rect.width / 2 - offset.x) / zoom,
+      y: (rect.height / 2 - offset.y) / zoom
     };
-  
-    const center = getViewportCenter();
-    const width = 512;
-    const height = image.aspect_ratio ? (512 * Number(image.aspect_ratio.split(':')[1])) / Number(image.aspect_ratio.split(':')[0]) : 512;
-  
-    addShape({
-      id: Math.random().toString(36).substr(2, 9),
-      type: 'image',
-      position: {
-        x: center.x - width / 2,
-        y: center.y - height / 2,
-      },
-      width,
-      height,
-      color: 'transparent',
-      imageUrl: image.image_url,
-      rotation: 0,
-      aspectRatio: width / height,
-    });
-    setTool('select');
   };
 
-  useEffect(() => {
-    const fetchSavedImages = async () => {
-      const { data } = await supabase
-        .from('generated_images')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      if (data) setSavedImages(data);
-    }
-    fetchSavedImages();
-  }, []);
-  
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
     
@@ -96,6 +53,7 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
     setError(null);
 
     try {
+      console.log('Starting image generation with Replicate...');
       const imageUrl = await generateImage(
         prompt.trim(),
         aspectRatio,
@@ -105,24 +63,14 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
         advancedSettings.scheduler,
         advancedSettings.seed
       );
+      console.log('Replicate generation successful:', imageUrl);
+      
+      console.log('Saving to Supabase...');
+      await saveGeneratedImage(imageUrl, prompt.trim(), aspectRatio);
+      console.log('Supabase save successful');
       
       setPreviewUrl(imageUrl);
       
-      const { data: savedImage, error } = await supabase
-        .from('generated_images')
-        .insert({
-          image_url: imageUrl,
-          prompt,
-          aspect_ratio: aspectRatio,
-          user_id: (await supabase.auth.getUser()).data.user?.id
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      setSavedImages(prev => [savedImage, ...prev]);
-
       let width = 512;
       let height = 512;
       
@@ -132,16 +80,6 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
       } else if (h > w) {
         width = (512 * w) / h;
       }
-
-      const getViewportCenter = () => {
-        const rect = document.querySelector('#root')?.getBoundingClientRect();
-        if (!rect) return { x: 0, y: 0 };
-        
-        return {
-          x: (rect.width / 2 - offset.x) / zoom,
-          y: (rect.height / 2 - offset.y) / zoom
-        };
-      };
 
       const center = getViewportCenter();
 
@@ -160,42 +98,14 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
         aspectRatio: width / height,
       });
       setTool('select');
-    
       setPrompt('');
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate image';
-      console.error('Image generation failed:', errorMessage);
-      setError(errorMessage);
+    } catch (error) {
+      console.log('Error occurred:', error);
+      setError(error.message || 'Failed to generate image');
     } finally {
       setIsGenerating(false);
     }
   };
-
-  const renderImageGallery = () => (
-    <div className="mt-4 space-y-4">
-      <h4 className="font-medium text-gray-900">Generated Images</h4>
-      <div className="grid grid-cols-2 gap-2">
-        {savedImages.map((image) => (
-          <div 
-            key={image.id} 
-            className="relative group cursor-pointer rounded-md overflow-hidden"
-            onClick={() => handleGalleryImageClick(image)}
-          >
-            <img 
-              src={image.image_url} 
-              alt={image.prompt}
-              className="w-full h-24 object-cover"
-            />
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200">
-              <p className="text-white text-xs p-2 opacity-0 group-hover:opacity-100">
-                {image.prompt}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
   const renderPreview = () => {
     if (previewUrl) {
@@ -350,7 +260,6 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
         </div>
 
         {renderPreview()}
-        {renderImageGallery()}
       </div>
     </DraggablePanel>
   );
