@@ -5,7 +5,15 @@ interface GenerateImageResponse {
   error?: string;
 }
 
-export async function generateImage(prompt: string, aspectRatio: string = '1:1', steps: number = 30): Promise<string> {
+export async function generateImage(
+  prompt: string, 
+  aspectRatio: string,
+  steps: number,
+  negativePrompt: string,
+  guidanceScale: number,
+  scheduler: string,
+  seed: number
+): Promise<string> {
   try {
     // First, test if our functions are accessible
     const testResponse = await fetch('/.netlify/functions/test-endpoint');
@@ -21,7 +29,11 @@ export async function generateImage(prompt: string, aspectRatio: string = '1:1',
       body: JSON.stringify({ 
         prompt, 
         aspectRatio,
-        steps
+        steps,
+        negativePrompt,
+        guidanceScale,
+        scheduler,
+        seed
       }),
     });
 
