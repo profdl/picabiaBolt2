@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Loader, X, Image as ImageIcon } from 'lucide-react';
+import { Search, Loader,  Image as ImageIcon } from 'lucide-react';
 import { useStore } from '../store';
 import debounce from 'lodash/debounce';
+import { DraggablePanel } from './DraggablePanel';
 
 const UNSPLASH_ACCESS_KEY = '8Pc0QO3oorclz9uR4RVfaFD5aXcBUnJ-2d9FP-KtI9U';
 const UNSPLASH_API_URL = 'https://api.unsplash.com';
@@ -20,13 +21,14 @@ interface UnsplashImage {
   width: number;
   height: number;
 }
-
-export function UnsplashPanel() {
+interface UnsplashPanelProps {
+  onClose: () => void;
+}
+export const UnsplashPanel: React.FC<UnsplashPanelProps> = ({ onClose }) => {
   const [query, setQuery] = useState('');
   const [images, setImages] = useState<UnsplashImage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [draggedImage, setDraggedImage] = useState<UnsplashImage | null>(null);
   
   const addShape = useStore(state => state.addShape);
@@ -147,57 +149,36 @@ export function UnsplashPanel() {
     const handleDrop = (e: DragEvent) => {
       e.preventDefault();
       if (!draggedImage) return;
-
+  
       handleAddImage(draggedImage, e.clientX, e.clientY);
       setDraggedImage(null);
     };
-
+  
     const handleDragOver = (e: DragEvent) => {
       e.preventDefault();
       if (draggedImage) {
         e.dataTransfer!.dropEffect = 'copy';
       }
     };
-
+  
     const canvas = document.querySelector('.canvas-container');
     if (canvas) {
-      canvas.addEventListener('drop', handleDrop);
-      canvas.addEventListener('dragover', handleDragOver);
+      canvas.addEventListener('drop', handleDrop as EventListener);
+      canvas.addEventListener('dragover', handleDragOver as EventListener);
     }
-
+  
     return () => {
       if (canvas) {
-        canvas.removeEventListener('drop', handleDrop);
-        canvas.removeEventListener('dragover', handleDragOver);
+        canvas.removeEventListener('drop', handleDrop as EventListener);
+        canvas.removeEventListener('dragover', handleDragOver as EventListener);
       }
     };
   }, [draggedImage]);
-
-  if (isCollapsed) {
-    return (
-      <button
-        onClick={() => setIsCollapsed(false)}
-        className="absolute left-4 top-4 p-3 bg-white rounded-lg shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-        title="Open Unsplash Panel"
-      >
-        <ImageIcon className="w-5 h-5 text-gray-600" />
-      </button>
-    );
-  }
+  
 
   return (
-    <div className="absolute left-4 top-4 w-64 bg-white rounded-lg shadow-lg border border-gray-200">
+    <DraggablePanel title="Unsplash Images" onClose={onClose}>
       <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-gray-900">Unsplash Images</h3>
-          <button
-            onClick={() => setIsCollapsed(true)}
-            className="text-gray-400 hover:text-gray-500"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
         <div className="relative mb-3">
           <input
             type="text"
@@ -258,6 +239,8 @@ export function UnsplashPanel() {
           )}
         </div>
       </div>
-    </div>
+    </DraggablePanel>
   );
-}
+};
+
+
