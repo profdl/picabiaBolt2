@@ -1,8 +1,10 @@
+import { useStore } from '../store';
+
 import React, { useState, useEffect } from 'react';
 import { Sparkles, AlertCircle, X } from 'lucide-react';
 import { generateImage } from '../lib/replicate';
-import { useStore } from '../store';
 import { supabase } from '../lib/supabase';
+
 
 const ASPECT_RATIOS = [
   { label: 'Square (1:1)', value: '1:1' },
@@ -11,10 +13,11 @@ const ASPECT_RATIOS = [
 ];
 
 type SavedImage = {
-  id: string
-  image_url: string
-  prompt: string
-  created_at: string
+  aspect_ratio: string;
+  id: string;
+  image_url: string;
+  prompt: string;
+  created_at: string;
 }
 
 export function ImageGeneratePanel() {
@@ -25,12 +28,46 @@ export function ImageGeneratePanel() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
-  const { zoom, offset, addShape, setTool } = useStore(state => ({
-    zoom: state.zoom,
-    offset: state.offset,
+  const { addShape, setTool, zoom, offset } = useStore((state) => ({
     addShape: state.addShape,
-    setTool: state.setTool
+    setTool: state.setTool,
+    zoom: state.zoom,
+    offset: state.offset
   }));
+
+  const handleGalleryImageClick = (image: SavedImage) => {
+    const getViewportCenter = () => {
+      const rect = document.querySelector('#root')?.getBoundingClientRect();
+      if (!rect) return { x: 0, y: 0 };
+      
+      return {
+        x: (rect.width / 2 - offset.x) / zoom,
+        y: (rect.height / 2 - offset.y) / zoom
+      };
+    };
+  
+    const center = getViewportCenter();
+    const width = 512;
+    const height = image.aspect_ratio ? (512 * Number(image.aspect_ratio.split(':')[1])) / Number(image.aspect_ratio.split(':')[0]) : 512;
+  
+    addShape({
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'image',
+      position: {
+        x: center.x - width / 2,
+        y: center.y - height / 2,
+      },
+      width,
+      height,
+      color: 'transparent',
+      imageUrl: image.image_url,
+      rotation: 0,
+      aspectRatio: width / height,
+    });
+    setTool('select');
+  };
+
+
 
   useEffect(() => {
     const fetchSavedImages = async () => {
@@ -127,13 +164,11 @@ export function ImageGeneratePanel() {
       <div className="grid grid-cols-2 gap-2">
         {savedImages.map((image) => (
           <div 
-            key={image.id} 
-            className="relative group cursor-pointer rounded-md overflow-hidden"
-            onClick={() => {
-              setPreviewUrl(image.image_url);
-              setPrompt(image.prompt);
-            }}
-          >
+  key={image.id} 
+  className="relative group cursor-pointer rounded-md overflow-hidden"
+  onClick={() => handleGalleryImageClick(image)}
+>
+
             <img 
               src={image.image_url} 
               alt={image.prompt}
@@ -244,3 +279,8 @@ export function ImageGeneratePanel() {
     </div>
   );
 }
+
+
+
+
+
