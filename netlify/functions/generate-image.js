@@ -42,6 +42,10 @@ exports.handler = async (event) => {
       prompt,
       aspectRatio = "1:1",
       steps = 30,
+      negativePrompt = "blurry, bad quality, distorted",
+      guidanceScale = 7.5,
+      scheduler = "DPMSolverMultistep",
+      seed = Math.floor(Math.random() * 1000000),
     } = JSON.parse(event.body || "{}");
 
     if (!prompt) {
@@ -63,13 +67,15 @@ exports.handler = async (event) => {
         version: MODEL_VERSION,
         input: {
           prompt,
-          negative_prompt: "blurry, bad quality, distorted",
+          negative_prompt: negativePrompt,
           aspect_ratio: aspectRatio,
-          steps: steps,
+          steps,
+          guidance_scale: guidanceScale,
+          scheduler,
+          seed,
         },
       }),
     });
-
     if (!response.ok) {
       const error = await response.json();
       console.error("Replicate API error:", error);

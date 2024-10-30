@@ -48,8 +48,15 @@ export const handler: Handler = async (event) => {
         body: JSON.stringify({ error: 'Invalid request body' })
       };
     }
-
-    const { prompt, aspectRatio = '1:1', steps } = body;
+    const { 
+      prompt, 
+      aspectRatio = '1:1', 
+      steps = 30,
+      negativePrompt = 'blurry, bad quality, distorted',
+      guidanceScale = 7.5,
+      scheduler = 'DPMSolverMultistep',
+      seed = Math.floor(Math.random() * 1000000)
+    } = JSON.parse(event.body || '{}');
 
     if (!prompt) {
       return {
@@ -70,9 +77,12 @@ export const handler: Handler = async (event) => {
         version: MODEL_VERSION,
         input: {
           prompt,
-          negative_prompt: 'blurry, bad quality, distorted',
+          negative_prompt: negativePrompt,
           aspect_ratio: aspectRatio,
-          steps: steps // Use the steps value from the request body
+          steps,
+          guidance_scale: guidanceScale,
+          scheduler,
+          seed
         }
       })
     });

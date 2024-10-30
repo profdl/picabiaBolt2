@@ -96,10 +96,15 @@ export function ImageGeneratePanel() {
 
     try {
       const imageUrl = await generateImage(
-        prompt.trim(), 
+        prompt.trim(),
         aspectRatio,
-        advancedSettings.steps // Pass the actual steps value from the slider
+        advancedSettings.steps,
+        advancedSettings.negativePrompt,
+        advancedSettings.guidanceScale,
+        advancedSettings.scheduler,
+        advancedSettings.seed
       );
+      
       setPreviewUrl(imageUrl);
       
       // Save to Supabase
