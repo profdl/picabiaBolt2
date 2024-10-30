@@ -1,16 +1,20 @@
-import { Sparkles, AlertCircle, X, ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { useStore } from '../store';import { generateImage } from '../lib/replicate';
+import { DraggablePanel } from './DraggablePanel';
+import { generateImage } from '../lib/replicate';
+import { Sparkles, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { useStore } from '../store';
 import { supabase } from '../lib/supabase';
 
-export function ImageGeneratePanel() {
+interface ImageGeneratePanelProps {
+  onClose: () => void;
+}
 
+export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
   const [advancedSettings, setAdvancedSettings] = useState({
@@ -72,22 +76,19 @@ export function ImageGeneratePanel() {
     setTool('select');
   };
 
-
-
   useEffect(() => {
     const fetchSavedImages = async () => {
       const { data } = await supabase
         .from('generated_images')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(10); // Limit to recent images
+        .limit(10);
       
       if (data) setSavedImages(data);
     }
     fetchSavedImages();
   }, []);
   
-
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
     
@@ -107,7 +108,6 @@ export function ImageGeneratePanel() {
       
       setPreviewUrl(imageUrl);
       
-      // Save to Supabase
       const { data: savedImage, error } = await supabase
         .from('generated_images')
         .insert({
@@ -123,7 +123,6 @@ export function ImageGeneratePanel() {
       
       setSavedImages(prev => [savedImage, ...prev]);
 
-      // Calculate dimensions based on aspect ratio
       let width = 512;
       let height = 512;
       
@@ -171,17 +170,17 @@ export function ImageGeneratePanel() {
       setIsGenerating(false);
     }
   };
+
   const renderImageGallery = () => (
     <div className="mt-4 space-y-4">
       <h4 className="font-medium text-gray-900">Generated Images</h4>
       <div className="grid grid-cols-2 gap-2">
         {savedImages.map((image) => (
           <div 
-  key={image.id} 
-  className="relative group cursor-pointer rounded-md overflow-hidden"
-  onClick={() => handleGalleryImageClick(image)}
->
-
+            key={image.id} 
+            className="relative group cursor-pointer rounded-md overflow-hidden"
+            onClick={() => handleGalleryImageClick(image)}
+          >
             <img 
               src={image.image_url} 
               alt={image.prompt}
@@ -220,30 +219,13 @@ export function ImageGeneratePanel() {
     }
   };
 
-  if (isCollapsed) {
-    return (
-      <button
-        onClick={() => setIsCollapsed(false)}
-        className="absolute right-4 top-4 p-3 bg-white rounded-lg shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-        title="Open Image Generation"
-      >
-        <Sparkles className="w-5 h-5 text-gray-600" />
-      </button>
-    );
-  }
   return (
-    <div className="absolute right-4 top-4 w-64 bg-white rounded-lg shadow-lg border border-gray-200">
+    <DraggablePanel 
+      title="Generate Image" 
+      onClose={onClose}
+      initialPosition="right"
+    >
       <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-gray-900">Generate Image</h3>
-          <button
-            onClick={() => setIsCollapsed(true)}
-            className="text-gray-400 hover:text-gray-500"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
         {error && (
           <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
@@ -296,7 +278,6 @@ export function ImageGeneratePanel() {
           </button>
           {showAdvanced && (
             <div className="mt-3 space-y-3">
-              {/* Negative Prompt */}
               <div className="space-y-2">
                 <label className="block text-sm text-gray-700">Negative Prompt</label>
                 <textarea
@@ -307,21 +288,18 @@ export function ImageGeneratePanel() {
                 />
               </div>
 
-{/* Steps Slider */}
-<div className="space-y-2">
-  <label className="block text-sm text-gray-700">Steps ({advancedSettings.steps})</label>
-  <input
-    type="range"
-    min="10"
-    max="150"
-    value={advancedSettings.steps}
-    onChange={(e) => setAdvancedSettings({...advancedSettings, steps: parseInt(e.target.value)})}
-    className="w-full"
-  />
-</div>
+              <div className="space-y-2">
+                <label className="block text-sm text-gray-700">Steps ({advancedSettings.steps})</label>
+                <input
+                  type="range"
+                  min="10"
+                  max="150"
+                  value={advancedSettings.steps}
+                  onChange={(e) => setAdvancedSettings({...advancedSettings, steps: parseInt(e.target.value)})}
+                  className="w-full"
+                />
+              </div>
 
-
-              {/* Guidance Scale Slider */}
               <div className="space-y-2">
                 <label className="block text-sm text-gray-700">Guidance Scale ({advancedSettings.guidanceScale})</label>
                 <input
@@ -335,7 +313,6 @@ export function ImageGeneratePanel() {
                 />
               </div>
 
-              {/* Scheduler Dropdown */}
               <div className="space-y-2">
                 <label className="block text-sm text-gray-700">Scheduler</label>
                 <select
@@ -351,7 +328,6 @@ export function ImageGeneratePanel() {
                 </select>
               </div>
 
-              {/* Seed Input with Random Button */}
               <div className="space-y-2">
                 <label className="block text-sm text-gray-700">Seed</label>
                 <div className="flex gap-2">
@@ -376,8 +352,6 @@ export function ImageGeneratePanel() {
         {renderPreview()}
         {renderImageGallery()}
       </div>
-    </div>
+    </DraggablePanel>
   );
-}
-
-
+};

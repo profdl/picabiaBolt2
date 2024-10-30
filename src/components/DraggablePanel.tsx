@@ -5,39 +5,86 @@ interface DraggablePanelProps {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
+  initialPosition?: 'left' | 'right';
 }
 
-export const DraggablePanel: React.FC<DraggablePanelProps> = ({ title, children, onClose }) => {
-  const [position, setPosition] = useState({ x: 64, y: 72 });
+export const DraggablePanel: React.FC<DraggablePanelProps> = ({ 
+  title, 
+  children, 
+  onClose,
+  initialPosition = 'left'
+}) => {
+  const getInitialPosition = () => {
+    const windowWidth = window.innerWidth;
+    return {
+      x: initialPosition === 'right' ? windowWidth - 384 : 64,
+      y: 72
+    };
+  };
+
+  const [position, setPosition] = useState(getInitialPosition());
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isMinimized, setIsMinimized] = useState(false);
+  const [stackedTo, setStackedTo] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const panelId = useRef(`panel-${Math.random()}`);
 
-  const SNAP_THRESHOLD = 20; // Distance in pixels to trigger snapping
+  const SNAP_THRESHOLD = 20;
 
-  const snapToEdges = (x: number, y: number) => {
+  const updateStackedPosition = () => {
+    if (!stackedTo) return;
+    
+    const parentPanel = document.querySelector(`[data-panel-id="${stackedTo}"]`);
+    if (!parentPanel) return;
+
+    const parentRect = parentPanel.getBoundingClientRect();
+    setPosition(prev => ({
+      x: parentRect.left,
+      y: parentRect.bottom + 2
+    }));
+  };
+
+  useEffect(() => {
+    if (stackedTo) {
+      const resizeObserver = new ResizeObserver(updateStackedPosition);
+      const parentPanel = document.querySelector(`[data-panel-id="${stackedTo}"]`);
+      if (parentPanel) {
+        resizeObserver.observe(parentPanel);
+      }
+      return () => resizeObserver.disconnect();
+    }
+  }, [stackedTo]);
+
+  const snapToEdgesAndPanels = (x: number, y: number) => {
     const panel = panelRef.current;
     if (!panel) return { x, y };
 
     const rect = panel.getBoundingClientRect();
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    const navbarHeight = 64; // Adjust to match your navbar height
+    const otherPanels = Array.from(document.querySelectorAll('.draggable-panel'))
+      .filter(el => el !== panel);
 
-    // Snap to left edge
-    if (x < SNAP_THRESHOLD) x = 0;
-    // Snap to right edge
-    if (x + rect.width > windowWidth - SNAP_THRESHOLD) x = windowWidth - rect.width;
-    // Snap to top (navbar)
-    if (y < navbarHeight + SNAP_THRESHOLD) y = navbarHeight;
-    // Snap to bottom
-    if (y + rect.height > windowHeight - SNAP_THRESHOLD) y = windowHeight - rect.height;
+    let newStackedTo = null;
 
+    otherPanels.forEach(el => {
+      const otherRect = el.getBoundingClientRect();
+      
+      // Vertical stacking detection
+      if (Math.abs(x - otherRect.left) < SNAP_THRESHOLD) {
+        if (Math.abs(y - (otherRect.bottom + 2)) < SNAP_THRESHOLD) {
+          x = otherRect.left;
+          y = otherRect.bottom + 2;
+          newStackedTo = el.getAttribute('data-panel-id');
+        }
+      }
+    });
+
+    setStackedTo(newStackedTo);
     return { x, y };
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent text selection
     if (panelRef.current) {
       const rect = panelRef.current.getBoundingClientRect();
       setDragOffset({
@@ -45,13 +92,14 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({ title, children,
         y: e.clientY - rect.top
       });
       setIsDragging(true);
+      document.body.style.userSelect = 'none'; // Disable text selection globally while dragging
     }
   };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
-        const newPosition = snapToEdges(
+        const newPosition = snapToEdgesAndPanels(
           e.clientX - dragOffset.x,
           e.clientY - dragOffset.y
         );
@@ -61,6 +109,7 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({ title, children,
 
     const handleMouseUp = () => {
       setIsDragging(false);
+      document.body.style.userSelect = ''; // Re-enable text selection when done dragging
     };
 
     if (isDragging) {
@@ -71,18 +120,20 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({ title, children,
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = ''; // Cleanup
     };
   }, [isDragging, dragOffset]);
-
   return (
     <div
       ref={panelRef}
-      className="fixed bg-white rounded-lg shadow-lg"
+      data-panel-id={panelId.current}
+      className="fixed bg-white rounded-lg shadow-lg draggable-panel"
       style={{
         left: position.x,
         top: position.y,
         width: '320px',
-        zIndex: 1000
+        zIndex: 1000,
+        transition: isDragging ? 'none' : 'all 0.2s ease-out'
       }}
     >
       <div 
