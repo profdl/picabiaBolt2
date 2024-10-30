@@ -98,19 +98,20 @@ export async function saveGeneratedImage(imageUrl: string, prompt: string, aspec
 
   if (!user) throw new Error('User must be authenticated to save images')
 
-  // Convert aspect ratio from string (e.g. "16:9") to number
-  const [width, height] = aspectRatio.split(':').map(Number)
-  const aspectRatioValue = width / height
-
+  // Fetch image data as an array buffer
   const response = await fetch(imageUrl)
-  const blob = await response.blob()
+  const arrayBuffer = await response.arrayBuffer()
+  const imageData = new Uint8Array(arrayBuffer)
+
   const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`
 
+  // Upload binary image data
   const { data: uploadData, error: uploadError } = await supabase
     .storage
     .from('generated-images')
-    .upload(filename, blob, {
-      contentType: 'image/png'
+    .upload(filename, imageData, {
+      contentType: 'image/png',
+      cacheControl: '3600'
     })
 
   if (uploadError) throw uploadError
@@ -119,6 +120,9 @@ export async function saveGeneratedImage(imageUrl: string, prompt: string, aspec
     .storage
     .from('generated-images')
     .getPublicUrl(filename)
+
+  const [width, height] = aspectRatio.split(':').map(Number)
+  const aspectRatioValue = width / height
 
   const { data, error } = await supabase
     .from('generated_images')
