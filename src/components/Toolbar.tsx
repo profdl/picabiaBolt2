@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Square, Circle, Type, ZoomIn, ZoomOut, Move, StickyNote, Hand, MousePointer, Image, Pencil } from 'lucide-react';
 import { useStore } from '../store';
+// Add import
+import { GalleryPanel } from './GalleryPanel';
 
 export const Toolbar: React.FC = () => {
   const { zoom, setZoom, addShape, tool, setTool, offset, currentColor, setCurrentColor, strokeWidth, setStrokeWidth } = useStore();
+  // Add state for gallery panel
+  const [showGallery, setShowGallery] = useState(false);
 
   const getViewportCenter = () => {
     const rect = document.querySelector('#root')?.getBoundingClientRect();

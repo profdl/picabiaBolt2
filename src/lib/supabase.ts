@@ -88,18 +88,49 @@ export const retryOperation = async <T>(
   throw lastError || new Error('Operation failed after multiple retries');
 };
 
-export const saveGeneratedImage = async (imageUrl: string, prompt: string) => {
+
+
+
+export async function saveGeneratedImage(imageUrl: string, prompt: string, aspectRatio: string) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) throw new Error('User must be authenticated to save images')
+
+  // Convert aspect ratio from string (e.g. "16:9") to number
+  const [width, height] = aspectRatio.split(':').map(Number)
+  const aspectRatioValue = width / height
+
+  const response = await fetch(imageUrl)
+  const blob = await response.blob()
+  const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`
+
+  const { data: uploadData, error: uploadError } = await supabase
+    .storage
+    .from('generated-images')
+    .upload(filename, blob, {
+      contentType: 'image/png'
+    })
+
+  if (uploadError) throw uploadError
+
+  const { data: { publicUrl } } = supabase
+    .storage
+    .from('generated-images')
+    .getPublicUrl(filename)
+
   const { data, error } = await supabase
-    .from('projects')
-    .insert([
-      { 
-        image_url: imageUrl, 
-        prompt: prompt,
-        created_at: new Date().toISOString()
-      }
-    ])
+    .from('generated_images')
+    .insert({
+      user_id: user.id,
+      image_url: publicUrl,
+      prompt: prompt,
+      aspect_ratio: aspectRatioValue
+    })
     .select()
-    
+    .single()
+
   if (error) throw error
-  return data[0]
+  return data
 }

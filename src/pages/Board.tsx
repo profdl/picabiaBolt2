@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Image } from 'lucide-react';
 import { Canvas } from '../components/Canvas';
 import { Toolbar } from '../components/Toolbar';
 import { ImageGeneratePanel } from '../components/ImageGeneratePanel';
 import { UnsplashPanel } from '../components/UnsplashPanel';
+import { GalleryPanel } from '../components/GalleryPanel';
 import { useStore } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../hooks/useProjects';
@@ -188,6 +189,7 @@ export function Board() {
       <Toolbar />
       <UnsplashPanel />
       <ImageGeneratePanel />
+      <GalleryPanel />
       {isSaving && (
         <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
           Saving...
