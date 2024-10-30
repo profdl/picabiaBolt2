@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, AlertCircle, X } from 'lucide-react';
 import { generateImage } from '../lib/replicate';
 import { useStore } from '../store';
+import { supabase } from '../lib/supabase';
 
 const ASPECT_RATIOS = [
   { label: 'Square (1:1)', value: '1:1' },
   { label: 'Landscape (16:9)', value: '16:9' },
   { label: 'Portrait (9:16)', value: '9:16' },
 ];
+
+type SavedImage = {
+  id: string
+  image_url: string
+  prompt: string
+  created_at: string
+}
+
 export function ImageGeneratePanel() {
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
@@ -15,12 +24,27 @@ export function ImageGeneratePanel() {
   const [error, setError] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
   const { zoom, offset, addShape, setTool } = useStore(state => ({
     zoom: state.zoom,
     offset: state.offset,
     addShape: state.addShape,
     setTool: state.setTool
   }));
+
+  useEffect(() => {
+    const fetchSavedImages = async () => {
+      const { data } = await supabase
+        .from('generated_images')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10); // Limit to recent images
+      
+      if (data) setSavedImages(data);
+    }
+    fetchSavedImages();
+  }, []);
+  
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
@@ -32,6 +56,22 @@ export function ImageGeneratePanel() {
       const imageUrl = await generateImage(prompt.trim(), aspectRatio);
       setPreviewUrl(imageUrl);
       
+      // Save to Supabase
+      const { data: savedImage, error } = await supabase
+        .from('generated_images')
+        .insert({
+          image_url: imageUrl,
+          prompt,
+          aspect_ratio: aspectRatio,
+          user_id: (await supabase.auth.getUser()).data.user?.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setSavedImages(prev => [savedImage, ...prev]);
+
       // Calculate dimensions based on aspect ratio
       let width = 512;
       let height = 512;
@@ -42,35 +82,34 @@ export function ImageGeneratePanel() {
       } else if (h > w) {
         width = (512 * w) / h;
       }
-const getViewportCenter = () => {
-  const rect = document.querySelector('#root')?.getBoundingClientRect();
-  if (!rect) return { x: 0, y: 0 };
-  
-  return {
-    x: (rect.width / 2 - offset.x) / zoom,
-    y: (rect.height / 2 - offset.y) / zoom
-  };
-};
 
-// In handleGenerate, replace the position calculation:
-const center = getViewportCenter();
+      const getViewportCenter = () => {
+        const rect = document.querySelector('#root')?.getBoundingClientRect();
+        if (!rect) return { x: 0, y: 0 };
+        
+        return {
+          x: (rect.width / 2 - offset.x) / zoom,
+          y: (rect.height / 2 - offset.y) / zoom
+        };
+      };
 
-addShape({
-  id: Math.random().toString(36).substr(2, 9),
-  type: 'image',
-  position: {
-    x: center.x - width / 2,  // Center horizontally
-    y: center.y - height / 2, // Center vertically
-  },
-  width,
-  height,
-  color: 'transparent',
-  imageUrl,
-  rotation: 0,
-  aspectRatio: width / height,
-});
-setTool('select');
+      const center = getViewportCenter();
 
+      addShape({
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'image',
+        position: {
+          x: center.x - width / 2,
+          y: center.y - height / 2,
+        },
+        width,
+        height,
+        color: 'transparent',
+        imageUrl,
+        rotation: 0,
+        aspectRatio: width / height,
+      });
+      setTool('select');
     
       setPrompt('');
     } catch (err) {
@@ -81,6 +120,35 @@ setTool('select');
       setIsGenerating(false);
     }
   };
+
+  const renderImageGallery = () => (
+    <div className="mt-4 space-y-4">
+      <h4 className="font-medium text-gray-900">Generated Images</h4>
+      <div className="grid grid-cols-2 gap-2">
+        {savedImages.map((image) => (
+          <div 
+            key={image.id} 
+            className="relative group cursor-pointer rounded-md overflow-hidden"
+            onClick={() => {
+              setPreviewUrl(image.image_url);
+              setPrompt(image.prompt);
+            }}
+          >
+            <img 
+              src={image.image_url} 
+              alt={image.prompt}
+              className="w-full h-24 object-cover"
+            />
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200">
+              <p className="text-white text-xs p-2 opacity-0 group-hover:opacity-100">
+                {image.prompt}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   const renderPreview = () => {
     if (previewUrl) {
@@ -115,7 +183,6 @@ setTool('select');
       </button>
     );
   }
-
   return (
     <div className="absolute right-4 top-4 w-64 bg-white rounded-lg shadow-lg border border-gray-200">
       <div className="p-4">
@@ -172,6 +239,7 @@ setTool('select');
         </button>
 
         {renderPreview()}
+        {renderImageGallery()}
       </div>
     </div>
   );
