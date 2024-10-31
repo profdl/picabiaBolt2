@@ -61,6 +61,16 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({
     if (!panel) return { x, y };
 
     const rect = panel.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    const navbarHeight = 64; // Adjust this value based on your navbar height
+
+    // Snap to window edges
+    if (x < SNAP_THRESHOLD) x = 0; // Left edge
+    if (x + rect.width > windowWidth - SNAP_THRESHOLD) x = windowWidth - rect.width; // Right edge
+    if (y < navbarHeight + SNAP_THRESHOLD) y = navbarHeight; // Navbar
+    if (y + rect.height > windowHeight - SNAP_THRESHOLD) y = windowHeight - rect.height; // Bottom edge
+
     const otherPanels = Array.from(document.querySelectorAll('.draggable-panel'))
       .filter(el => el !== panel);
 
@@ -68,13 +78,25 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({
 
     otherPanels.forEach(el => {
       const otherRect = el.getBoundingClientRect();
-      
-      // Vertical stacking detection
+    
+      // Horizontal snapping
+      if (Math.abs(x - (otherRect.right + 2)) < SNAP_THRESHOLD) {
+        x = otherRect.right + 2; // Snap to right side
+      }
+      if (Math.abs(x + rect.width - otherRect.left + 2) < SNAP_THRESHOLD) {
+        x = otherRect.left - rect.width - 2; // Snap to left side
+      }
+
+      // Vertical snapping
       if (Math.abs(x - otherRect.left) < SNAP_THRESHOLD) {
+        x = otherRect.left;
+        // Snap to top or bottom
         if (Math.abs(y - (otherRect.bottom + 2)) < SNAP_THRESHOLD) {
-          x = otherRect.left;
           y = otherRect.bottom + 2;
           newStackedTo = el.getAttribute('data-panel-id');
+        }
+        if (Math.abs(y + rect.height - otherRect.top + 2) < SNAP_THRESHOLD) {
+          y = otherRect.top - rect.height - 2;
         }
       }
     });
@@ -82,7 +104,6 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({
     setStackedTo(newStackedTo);
     return { x, y };
   };
-
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent text selection
     if (panelRef.current) {
