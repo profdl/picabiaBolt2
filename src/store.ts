@@ -19,8 +19,9 @@ const initialState: CanvasState = {
   strokeWidth: 2,
 };
 
-export const useStore = create<CanvasState>((set, get) => ({
+export const useStore = create<BoardState>((set, get) => ({
   ...initialState,
+  showShortcuts: false,
 
   resetState: () => set(initialState),
 
@@ -175,4 +176,5 @@ export const useStore = create<CanvasState>((set, get) => ({
   },
 
   toggleGrid: () => set((state) => ({ gridEnabled: !state.gridEnabled })),
+  setShowShortcuts: (show) => set({ showShortcuts: show }),
 }));
