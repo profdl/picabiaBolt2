@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, LogOut, LayoutGrid, Save } from 'lucide-react';
+import { User, LogOut, LayoutGrid, Save, Keyboard } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ProjectsSidebar } from './ProjectsSidebar';
 import { useProjects } from '../hooks/useProjects';
 import { useStore } from '../store';
 import { generateThumbnail } from '../utils/thumbnail';
+import { HelpCircle } from 'lucide-react';
 
-export function Navbar() {
+export const Navbar = () => {
   const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const location = useLocation();
   const { updateProject } = useProjects();
   const shapes = useStore(state => state.shapes);
+  const { showShortcuts, setShowShortcuts } = useStore();
 
   const isBoard = location.pathname.startsWith('/board/');
   const boardId = isBoard ? location.pathname.split('/')[2] : null;
@@ -92,6 +94,13 @@ export function Navbar() {
                   title="Logout"
                 >
                   <LogOut className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setShowShortcuts(!showShortcuts)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  title="Toggle Keyboard Shortcuts"
+                >
+                  <HelpCircle className="w-5 h-5" />
                 </button>
               </div>
             ) : (

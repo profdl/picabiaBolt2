@@ -10,8 +10,11 @@ import { useStore } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../hooks/useProjects';
 import { calculateViewportFit } from '../utils/canvas';
+import { ShortcutsPanel } from '../components/ShortcutsPanel';
 
-export function Board() {
+
+
+export const Board = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -184,17 +187,20 @@ export function Board() {
   }
 
   return (
-    <div ref={containerRef} className="w-screen h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 relative canvas-container">
-      <Canvas />
-      <Toolbar />
-      <UnsplashPanel />
-      <ImageGeneratePanel />
-      <GalleryPanel />
-      {isSaving && (
-        <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
-          Saving...
-        </div>
-      )}
-    </div>
+    <>
+      <div ref={containerRef} className="w-screen h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 relative canvas-container">
+        <Canvas />
+        <Toolbar />
+        <UnsplashPanel />
+        <ImageGeneratePanel />
+        <GalleryPanel />
+        {isSaving && (
+          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
+            Saving...
+          </div>
+        )}
+      </div>
+      <ShortcutsPanel />
+    </>
   );
 }
