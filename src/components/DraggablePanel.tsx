@@ -177,7 +177,17 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({
           </button>
         </div>
       </div>
-      <div className={`transition-all duration-200 overflow-hidden ${isMinimized ? 'h-0' : 'h-auto'}`}>
+      <div 
+        className={`
+          transition-all 
+          duration-200 
+          overflow-y-auto
+          ${isMinimized ? 'h-0' : 'max-h-[calc(100vh-200px)]'}
+        `}
+        style={{
+          overflowY: isMinimized ? 'hidden' : 'auto'
+        }}
+      >
         {children}
       </div>
     </div>
