@@ -65,7 +65,7 @@ export const Toolbar: React.FC = () => {
 
   return (
     <>
-      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-2 flex gap-2">
+      <div className="absolute bottom-0 left-0 right-0 bg-white shadow-lg p-2 flex gap-2 justify-center border-t border-gray-200">
         <button
           onClick={() => setTool('select')}
           className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'select' ? 'bg-gray-100' : ''}`}
