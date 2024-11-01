@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DraggablePanel } from './DraggablePanel';
+import { Drawer } from './Drawer';
 import { useStore } from '../store';
 import { supabase } from '../lib/supabase';
 
@@ -11,7 +11,17 @@ type SavedImage = {
   created_at: string;
 }
 
-export const GalleryPanel: React.FC<{ onClose: () => void; refreshTrigger?: number }> = ({ onClose, refreshTrigger }) => {
+interface GalleryPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  refreshTrigger?: number;
+}
+
+export const GalleryPanel: React.FC<GalleryPanelProps> = ({ 
+  isOpen, 
+  onClose, 
+  refreshTrigger 
+}) => {
   const [images, setImages] = useState<SavedImage[]>([]);
   const [loading, setLoading] = useState(true);
   const addShape = useStore(state => state.addShape);
@@ -27,22 +37,10 @@ export const GalleryPanel: React.FC<{ onClose: () => void; refreshTrigger?: numb
           
         if (error) throw error;
         
-        console.log('Raw data from DB:', data);
-        
-        const imagesWithPublicUrls = data?.map(image => {
-          const publicUrl = supabase.storage
-            .from('generated-images')
-            .getPublicUrl(image.image_url.split('/').pop() || '')
-            .data.publicUrl;
-            
-          console.log('Original URL:', image.image_url);
-          console.log('Public URL:', publicUrl);
-          
-          return {
-            ...image,
-            image_url: publicUrl
-          };
-        });
+        const imagesWithPublicUrls = data?.map(image => ({
+          ...image,
+          image_url: image.image_url
+        }));
         
         setImages(imagesWithPublicUrls || []);
       } catch (err) {
@@ -52,8 +50,10 @@ export const GalleryPanel: React.FC<{ onClose: () => void; refreshTrigger?: numb
       }
     };
 
-    fetchImages();
-  }, [refreshTrigger]);
+    if (isOpen) {
+      fetchImages();
+    }
+  }, [isOpen, refreshTrigger]);
 
   const handleImageClick = (image: SavedImage) => {
     const center = {
@@ -72,59 +72,50 @@ export const GalleryPanel: React.FC<{ onClose: () => void; refreshTrigger?: numb
       height: 512,
       color: 'transparent',
       imageUrl: image.image_url,
-      rotation: 0
+      rotation: 0,
     });
   };
 
-  const getInitialPosition = () => {
-    const imageGeneratePanel = document.querySelector('[data-panel-id^="panel-"]');
-    if (imageGeneratePanel) {
-      const rect = imageGeneratePanel.getBoundingClientRect();
-      return {
-        x: rect.left,
-        y: rect.bottom + 2
-      };
-    }
-    
-    // Fallback position on the right side if ImageGeneratePanel is not found
-    return {
-      x: window.innerWidth - 320,
-      y: 72
-    };
-  };
-
   return (
-    <DraggablePanel 
-      title="Gallery" 
+    <Drawer 
+      title="Generated Images" 
+      isOpen={isOpen} 
       onClose={onClose}
-      initialPosition="right"
-      initialY={460}
     >
-      <div className="grid grid-cols-2 gap-4 p-4">
+      <div className="p-2">
         {loading ? (
-          <div className="col-span-2 text-center">Loading images...</div>
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading images...</p>
+          </div>
+        ) : images.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>No generated images yet</p>
+          </div>
         ) : (
-          images.map(image => (
-            <div 
-              key={image.id}
-              onClick={() => handleImageClick(image)}
-              className="group relative cursor-pointer rounded-lg overflow-hidden border border-gray-200 hover:border-blue-500 transition-all"
-            >
-              <img 
-                src={image.image_url} 
-                alt={image.prompt}
-                className="w-full h-32 object-cover"
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-sm">
-                <p className="truncate">{image.prompt}</p>
-                <p className="text-xs text-gray-300">
-                  {new Date(image.created_at).toLocaleDateString()}
-                </p>
+          <div className="grid grid-cols-2 gap-2">
+            {images.map(image => (
+              <div 
+                key={image.id}
+                onClick={() => handleImageClick(image)}
+                className="group cursor-pointer rounded-lg overflow-hidden border border-gray-200 hover:border-blue-500 transition-all bg-white"
+              >
+                <div className="aspect-square overflow-hidden">
+                  <img 
+                    src={image.image_url} 
+                    alt={image.prompt}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-1.5 text-xs">
+                  <p className="text-gray-900 truncate">{new Date(image.created_at).toLocaleDateString()}</p>
+                  <p className="text-gray-600 truncate mt-0.5">{image.prompt}</p>
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
-    </DraggablePanel>
+    </Drawer>
   );
 };
