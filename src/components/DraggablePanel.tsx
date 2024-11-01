@@ -17,7 +17,7 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({
   const getInitialPosition = () => {
     const windowWidth = window.innerWidth;
     return {
-      x: initialPosition === 'right' ? windowWidth - 384 : 64,
+      x: initialPosition === 'right' ? windowWidth - 320 : 0,
       y: 72
     };
   };
