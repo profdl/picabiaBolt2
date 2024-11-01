@@ -17,8 +17,8 @@ export interface Shape {
   rotation: number;
   points?: Position[];
   strokeWidth?: number;
+  showPrompt?: boolean;
 }
-
 export interface CanvasState {
   shapes: Shape[];
   selectedShapes: string[];

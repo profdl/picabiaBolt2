@@ -203,6 +203,21 @@ export function ShapeComponent({ shape }: ShapeProps) {
       setResizeStart(null);
     };
 
+    <input
+      type="range"
+      min="0"
+      max="1"
+      step="0.05"
+      value={shape.promptStrength || 0.8}
+      onChange={(e) => {
+        e.stopPropagation();
+        updateShape(shape.id, { 
+          promptStrength: parseFloat(e.target.value)
+        });
+      }}
+      onMouseDown={(e) => e.stopPropagation()}
+      className="w-full"
+    />
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 
@@ -385,6 +400,48 @@ export function ShapeComponent({ shape }: ShapeProps) {
             className="absolute -left-8 top-1/2 w-6 h-6 cursor-pointer transform -translate-y-1/2"
             style={{ zIndex: 101, pointerEvents: 'all' }}
           />
+          {shape.type === 'image' && (
+            <div
+              className="absolute left-1/2 -bottom-20 flex flex-col gap-2 bg-white p-2 rounded border border-gray-200 transform -translate-x-1/2"
+              style={{ zIndex: 101, pointerEvents: 'all' }}
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id={`prompt-${shape.id}`}
+                  checked={shape.showPrompt}
+                  onChange={(e) => updateShape(shape.id, { showPrompt: e.target.checked })}
+                  className="cursor-pointer"
+                />
+                <label 
+                  htmlFor={`prompt-${shape.id}`}
+                  className="text-sm text-gray-700 cursor-pointer whitespace-nowrap"
+                >
+                  Image Prompt
+                </label>
+              </div>
+              
+              {shape.showPrompt && (
+                <div className="space-y-1">
+                  <label className="block text-xs text-gray-600">
+                    Prompt Strength ({shape.promptStrength || 0.8})
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={shape.promptStrength || 0.8}
+                    onChange={(e) => updateShape(shape.id, { 
+                      promptStrength: parseFloat(e.target.value)
+                    })}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="w-full"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

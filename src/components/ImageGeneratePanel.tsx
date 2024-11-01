@@ -33,6 +33,7 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
     zoom: state.zoom,
     offset: state.offset
   }));
+  const shapes = useStore(state => state.shapes);
 
   const ASPECT_RATIOS = [
     { label: 'Square (1:1)', value: '1:1' },
@@ -62,6 +63,10 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
     setIsGenerating(true);
     setError(null);
 
+    const imageWithPrompt = shapes.find(
+      shape => shape.type === 'image' && shape.showPrompt
+    );
+
     try {
       console.log('Starting image generation with Replicate...');
       const imageUrl = await generateImage(
@@ -72,8 +77,8 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
         advancedSettings.guidanceScale,
         advancedSettings.scheduler,
         advancedSettings.seed,
-        sourceImage,
-        promptStrength
+        imageWithPrompt?.imageUrl,
+        imageWithPrompt?.promptStrength || 0.8
       );
       console.log('Replicate generation successful:', imageUrl);
     
@@ -266,59 +271,7 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
                   </button>
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm text-gray-700">Source Image</label>
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        const reader = new FileReader()
-                        reader.onloadend = () => {
-                          setSourceImage(reader.result as string)
-                        }
-                        reader.readAsDataURL(file)
-                      }
-                    }}
-                    className="text-sm"
-                  />
-                  {sourceImage && (
-                    <div className="relative">
-                      <img 
-                        src={sourceImage} 
-                        alt="Source" 
-                        className="w-full h-auto rounded-md"
-                      />
-                      <button
-                        onClick={() => setSourceImage(null)}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm text-gray-700">
-                  Prompt Strength ({promptStrength})
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={promptStrength}
-                  onChange={(e) => setPromptStrength(parseFloat(e.target.value))}
-                  className="w-full"
-                  disabled={!sourceImage}
-                />
-              </div>
-            </div>
+  </div>
           )}
         </div>
         {renderPreview()}
