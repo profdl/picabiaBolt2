@@ -1,23 +1,63 @@
-import React, { useState } from 'react';
-import { Square, Circle, Type, ZoomIn, ZoomOut, StickyNote, Hand, MousePointer, Pencil, Sparkles, Image as ImageIcon, ImagePlus } from 'lucide-react';
+import React from 'react';
+import {
+  Square,
+  Circle,
+  Type,
+  ZoomIn,
+  ZoomOut,
+  StickyNote,
+  Hand,
+  MousePointer,
+  Pencil,
+  Sparkles,
+  Settings,
+  Image as ImageIcon,
+  ImagePlus,
+  Loader2
+} from 'lucide-react';
 import { useStore } from '../store';
+import { Position } from '../types';
 
-export const Toolbar: React.FC<{
+interface ToolbarProps {
   onShowImageGenerate: () => void;
   onShowUnsplash: () => void;
   onShowGallery: () => void;
   showImageGenerate?: boolean;
   showUnsplash?: boolean;
   showGallery?: boolean;
-}> = ({ 
-  onShowImageGenerate, 
-  onShowUnsplash, 
+}
+
+export const Toolbar: React.FC<ToolbarProps> = ({
+  onShowImageGenerate,
+  onShowUnsplash,
   onShowGallery,
   showImageGenerate,
   showUnsplash,
-  showGallery 
+  showGallery
 }) => {
-  const { zoom, setZoom, addShape, tool, setTool, offset, currentColor, setCurrentColor, strokeWidth, setStrokeWidth, toggleImageGenerate, toggleUnsplash, toggleGallery } = useStore();
+  const {
+    zoom,
+    setZoom,
+    addShape,
+    tool,
+    setTool,
+    offset,
+    currentColor,
+    setCurrentColor,
+    strokeWidth,
+    setStrokeWidth,
+    toggleImageGenerate,
+    toggleUnsplash,
+    toggleGallery,
+    handleGenerate,
+    isGenerating,
+    shapes
+  } = useStore();
+
+  const hasActivePrompt = shapes.some(shape => 
+    (shape.type === 'sticky' && shape.showPrompt && shape.content) || 
+    (shape.type === 'image' && shape.showPrompt)
+  );
 
   const getViewportCenter = () => {
     const rect = document.querySelector('#root')?.getBoundingClientRect();
@@ -49,10 +89,9 @@ export const Toolbar: React.FC<{
         color: 'transparent',
         imageUrl: url,
         rotation: 0,
+        aspectRatio: 1.5,
       });
       setTool('select');
-
-
       return;
     }
 
@@ -75,6 +114,7 @@ export const Toolbar: React.FC<{
 
   return (
     <div className="absolute bottom-0 left-0 right-0 bg-white shadow-lg p-2 flex gap-2 justify-center border-t border-gray-200">
+      {/* Selection Tools */}
       <button
         onClick={() => setTool('select')}
         className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'select' ? 'bg-gray-100' : ''}`}
@@ -96,7 +136,10 @@ export const Toolbar: React.FC<{
       >
         <Pencil className="w-5 h-5" />
       </button>
+
       <div className="w-px bg-gray-200 mx-2" />
+
+      {/* Pen Tool Settings */}
       {tool === 'pen' && (
         <>
           <input
@@ -119,6 +162,8 @@ export const Toolbar: React.FC<{
           <div className="w-px bg-gray-200 mx-2" />
         </>
       )}
+
+      {/* Shape Tools */}
       <button
         onClick={() => handleAddShape('rectangle')}
         className="p-2 hover:bg-gray-100 rounded-lg"
@@ -154,7 +199,10 @@ export const Toolbar: React.FC<{
       >
         <ImageIcon className="w-5 h-5" />
       </button>
+
       <div className="w-px bg-gray-200 mx-2" />
+
+      {/* Zoom Controls */}
       <button
         onClick={() => setZoom(zoom * 1.1)}
         className="p-2 hover:bg-gray-100 rounded-lg"
@@ -172,29 +220,57 @@ export const Toolbar: React.FC<{
       <div className="px-2 flex items-center text-sm text-gray-600">
         {Math.round(zoom * 100)}%
       </div>
+
       <div className="w-px bg-gray-200 mx-2" />
-      <button
-  onClick={toggleImageGenerate}
-  className={`p-2 hover:bg-gray-100 rounded-lg ${showImageGenerate ? 'bg-gray-100' : ''}`}
-  title="AI Image Generator"
+
+{/* Image Generation Tools */}
+<button
+  onClick={handleGenerate}
+  disabled={!hasActivePrompt || isGenerating}
+  className={`p-2 rounded-lg flex items-center gap-1 ${
+    hasActivePrompt && !isGenerating
+      ? 'hover:bg-blue-50 text-blue-600 hover:text-blue-700'
+      : 'opacity-50 cursor-not-allowed text-gray-400'
+  }`}
+  title={
+    !hasActivePrompt
+      ? 'Select a sticky note and enable prompting to generate'
+      : 'Generate Image'
+  }
 >
-  <Sparkles className="w-5 h-5" />
+  {isGenerating ? (
+    <Loader2 className="w-5 h-5 animate-spin" />
+  ) : (
+    <Sparkles className="w-5 h-5" />
+  )}
+  <span className="text-sm font-medium">Generate</span>
 </button>
 
-      <button
-        onClick={toggleUnsplash}
-        className={`p-2 hover:bg-gray-100 rounded-lg ${showUnsplash ? 'bg-gray-100' : ''}`}
-        title="Unsplash Images"
-      >
-        <ImageIcon className="w-5 h-5" />
-      </button>
-      <button
-        onClick={toggleGallery}
-        className={`p-2 hover:bg-gray-100 rounded-lg ${showGallery ? 'bg-gray-100' : ''}`}
-        title="Generated Images"
-      >
-        <ImagePlus className="w-5 h-5" />
-      </button>
-    </div>
-  );
+<button
+  onClick={toggleImageGenerate}
+  className={`p-2 hover:bg-gray-100 rounded-lg ${showImageGenerate ? 'bg-gray-100' : ''}`}
+  title="Image Generator Settings"
+>
+  <Settings className="w-5 h-5" />
+</button>
+
+<button
+  onClick={toggleUnsplash}
+  className={`p-2 hover:bg-gray-100 rounded-lg ${showUnsplash ? 'bg-gray-100' : ''}`}
+  title="Unsplash Images"
+>
+  <ImageIcon className="w-5 h-5" />
+</button>
+
+<button
+  onClick={toggleGallery}
+  className={`p-2 hover:bg-gray-100 rounded-lg ${showGallery ? 'bg-gray-100' : ''}`}
+  title="Generated Images"
+>
+  <ImagePlus className="w-5 h-5" />
+</button>
+</div>
+);
 };
+
+export default Toolbar;
