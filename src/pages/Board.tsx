@@ -23,10 +23,21 @@ export const Board = () => {
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const { 
+    showImageGenerate, 
+    showUnsplash, 
+    showGallery, 
+    toggleImageGenerate,  // This was missing
+    toggleUnsplash, 
+    toggleGallery 
+  } =
+    useStore();
+
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedRef = useRef<string>('');
+
   
   const shapes = useStore(state => state.shapes);
   const setShapes = useStore(state => state.setShapes);
@@ -191,11 +202,10 @@ export const Board = () => {
       <div ref={containerRef} className="w-screen h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 relative canvas-container">
         <Canvas />
         <Toolbar />
-        <UnsplashPanel />
-        <ImageGeneratePanel />
-        <GalleryPanel />
-        {isSaving && (
-          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
+        {showUnsplash && <UnsplashPanel onClose={toggleUnsplash} />}
+        {showImageGenerate && <ImageGeneratePanel onClose={toggleImageGenerate} />}
+        {showGallery && <GalleryPanel onClose={toggleGallery} refreshTrigger={0} />}
+        {isSaving && (          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
             Saving...
           </div>
         )}
@@ -204,3 +214,8 @@ export const Board = () => {
     </>
   );
 }
+
+function setShowImageGenerate(arg0: (prev: any) => boolean): void {
+  throw new Error('Function not implemented.');
+}
+

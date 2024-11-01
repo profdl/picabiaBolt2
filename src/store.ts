@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { CanvasState, Position, Shape } from './types';
 
 const MAX_HISTORY = 50;
-
 const initialState: CanvasState = {
   shapes: [],
   selectedShapes: [] as string[],
@@ -17,6 +16,9 @@ const initialState: CanvasState = {
   clipboard: [],
   currentColor: '#000000',
   strokeWidth: 2,
+  showImageGenerate: false,
+  showUnsplash: false,
+  showGallery: false,
 };
 
 export const useStore = create<BoardState>((set, get) => ({
@@ -177,4 +179,8 @@ export const useStore = create<BoardState>((set, get) => ({
 
   toggleGrid: () => set((state) => ({ gridEnabled: !state.gridEnabled })),
   setShowShortcuts: (show) => set({ showShortcuts: show }),
+  
+  toggleImageGenerate: () => set(state => ({ showImageGenerate: !state.showImageGenerate })),
+  toggleUnsplash: () => set(state => ({ showUnsplash: !state.showUnsplash })),
+  toggleGallery: () => set(state => ({ showGallery: !state.showGallery })),
 }));
