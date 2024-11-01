@@ -1,3 +1,5 @@
+
+
 import { Handler } from '@netlify/functions';
 import fetch from 'node-fetch';
 
@@ -55,7 +57,9 @@ export const handler: Handler = async (event) => {
       negativePrompt = 'blurry, bad quality, distorted',
       guidanceScale = 7.5,
       scheduler = 'DPMSolverMultistep',
-      seed = Math.floor(Math.random() * 1000000)
+      seed = Math.floor(Math.random() * 1000000),
+      image, // Added this line
+      prompt_strength // Added this line
     } = JSON.parse(event.body || '{}');
 
     if (!prompt) {
@@ -82,7 +86,9 @@ export const handler: Handler = async (event) => {
           steps,
           guidance_scale: guidanceScale,
           scheduler,
-          seed
+          seed,
+          ...(image && { image }), // Conditionally include image
+          ...(prompt_strength && { prompt_strength }) // Conditionally include prompt_strength
         }
       })
     });

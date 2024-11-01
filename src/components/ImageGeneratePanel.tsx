@@ -14,6 +14,7 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [galleryRefresh, setGalleryRefresh] = useState(0);
+  
   const [advancedSettings, setAdvancedSettings] = useState({
     negativePrompt: '',
     numInferenceSteps: 50,
@@ -23,6 +24,9 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
     steps: 30
   });
 
+  const [sourceImage, setSourceImage] = useState<string | null>(null);
+  const [promptStrength, setPromptStrength] = useState(0.8);
+  
   const { addShape, setTool, zoom, offset } = useStore((state) => ({
     addShape: state.addShape,
     setTool: state.setTool,
@@ -67,7 +71,9 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
         advancedSettings.negativePrompt,
         advancedSettings.guidanceScale,
         advancedSettings.scheduler,
-        advancedSettings.seed
+        advancedSettings.seed,
+        sourceImage,
+        promptStrength
       );
       console.log('Replicate generation successful:', imageUrl);
     
@@ -260,10 +266,61 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
                   </button>
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm text-gray-700">Source Image</label>
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        const reader = new FileReader()
+                        reader.onloadend = () => {
+                          setSourceImage(reader.result as string)
+                        }
+                        reader.readAsDataURL(file)
+                      }
+                    }}
+                    className="text-sm"
+                  />
+                  {sourceImage && (
+                    <div className="relative">
+                      <img 
+                        src={sourceImage} 
+                        alt="Source" 
+                        className="w-full h-auto rounded-md"
+                      />
+                      <button
+                        onClick={() => setSourceImage(null)}
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm text-gray-700">
+                  Prompt Strength ({promptStrength})
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={promptStrength}
+                  onChange={(e) => setPromptStrength(parseFloat(e.target.value))}
+                  className="w-full"
+                  disabled={!sourceImage}
+                />
+              </div>
             </div>
           )}
         </div>
-
         {renderPreview()}
       </div>
     </DraggablePanel>

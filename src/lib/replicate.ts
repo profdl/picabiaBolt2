@@ -12,10 +12,11 @@ export async function generateImage(
   negativePrompt: string,
   guidanceScale: number,
   scheduler: string,
-  seed: number
+  seed: number,
+  image?: string, // Base64 image data
+  promptStrength?: number
 ): Promise<string> {
   try {
-    // First, test if our functions are accessible
     const testResponse = await fetch('/.netlify/functions/test-endpoint');
     if (!testResponse.ok) {
       throw new Error('Image generation service is not available');
@@ -33,7 +34,9 @@ export async function generateImage(
         negativePrompt,
         guidanceScale,
         scheduler,
-        seed
+        seed,
+        image,
+        prompt_strength: promptStrength
       }),
     });
 

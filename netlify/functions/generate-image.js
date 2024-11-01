@@ -46,6 +46,8 @@ exports.handler = async (event) => {
       guidanceScale = 7.5,
       scheduler = "DPMSolverMultistep",
       seed = Math.floor(Math.random() * 1000000),
+      image,
+      prompt_strength,
     } = JSON.parse(event.body || "{}");
 
     if (!prompt) {
@@ -67,12 +69,15 @@ exports.handler = async (event) => {
         version: MODEL_VERSION,
         input: {
           prompt,
+
           negative_prompt: negativePrompt,
           aspect_ratio: aspectRatio,
           steps,
           guidance_scale: guidanceScale,
           scheduler,
           seed,
+          ...(image && { image }),
+          ...(prompt_strength && { prompt_strength }),
         },
       }),
     });
