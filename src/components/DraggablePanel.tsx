@@ -1,24 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
-
 interface DraggablePanelProps {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
   initialPosition?: 'left' | 'right';
+  initialY?: number;
 }
 
 export const DraggablePanel: React.FC<DraggablePanelProps> = ({ 
   title, 
   children, 
   onClose,
-  initialPosition = 'left'
+  initialPosition = 'left',
+  initialY = 72
 }) => {
   const getInitialPosition = () => {
     const windowWidth = window.innerWidth;
     return {
       x: initialPosition === 'right' ? windowWidth - 320 : 0,
-      y: 72
+      y: initialY
     };
   };
 
