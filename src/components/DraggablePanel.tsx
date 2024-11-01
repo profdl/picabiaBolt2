@@ -54,7 +54,7 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({
       }
       return () => resizeObserver.disconnect();
     }
-  }, [stackedTo]);
+  }, [stackedTo, updateStackedPosition]);
 
   const snapToEdgesAndPanels = (x: number, y: number) => {
     const panel = panelRef.current;
@@ -90,13 +90,9 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({
       // Vertical snapping
       if (Math.abs(x - otherRect.left) < SNAP_THRESHOLD) {
         x = otherRect.left;
-        // Snap to top or bottom
         if (Math.abs(y - (otherRect.bottom + 2)) < SNAP_THRESHOLD) {
           y = otherRect.bottom + 2;
           newStackedTo = el.getAttribute('data-panel-id');
-        }
-        if (Math.abs(y + rect.height - otherRect.top + 2) < SNAP_THRESHOLD) {
-          y = otherRect.top - rect.height - 2;
         }
       }
     });
