@@ -329,7 +329,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     fontSize: shape.fontSize || 16,
     padding: '8px',
     boxShadow: shape.type === 'sticky' ? '0 4px 6px rgba(0, 0, 0, 0.1)' : undefined,
-    overflow: isSelected ? 'visible' : 'hidden',
+    overflow: isSelected || shape.showPrompt ? 'visible' : 'hidden',
     transform: `rotate(${shape.rotation || 0}deg)`,
     transformOrigin: 'center center',
     transition: 'box-shadow 0.2s ease-in-out',
@@ -346,6 +346,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       tabIndex={0}
       className="group transition-shadow hover:shadow-xl relative"
     >
+      {/* Image and content rendering */}
       {shape.type === 'image' && shape.imageUrl ? (
         <img
           ref={imageRef}
@@ -372,9 +373,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
       ) : (
         shape.content
       )}
-
+      
+      {/* Selection controls */}
       {isSelected && !isEditing && tool === 'select' && (
         <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
+          {/* Rotate, resize, color picker controls */}
           <div
             className="absolute -right-2 -bottom-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-se-resize"
             style={{ zIndex: 101, pointerEvents: 'all' }}
@@ -400,46 +403,58 @@ export function ShapeComponent({ shape }: ShapeProps) {
             className="absolute -left-8 top-1/2 w-6 h-6 cursor-pointer transform -translate-y-1/2"
             style={{ zIndex: 101, pointerEvents: 'all' }}
           />
-          {shape.type === 'image' && (
-            <div
-              className="absolute left-1/2 -bottom-20 flex flex-col gap-2 bg-white p-2 rounded border border-gray-200 transform -translate-x-1/2"
-              style={{ zIndex: 101, pointerEvents: 'all' }}
+        </div>
+      )}
+
+      {/* Separate image prompt controls */}
+      {shape.type === 'image' && (shape.showPrompt || isSelected) && (
+        <div
+          className="absolute left-1/2 -bottom-20 flex flex-col gap-2 bg-white p-2 rounded border border-gray-200 transform -translate-x-1/2"
+          style={{ zIndex: 101, pointerEvents: 'all' }}
+        >
+          {/* Image prompt checkbox and slider */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={`prompt-${shape.id}`}
+              checked={shape.showPrompt}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  shapes.forEach(otherShape => {
+                    if (otherShape.type === 'image' && otherShape.showPrompt) {
+                      updateShape(otherShape.id, { showPrompt: false })
+                    }
+                  })
+                }
+                updateShape(shape.id, { showPrompt: e.target.checked })
+              }}
+              className="cursor-pointer"
+            />
+            <label 
+              htmlFor={`prompt-${shape.id}`}
+              className="text-sm text-gray-700 cursor-pointer whitespace-nowrap"
             >
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id={`prompt-${shape.id}`}
-                  checked={shape.showPrompt}
-                  onChange={(e) => updateShape(shape.id, { showPrompt: e.target.checked })}
-                  className="cursor-pointer"
-                />
-                <label 
-                  htmlFor={`prompt-${shape.id}`}
-                  className="text-sm text-gray-700 cursor-pointer whitespace-nowrap"
-                >
-                  Image Prompt
-                </label>
-              </div>
-              
-              {shape.showPrompt && (
-                <div className="space-y-1">
-                  <label className="block text-xs text-gray-600">
-                    Prompt Strength ({shape.promptStrength || 0.8})
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={shape.promptStrength || 0.8}
-                    onChange={(e) => updateShape(shape.id, { 
-                      promptStrength: parseFloat(e.target.value)
-                    })}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full"
-                  />
-                </div>
-              )}
+              Image Prompt
+            </label>
+          </div>
+          
+          {shape.showPrompt && (
+            <div className="space-y-1">
+              <label className="block text-xs text-gray-600">
+                Prompt Strength ({shape.promptStrength || 0.8})
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={shape.promptStrength || 0.8}
+                onChange={(e) => updateShape(shape.id, { 
+                  promptStrength: parseFloat(e.target.value)
+                })}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="w-full"
+              />
             </div>
           )}
         </div>
