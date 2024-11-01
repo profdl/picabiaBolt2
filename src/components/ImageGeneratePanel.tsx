@@ -1,58 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { DraggablePanel } from './DraggablePanel';
-import { generateImage } from '../lib/replicate';
-import { Sparkles, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useStore } from '../store';
-import { saveGeneratedImage } from '../lib/supabase';
-import { supabase } from '../lib/supabase';
-
 
 export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [prompt, setPrompt] = useState('');
-  const [aspectRatio, setAspectRatio] = useState('1:1');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [galleryRefresh, setGalleryRefresh] = useState(0);
-  
-  const [advancedSettings, setAdvancedSettings] = useState({
-    negativePrompt: '',
-    numInferenceSteps: 50,
-    guidanceScale: 7.5,
-    scheduler: 'DPMSolverMultistep',
-    seed: Math.floor(Math.random() * 1000000),
-    steps: 30
-  });
+  const {
+    aspectRatio,
+    setAspectRatio,
+    advancedSettings,
+    setAdvancedSettings,
+    isGenerating,
+    shapes
+  } = useStore();
 
-  const [sourceImage, setSourceImage] = useState<string | null>(null);
-  const [promptStrength, setPromptStrength] = useState(0.8);
-  
-  const { addShape, setTool, zoom, offset } = useStore((state) => ({
-    addShape: state.addShape,
-    setTool: state.setTool,
-    zoom: state.zoom,
-    offset: state.offset
-  }));
-  const shapes = useStore(state => state.shapes);
-
-
+  const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
 
   const ASPECT_RATIOS = [
     { label: 'Square (1:1)', value: '1:1' },
     { label: 'Landscape (16:9)', value: '16:9' },
     { label: 'Portrait (9:16)', value: '9:16' },
   ];
-
-  const getViewportCenter = () => {
-    const rect = document.querySelector('#root')?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    
-    return {
-      x: (rect.width / 2 - offset.x) / zoom,
-      y: (rect.height / 2 - offset.y) / zoom
-    };
-  };
 
   const renderPreview = () => {
     if (previewUrl) {
@@ -69,95 +38,14 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
     return null;
   };
 
-  const hasActivePrompt = prompt.trim() || 
-    shapes.some(shape => 
-      (shape.type === 'sticky' && shape.showPrompt && shape.content) || 
-      (shape.type === 'image' && shape.showPrompt)
-    );
-
-  const handleGenerate = async () => {
-    if (isGenerating) return;
-
-    const imageWithPrompt = shapes.find(
-      shape => shape.type === 'image' && shape.showPrompt
-    );
-
-    const stickyWithPrompt = shapes.find(
-      shape => shape.type === 'sticky' && shape.showPrompt
-    );
-
-    const promptToUse = stickyWithPrompt?.content;
-
-    if (!promptToUse) return;
-
-    setIsGenerating(true);
-    setError(null);
-
-    try {
-      const imageUrl = await generateImage(
-        promptToUse,
-        aspectRatio,
-        advancedSettings.steps,
-        advancedSettings.negativePrompt,
-        advancedSettings.guidanceScale,
-        advancedSettings.scheduler,
-        advancedSettings.seed,
-        imageWithPrompt?.imageUrl,
-        imageWithPrompt?.promptStrength || 0.8
-      );
-      console.log('Replicate generation successful:', imageUrl);
-  
-      console.log('Saving to Supabase...');
-      await saveGeneratedImage(imageUrl, promptToUse, aspectRatio);
-      console.log('Supabase save successful');
-  
-      setPreviewUrl(imageUrl);
-  
-      let width = 512;
-      let height = 512;
-  
-      const [w, h] = aspectRatio.split(':').map(Number);
-      if (w > h) {
-        height = (512 * h) / w;
-      } else if (h > w) {
-        width = (512 * w) / h;
-      }
-
-      const center = getViewportCenter();
-
-      addShape({
-        id: Math.random().toString(36).substr(2, 9),
-        type: 'image',
-        position: {
-          x: center.x - width / 2,
-          y: center.y - height / 2,
-        },
-        width,
-        height,
-        color: 'transparent',
-        imageUrl,
-        rotation: 0,
-        aspectRatio: width / height,
-      });
-      setTool('select');
-    } catch (error) {
-      console.log('Error occurred:', error);
-      setError(error.message || 'Failed to generate image');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleGenerate();
-    }
+  // Helper to update individual advanced settings
+  const updateAdvancedSetting = (key: keyof typeof advancedSettings, value: any) => {
+    setAdvancedSettings({ [key]: value });
   };
 
   return (
     <DraggablePanel 
-      title="Generate Image" 
+      title="Image Settings" 
       onClose={onClose}
       initialPosition="right"
     >
@@ -182,21 +70,6 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
           ))}
         </select>
 
-
-
-        <button
-          onClick={handleGenerate}
-          disabled={!hasActivePrompt || isGenerating}
-          className={`mt-3 w-full px-4 py-2 rounded-md text-white font-medium flex items-center justify-center gap-2 ${
-            isGenerating || !hasActivePrompt
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700'
-          }`}
-        >
-          <Sparkles className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
-          {isGenerating ? 'Generating...' : 'Generate'}
-        </button>
-
         <div className="mt-4 border-t border-gray-200 pt-4">
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
@@ -205,15 +78,17 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
             {showAdvanced ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             <span className="text-sm font-medium">Advanced Settings</span>
           </button>
+          
           {showAdvanced && (
             <div className="mt-3 space-y-3">
               <div className="space-y-2">
                 <label className="block text-sm text-gray-700">Negative Prompt</label>
                 <textarea
                   value={advancedSettings.negativePrompt}
-                  onChange={(e) => setAdvancedSettings({...advancedSettings, negativePrompt: e.target.value})}
+                  onChange={(e) => updateAdvancedSetting('negativePrompt', e.target.value)}
                   className="w-full h-20 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   placeholder="Elements to exclude from the generation..."
+                  disabled={isGenerating}
                 />
               </div>
 
@@ -224,21 +99,25 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
                   min="10"
                   max="150"
                   value={advancedSettings.steps}
-                  onChange={(e) => setAdvancedSettings({...advancedSettings, steps: parseInt(e.target.value)})}
+                  onChange={(e) => updateAdvancedSetting('steps', parseInt(e.target.value))}
                   className="w-full"
+                  disabled={isGenerating}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm text-gray-700">Guidance Scale ({advancedSettings.guidanceScale})</label>
+                <label className="block text-sm text-gray-700">
+                  Guidance Scale ({advancedSettings.guidanceScale})
+                </label>
                 <input
                   type="range"
                   min="1"
                   max="20"
                   step="0.1"
                   value={advancedSettings.guidanceScale}
-                  onChange={(e) => setAdvancedSettings({...advancedSettings, guidanceScale: parseFloat(e.target.value)})}
+                  onChange={(e) => updateAdvancedSetting('guidanceScale', parseFloat(e.target.value))}
                   className="w-full"
+                  disabled={isGenerating}
                 />
               </div>
 
@@ -246,8 +125,9 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
                 <label className="block text-sm text-gray-700">Scheduler</label>
                 <select
                   value={advancedSettings.scheduler}
-                  onChange={(e) => setAdvancedSettings({...advancedSettings, scheduler: e.target.value})}
+                  onChange={(e) => updateAdvancedSetting('scheduler', e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={isGenerating}
                 >
                   <option value="DPMSolverMultistep">DPM Solver Multistep</option>
                   <option value="DDIM">DDIM</option>
@@ -263,12 +143,14 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
                   <input
                     type="number"
                     value={advancedSettings.seed}
-                    onChange={(e) => setAdvancedSettings({...advancedSettings, seed: parseInt(e.target.value)})}
+                    onChange={(e) => updateAdvancedSetting('seed', parseInt(e.target.value))}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={isGenerating}
                   />
                   <button
-                    onClick={() => setAdvancedSettings({...advancedSettings, seed: Math.floor(Math.random() * 1000000)})}
+                    onClick={() => updateAdvancedSetting('seed', Math.floor(Math.random() * 1000000))}
                     className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                    disabled={isGenerating}
                   >
                     🎲
                   </button>
@@ -277,9 +159,19 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
             </div>
           )}
         </div>
+
         {renderPreview()}
+
+        <div className="mt-4 text-sm text-gray-500">
+          {shapes.some(shape => shape.type === 'sticky' && shape.showPrompt) ? (
+            <p>✓ Prompt sticky note selected</p>
+          ) : (
+            <p>Select a sticky note and enable prompting to generate an image</p>
+          )}
+        </div>
       </div>
     </DraggablePanel>
   );
-  };
-  export default ImageGeneratePanel;
+};
+
+export default ImageGeneratePanel;

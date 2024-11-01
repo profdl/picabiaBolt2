@@ -1,10 +1,76 @@
 import { create } from 'zustand';
 import { CanvasState, Position, Shape } from './types';
+import { generateImage } from './lib/replicate';
+import { saveGeneratedImage } from './lib/supabase';
+
+interface BoardState extends CanvasState {
+  shapes: Shape[];
+  selectedShapes: string[];
+  zoom: number;
+  offset: Position;
+  isDragging: boolean;
+  tool: 'select' | 'pan' | 'pen';
+  history: Shape[][];
+  historyIndex: number;
+  gridEnabled: boolean;
+  gridSize: number;
+  clipboard: Shape[];
+  currentColor: string;
+  strokeWidth: number;
+  showImageGenerate: boolean;
+  showUnsplash: boolean;
+  showGallery: boolean;
+  showShortcuts: boolean;
+  isGenerating: boolean;
+  aspectRatio: string;
+  error: string | null;
+  setError: (error: string | null) => void;
+  advancedSettings: {
+    negativePrompt: string;
+    numInferenceSteps: number;
+    guidanceScale: number;
+    scheduler: string;
+    seed: number;
+    steps: number;
+  };
+  
+  // Methods
+  resetState: () => void;
+  setShapes: (shapes: Shape[]) => void;
+  addShape: (shape: Shape) => void;
+  addShapes: (shapes: Shape[]) => void;
+  updateShape: (id: string, props: Partial<Shape>) => void;
+  updateShapes: (updates: { id: string; shape: Partial<Shape> }[]) => void;
+  deleteShape: (id: string) => void;
+  deleteShapes: (ids: string[]) => void;
+  setSelectedShapes: (ids: string[]) => void;
+  setZoom: (zoom: number) => void;
+  setOffset: (offset: Position) => void;
+  setIsDragging: (isDragging: boolean) => void;
+  setTool: (tool: 'select' | 'pan' | 'pen') => void;
+  setCurrentColor: (color: string) => void;
+  setStrokeWidth: (width: number) => void;
+  copyShapes: () => void;
+  cutShapes: () => void;
+  pasteShapes: (offset?: Position) => void;
+  undo: () => void;
+  redo: () => void;
+  toggleGrid: () => void;
+  setShowShortcuts: (show: boolean) => void;
+  toggleImageGenerate: () => void;
+  toggleUnsplash: () => void;
+  toggleGallery: () => void;
+  setIsGenerating: (isGenerating: boolean) => void;
+  setAspectRatio: (ratio: string) => void;
+  setAdvancedSettings: (settings: Partial<BoardState['advancedSettings']>) => void;
+  handleGenerate: () => Promise<void>;
+}
 
 const MAX_HISTORY = 50;
-const initialState: CanvasState = {
+
+const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never }> = {
   shapes: [],
-  selectedShapes: [] as string[],
+  selectedShapes: [],
   zoom: 1,
   offset: { x: 0, y: 0 },
   isDragging: false,
@@ -19,11 +85,32 @@ const initialState: CanvasState = {
   showImageGenerate: false,
   showUnsplash: false,
   showGallery: false,
+  showShortcuts: false,
+  isGenerating: false,
+  aspectRatio: '1:1',
+  error: null,
+  advancedSettings: {
+    negativePrompt: '',
+    numInferenceSteps: 50,
+    guidanceScale: 7.5,
+    scheduler: 'DPMSolverMultistep',
+    seed: Math.floor(Math.random() * 1000000),
+    steps: 30
+  }
+};
+
+const getViewportCenter = (currentState: typeof initialState) => {
+  const rect = document.querySelector('#root')?.getBoundingClientRect();
+  if (!rect) return { x: 0, y: 0 };
+  
+  return {
+    x: (rect.width / 2 - currentState.offset.x) / currentState.zoom,
+    y: (rect.height / 2 - currentState.offset.y) / currentState.zoom
+  };
 };
 
 export const useStore = create<BoardState>((set, get) => ({
   ...initialState,
-  showShortcuts: false,
 
   resetState: () => set(initialState),
 
@@ -36,17 +123,16 @@ export const useStore = create<BoardState>((set, get) => ({
     });
   },
 
-  // Rest of the store implementation remains unchanged...
   addShape: (shape: Shape) => {
     set(state => {
       const newShapes = [...state.shapes, shape];
       return {
         shapes: newShapes,
-        tool: shape.type === 'drawing' ? state.tool : 'select', // Keep pen tool active for drawings
+        tool: shape.type === 'drawing' ? state.tool : 'select',
         history: [...state.history.slice(0, state.historyIndex + 1), newShapes],
         historyIndex: state.historyIndex + 1
       };
-    })
+    });
   },
 
   addShapes: (newShapes: Shape[]) => {
@@ -178,9 +264,122 @@ export const useStore = create<BoardState>((set, get) => ({
   },
 
   toggleGrid: () => set((state) => ({ gridEnabled: !state.gridEnabled })),
-  setShowShortcuts: (show) => set({ showShortcuts: show }),
-  
+  setShowShortcuts: (show: boolean) => set({ showShortcuts: show }),
   toggleImageGenerate: () => set(state => ({ showImageGenerate: !state.showImageGenerate })),
   toggleUnsplash: () => set(state => ({ showUnsplash: !state.showUnsplash })),
   toggleGallery: () => set(state => ({ showGallery: !state.showGallery })),
+  
+  // New image generation related methods
+  setIsGenerating: (isGenerating: boolean) => set({ isGenerating }),
+  setAspectRatio: (ratio: string) => set({ aspectRatio: ratio }),
+  setAdvancedSettings: (settings: Partial<BoardState['advancedSettings']>) => 
+    set(state => ({ 
+      advancedSettings: { ...state.advancedSettings, ...settings } 
+    })),
+
+  setError: (error: string | null) => set({ error }),
+
+  handleGenerate: async () => {
+    const state = get();
+    const { shapes, aspectRatio, advancedSettings } = state;
+    
+    const imageWithPrompt = shapes.find(
+      shape => shape.type === 'image' && shape.showPrompt
+    );
+  
+    const stickyWithPrompt = shapes.find(
+      shape => shape.type === 'sticky' && shape.showPrompt && shape.content
+    );
+  
+    const promptToUse = stickyWithPrompt?.content;
+  
+    if (!promptToUse) {
+      set({ error: 'No prompt selected. Please select a sticky note with a prompt.' });
+      return;
+    }
+  
+    set({ isGenerating: true, error: null });
+  
+    try {
+      // Retry the generation up to 3 times
+      let imageUrl: string | null = null;
+      let lastError: Error | null = null;
+      
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          imageUrl = await generateImage(
+            promptToUse,
+            aspectRatio,
+            advancedSettings.steps,
+            advancedSettings.negativePrompt,
+            advancedSettings.guidanceScale,
+            advancedSettings.scheduler,
+            advancedSettings.seed,
+            imageWithPrompt?.imageUrl,
+            imageWithPrompt?.promptStrength || 0.8
+          );
+          break; // If successful, exit the retry loop
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error('Failed to generate image');
+          if (attempt < 2) {
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+            continue;
+          }
+          throw lastError;
+        }
+      }
+
+      if (!imageUrl) {
+        throw new Error('Failed to generate image after multiple attempts');
+      }
+
+      // Try to save the generated image
+      try {
+        await saveGeneratedImage(imageUrl, promptToUse, aspectRatio);
+      } catch (error) {
+        console.error('Error saving image:', error);
+        // Continue even if saving fails - we can still show the image
+      }
+
+      // Calculate dimensions
+      let width = 512;
+      let height = 512;
+      
+      const [w, h] = aspectRatio.split(':').map(Number);
+      if (w > h) {
+        height = (512 * h) / w;
+      } else if (h > w) {
+        width = (512 * w) / h;
+      }
+    // Use current state for center calculation
+    const center = getViewportCenter(state);
+
+state.addShape({
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'image',
+      position: {
+        x: center.x - width / 2,
+        y: center.y - height / 2,
+      },
+      width,
+      height,
+      color: 'transparent',
+      imageUrl,
+      rotation: 0,
+      aspectRatio: width / height,
+    });
+    state.setTool('select');
+    } catch (error) {
+      console.error('Error generating image:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate image';
+      set({ 
+        error: errorMessage.includes('timeout') 
+          ? 'Image generation is taking longer than expected. Please try again or reduce the number of steps.'
+          : errorMessage 
+      });
+    } finally {
+      set({ isGenerating: false });
+    }
+  }
 }));
