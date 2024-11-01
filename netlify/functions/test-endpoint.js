@@ -1,27 +1,11 @@
-const fetch = require('node-fetch');
-
-exports.handler = async (event) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'application/json'
-  };
-
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 204,
-      headers,
-      body: ''
-    };
-  }
-
+export async function handler(event) {
   return {
     statusCode: 200,
-    headers,
-    body: JSON.stringify({
-      message: 'Test endpoint working!',
-      timestamp: new Date().toISOString()
-    })
+    headers: {
+      "Access-Control-Allow-Origin": "https://picabia.ai",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    },
+    body: JSON.stringify({ message: "Success" }),
   };
-};
+}
