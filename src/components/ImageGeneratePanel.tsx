@@ -36,11 +36,7 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
   }));
   const shapes = useStore(state => state.shapes);
 
-  const hasActivePrompt = prompt.trim() || 
-    shapes.some(shape => 
-      (shape.type === 'sticky' && shape.showPrompt && shape.content) || 
-      (shape.type === 'image' && shape.showPrompt)
-    );
+
 
   const ASPECT_RATIOS = [
     { label: 'Square (1:1)', value: '1:1' },
@@ -73,6 +69,12 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
     return null;
   };
 
+  const hasActivePrompt = prompt.trim() || 
+    shapes.some(shape => 
+      (shape.type === 'sticky' && shape.showPrompt && shape.content) || 
+      (shape.type === 'image' && shape.showPrompt)
+    );
+
   const handleGenerate = async () => {
     if (isGenerating) return;
 
@@ -84,7 +86,7 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
       shape => shape.type === 'sticky' && shape.showPrompt
     );
 
-    const promptToUse = stickyWithPrompt?.content || prompt.trim();
+    const promptToUse = stickyWithPrompt?.content;
 
     if (!promptToUse) return;
 
@@ -138,7 +140,6 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
         aspectRatio: width / height,
       });
       setTool('select');
-      setPrompt('');
     } catch (error) {
       console.log('Error occurred:', error);
       setError(error.message || 'Failed to generate image');
@@ -181,14 +182,7 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
           ))}
         </select>
 
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Describe the image you want to generate..."
-          className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-          disabled={isGenerating}
-        />
+
 
         <button
           onClick={handleGenerate}
