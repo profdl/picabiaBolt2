@@ -4,6 +4,7 @@ import { generateImage } from '../lib/replicate';
 import { Sparkles, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useStore } from '../store';
 import { saveGeneratedImage } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 
 export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -35,6 +36,12 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
   }));
   const shapes = useStore(state => state.shapes);
 
+  const hasActivePrompt = prompt.trim() || 
+    shapes.some(shape => 
+      (shape.type === 'sticky' && shape.showPrompt && shape.content) || 
+      (shape.type === 'image' && shape.showPrompt)
+    );
+
   const ASPECT_RATIOS = [
     { label: 'Square (1:1)', value: '1:1' },
     { label: 'Landscape (16:9)', value: '16:9' },
@@ -51,26 +58,42 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
     };
   };
 
-  const handleGenerate = async () => {
-    if (!prompt.trim() || isGenerating) return;
-  
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      setError('Please sign in to generate and save images');
-      return;
+  const renderPreview = () => {
+    if (previewUrl) {
+      return (
+        <div className="mt-3 rounded-md overflow-hidden border border-gray-200">
+          <img 
+            src={previewUrl} 
+            alt="Generated preview" 
+            className="w-full h-auto object-cover"
+          />
+        </div>
+      );
     }
-  
-    setIsGenerating(true);
-    setError(null);
+    return null;
+  };
+
+  const handleGenerate = async () => {
+    if (isGenerating) return;
 
     const imageWithPrompt = shapes.find(
       shape => shape.type === 'image' && shape.showPrompt
     );
 
+    const stickyWithPrompt = shapes.find(
+      shape => shape.type === 'sticky' && shape.showPrompt
+    );
+
+    const promptToUse = stickyWithPrompt?.content || prompt.trim();
+
+    if (!promptToUse) return;
+
+    setIsGenerating(true);
+    setError(null);
+
     try {
-      console.log('Starting image generation with Replicate...');
       const imageUrl = await generateImage(
-        prompt.trim(),
+        promptToUse,
         aspectRatio,
         advancedSettings.steps,
         advancedSettings.negativePrompt,
@@ -81,16 +104,16 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
         imageWithPrompt?.promptStrength || 0.8
       );
       console.log('Replicate generation successful:', imageUrl);
-    
+  
       console.log('Saving to Supabase...');
-      await saveGeneratedImage(imageUrl, prompt.trim(), aspectRatio);
+      await saveGeneratedImage(imageUrl, promptToUse, aspectRatio);
       console.log('Supabase save successful');
-    
+  
       setPreviewUrl(imageUrl);
-    
+  
       let width = 512;
       let height = 512;
-    
+  
       const [w, h] = aspectRatio.split(':').map(Number);
       if (w > h) {
         height = (512 * h) / w;
@@ -122,20 +145,6 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
     } finally {
       setIsGenerating(false);
     }
-  };
-  const renderPreview = () => {
-    if (previewUrl) {
-      return (
-        <div className="mt-3 rounded-md overflow-hidden border border-gray-200">
-          <img 
-            src={previewUrl} 
-            alt="Generated preview" 
-            className="w-full h-auto object-cover"
-          />
-        </div>
-      );
-    }
-    return null;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -183,9 +192,9 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
 
         <button
           onClick={handleGenerate}
-          disabled={!prompt.trim() || isGenerating}
+          disabled={!hasActivePrompt || isGenerating}
           className={`mt-3 w-full px-4 py-2 rounded-md text-white font-medium flex items-center justify-center gap-2 ${
-            isGenerating || !prompt.trim()
+            isGenerating || !hasActivePrompt
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-blue-600 hover:bg-blue-700'
           }`}
@@ -271,13 +280,12 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
                   </button>
                 </div>
               </div>
-  </div>
+            </div>
           )}
         </div>
         {renderPreview()}
       </div>
     </DraggablePanel>
   );
-};
-
-import { supabase } from '../lib/supabase';
+  };
+  export default ImageGeneratePanel;
