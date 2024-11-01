@@ -54,6 +54,7 @@ export const GalleryPanel: React.FC<{ onClose: () => void; refreshTrigger?: numb
 
     fetchImages();
   }, [refreshTrigger]);
+
   const handleImageClick = (image: SavedImage) => {
     const center = {
       x: (window.innerWidth / 2 - offset.x) / zoom,
@@ -74,11 +75,30 @@ export const GalleryPanel: React.FC<{ onClose: () => void; refreshTrigger?: numb
       rotation: 0
     });
   };
+
+  const getInitialPosition = () => {
+    const imageGeneratePanel = document.querySelector('[data-panel-id^="panel-"]');
+    if (imageGeneratePanel) {
+      const rect = imageGeneratePanel.getBoundingClientRect();
+      return {
+        x: rect.left,
+        y: rect.bottom + 2
+      };
+    }
+    
+    // Fallback position on the right side if ImageGeneratePanel is not found
+    return {
+      x: window.innerWidth - 320,
+      y: 72
+    };
+  };
+
   return (
     <DraggablePanel 
-      title="Generated Images" 
+      title="Gallery" 
       onClose={onClose}
       initialPosition="right"
+      initialY={460}
     >
       <div className="grid grid-cols-2 gap-4 p-4">
         {loading ? (
