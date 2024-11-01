@@ -1,9 +1,8 @@
-import React from 'react';
-import { DraggablePanel } from './DraggablePanel';
+import React, { useRef, useState, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { useStore } from '../store';
 
-export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+export const ImageGeneratePanel: React.FC = () => {
   const {
     aspectRatio,
     setAspectRatio,
@@ -14,38 +13,16 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
   } = useStore();
 
   const [error, setError] = React.useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
-
-  const ASPECT_RATIOS = [
-    { label: 'Square (1:1)', value: '1:1' },
-    { label: 'Landscape (16:9)', value: '16:9' },
-    { label: 'Portrait (9:16)', value: '9:16' },
-  ];
-
-  const renderPreview = () => {
-    if (previewUrl) {
-      return (
-        <div className="mt-3 rounded-md overflow-hidden border border-gray-200">
-          <img 
-            src={previewUrl} 
-            alt="Generated preview" 
-            className="w-full h-auto object-cover"
-          />
-        </div>
-      );
-    }
-    return null;
-  };
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const updateAdvancedSetting = (key: keyof typeof advancedSettings, value: any) => {
     setAdvancedSettings({ [key]: value });
   };
 
   return (
-    <DraggablePanel 
-      title="Image Settings" 
-      onClose={onClose}
-      initialPosition="right"
+    <div 
+      ref={panelRef}
+      className="absolute bottom-full right-0 mb-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200"
     >
       <div className="p-4 space-y-4">
         {error && (
@@ -63,11 +40,9 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={isGenerating}
           >
-            {ASPECT_RATIOS.map(({ label, value }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
+            <option value="1:1">Square (1:1)</option>
+            <option value="16:9">Landscape (16:9)</option>
+            <option value="9:16">Portrait (9:16)</option>
           </select>
         </div>
 
@@ -146,19 +121,7 @@ export const ImageGeneratePanel: React.FC<{ onClose: () => void }> = ({ onClose 
             </button>
           </div>
         </div>
-
-        {renderPreview()}
-
-        <div className="text-sm text-gray-500">
-          {shapes.some(shape => shape.type === 'sticky' && shape.showPrompt) ? (
-            <p>✓ Prompt sticky note selected</p>
-          ) : (
-            <p>Select a sticky note and enable prompting to generate an image</p>
-          )}
-        </div>
       </div>
-    </DraggablePanel>
+    </div>
   );
 };
-
-export default ImageGeneratePanel;
