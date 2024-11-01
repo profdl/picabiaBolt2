@@ -74,9 +74,12 @@ export const GalleryPanel: React.FC<{ onClose: () => void; refreshTrigger?: numb
       rotation: 0
     });
   };
-
   return (
-    <DraggablePanel title="Generated Images" onClose={onClose}>
+    <DraggablePanel 
+      title="Generated Images" 
+      onClose={onClose}
+      initialPosition="right"
+    >
       <div className="grid grid-cols-2 gap-4 p-4">
         {loading ? (
           <div className="col-span-2 text-center">Loading images...</div>
