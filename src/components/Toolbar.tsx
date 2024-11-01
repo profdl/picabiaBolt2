@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store';
 import { Position } from '../types';
+import { useState, useRef } from 'react';
+import { ImageGeneratePanel } from './ImageGeneratePanel';
 
 const UnsplashIcon = () => (
   <svg 
@@ -30,6 +32,46 @@ const UnsplashIcon = () => (
     <path d="M10 9V0h12v9H10zm12 5h10v18H0V14h10v9h12v-9z" />
   </svg>
 );
+
+const SettingsButton = () => {
+  const [showPanel, setShowPanel] = useState(false);
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setShowPanel(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setShowPanel(false);
+    }, 300); // Small delay to allow moving to panel
+  };
+
+  return (
+    <div 
+      ref={buttonRef}
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <button
+        className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${
+          showPanel ? 'bg-gray-100' : ''
+        }`}
+        title="Image Generator Settings"
+      >
+        <Settings className="w-5 h-5" />
+        <span className="text-sm font-medium">Settings</span>
+      </button>
+      
+      {showPanel && <ImageGeneratePanel />}
+    </div>
+  );
+};
 
 interface ToolbarProps {
   onShowImageGenerate: () => void;
@@ -276,15 +318,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <span className="text-sm font-medium">Generate</span>
           </button>
 
-          <button
-            onClick={toggleImageGenerate}
-            className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${showImageGenerate ? 'bg-gray-100' : ''}`}
-            title="Image Generator Settings"
-          >
-            <Settings className="w-5 h-5" />
-            <span className="text-sm font-medium">Settings</span>
-          </button>
-        </div>
+          <SettingsButton />
 
         {/* Right-aligned Gallery button */}
         <div>
@@ -299,6 +333,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
       </div>
     </div>
+  </div>
   );
 };
 
