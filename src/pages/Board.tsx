@@ -204,8 +204,13 @@ export const Board = () => {
         <Toolbar />
         {showUnsplash && <UnsplashPanel onClose={toggleUnsplash} />}
         {showImageGenerate && <ImageGeneratePanel onClose={toggleImageGenerate} />}
-        {showGallery && <GalleryPanel onClose={toggleGallery} refreshTrigger={0} />}
-        {isSaving && (          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
+        {showGallery && (
+  <GalleryPanel 
+    isOpen={showGallery} 
+    onClose={toggleGallery} 
+    refreshTrigger={0} 
+  />
+)}        {isSaving && (          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
             Saving...
           </div>
         )}
