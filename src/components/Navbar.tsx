@@ -73,27 +73,13 @@ export const Navbar = () => {
                 </>
               )}
             </div>
-
             {user ? (
               <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600">{user.email}</span>
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                  {user.avatarUrl ? (
-                    <img
-                      src={user.avatarUrl}
-                      alt={user.email}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    <User className="w-4 h-4 text-gray-600" />
-                  )}
-                </div>
                 <button
                   onClick={logout}
-                  className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-gray-900"
-                  title="Logout"
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md text-sm font-medium"
                 >
-                  <LogOut className="w-5 h-5" />
+                  Sign Out
                 </button>
                 <button
                   onClick={() => setShowShortcuts(!showShortcuts)}

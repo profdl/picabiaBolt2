@@ -16,23 +16,27 @@ import {
   Loader2,
   Upload,
   Grid,
-  Plus
+  Plus,
+  Brush,
+  Palette
 } from 'lucide-react';
 import { useStore } from '../store';
 import { Position } from '../types';
 import { useState, useRef } from 'react';
 import { ImageGeneratePanel } from './ImageGeneratePanel';
+import { useEffect } from 'react';
+
+
 
 const AssetsButton = () => {
   const showAssets = useStore(state => state.showAssets);
   const toggleAssets = useStore(state => state.toggleAssets);
-  
+
   return (
     <button
       onClick={toggleAssets}
-      className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${
-        showAssets ? 'bg-gray-100' : ''
-      }`}
+      className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${showAssets ? 'bg-gray-100' : ''
+        }`}
       title="Asset Library"
     >
       <ImageIcon className="w-5 h-5" />
@@ -40,6 +44,7 @@ const AssetsButton = () => {
     </button>
   );
 };
+
 
 
 const UploadButton = ({ addShape, getViewportCenter }) => {
@@ -52,7 +57,7 @@ const UploadButton = ({ addShape, getViewportCenter }) => {
       reader.onload = (event) => {
         const imageUrl = event.target?.result as string;
         const center = getViewportCenter();
-        
+
         addShape({
           id: Math.random().toString(36).substr(2, 9),
           type: 'image',
@@ -124,26 +129,26 @@ const SettingsButton = () => {
   };
 
   return (
-    <div 
+    <div
       ref={buttonRef}
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       <button
-        className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${
-          showPanel ? 'bg-gray-100' : ''
-        }`}
+        className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${showPanel ? 'bg-gray-100' : ''
+          }`}
         title="Image Generator Settings"
       >
         <Settings className="w-5 h-5" />
         <span className="text-sm font-medium">Settings</span>
       </button>
-      
+
       {showPanel && <ImageGeneratePanel />}
     </div>
   );
 };
+
 
 interface ToolbarProps {
   onShowImageGenerate: () => void;
@@ -180,28 +185,56 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     toggleGallery,
     handleGenerate,
     isGenerating,
-    shapes
+    shapes,
+    brushSize,
+    setBrushSize,
+    brushOpacity,
+    setBrushOpacity,
   } = useStore();
 
-  const hasActivePrompt = shapes.some(shape => 
-    (shape.type === 'sticky' && shape.showPrompt && shape.content) || 
+  const hasActivePrompt = shapes.some(shape =>
+    (shape.type === 'sticky' && shape.showPrompt && shape.content) ||
     (shape.type === 'image' && shape.showPrompt)
   );
+
 
   const getViewportCenter = () => {
     const rect = document.querySelector('#root')?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
-    
+
     return {
       x: (rect.width / 2 - offset.x) / zoom,
       y: (rect.height / 2 - offset.y) / zoom
     };
   };
 
-  const handleAddShape = (type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image') => {
-    const baseColor = type === 'sticky' ? '#fff9c4' : '#' + Math.floor(Math.random()*16777215).toString(16);
+  useEffect(() => {
+    console.log('Current tool:', tool);
+  }, [tool]);
+
+  const handleAddShape = (type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'canvas') => {
+    if (type === 'canvas') {
+      const center = getViewportCenter();
+      addShape({
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'canvas',
+        position: {
+          x: center.x - 256,
+          y: center.y - 256
+        },
+        width: 512,
+        height: 512,
+        color: '#ffffff',
+        rotation: 0,
+        locked: true // Prevents rotation/scaling
+      });
+      setTool('select');
+      return;
+    }
+
+    const baseColor = type === 'sticky' ? '#fff9c4' : '#' + Math.floor(Math.random() * 16777215).toString(16);
     const center = getViewportCenter();
-    
+
     if (type === 'image') {
       const url = window.prompt('Enter image URL:');
       if (!url) return;
@@ -306,7 +339,45 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               <div className="w-px bg-gray-200 mx-2" />
             </>
           )}
-
+          <button
+            onClick={() => {
+              setTool('brush');
+            }}
+            className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'brush' ? 'bg-gray-100' : ''}`}
+            title="Brush Tool (B)"
+          >
+            <Brush className="w-5 h-5" />
+          </button>
+          {/* Brush Tool */}
+          {tool === 'brush' && (
+            <>
+              <input
+                type="range"
+                value={brushSize}
+                onChange={(e) => setBrushSize(Number(e.target.value))}
+                min="1"
+                max="100"
+                title="Brush Size"
+              />
+              <input
+                type="range"
+                value={brushOpacity}
+                onChange={(e) => setBrushOpacity(Number(e.target.value))}
+                min="0"
+                max="1"
+                step="0.1"
+                title="Brush Opacity"
+              />
+            </>
+          )}
+          {/* Canvas */}
+          <button
+            onClick={() => handleAddShape('canvas')}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+            title="Add Canvas"
+          >
+            <Palette className="w-5 h-5" />
+          </button>
           {/* Shape Tools */}
           {/* <button
             onClick={() => handleAddShape('rectangle')}
@@ -355,6 +426,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           >
             <ZoomOut className="w-5 h-5" />
           </button>
+
           <div className="px-2 flex items-center text-sm text-gray-600">
             {Math.round(zoom * 100)}%
           </div>
@@ -365,11 +437,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             onClick={handleGenerate}
             disabled={!hasActivePrompt || isGenerating}
-            className={`p-2 rounded-lg flex items-center gap-1 ${
-              hasActivePrompt && !isGenerating
-                ? 'hover:bg-blue-50 text-blue-600 hover:text-blue-700'
-                : 'opacity-50 cursor-not-allowed text-gray-400'
-            }`}
+            className={`p-2 rounded-lg flex items-center gap-1 ${hasActivePrompt && !isGenerating
+              ? 'hover:bg-blue-50 text-blue-600 hover:text-blue-700'
+              : 'opacity-50 cursor-not-allowed text-gray-400'
+              }`}
             title={
               !hasActivePrompt
                 ? 'Select a sticky note and enable prompting to generate'
@@ -385,7 +456,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
 
           <SettingsButton />
-          </div>
+        </div>
         {/* Right-aligned Gallery button */}
         <div>
           <button
@@ -398,9 +469,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
         </div>
       </div>
-   
-  </div>
+
+    </div>
   );
 };
 
 export default Toolbar;
+
+

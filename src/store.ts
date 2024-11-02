@@ -9,7 +9,7 @@ interface BoardState extends CanvasState {
   zoom: number;
   offset: Position;
   isDragging: boolean;
-  tool: 'select' | 'pan' | 'pen';
+  tool: 'select' | 'pan' | 'pen' | 'brush';
   history: Shape[][];
   historyIndex: number;
   gridEnabled: boolean;
@@ -25,7 +25,10 @@ interface BoardState extends CanvasState {
   aspectRatio: string;
   error: string | null;
   showAssets: boolean;
-  setError: (error: string | null) => void;
+  brushSize: number;
+  brushOpacity: number;
+
+
   advancedSettings: {
     negativePrompt: string;
     numInferenceSteps: number;
@@ -33,8 +36,9 @@ interface BoardState extends CanvasState {
     scheduler: string;
     seed: number;
     steps: number;
+
   };
-  
+
   // Methods
   resetState: () => void;
   setShapes: (shapes: Shape[]) => void;
@@ -48,7 +52,7 @@ interface BoardState extends CanvasState {
   setZoom: (zoom: number) => void;
   setOffset: (offset: Position) => void;
   setIsDragging: (isDragging: boolean) => void;
-  setTool: (tool: 'select' | 'pan' | 'pen') => void;
+  setTool: (tool: 'select' | 'pan' | 'pen' | 'brush') => void;
   setCurrentColor: (color: string) => void;
   setStrokeWidth: (width: number) => void;
   copyShapes: () => void;
@@ -66,6 +70,9 @@ interface BoardState extends CanvasState {
   setAspectRatio: (ratio: string) => void;
   setAdvancedSettings: (settings: Partial<BoardState['advancedSettings']>) => void;
   handleGenerate: () => Promise<void>;
+  setError: (error: string | null) => void;
+  setBrushSize: (size: number) => void;
+  setBrushOpacity: (opacity: number) => void;
 }
 
 const MAX_HISTORY = 50;
@@ -100,13 +107,15 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
     scheduler: 'DPMSolverMultistep',
     seed: Math.floor(Math.random() * 1000000),
     steps: 30
-  }
+  },
+  brushSize: 30,
+  brushOpacity: 1,
 };
 
 const getViewportCenter = (currentState: typeof initialState) => {
   const rect = document.querySelector('#root')?.getBoundingClientRect();
   if (!rect) return { x: 0, y: 0 };
-  
+
   return {
     x: (rect.width / 2 - currentState.offset.x) / currentState.zoom,
     y: (rect.height / 2 - currentState.offset.y) / currentState.zoom
@@ -200,10 +209,11 @@ export const useStore = create<BoardState>((set, get) => ({
   setZoom: (zoom: number) => set({ zoom }),
   setOffset: (offset: Position) => set({ offset }),
   setIsDragging: (isDragging: boolean) => set({ isDragging }),
-  setTool: (tool: 'select' | 'pan' | 'pen') => set({ tool }),
+  setTool: (tool: 'select' | 'pan' | 'pen' | 'brush') => set({ tool }),
   setCurrentColor: (color: string) => set({ currentColor: color }),
   setStrokeWidth: (width: number) => set({ strokeWidth: width }),
-
+  setBrushSize: (size: number) => set({ brushSize: size }),
+  setBrushOpacity: (opacity: number) => set({ brushOpacity: opacity }),
   copyShapes: () => {
     const { shapes, selectedShapes } = get();
     const shapesToCopy = shapes.filter((shape) => selectedShapes.includes(shape.id));
@@ -276,9 +286,9 @@ export const useStore = create<BoardState>((set, get) => ({
   // New image generation related methods
   setIsGenerating: (isGenerating: boolean) => set({ isGenerating }),
   setAspectRatio: (ratio: string) => set({ aspectRatio: ratio }),
-  setAdvancedSettings: (settings: Partial<BoardState['advancedSettings']>) => 
-    set(state => ({ 
-      advancedSettings: { ...state.advancedSettings, ...settings } 
+  setAdvancedSettings: (settings: Partial<BoardState['advancedSettings']>) =>
+    set(state => ({
+      advancedSettings: { ...state.advancedSettings, ...settings }
     })),
 
   setError: (error: string | null) => set({ error }),
@@ -286,29 +296,29 @@ export const useStore = create<BoardState>((set, get) => ({
   handleGenerate: async () => {
     const state = get();
     const { shapes, aspectRatio, advancedSettings } = state;
-    
+
     const imageWithPrompt = shapes.find(
       shape => shape.type === 'image' && shape.showPrompt
     );
-  
+
     const stickyWithPrompt = shapes.find(
       shape => shape.type === 'sticky' && shape.showPrompt && shape.content
     );
-  
+
     const promptToUse = stickyWithPrompt?.content;
-  
+
     if (!promptToUse) {
       set({ error: 'No prompt selected. Please select a sticky note with a prompt.' });
       return;
     }
-  
+
     set({ isGenerating: true, error: null });
-  
+
     try {
       // Retry the generation up to 3 times
       let imageUrl: string | null = null;
       let lastError: Error | null = null;
-      
+
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           imageUrl = await generateImage(
@@ -349,38 +359,38 @@ export const useStore = create<BoardState>((set, get) => ({
       // Calculate dimensions
       let width = 512;
       let height = 512;
-      
+
       const [w, h] = aspectRatio.split(':').map(Number);
       if (w > h) {
         height = (512 * h) / w;
       } else if (h > w) {
         width = (512 * w) / h;
       }
-    // Use current state for center calculation
-    const center = getViewportCenter(state);
+      // Use current state for center calculation
+      const center = getViewportCenter(state);
 
-state.addShape({
-      id: Math.random().toString(36).substr(2, 9),
-      type: 'image',
-      position: {
-        x: center.x - width / 2,
-        y: center.y - height / 2,
-      },
-      width,
-      height,
-      color: 'transparent',
-      imageUrl,
-      rotation: 0,
-      aspectRatio: width / height,
-    });
-    state.setTool('select');
+      state.addShape({
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'image',
+        position: {
+          x: center.x - width / 2,
+          y: center.y - height / 2,
+        },
+        width,
+        height,
+        color: 'transparent',
+        imageUrl,
+        rotation: 0,
+        aspectRatio: width / height,
+      });
+      state.setTool('select');
     } catch (error) {
       console.error('Error generating image:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate image';
-      set({ 
-        error: errorMessage.includes('timeout') 
+      set({
+        error: errorMessage.includes('timeout')
           ? 'Image generation is taking longer than expected. Please try again or reduce the number of steps.'
-          : errorMessage 
+          : errorMessage
       });
     } finally {
       set({ isGenerating: false });

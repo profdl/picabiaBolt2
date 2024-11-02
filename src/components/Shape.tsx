@@ -8,18 +8,23 @@ interface ShapeProps {
 }
 
 export function ShapeComponent({ shape }: ShapeProps) {
-  const { 
-    selectedShapes, 
-    setSelectedShapes, 
-    updateShape, 
-    deleteShape, 
-    tool, 
+  const {
+    selectedShapes,
+    setSelectedShapes,
+    updateShape,
+    deleteShape,
+    tool,
+    currentColor,
+    brushSize,
+    brushOpacity,
     zoom,
-    shapes 
+    shapes,
   } = useStore();
   const [isEditing, setIsEditing] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const [dragStart, setDragStart] = useState<{
     x: number;
     y: number;
@@ -52,12 +57,12 @@ export function ShapeComponent({ shape }: ShapeProps) {
     const currentSelected = Array.isArray(selectedShapes) ? selectedShapes : [];
 
     if (e.shiftKey) {
-      const newSelection = currentSelected.includes(shape.id) 
+      const newSelection = currentSelected.includes(shape.id)
         ? currentSelected.filter(id => id !== shape.id)
         : [...currentSelected, shape.id];
-      
+
       setSelectedShapes(newSelection);
-      
+
       // Set dragStart immediately if shape is in the new selection
       if (newSelection.includes(shape.id)) {
         setDragStart({
@@ -175,6 +180,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
     });
   };
 
+
+
   useEffect(() => {
     if (!resizeStart) return;
 
@@ -211,7 +218,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       value={shape.promptStrength || 0.8}
       onChange={(e) => {
         e.stopPropagation();
-        updateShape(shape.id, { 
+        updateShape(shape.id, {
           promptStrength: parseFloat(e.target.value)
         });
       }}
@@ -226,6 +233,10 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [resizeStart, shape.type, shape.aspectRatio, updateShape, zoom]);
+
+  // Add to existing refs
+  const isDrawing = useRef(false);
+  const lastPoint = useRef<{ x: number, y: number } | null>(null);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (shape.type === 'text' || shape.type === 'sticky') {
@@ -247,6 +258,50 @@ export function ShapeComponent({ shape }: ShapeProps) {
   };
 
   const isSelected = selectedShapes.includes(shape.id);
+
+  // Add pointer event handlers
+  const handlePointerDown = (e: React.PointerEvent) => {
+    console.log('Pointer down');
+    if (tool !== 'brush' || shape.type !== 'canvas') return;
+    e.preventDefault();
+
+    isDrawing.current = true;
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (512 / rect.width);
+    const y = (e.clientY - rect.top) * (512 / rect.height);
+
+    lastPoint.current = { x, y };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDrawing.current || !lastPoint.current) return;
+    e.preventDefault();
+
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (512 / rect.width);
+    const y = (e.clientY - rect.top) * (512 / rect.height);
+
+    ctx.beginPath();
+    ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = brushSize;
+    ctx.globalAlpha = brushOpacity;
+    ctx.stroke();
+
+    lastPoint.current = { x, y };
+  };
+
+  const handlePointerUpOrLeave = () => {
+    isDrawing.current = false;
+    lastPoint.current = null;
+  };
 
   if (shape.type === 'drawing') {
     return (
@@ -311,13 +366,15 @@ export function ShapeComponent({ shape }: ShapeProps) {
   }
 
   const shapeStyles: React.CSSProperties = {
+    borderStyle: shape.type === 'canvas' ? '2px dashed #e5e7eb' : 'none',
+
     position: 'absolute',
     left: shape.position.x,
     top: shape.position.y,
     width: shape.width,
     height: shape.height,
-    backgroundColor: shape.type === 'image' || shape.color === 'transparent' 
-      ? 'transparent' 
+    backgroundColor: shape.type === 'image' || shape.color === 'transparent'
+      ? 'transparent'
       : shape.color,
     cursor: tool === 'select' ? 'move' : 'default',
     border: isSelected ? '2px solid #2196f3' : 'none',
@@ -347,6 +404,40 @@ export function ShapeComponent({ shape }: ShapeProps) {
       className="group transition-shadow hover:shadow-xl relative"
     >
       {/* Image and content rendering */}
+      {shape.type === 'canvas' && (
+        <>
+          <div className="absolute -top-6 left-0 text-sm text-gray-500 font-medium">
+            Canvas
+          </div>
+          <canvas
+            ref={canvasRef}
+            width={512}
+            height={512}
+            className="w-full h-full"
+            style={{
+              pointerEvents: (tool === 'select' || tool === 'brush') ? 'all' : 'none',
+              backgroundColor: 'white',
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              handlePointerDown(e);
+            }}
+            onPointerMove={(e) => {
+              e.stopPropagation();
+              handlePointerMove(e);
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+              handlePointerUpOrLeave();
+            }}
+            onPointerLeave={(e) => {
+              e.stopPropagation();
+              handlePointerUpOrLeave();
+            }}
+          />
+
+        </>
+      )}
       {shape.type === 'image' && shape.imageUrl ? (
         <img
           ref={imageRef}
@@ -373,7 +464,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       ) : (
         shape.content
       )}
-      
+
       {/* Selection controls */}
       {isSelected && !isEditing && tool === 'select' && (
         <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
@@ -430,14 +521,14 @@ export function ShapeComponent({ shape }: ShapeProps) {
                 }}
                 className="cursor-pointer"
               />
-              <label 
+              <label
                 htmlFor={`prompt-${shape.id}`}
                 className="text-sm text-gray-700 cursor-pointer whitespace-nowrap"
               >
                 Image Prompt
               </label>
             </div>
-            
+
             {shape.showPrompt && (
               <div className="space-y-1">
                 <label className="block text-xs text-gray-600">
@@ -449,7 +540,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
                   max="1"
                   step="0.05"
                   value={shape.promptStrength || 0.8}
-                  onChange={(e) => updateShape(shape.id, { 
+                  onChange={(e) => updateShape(shape.id, {
                     promptStrength: parseFloat(e.target.value)
                   })}
                   onMouseDown={(e) => e.stopPropagation()}
@@ -482,7 +573,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
               }}
               className="cursor-pointer"
             />
-            <label 
+            <label
               htmlFor={`prompt-${shape.id}`}
               className="text-sm text-gray-700 cursor-pointer whitespace-nowrap"
             >
