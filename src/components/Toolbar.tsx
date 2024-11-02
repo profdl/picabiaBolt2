@@ -14,12 +14,65 @@ import {
   Image as ImageIcon,
   ImagePlus,
   Loader2,
+  Upload,
   Grid
 } from 'lucide-react';
 import { useStore } from '../store';
 import { Position } from '../types';
 import { useState, useRef } from 'react';
 import { ImageGeneratePanel } from './ImageGeneratePanel';
+
+
+const UploadButton = ({ addShape, getViewportCenter }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageUrl = event.target?.result as string;
+        const center = getViewportCenter();
+        
+        addShape({
+          id: Math.random().toString(36).substr(2, 9),
+          type: 'image',
+          position: {
+            x: center.x - 150,
+            y: center.y - 100
+          },
+          width: 300,
+          height: 200,
+          color: 'transparent',
+          imageUrl,
+          rotation: 0,
+          aspectRatio: 1.5,
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
+        title="Upload Image"
+      >
+        <Upload className="w-5 h-5" />
+        <span className="text-sm font-medium">Upload Image</span>
+      </button>
+    </div>
+  );
+};
 
 const UnsplashIcon = () => (
   <svg 
@@ -170,19 +223,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   return (
     <div className="absolute bottom-0 left-0 right-0 bg-white shadow-lg px-4 py-2 border-t border-gray-200">
       <div className="max-w-screen-2xl mx-auto relative flex items-center justify-between">
-        {/* Left-aligned Unsplash button */}
-        <div>
-          <button
-            onClick={toggleUnsplash}
-            className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${
-              showUnsplash ? 'bg-gray-100' : ''
-            }`}
-            title="Unsplash Images"
-          >
-            <UnsplashIcon />
-            <span className="text-sm font-medium">Unsplash</span>
-          </button>
-        </div>
+  {/* Left-aligned buttons */}
+  <div className="flex items-center gap-2">
+    <UploadButton addShape={addShape} getViewportCenter={getViewportCenter} />
+    <div className="w-px bg-gray-200 mx-2" />
+    <button
+      onClick={toggleUnsplash}
+      className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${
+        showUnsplash ? 'bg-gray-100' : ''
+      }`}
+      title="Unsplash Images"
+    >
+      <UnsplashIcon />
+      <span className="text-sm font-medium"></span>
+    </button>
+  </div>
 
         {/* Center-aligned toolbar buttons */}
         <div className="flex items-center gap-2">
@@ -236,7 +291,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           )}
 
           {/* Shape Tools */}
-          <button
+          {/* <button
             onClick={() => handleAddShape('rectangle')}
             className="p-2 hover:bg-gray-100 rounded-lg"
             title="Add Rectangle"
@@ -256,7 +311,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             title="Add Text"
           >
             <Type className="w-5 h-5" />
-          </button>
+          </button> */}
           <button
             onClick={() => handleAddShape('sticky')}
             className="p-2 hover:bg-gray-100 rounded-lg"
@@ -319,7 +374,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
 
           <SettingsButton />
-
+          </div>
         {/* Right-aligned Gallery button */}
         <div>
           <button
@@ -332,7 +387,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
         </div>
       </div>
-    </div>
+   
   </div>
   );
 };
