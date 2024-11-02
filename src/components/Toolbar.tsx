@@ -315,29 +315,64 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
 
           <div className="w-px bg-gray-200 mx-2" />
-
-          {/* Pen Tool Settings */}
-          {tool === 'pen' && (
-            <>
-              <input
-                type="color"
-                value={currentColor}
-                onChange={(e) => setCurrentColor(e.target.value)}
-                className="w-8 h-8 p-0 cursor-pointer"
-                title="Stroke Color"
-              />
-              <select
-                value={strokeWidth}
-                onChange={(e) => setStrokeWidth(Number(e.target.value))}
-                className="p-1 border rounded"
-                title="Stroke Width"
-              >
-                {[1, 2, 4, 6, 8, 12].map((width) => (
-                  <option key={width} value={width}>{width}px</option>
-                ))}
-              </select>
-              <div className="w-px bg-gray-200 mx-2" />
-            </>
+          {(tool === 'pen' || tool === 'brush') && (
+            <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg px-4 py-2 flex items-center gap-4">
+              {tool === 'pen' && (
+                <>
+                  <input
+                    type="color"
+                    value={currentColor}
+                    onChange={(e) => setCurrentColor(e.target.value)}
+                    className="w-8 h-8 p-0 cursor-pointer"
+                    title="Stroke Color"
+                  />
+                  <select
+                    value={strokeWidth}
+                    onChange={(e) => setStrokeWidth(Number(e.target.value))}
+                    className="p-1 border rounded"
+                    title="Stroke Width"
+                  >
+                    {[1, 2, 4, 6, 8, 12].map((width) => (
+                      <option key={width} value={width}>{width}px</option>
+                    ))}
+                  </select>
+                </>
+              )}
+              {tool === 'brush' && (
+                <>
+                  <input
+                    type="color"
+                    value={currentColor}
+                    onChange={(e) => setCurrentColor(e.target.value)}
+                    className="w-8 h-8 p-0 cursor-pointer"
+                    title="Brush Color"
+                  />
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-500">Size</label>
+                    <input
+                      type="range"
+                      value={brushSize}
+                      onChange={(e) => setBrushSize(Number(e.target.value))}
+                      min="1"
+                      max="100"
+                      title="Brush Size"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-500">Opacity</label>
+                    <input
+                      type="range"
+                      value={brushOpacity}
+                      onChange={(e) => setBrushOpacity(Number(e.target.value))}
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      title="Brush Opacity"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
           )}
           <button
             onClick={() => {
@@ -348,35 +383,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           >
             <Brush className="w-5 h-5" />
           </button>
-          {/* Brush Tool */}
-          {tool === 'brush' && (
-            <>
-              <input
-                type="color"
-                value={currentColor}
-                onChange={(e) => setCurrentColor(e.target.value)}
-                className="w-8 h-8 p-0 cursor-pointer"
-                title="Brush Color"
-              />
-              <input
-                type="range"
-                value={brushSize}
-                onChange={(e) => setBrushSize(Number(e.target.value))}
-                min="1"
-                max="100"
-                title="Brush Size"
-              />
-              <input
-                type="range"
-                value={brushOpacity}
-                onChange={(e) => setBrushOpacity(Number(e.target.value))}
-                min="0"
-                max="1"
-                step="0.1"
-                title="Brush Opacity"
-              />
-            </>
-          )}
           {/* Canvas */}
           <button
             onClick={() => handleAddShape('canvas')}
