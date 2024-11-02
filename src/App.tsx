@@ -16,7 +16,7 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <BrowserRouter>
-          <div className="min-h-screen bg-gray-50">
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <Navbar />
             <Routes>
               <Route path="/login" element={<Login />} />
@@ -32,5 +32,4 @@ function App() {
     </ErrorBoundary>
   );
 }
-
 export default App;

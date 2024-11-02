@@ -23,16 +23,16 @@ export const Board = () => {
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const { 
-    showImageGenerate, 
-    showUnsplash, 
-    showGallery, 
+  const {
+    showImageGenerate,
+    showUnsplash,
+    showGallery,
     toggleImageGenerate,  // This was missing
-    toggleUnsplash, 
-    toggleGallery 
+    toggleUnsplash,
+    toggleGallery
   } =
     useStore();
-    const showAssets = useStore(state => state.showAssets);
+  const showAssets = useStore(state => state.showAssets);
   const toggleAssets = useStore(state => state.toggleAssets);
   const addShape = useStore(state => state.addShape);
   const zoom = useStore(state => state.zoom);
@@ -41,7 +41,7 @@ export const Board = () => {
   const getViewportCenter = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
-    
+
     return {
       x: (rect.width / 2 - offset.x) / zoom,
       y: (rect.height / 2 - offset.y) / zoom
@@ -58,7 +58,7 @@ export const Board = () => {
   const setZoom = useStore(state => state.setZoom);
   const setOffset = useStore(state => state.setOffset);
   const resetState = useStore(state => state.resetState);
-  
+
   const maxRetries = 3;
 
 
@@ -70,7 +70,7 @@ export const Board = () => {
 
       // Convert shapes to string for comparison
       const shapesString = JSON.stringify(shapes);
-      
+
       // Don't save if shapes haven't changed
       if (shapesString === lastSavedRef.current) return;
 
@@ -116,7 +116,7 @@ export const Board = () => {
       setLoading(true);
       setError(null);
       const project = await fetchProject(id);
-      
+
       if (!project) {
         setError('Project not found. It may have been deleted or you may not have permission to access it.');
         return;
@@ -130,7 +130,7 @@ export const Board = () => {
     } catch (err: any) {
       console.error('Error fetching project:', err);
       setError(err.message || 'Failed to load project. Please try again.');
-      
+
       if (retryCount < maxRetries) {
         setTimeout(() => {
           setRetryCount(prev => prev + 1);
@@ -215,26 +215,28 @@ export const Board = () => {
 
   return (
     <>
-      <div ref={containerRef} className="w-screen h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 relative canvas-container">
-        <Canvas />
+      <div
+        ref={containerRef}
+        className="w-screen h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 dark:bg-gray-800 relative canvas-container"
+      >        <Canvas />
         <Toolbar />
         <AssetsDrawer
-            isOpen={showAssets}
-            onClose={toggleAssets}
-            addShape={addShape}
-            getViewportCenter={getViewportCenter}
-          />
+          isOpen={showAssets}
+          onClose={toggleAssets}
+          addShape={addShape}
+          getViewportCenter={getViewportCenter}
+        />
         {showUnsplash && <UnsplashPanel onClose={toggleUnsplash} />}
         {showImageGenerate && <ImageGeneratePanel onClose={toggleImageGenerate} />}
         {showGallery && (
-  <GalleryPanel 
-    isOpen={showGallery} 
-    onClose={toggleGallery} 
-    refreshTrigger={0} 
-  />
-)}        {isSaving && (          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
-            Saving...
-          </div>
+          <GalleryPanel
+            isOpen={showGallery}
+            onClose={toggleGallery}
+            refreshTrigger={0}
+          />
+        )}        {isSaving && (<div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
+          Saving...
+        </div>
         )}
       </div>
       <ShortcutsPanel />
