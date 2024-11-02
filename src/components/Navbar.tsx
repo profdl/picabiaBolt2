@@ -45,7 +45,7 @@ export const Navbar = () => {
           <div className="flex justify-between h-16">
             <div className="flex items-center gap-4">
               <Link to="/" className="flex items-center">
-                <span className="text-xl font-bold text-gray-900">Whiteboard</span>
+                <span className="text-xl font-bold text-gray-900">Picabia</span>
               </Link>
               {user && (
                 <>
