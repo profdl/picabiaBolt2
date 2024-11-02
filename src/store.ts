@@ -73,6 +73,8 @@ interface BoardState extends CanvasState {
   setError: (error: string | null) => void;
   setBrushSize: (size: number) => void;
   setBrushOpacity: (opacity: number) => void;
+  getCanvasImage?: () => string | undefined;
+
 }
 
 const MAX_HISTORY = 50;
@@ -298,7 +300,10 @@ export const useStore = create<BoardState>((set, get) => ({
     const { shapes, aspectRatio, advancedSettings } = state;
 
     const imageWithPrompt = shapes.find(
-      shape => shape.type === 'image' && shape.showPrompt
+      shape => (
+        (shape.type === 'image' && shape.showPrompt) ||
+        (shape.type === 'canvas' && shape.showPrompt)
+      )
     );
 
     const stickyWithPrompt = shapes.find(
@@ -316,8 +321,15 @@ export const useStore = create<BoardState>((set, get) => ({
 
     try {
       // Retry the generation up to 3 times
-      let imageUrl: string | null = null;
+      let imageUrl = imageWithPrompt?.type === 'canvas'
+        ? imageWithPrompt.getCanvasImage?.()
+        : imageWithPrompt?.imageUrl;
       let lastError: Error | null = null;
+
+      // If it's a canvas, convert to image URL
+      const initialImageUrl = imageWithPrompt?.type === 'canvas'
+        ? imageWithPrompt.getCanvasImage?.()
+        : imageWithPrompt?.imageUrl;
 
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
@@ -329,7 +341,7 @@ export const useStore = create<BoardState>((set, get) => ({
             advancedSettings.guidanceScale,
             advancedSettings.scheduler,
             advancedSettings.seed,
-            imageWithPrompt?.imageUrl,
+            initialImageUrl,
             imageWithPrompt?.promptStrength || 0.8
           );
           break; // If successful, exit the retry loop

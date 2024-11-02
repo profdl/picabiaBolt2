@@ -52,6 +52,26 @@ export function ShapeComponent({ shape }: ShapeProps) {
     }
   }, [isEditing]);
 
+  useEffect(() => {
+    if (shape.type === 'canvas' && canvasRef.current) {
+      updateShape(shape.id, {
+        getCanvasImage: () => {
+          // Create temp canvas for resizing
+          const tempCanvas = document.createElement('canvas');
+          const tempCtx = tempCanvas.getContext('2d');
+          tempCanvas.width = 512;
+          tempCanvas.height = 512;
+
+          // Draw current canvas content scaled to 512x512
+          tempCtx.drawImage(canvasRef.current, 0, 0, 512, 512);
+
+          return tempCanvas.toDataURL('image/png');
+        }
+      });
+    }
+  }, [shape.id, updateShape]);
+
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (tool === 'pan' || tool === 'pen') return;
     e.stopPropagation();
@@ -182,8 +202,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
       aspectRatio: shape.width / shape.height
     });
   };
-
-
 
   useEffect(() => {
     if (!resizeStart) return;
@@ -355,6 +373,10 @@ export function ShapeComponent({ shape }: ShapeProps) {
     zIndex: isSelected ? 100 : 1,
     pointerEvents: tool === 'select' ? 'all' : 'none',
   };
+
+
+
+
   return (
     <div
       id={shape.id}
@@ -459,7 +481,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       )}
 
       {/* Separate image prompt controls */}
-      {shape.type === 'image' && (shape.showPrompt || isSelected) && (
+      {(shape.type === 'image' || shape.type === 'canvas') && (shape.showPrompt || isSelected) && (
         <div
           className="absolute left-1/2 top-full mt-2 bg-white p-2 rounded border border-gray-200 transform -translate-x-1/2"
           style={{ zIndex: 101, pointerEvents: 'all', width: '180px' }}
@@ -473,7 +495,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
                 onChange={(e) => {
                   if (e.target.checked) {
                     shapes.forEach(otherShape => {
-                      if (otherShape.type === 'image' && otherShape.showPrompt) {
+                      if ((otherShape.type === 'image' || otherShape.type === 'canvas') && otherShape.showPrompt) {
                         updateShape(otherShape.id, { showPrompt: false });
                       }
                     });
@@ -545,3 +567,4 @@ export function ShapeComponent({ shape }: ShapeProps) {
       )}    </div>
   );
 }
+
