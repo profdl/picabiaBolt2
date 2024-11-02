@@ -3,6 +3,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Upload, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { useStore } from '../store';
+import { Drawer } from './Drawer';
 
 interface Asset {
   id: string;
@@ -111,56 +112,56 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
   };
 
   return (
-    <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-lg p-4 overflow-y-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Assets</h2>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-          ×
+    <Drawer
+      title="Assets"
+      isOpen={isOpen}
+      onClose={onClose}
+      position="left"
+    >
+      <div className="p-4">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="w-full mb-4 p-2 flex items-center justify-center gap-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+        >
+          {uploading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <Upload className="w-5 h-5" />
+          )}
+          {uploading ? 'Uploading...' : 'Upload Image'}
         </button>
-      </div>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-      />
-
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={uploading}
-        className="w-full mb-4 p-2 flex items-center justify-center gap-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-      >
-        {uploading ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          </div>
         ) : (
-          <Upload className="w-5 h-5" />
+          <div className="grid grid-cols-2 gap-2">
+            {assets.map((asset) => (
+              <div
+                key={asset.id}
+                onClick={() => handleAssetClick(asset)}
+                className="cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                <img
+                  src={asset.url}
+                  alt="Asset"
+                  className="w-full h-32 object-cover rounded"
+                />
+              </div>
+            ))}
+          </div>
         )}
-        {uploading ? 'Uploading...' : 'Upload Image'}
-      </button>
-
-      {loading ? (
-        <div className="flex justify-center items-center py-8">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-2">
-          {assets.map((asset) => (
-            <div
-              key={asset.id}
-              onClick={() => handleAssetClick(asset)}
-              className="cursor-pointer hover:opacity-80 transition-opacity"
-            >
-              <img
-                src={asset.url}
-                alt="Asset"
-                className="w-full h-32 object-cover rounded"
-              />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+      </div>
+    </Drawer>
   );
 };
