@@ -6,24 +6,35 @@ interface DrawerProps {
   children: React.ReactNode;
   isOpen: boolean;
   onClose: () => void;
+  position?: 'left' | 'right';
 }
 
 export const Drawer: React.FC<DrawerProps> = ({ 
   title, 
   children, 
   isOpen, 
-  onClose 
+  onClose,
+  position = 'right' // Default to right if not specified
 }) => {
   return (
     <div 
       className={`
-        fixed right-0 bg-white shadow-lg transition-transform duration-300 ease-in-out z-40
-        w-80 border-l border-gray-200
+        fixed bg-white shadow-lg transition-transform duration-300 ease-in-out z-40
+        w-80 ${position === 'left' ? 'border-r' : 'border-l'} border-gray-200
       `}
       style={{
         top: '4rem', // 64px navbar height
         bottom: '4rem', // toolbar height
-        transform: isOpen ? 'translateX(0)' : 'translateX(100%)'
+        ...(position === 'left' 
+          ? {
+              left: 0,
+              transform: isOpen ? 'translateX(0)' : 'translateX(-100%)'
+            }
+          : {
+              right: 0,
+              transform: isOpen ? 'translateX(0)' : 'translateX(100%)'
+            }
+        )
       }}
     >
       <div className="flex flex-col h-full">
