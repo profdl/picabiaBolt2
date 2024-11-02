@@ -24,6 +24,7 @@ interface BoardState extends CanvasState {
   isGenerating: boolean;
   aspectRatio: string;
   error: string | null;
+  showAssets: boolean;
   setError: (error: string | null) => void;
   advancedSettings: {
     negativePrompt: string;
@@ -59,6 +60,7 @@ interface BoardState extends CanvasState {
   setShowShortcuts: (show: boolean) => void;
   toggleImageGenerate: () => void;
   toggleUnsplash: () => void;
+  toggleAssets: () => void;
   toggleGallery: () => void;
   setIsGenerating: (isGenerating: boolean) => void;
   setAspectRatio: (ratio: string) => void;
@@ -84,6 +86,8 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   strokeWidth: 2,
   showImageGenerate: false,
   showUnsplash: false,
+  showAssets: false,
+
   showGallery: false,
   showShortcuts: false,
   isGenerating: false,
@@ -268,7 +272,7 @@ export const useStore = create<BoardState>((set, get) => ({
   toggleImageGenerate: () => set(state => ({ showImageGenerate: !state.showImageGenerate })),
   toggleUnsplash: () => set(state => ({ showUnsplash: !state.showUnsplash })),
   toggleGallery: () => set(state => ({ showGallery: !state.showGallery })),
-  
+  toggleAssets: () => set(state => ({ showAssets: !state.showAssets })),
   // New image generation related methods
   setIsGenerating: (isGenerating: boolean) => set({ isGenerating }),
   setAspectRatio: (ratio: string) => set({ aspectRatio: ratio }),

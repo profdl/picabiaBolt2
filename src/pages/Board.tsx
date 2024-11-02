@@ -11,7 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../hooks/useProjects';
 import { calculateViewportFit } from '../utils/canvas';
 import { ShortcutsPanel } from '../components/ShortcutsPanel';
-
+import { AssetsDrawer } from '../components/AssetsDrawer';
 
 
 export const Board = () => {
@@ -32,13 +32,27 @@ export const Board = () => {
     toggleGallery 
   } =
     useStore();
+    const showAssets = useStore(state => state.showAssets);
+  const toggleAssets = useStore(state => state.toggleAssets);
+  const addShape = useStore(state => state.addShape);
+  const zoom = useStore(state => state.zoom);
+  const offset = useStore(state => state.offset);
+
+  const getViewportCenter = useCallback(() => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    
+    return {
+      x: (rect.width / 2 - offset.x) / zoom,
+      y: (rect.height / 2 - offset.y) / zoom
+    };
+  }, [zoom, offset]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedRef = useRef<string>('');
 
-  
   const shapes = useStore(state => state.shapes);
   const setShapes = useStore(state => state.setShapes);
   const setZoom = useStore(state => state.setZoom);
@@ -46,6 +60,8 @@ export const Board = () => {
   const resetState = useStore(state => state.resetState);
   
   const maxRetries = 3;
+
+
 
   // Memoize the auto-save debounce function
   const debouncedSave = useMemo(() => {
@@ -202,6 +218,12 @@ export const Board = () => {
       <div ref={containerRef} className="w-screen h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 relative canvas-container">
         <Canvas />
         <Toolbar />
+        <AssetsDrawer
+            isOpen={showAssets}
+            onClose={toggleAssets}
+            addShape={addShape}
+            getViewportCenter={getViewportCenter}
+          />
         {showUnsplash && <UnsplashPanel onClose={toggleUnsplash} />}
         {showImageGenerate && <ImageGeneratePanel onClose={toggleImageGenerate} />}
         {showGallery && (

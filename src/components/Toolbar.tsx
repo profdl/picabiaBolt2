@@ -15,12 +15,31 @@ import {
   ImagePlus,
   Loader2,
   Upload,
-  Grid
+  Grid,
+  Plus
 } from 'lucide-react';
 import { useStore } from '../store';
 import { Position } from '../types';
 import { useState, useRef } from 'react';
 import { ImageGeneratePanel } from './ImageGeneratePanel';
+
+const AssetsButton = () => {
+  const showAssets = useStore(state => state.showAssets);
+  const toggleAssets = useStore(state => state.toggleAssets);
+  
+  return (
+    <button
+      onClick={toggleAssets}
+      className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${
+        showAssets ? 'bg-gray-100' : ''
+      }`}
+      title="Asset Library"
+    >
+      <ImageIcon className="w-5 h-5" />
+      <span className="text-sm font-medium">Assets</span>
+    </button>
+  );
+};
 
 
 const UploadButton = ({ addShape, getViewportCenter }) => {
@@ -68,23 +87,23 @@ const UploadButton = ({ addShape, getViewportCenter }) => {
         title="Upload Image"
       >
         <Upload className="w-5 h-5" />
-        <span className="text-sm font-medium">Upload Image</span>
+        <span className="text-sm font-medium"></span>
       </button>
     </div>
   );
 };
 
-const UnsplashIcon = () => (
-  <svg 
-    viewBox="0 0 32 32" 
-    width="20" 
-    height="20" 
-    xmlns="http://www.w3.org/2000/svg"
-    fill="currentColor"
-  >
-    <path d="M10 9V0h12v9H10zm12 5h10v18H0V14h10v9h12v-9z" />
-  </svg>
-);
+// const UnsplashIcon = () => (
+//   <svg 
+//     viewBox="0 0 32 32" 
+//     width="20" 
+//     height="20" 
+//     xmlns="http://www.w3.org/2000/svg"
+//     fill="currentColor"
+//   >
+//     <path d="M10 9V0h12v9H10zm12 5h10v18H0V14h10v9h12v-9z" />
+//   </svg>
+// );
 
 const SettingsButton = () => {
   const [showPanel, setShowPanel] = useState(false);
@@ -143,6 +162,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   showUnsplash,
   showGallery
 }) => {
+  const [showAssets, setShowAssets] = useState(false);
+
   const {
     zoom,
     setZoom,
@@ -218,26 +239,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       fontSize: 16,
       rotation: 0,
     });
+
+    const toggleAssets = () => setShowAssets(!showAssets);
+
   };
 
   return (
     <div className="absolute bottom-0 left-0 right-0 bg-white shadow-lg px-4 py-2 border-t border-gray-200">
       <div className="max-w-screen-2xl mx-auto relative flex items-center justify-between">
-  {/* Left-aligned buttons */}
-  <div className="flex items-center gap-2">
-    <UploadButton addShape={addShape} getViewportCenter={getViewportCenter} />
-    <div className="w-px bg-gray-200 mx-2" />
-    <button
-      onClick={toggleUnsplash}
-      className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${
-        showUnsplash ? 'bg-gray-100' : ''
-      }`}
-      title="Unsplash Images"
-    >
-      <UnsplashIcon />
-      <span className="text-sm font-medium"></span>
-    </button>
-  </div>
+        {/* Left-aligned buttons */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <AssetsButton />
+            <div className="w-px bg-gray-200 mx-2" />
+            <UploadButton addShape={addShape} getViewportCenter={getViewportCenter} />
+          </div>
+        </div>
 
         {/* Center-aligned toolbar buttons */}
         <div className="flex items-center gap-2">
@@ -319,13 +336,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           >
             <StickyNote className="w-5 h-5" />
           </button>
-          <button
-            onClick={() => handleAddShape('image')}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Add Image"
-          >
-            <ImageIcon className="w-5 h-5" />
-          </button>
+
 
           <div className="w-px bg-gray-200 mx-2" />
 

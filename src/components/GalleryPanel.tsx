@@ -81,6 +81,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       title="Generated Images" 
       isOpen={isOpen} 
       onClose={onClose}
+      position="right"
     >
       <div className="p-2">
         {loading ? (
