@@ -20,6 +20,18 @@ export const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
         const ctx = canvasRef.current?.getContext('2d');
         if (!ctx || !brushTexture.current || !brushTexture.current.complete) return;
 
+        // Create temp canvas for colorizing
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = brushTexture.current.width;
+        tempCanvas.height = brushTexture.current.height;
+
+        // Draw and colorize brush texture
+        tempCtx.fillStyle = currentColor;
+        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+        tempCtx.globalCompositeOperation = 'destination-in';
+        tempCtx.drawImage(brushTexture.current, 0, 0);
+
         const dx = end.x - start.x;
         const dy = end.y - start.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -34,14 +46,7 @@ export const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
             ctx.save();
             ctx.translate(x, y);
             ctx.globalAlpha = brushOpacity;
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.drawImage(
-                brushTexture.current,
-                -brushSize / 2,
-                -brushSize / 2,
-                brushSize,
-                brushSize
-            );
+            ctx.drawImage(tempCanvas, -brushSize / 2, -brushSize / 2, brushSize, brushSize);
             ctx.restore();
         }
     };

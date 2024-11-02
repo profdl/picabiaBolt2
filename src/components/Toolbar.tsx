@@ -352,6 +352,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {tool === 'brush' && (
             <>
               <input
+                type="color"
+                value={currentColor}
+                onChange={(e) => setCurrentColor(e.target.value)}
+                className="w-8 h-8 p-0 cursor-pointer"
+                title="Brush Color"
+              />
+              <input
                 type="range"
                 value={brushSize}
                 onChange={(e) => setBrushSize(Number(e.target.value))}
