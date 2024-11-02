@@ -5,7 +5,7 @@ export interface Position {
 
 export interface Shape {
   id: string;
-  type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing';
+  type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing' | 'canvas';
   position: Position;
   content?: string;
   width: number;
@@ -18,6 +18,8 @@ export interface Shape {
   points?: Position[];
   strokeWidth?: number;
   showPrompt?: boolean;
+  canvasData?: ImageData;
+
 }
 export interface CanvasState {
   shapes: Shape[];
@@ -25,7 +27,7 @@ export interface CanvasState {
   zoom: number;
   offset: Position;
   isDragging: boolean;
-  tool: 'select' | 'pan' | 'pen';
+  tool: 'select' | 'pan' | 'pen' | 'brush';
   history: Shape[][];
   historyIndex: number;
   gridEnabled: boolean;
@@ -47,7 +49,7 @@ export interface CanvasState {
   setZoom: (zoom: number) => void;
   setOffset: (offset: Position) => void;
   setIsDragging: (isDragging: boolean) => void;
-  setTool: (tool: 'select' | 'pan' | 'pen') => void;
+  setTool: (tool: 'select' | 'pan' | 'pen' | 'brush') => void;
   setCurrentColor: (color: string) => void;
   setStrokeWidth: (width: number) => void;
   undo: () => void;
