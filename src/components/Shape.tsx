@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { RotateCw } from 'lucide-react';
 import { useStore } from '../store';
 import { Shape } from '../types';
+import { useBrush } from './BrushTool';
 
 interface ShapeProps {
   shape: Shape;
@@ -41,6 +42,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
     height: number;
     aspectRatio: number;
   } | null>(null);
+
+
 
   useEffect(() => {
     if (isEditing && textRef.current) {
@@ -259,49 +262,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
   const isSelected = selectedShapes.includes(shape.id);
 
-  // Add pointer event handlers
-  const handlePointerDown = (e: React.PointerEvent) => {
-    console.log('Pointer down');
-    if (tool !== 'brush' || shape.type !== 'canvas') return;
-    e.preventDefault();
 
-    isDrawing.current = true;
-    const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (512 / rect.width);
-    const y = (e.clientY - rect.top) * (512 / rect.height);
-
-    lastPoint.current = { x, y };
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDrawing.current || !lastPoint.current) return;
-    e.preventDefault();
-
-    const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (512 / rect.width);
-    const y = (e.clientY - rect.top) * (512 / rect.height);
-
-    ctx.beginPath();
-    ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth = brushSize;
-    ctx.globalAlpha = brushOpacity;
-    ctx.stroke();
-
-    lastPoint.current = { x, y };
-  };
-
-  const handlePointerUpOrLeave = () => {
-    isDrawing.current = false;
-    lastPoint.current = null;
-  };
+  const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush(canvasRef);
 
   if (shape.type === 'drawing') {
     return (
@@ -416,7 +378,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
             className="w-full h-full"
             style={{
               pointerEvents: (tool === 'select' || tool === 'brush') ? 'all' : 'none',
-              backgroundColor: 'white',
+              backgroundColor: '#e5e7eb',
             }}
             onPointerDown={(e) => {
               e.stopPropagation();
@@ -435,7 +397,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
               handlePointerUpOrLeave();
             }}
           />
-
         </>
       )}
       {shape.type === 'image' && shape.imageUrl ? (
