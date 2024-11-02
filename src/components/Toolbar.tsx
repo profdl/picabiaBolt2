@@ -252,7 +252,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <div className="flex items-center gap-2">
             <AssetsButton />
             <div className="w-px bg-gray-200 mx-2" />
-            <UploadButton addShape={addShape} getViewportCenter={getViewportCenter} />
+            {/* <UploadButton addShape={addShape} getViewportCenter={getViewportCenter} /> */}
           </div>
         </div>
 
