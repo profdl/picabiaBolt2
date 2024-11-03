@@ -23,7 +23,7 @@ import {
 import { useStore } from '../store';
 import { Position } from '../types';
 import { useState, useRef } from 'react';
-import { ImageGeneratePanel } from './ImageGeneratePanel';
+import { ImageGeneratePanel } from './GenerateSettings';
 import { useEffect } from 'react';
 import { BrushShapeSelector } from './BrushShapeSelector';
 
