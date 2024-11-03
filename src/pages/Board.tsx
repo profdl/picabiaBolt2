@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AlertCircle, Image } from 'lucide-react';
 import { Canvas } from '../components/Canvas';
 import { Toolbar } from '../components/Toolbar';
-import { ImageGeneratePanel } from '../components/ImageGeneratePanel';
+import { ImageGeneratePanel } from '../components/GenerateSettings';
 import { UnsplashPanel } from '../components/UnsplashPanel';
 import { GalleryPanel } from '../components/GalleryPanel';
 import { useStore } from '../store';
