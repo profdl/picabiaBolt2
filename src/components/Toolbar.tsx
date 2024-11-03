@@ -18,7 +18,7 @@ import {
   Grid,
   Plus,
   Brush,
-  Palette
+  Frame
 } from 'lucide-react';
 import { useStore } from '../store';
 import { Position } from '../types';
@@ -396,7 +396,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             className="p-2 hover:bg-gray-100 rounded-lg"
             title="Add Canvas"
           >
-            <Palette className="w-5 h-5" />
+            <Frame className="w-5 h-5" />
           </button>
           {/* Shape Tools */}
           {/* <button
