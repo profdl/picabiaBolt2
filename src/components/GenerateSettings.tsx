@@ -20,7 +20,7 @@ export const ImageGeneratePanel: React.FC = () => {
   };
 
   return (
-    <div 
+    <div
       ref={panelRef}
       className="absolute bottom-full right-0 mb-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200"
     >
@@ -31,7 +31,7 @@ export const ImageGeneratePanel: React.FC = () => {
             <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
-        
+
         <div className="space-y-2">
           <label className="block text-sm text-gray-700">Aspect Ratio</label>
           <select
