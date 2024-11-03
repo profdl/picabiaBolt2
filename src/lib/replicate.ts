@@ -6,15 +6,11 @@ interface GenerateImageResponse {
 }
 
 export async function generateImage(
-  prompt: string, 
-  aspectRatio: string,
-  steps: number,
-  negativePrompt: string,
-  guidanceScale: number,
-  scheduler: string,
-  seed: number,
-  image?: string, // Base64 image data
-  promptStrength?: number
+  workflowJson: string,
+  inputImage?: string,
+  outputFormat: 'webp' | 'jpg' | 'png' = 'webp',
+  outputQuality: number = 95,
+  randomiseSeeds: boolean = true,
 ): Promise<string> {
   try {
     const testResponse = await fetch('/.netlify/functions/test-endpoint');
@@ -27,16 +23,14 @@ export async function generateImage(
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        prompt, 
-        aspectRatio,
-        steps,
-        negativePrompt,
-        guidanceScale,
-        scheduler,
-        seed,
-        image,
-        prompt_strength: promptStrength
+      body: JSON.stringify({
+        workflow_json: workflowJson,
+        input_file: inputImage,
+        output_format: outputFormat,
+        output_quality: outputQuality,
+        randomise_seeds: randomiseSeeds,
+        force_reset_cache: false,
+        return_temp_files: false
       }),
     });
 
@@ -58,7 +52,7 @@ export async function generateImage(
     } catch (err) {
       throw new Error('Invalid response from image generation service');
     }
-    
+
     if (!data.imageUrl) {
       throw new Error('No image URL in response');
     }

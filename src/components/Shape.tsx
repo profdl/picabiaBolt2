@@ -239,7 +239,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       min="0"
       max="1"
       step="0.05"
-      value={shape.promptStrength || 0.8}
+      value={shape.promptStrength ?? 0.8}  // Use nullish coalescing
       onChange={(e) => {
         e.stopPropagation();
         updateShape(shape.id, {
@@ -258,6 +258,22 @@ export function ShapeComponent({ shape }: ShapeProps) {
     };
   }, [resizeStart, shape.type, shape.aspectRatio, updateShape, zoom]);
 
+  // Moved the input element outside of the useEffect
+  <input
+    type="range"
+    min="0"
+    max="1"
+    step="0.05"
+    value={(shape as any).promptStrength ?? 0.8}  // Use type assertion
+    onChange={(e) => {
+      e.stopPropagation();
+      updateShape(shape.id, {
+        promptStrength: parseFloat(e.target.value)
+      });
+    }}
+    onMouseDown={(e) => e.stopPropagation()}
+    className="w-full"
+  />
   // Add to existing refs
   const isDrawing = useRef(false);
   const lastPoint = useRef<{ x: number, y: number } | null>(null);

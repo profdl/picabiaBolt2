@@ -1,10 +1,9 @@
-
-
 import { Handler } from '@netlify/functions';
 import fetch from 'node-fetch';
 
 const REPLICATE_API_TOKEN = process.env.VITE_REPLICATE_API_TOKEN;
-const MODEL_VERSION = '39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b';
+// Update the model version to the ComfyUI model
+const MODEL_VERSION = "10990543610c5a77a268f426adb817753842697fa0fa5819dc4a396b632a5c15";
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -40,55 +39,41 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    let body;
-    try {
-      body = JSON.parse(event.body || '{}');
-    } catch (err) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Invalid request body' })
-      };
-    }
-    const { 
-      prompt, 
-      aspectRatio = '1:1', 
-      steps = 30,
-      negativePrompt = 'blurry, bad quality, distorted',
-      guidanceScale = 7.5,
-      scheduler = 'DPMSolverMultistep',
-      seed = Math.floor(Math.random() * 1000000),
-      image, // Added this line
-      prompt_strength // Added this line
+    const {
+      workflow_json,
+      input_file,
+      output_format = 'webp',
+      output_quality = 95,
+      randomise_seeds = true,
+      force_reset_cache = false,
+      return_temp_files = false
     } = JSON.parse(event.body || '{}');
 
-    if (!prompt) {
+    if (!workflow_json) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Prompt is required' })
+        body: JSON.stringify({ error: 'Workflow JSON is required' })
       };
     }
 
-    // Start the prediction
+    // Start the prediction with new input schema
     const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
-        'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+        Authorization: `Token ${REPLICATE_API_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         version: MODEL_VERSION,
         input: {
-          prompt,
-          negative_prompt: negativePrompt,
-          aspect_ratio: aspectRatio,
-          steps,
-          guidance_scale: guidanceScale,
-          scheduler,
-          seed,
-          ...(image && { image }), // Conditionally include image
-          ...(prompt_strength && { prompt_strength }) // Conditionally include prompt_strength
+          workflow_json,
+          input_file,
+          output_format,
+          output_quality,
+          randomise_seeds,
+          force_reset_cache,
+          return_temp_files
         }
       })
     });
@@ -107,7 +92,7 @@ export const handler: Handler = async (event) => {
 
     const prediction = await response.json();
     console.log('Prediction started:', prediction.id);
-    
+
     // Poll for completion
     let result;
     let attempts = 0;

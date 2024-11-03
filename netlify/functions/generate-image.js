@@ -1,8 +1,8 @@
 const fetch = require("node-fetch");
 
 const REPLICATE_API_TOKEN = process.env.VITE_REPLICATE_API_TOKEN;
-const MODEL_VERSION =
-  "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b";
+// Update the model version to the ComfyUI model
+const MODEL_VERSION = "10990543610c5a77a268f426adb817753842697fa0fa5819dc4a396b632a5c15";
 
 exports.handler = async (event) => {
   const headers = {
@@ -39,26 +39,24 @@ exports.handler = async (event) => {
 
   try {
     const {
-      prompt,
-      aspectRatio = "1:1",
-      steps = 30,
-      negativePrompt = "blurry, bad quality, distorted",
-      guidanceScale = 7.5,
-      scheduler = "DPMSolverMultistep",
-      seed = Math.floor(Math.random() * 1000000),
-      image,
-      prompt_strength,
-    } = JSON.parse(event.body || "{}");
+      workflow_json,
+      input_file,
+      output_format = 'webp',
+      output_quality = 95,
+      randomise_seeds = true,
+      force_reset_cache = false,
+      return_temp_files = false
+    } = JSON.parse(event.body || '{}');
 
-    if (!prompt) {
+    if (!workflow_json) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: "Prompt is required" }),
+        body: JSON.stringify({ error: 'Workflow JSON is required' })
       };
     }
 
-    // Start the prediction with Bearer token
+    // Start the prediction with new input schema
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -68,16 +66,13 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         version: MODEL_VERSION,
         input: {
-          prompt,
-
-          negative_prompt: negativePrompt,
-          aspect_ratio: aspectRatio,
-          steps,
-          guidance_scale: guidanceScale,
-          scheduler,
-          seed,
-          ...(image && { image }),
-          ...(prompt_strength && { prompt_strength }),
+          workflow_json,
+          input_file,
+          output_format,
+          output_quality,
+          randomise_seeds,
+          force_reset_cache,
+          return_temp_files
         },
       }),
     });

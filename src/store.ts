@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { CanvasState, Position, Shape } from './types';
 import { generateImage } from './lib/replicate';
 import { saveGeneratedImage } from './lib/supabase';
+import workflowJson from './lib/workflow.json';
 
 interface BoardState extends CanvasState {
   shapes: Shape[];
@@ -105,12 +106,10 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   aspectRatio: '1:1',
   error: null,
   advancedSettings: {
-    negativePrompt: '',
-    numInferenceSteps: 50,
-    guidanceScale: 7.5,
-    scheduler: 'DPMSolverMultistep',
-    seed: Math.floor(Math.random() * 1000000),
-    steps: 30
+    workflowJson: JSON.stringify(workflowJson),
+    outputFormat: 'webp',
+    outputQuality: 95,
+    randomiseSeeds: true,
   },
   brushSize: 30,
   brushOpacity: 1,
@@ -301,72 +300,47 @@ export const useStore = create<BoardState>((set, get) => ({
 
   handleGenerate: async () => {
     const state = get();
-    const { shapes, aspectRatio, advancedSettings } = state;
-
-    const imageWithPrompt = shapes.find(
-      shape => (
-        (shape.type === 'image' && shape.showPrompt) ||
-        (shape.type === 'canvas' && shape.showPrompt)
-      )
-    );
+    const { shapes, advancedSettings } = state;
 
     const stickyWithPrompt = shapes.find(
       shape => shape.type === 'sticky' && shape.showPrompt && shape.content
     );
 
-    const promptToUse = stickyWithPrompt?.content;
+    const imageWithPrompt = shapes.find(
+      shape => (shape.type === 'image' || shape.type === 'canvas') && shape.showPrompt
+    );
 
-    if (!promptToUse) {
+    if (!stickyWithPrompt?.content) {
       set({ error: 'No prompt selected. Please select a sticky note with a prompt.' });
       return;
     }
 
+    const customWorkflow = JSON.parse(advancedSettings.workflowJson);
+    customWorkflow["6"].inputs.text = stickyWithPrompt.content;
+
+    // Get the image URL if available
+    const inputFile = imageWithPrompt?.type === 'canvas'
+      ? imageWithPrompt.getCanvasImage?.()
+      : imageWithPrompt?.imageUrl;
+
     set({ isGenerating: true, error: null });
 
     try {
-      // Retry the generation up to 3 times
-      let imageUrl = imageWithPrompt?.type === 'canvas'
-        ? imageWithPrompt.getCanvasImage?.()
-        : imageWithPrompt?.imageUrl;
-      let lastError: Error | null = null;
-
-      // If it's a canvas, convert to image URL
-      const initialImageUrl = imageWithPrompt?.type === 'canvas'
-        ? imageWithPrompt.getCanvasImage?.()
-        : imageWithPrompt?.imageUrl;
-
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          imageUrl = await generateImage(
-            promptToUse,
-            aspectRatio,
-            advancedSettings.steps,
-            advancedSettings.negativePrompt,
-            advancedSettings.guidanceScale,
-            advancedSettings.scheduler,
-            advancedSettings.seed,
-            initialImageUrl,
-            imageWithPrompt?.promptStrength || 0.8
-          );
-          break; // If successful, exit the retry loop
-        } catch (error) {
-          lastError = error instanceof Error ? error : new Error('Failed to generate image');
-          if (attempt < 2) {
-            // Wait before retrying (exponential backoff)
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-            continue;
-          }
-          throw lastError;
-        }
-      }
+      const imageUrl = await generateImage(
+        JSON.stringify(customWorkflow),
+        inputFile || undefined,  // Send undefined instead of null
+        advancedSettings.outputFormat,
+        advancedSettings.outputQuality,
+        advancedSettings.randomiseSeeds
+      );
 
       if (!imageUrl) {
-        throw new Error('Failed to generate image after multiple attempts');
+        throw new Error('Failed to generate image');
       }
 
       // Try to save the generated image
       try {
-        await saveGeneratedImage(imageUrl, promptToUse, aspectRatio);
+        await saveGeneratedImage(imageUrl, stickyWithPrompt.content, state.aspectRatio);
       } catch (error) {
         console.error('Error saving image:', error);
         // Continue even if saving fails - we can still show the image
@@ -376,7 +350,7 @@ export const useStore = create<BoardState>((set, get) => ({
       let width = 512;
       let height = 512;
 
-      const [w, h] = aspectRatio.split(':').map(Number);
+      const [w, h] = state.aspectRatio.split(':').map(Number);
       if (w > h) {
         height = (512 * h) / w;
       } else if (h > w) {
@@ -402,12 +376,7 @@ export const useStore = create<BoardState>((set, get) => ({
       state.setTool('select');
     } catch (error) {
       console.error('Error generating image:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to generate image';
-      set({
-        error: errorMessage.includes('timeout')
-          ? 'Image generation is taking longer than expected. Please try again or reduce the number of steps.'
-          : errorMessage
-      });
+      set({ error: error instanceof Error ? error.message : 'Failed to generate image' });
     } finally {
       set({ isGenerating: false });
     }
