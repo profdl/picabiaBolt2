@@ -3,6 +3,9 @@ import { RotateCw } from 'lucide-react';
 import { useStore } from '../store';
 import { Shape } from '../types';
 import { useBrush } from './BrushTool';
+import { ShapeControls } from './ShapeControls';
+
+
 
 interface ShapeProps {
   shape: Shape;
@@ -449,37 +452,15 @@ export function ShapeComponent({ shape }: ShapeProps) {
       ) : (
         shape.content
       )}
-
       {/* Selection controls */}
       {isSelected && !isEditing && tool === 'select' && (
-        <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
-          {/* Rotate, resize, color picker controls */}
-          <div
-            className="absolute -right-2 -bottom-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-se-resize"
-            style={{ zIndex: 101, pointerEvents: 'all' }}
-            onMouseDown={handleResizeStart}
-          />
-          <div
-            className="absolute w-6 h-6 bg-white border-2 border-blue-500 rounded-full cursor-pointer hover:bg-blue-50 flex items-center justify-center"
-            style={{
-              left: '50%',
-              top: -32,
-              transform: 'translateX(-50%)',
-              zIndex: 101,
-              pointerEvents: 'all'
-            }}
-            onMouseDown={handleRotateStart}
-          >
-            <RotateCw className="w-4 h-4 text-blue-500" />
-          </div>
-          <input
-            type="color"
-            value={shape.color}
-            onChange={(e) => updateShape(shape.id, { color: e.target.value })}
-            className="absolute -left-8 top-1/2 w-6 h-6 cursor-pointer transform -translate-y-1/2"
-            style={{ zIndex: 101, pointerEvents: 'all' }}
-          />
-        </div>
+        <ShapeControls
+          shape={shape}
+          isSelected={isSelected}
+          isEditing={isEditing}
+          handleResizeStart={handleResizeStart}
+          handleRotateStart={handleRotateStart}
+        />
       )}
 
       {/* Separate image prompt controls */}
