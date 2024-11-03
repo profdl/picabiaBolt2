@@ -25,6 +25,7 @@ import { Position } from '../types';
 import { useState, useRef } from 'react';
 import { ImageGeneratePanel } from './ImageGeneratePanel';
 import { useEffect } from 'react';
+import { BrushShapeSelector } from './BrushShapeSelector';
 
 
 
@@ -190,6 +191,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setBrushSize,
     brushOpacity,
     setBrushOpacity,
+    brushTexture,
+    setBrushTexture,
   } = useStore();
 
   const hasActivePrompt = shapes.some(shape =>
@@ -339,13 +342,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 </>
               )}
               {tool === 'brush' && (
-                <>
+                <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg px-4 py-2 flex items-center gap-4">
                   <input
                     type="color"
                     value={currentColor}
                     onChange={(e) => setCurrentColor(e.target.value)}
                     className="w-8 h-8 p-0 cursor-pointer"
                     title="Brush Color"
+                  />
+                  <BrushShapeSelector
+                    currentTexture={brushTexture}
+                    onTextureSelect={setBrushTexture}
                   />
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-gray-500">Size</label>
@@ -370,7 +377,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                       title="Brush Opacity"
                     />
                   </div>
-                </>
+                </div>
               )}
             </div>
           )}
