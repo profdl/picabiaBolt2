@@ -17,7 +17,7 @@ export const BrushShapeSelector: React.FC<BrushShapeSelectorProps> = ({
     onTextureSelect,
 }) => {
     return (
-        <div className="flex gap-2 bg-black rounded-lg shadow-sm border border-gray-200 p-2">
+        <div className="flex gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-0">
             {BRUSH_TEXTURES.map((texture) => (
                 <button
                     key={texture}
@@ -28,7 +28,7 @@ export const BrushShapeSelector: React.FC<BrushShapeSelectorProps> = ({
                     <img
                         src={`/brushes/${texture}.png`}
                         alt={`${texture} brush`}
-                        className="w-6 h-6 object-contain"
+                        className="w-6 h-6 object-contain invert"
                     />
                 </button>
             ))}
