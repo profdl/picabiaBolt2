@@ -27,6 +27,7 @@ interface BoardState extends CanvasState {
   showAssets: boolean;
   brushSize: number;
   brushOpacity: number;
+  brushTexture: string;
 
 
   advancedSettings: {
@@ -74,6 +75,7 @@ interface BoardState extends CanvasState {
   setBrushSize: (size: number) => void;
   setBrushOpacity: (opacity: number) => void;
   getCanvasImage?: () => string | undefined;
+  setBrushTexture: (texture: string) => void;
 
 }
 
@@ -112,6 +114,7 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   },
   brushSize: 30,
   brushOpacity: 1,
+  brushTexture: 'basic'
 };
 
 const getViewportCenter = (currentState: typeof initialState) => {
@@ -137,6 +140,7 @@ export const useStore = create<BoardState>((set, get) => ({
       selectedShapes: [],
     });
   },
+  setBrushTexture: (texture: string) => set({ brushTexture: texture }),
 
   addShape: (shape: Shape) => {
     set(state => {

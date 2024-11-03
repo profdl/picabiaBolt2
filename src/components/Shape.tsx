@@ -346,8 +346,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
   }
 
   const shapeStyles: React.CSSProperties = {
-    borderStyle: shape.type === 'canvas' ? '2px dashed #e5e7eb' : 'none',
-
     position: 'absolute',
     left: shape.position.x,
     top: shape.position.y,
@@ -357,7 +355,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
       ? 'transparent'
       : shape.color,
     cursor: tool === 'select' ? 'move' : 'default',
-    border: isSelected ? '2px solid #2196f3' : 'none',
+    border: shape.type === 'canvas'
+      ? '2px dashed #e5e7eb'
+      : isSelected
+        ? '2px solid #2196f3'
+        : 'none',
     borderRadius: shape.type === 'circle' ? '50%' : shape.type === 'sticky' ? '8px' : '4px',
     display: 'flex',
     alignItems: 'center',
@@ -366,7 +368,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     fontSize: shape.fontSize || 16,
     padding: '8px',
     boxShadow: shape.type === 'sticky' ? '0 4px 6px rgba(0, 0, 0, 0.1)' : undefined,
-    overflow: isSelected || shape.showPrompt ? 'visible' : 'hidden',
+    overflow: 'visible',
     transform: `rotate(${shape.rotation || 0}deg)`,
     transformOrigin: 'center center',
     transition: 'box-shadow 0.2s ease-in-out',
@@ -390,7 +392,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       {/* Image and content rendering */}
       {shape.type === 'canvas' && (
         <>
-          <div className="absolute -top-6 left-0 text-sm text-gray-500 font-medium">
+          <div className="absolute -top-6 left-0 text-sm text-gray-300 font-medium ">
             Canvas
           </div>
           <canvas

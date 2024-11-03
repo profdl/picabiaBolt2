@@ -1,36 +1,68 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../store';
 
-export const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
-    const brushTexture = useRef<HTMLImageElement>();
+// Move this outside the hook
+const brushTextures = new Map<string, HTMLImageElement>();
+
+const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     const isDrawing = useRef(false);
     const lastPoint = useRef<{ x: number, y: number } | null>(null);
 
-    const { currentColor, brushSize, brushOpacity, tool } = useStore();
+    const { currentColor, brushSize, brushOpacity, tool, brushTexture } = useStore();
 
     useEffect(() => {
-        brushTexture.current = new Image();
-        brushTexture.current.onload = () => {
-            console.log('Brush texture loaded successfully');
-        };
-        brushTexture.current.src = '/public/brushes/brushDots01.png';  // Update path based on your project structure
+        // Preload brush textures
+        const BRUSH_TEXTURES = [
+            'basic',
+            'fur',
+            'ink',
+            'marker'
+        ];
+
+        console.log('Starting texture loading...');
+        BRUSH_TEXTURES.forEach(texture => {
+            console.log(`Attempting to load texture: ${texture}`);
+            const img = new Image();
+            img.src = `/brushes/${texture}.png`;
+            img.onload = () => {
+                console.log(`Successfully loaded texture: ${texture}, dimensions:`, img.width, 'x', img.height);
+                brushTextures.set(texture, img);
+                console.log('Current brushTextures size:', brushTextures.size);
+            };
+            img.onerror = () => {
+                console.error(`Failed to load texture: ${texture}`);
+            };
+        });
     }, []);
 
     const drawBrushStroke = (start: { x: number, y: number }, end: { x: number, y: number }) => {
+        console.log('Drawing stroke with:', {
+            brushTexture,
+            currentColor,
+            brushSize,
+            brushOpacity
+        });
+
         const ctx = canvasRef.current?.getContext('2d');
-        if (!ctx || !brushTexture.current || !brushTexture.current.complete) return;
+        console.log('Canvas context:', !!ctx);
+        if (!ctx) return;
+
+        const textureImg = brushTextures.get(brushTexture);
+        console.log('Found texture:', !!textureImg, 'Complete:', textureImg?.complete);
+        if (!textureImg || !textureImg.complete) return;
 
         // Create temp canvas for colorizing
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = brushTexture.current.width;
-        tempCanvas.height = brushTexture.current.height;
+        if (!tempCtx) return;
+        tempCanvas.width = textureImg.width;
+        tempCanvas.height = textureImg.height;
 
         // Draw and colorize brush texture
         tempCtx.fillStyle = currentColor;
         tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
         tempCtx.globalCompositeOperation = 'destination-in';
-        tempCtx.drawImage(brushTexture.current, 0, 0);
+        tempCtx.drawImage(textureImg, 0, 0);
 
         const dx = end.x - start.x;
         const dy = end.y - start.y;
@@ -52,6 +84,7 @@ export const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     };
 
     const handlePointerDown = (e: React.PointerEvent) => {
+        console.log('Pointer down, tool:', tool);
         if (tool !== 'brush') return;
         e.preventDefault();
 
@@ -67,6 +100,10 @@ export const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
 
     const handlePointerMove = (e: React.PointerEvent) => {
         if (!isDrawing.current || !lastPoint.current) return;
+        console.log('Drawing from:', lastPoint.current, 'Current position:', {
+            x: e.clientX,
+            y: e.clientY
+        });
         e.preventDefault();
 
         const rect = canvasRef.current?.getBoundingClientRect();
@@ -90,3 +127,5 @@ export const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
         handlePointerUpOrLeave
     };
 };
+
+export { useBrush };
