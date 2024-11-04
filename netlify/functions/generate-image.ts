@@ -59,7 +59,10 @@ export const handler: Handler = async (event) => {
           randomise_seeds: payload.randomiseSeeds
         },
         webhook: process.env.WEBHOOK_URL,
-        webhook_events_filter: ["completed"]
+        webhook_events_filter: ["completed"],
+        metadata: {
+          imageId: payload.imageId  // Make sure this is passed through
+        }
       })
     });
     if (!replicateResponse.ok) {

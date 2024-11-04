@@ -7,29 +7,32 @@ const supabase = createClient(
 )
 
 const handler: Handler = async (event) => {
-    // Add at start of handler
-    console.log('Webhook Received:', {
+    console.log('Webhook Initial Payload:', {
         timestamp: new Date().toISOString(),
-        requestId: event.requestContext?.requestId,
-        contentType: event.headers['content-type'],
-        payloadSize: event.body?.length
+        body: event.body
     });
 
-    // Add detailed logging for webhook payload
-    console.log('Webhook Function Started', {
-        timestamp: new Date().toISOString(),
-        headers: event.headers,
-        rawBody: event.body
+    const payload = JSON.parse(event.body!);
+
+    console.log('Parsed Webhook Data:', {
+        id: payload.id,
+        status: payload.status,
+        metadata: payload.metadata,
+        output: payload.output
     });
 
-    console.log('Webhook received event:', event);
-    console.log('Webhook request body:', event.body);
-
-    const payload = JSON.parse(event.body);
-    console.log('Parsed webhook payload:', payload);
+    // Validate required fields
+    if (!payload.metadata?.imageId) {
+        console.log('Missing imageId in metadata:', payload);
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: 'Missing imageId in metadata' })
+        };
+    }
 
     const { id, output, status, metadata } = payload;
-    console.log('Webhook data:', { id, output, status, metadata });
+
+    // Rest of your handler code...
 
     // Add after successful DB update
     console.log('Webhook Processing Complete:', {
