@@ -5,6 +5,8 @@ interface GenerateImageResponse {
   error?: string;
 }
 
+import controlWorkflow from './controlWorkflow.json';
+
 export async function generateImage(
   workflowJson: string,
   inputImage?: string,
@@ -12,25 +14,31 @@ export async function generateImage(
   outputQuality: number = 95,
   randomiseSeeds: boolean = true,
 ): Promise<string> {
-  try {
-    const testResponse = await fetch('/.netlify/functions/test-endpoint');
-    if (!testResponse.ok) {
-      throw new Error('Image generation service is not available');
-    }
+  // Create a deep copy of the control workflow
+  const workflow = JSON.parse(JSON.stringify(controlWorkflow));
 
+  // Update the LoadImage node with the input image
+  workflow[12].inputs.image = inputImage;
+
+  // Update the positive prompt
+  workflow[6].inputs.text = workflowJson;
+
+  // Set random seed if enabled
+  if (randomiseSeeds) {
+    workflow[3].inputs.seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+  }
+
+  try {
     const response = await fetch('/.netlify/functions/generate-image', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        workflow_json: workflowJson,
-        input_file: inputImage,
+        workflow_json: JSON.stringify(workflow),
         output_format: outputFormat,
         output_quality: outputQuality,
         randomise_seeds: randomiseSeeds,
-        force_reset_cache: false,
-        return_temp_files: false
       }),
     });
 
