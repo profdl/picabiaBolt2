@@ -7,6 +7,7 @@ import { useProjects } from '../hooks/useProjects';
 import { useStore } from '../store';
 import { generateThumbnail } from '../utils/thumbnail';
 import { HelpCircle } from 'lucide-react';
+import { WebSocketTester } from './WebSocketTester';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
@@ -22,6 +23,7 @@ export const Navbar = () => {
     }
     return false;
   });
+  const [showWebSocketTester, setShowWebSocketTester] = useState(false);
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -29,7 +31,6 @@ export const Navbar = () => {
     localStorage.setItem('darkMode', (!isDarkMode).toString());
   };
 
-  // Add this effect to handle initial dark mode state
   useEffect(() => {
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     if (savedDarkMode) {
@@ -96,6 +97,13 @@ export const Navbar = () => {
             {user ? (
               <div className="flex items-center gap-4">
                 <button
+                  onClick={() => setShowWebSocketTester(!showWebSocketTester)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  title="WebSocket Tester"
+                >
+                  <span className="w-5 h-5">🔌</span>
+                </button>
+                <button
                   onClick={() => setIsDarkMode(!isDarkMode)}
                   className="p-2 hover:bg-gray-100 rounded-lg"
                   title="Toggle Dark Mode"
@@ -136,6 +144,17 @@ export const Navbar = () => {
         </div>
       </nav>
       <ProjectsSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      {showWebSocketTester && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg max-w-lg w-full m-4">
+            <div className="flex justify-between mb-4">
+              <h2 className="text-xl">WebSocket Tester</h2>
+              <button onClick={() => setShowWebSocketTester(false)}>✕</button>
+            </div>
+            <WebSocketTester />
+          </div>
+        </div>
+      )}
     </>
   );
 }

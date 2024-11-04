@@ -30,7 +30,7 @@ interface BoardState extends CanvasState {
   brushSize: number;
   brushOpacity: number;
   brushTexture: string;
-
+  predictionSocket: PredictionSocket | null;
 
   advancedSettings: {
     negativePrompt: string;
@@ -39,7 +39,6 @@ interface BoardState extends CanvasState {
     scheduler: string;
     seed: number;
     steps: number;
-
   };
 
   // Methods
@@ -78,9 +77,7 @@ interface BoardState extends CanvasState {
   setBrushOpacity: (opacity: number) => void;
   getCanvasImage?: () => string | undefined;
   setBrushTexture: (texture: string) => void;
-
 }
-
 const MAX_HISTORY = 50;
 
 const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never }> = {
@@ -298,7 +295,6 @@ export const useStore = create<BoardState>((set, get) => ({
     })),
 
   setError: (error: string | null) => set({ error }),
-
   handleGenerate: async () => {
     const state = get();
     const { shapes, advancedSettings } = state;
@@ -311,6 +307,10 @@ export const useStore = create<BoardState>((set, get) => ({
       shape => (shape.type === 'image' || shape.type === 'canvas') && shape.showPrompt
     );
 
+    const inputFile = imageWithPrompt?.type === 'canvas'
+      ? imageWithPrompt.getCanvasImage?.()
+      : imageWithPrompt?.imageUrl;
+
     if (!stickyWithPrompt?.content) {
       set({ error: 'No prompt selected. Please select a sticky note with a prompt.' });
       return;
@@ -319,19 +319,10 @@ export const useStore = create<BoardState>((set, get) => ({
     const customWorkflow = JSON.parse(JSON.stringify(controlWorkflow));
     customWorkflow[6].inputs.text = stickyWithPrompt.content;
 
-    // Get the input image for the control workflow
-    const inputFile = imageWithPrompt?.type === 'canvas'
-      ? imageWithPrompt.getCanvasImage?.()
-      : imageWithPrompt?.imageUrl;
-
-    if (inputFile) {
-      customWorkflow[12].inputs.image = inputFile;
-    }
-
     set({ isGenerating: true, error: null });
 
     try {
-      const imageUrl = await generateImage(
+      const imageUrls = await generateImage(
         JSON.stringify(customWorkflow),
         inputFile,
         advancedSettings.outputFormat,
@@ -339,45 +330,40 @@ export const useStore = create<BoardState>((set, get) => ({
         advancedSettings.randomiseSeeds
       );
 
-      if (!imageUrl) {
-        throw new Error('Failed to generate image');
-      }
+      // Handle array of image URLs
+      const urls = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
 
-      // Try to save the generated image
-      try {
-        await saveGeneratedImage(imageUrl, stickyWithPrompt.content, state.aspectRatio);
-      } catch (error) {
-        console.error('Error saving image:', error);
-        // Continue even if saving fails - we can still show the image
-      }
-
-      // Calculate dimensions
+      // Calculate dimensions for the new image
       let width = 512;
       let height = 512;
-
       const [w, h] = state.aspectRatio.split(':').map(Number);
       if (w > h) {
         height = (512 * h) / w;
       } else if (h > w) {
         width = (512 * w) / h;
       }
-      // Use current state for center calculation
+
+      // Get viewport center
       const center = getViewportCenter(state);
 
-      state.addShape({
-        id: Math.random().toString(36).substr(2, 9),
-        type: 'image',
-        position: {
-          x: center.x - width / 2,
-          y: center.y - height / 2,
-        },
-        width,
-        height,
-        color: 'transparent',
-        imageUrl,
-        rotation: 0,
-        aspectRatio: width / height,
+      urls.forEach((url, index) => {
+        const offset = index * 20;
+        state.addShape({
+          id: Math.random().toString(36).substr(2, 9),
+          type: 'image',
+          position: {
+            x: center.x - width / 2 + offset,
+            y: center.y - height / 2 + offset,
+          },
+          width,
+          height,
+          color: 'transparent',
+          imageUrl: url,
+          rotation: 0,
+          aspectRatio: width / height,
+        });
       });
+
       state.setTool('select');
     } catch (error) {
       console.error('Error generating image:', error);

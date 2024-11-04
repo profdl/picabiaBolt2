@@ -1,11 +1,4 @@
-import { handleError } from './supabase/errors';
-
-interface GenerateImageResponse {
-  imageUrl?: string;
-  error?: string;
-}
-
-import controlWorkflow from './controlWorkflow.json';
+import { PredictionSocket } from './websocket';
 
 export async function generateImage(
   workflowJson: string,
@@ -14,60 +7,31 @@ export async function generateImage(
   outputQuality: number = 95,
   randomiseSeeds: boolean = true,
 ): Promise<string> {
-  // Create a deep copy of the control workflow
-  const workflow = JSON.parse(JSON.stringify(controlWorkflow));
+  // Start prediction with webhook URL
+  const response = await fetch('/.netlify/functions/start-prediction', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      workflow_json: workflowJson,
+      input_file: inputImage,
+      webhook: `${window.location.origin}/.netlify/functions/webhook-handler`,
+      webhook_events_filter: ["completed"]
+    }),
+  });
 
-  // Update the LoadImage node with the input image
-  workflow[12].inputs.image = inputImage;
+  const { predictionId } = await response.json();
 
-  // Update the positive prompt
-  workflow[6].inputs.text = workflowJson;
-
-  // Set random seed if enabled
-  if (randomiseSeeds) {
-    workflow[3].inputs.seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-  }
-
-  try {
-    const response = await fetch('/.netlify/functions/generate-image', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        workflow_json: JSON.stringify(workflow),
-        output_format: outputFormat,
-        output_quality: outputQuality,
-        randomise_seeds: randomiseSeeds,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let error;
-      try {
-        const errorJson = JSON.parse(errorText);
-        error = errorJson.error || `Failed to generate image: ${response.status}`;
-      } catch {
-        error = errorText || `Failed to generate image: ${response.status}`;
+  // Wait for webhook update via WebSocket
+  return new Promise((resolve, reject) => {
+    const socket = new PredictionSocket(predictionId, (data) => {
+      if (data.status === 'succeeded') {
+        resolve(data.output);
       }
-      throw new Error(error);
-    }
-
-    let data: GenerateImageResponse;
-    try {
-      data = await response.json();
-    } catch (err) {
-      throw new Error('Invalid response from image generation service');
-    }
-
-    if (!data.imageUrl) {
-      throw new Error('No image URL in response');
-    }
-
-    return data.imageUrl;
-  } catch (error) {
-    console.error('Image generation error:', error);
-    throw error instanceof Error ? error : new Error('Failed to generate image');
-  }
+      if (data.status === 'failed') {
+        reject(new Error(data.error));
+      }
+    });
+  });
 }

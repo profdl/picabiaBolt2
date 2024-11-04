@@ -18,10 +18,19 @@
   external_node_modules = ["node-fetch"]
 
 [functions.generate-image]
-  timeout = 60
+  timeout = 120
 
 [functions.test-endpoint]
-  timeout = 60
+  timeout = 120
 
 [build.environment]
   NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/.netlify/functions/websocket-handler"
+  to = "/.netlify/functions/websocket-handler"
+  status = 200
+  force = true
+  [redirects.headers]
+    Connection = "Upgrade"
+    Upgrade = "websocket"
