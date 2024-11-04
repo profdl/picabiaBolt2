@@ -6,19 +6,24 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY!
 )
 
-const handler: Handler = async (event) => {
-    console.log('Webhook Initial Payload:', {
+export const handler: Handler = async (event) => {
+    console.log('[webhook] Received webhook:', {
         timestamp: new Date().toISOString(),
-        body: event.body
+        headers: event.headers
     });
 
-    const payload = JSON.parse(event.body!);
-
-    console.log('Parsed Webhook Data:', {
+    const payload = JSON.parse(event.body);
+    console.log('[webhook] Payload:', {
         id: payload.id,
         status: payload.status,
-        metadata: payload.metadata,
-        output: payload.output
+        hasOutput: !!payload.output
+    });
+
+    // Log database operations
+    console.log('[webhook] Database operation:', {
+        imageId: payload.metadata?.imageId,
+        operation: 'update',
+        status: 'started'
     });
 
     // Validate required fields

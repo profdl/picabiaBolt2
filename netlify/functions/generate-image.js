@@ -4,12 +4,12 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.VITE_
 const MODEL_VERSION = "10990543610c5a77a268f426adb817753842697fa0fa5819dc4a396b632a5c15";
 
 export const handler = async (event) => {
-  console.log('Generate Image Function Started', {
+  console.log('[generate-image] Function started:', {
     timestamp: new Date().toISOString(),
-    httpMethod: event.httpMethod,
-    headers: event.headers
+    method: event.httpMethod,
+    path: event.path
   });
-  console.log("Received event:", event);
+
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
@@ -23,11 +23,11 @@ export const handler = async (event) => {
 
   try {
       const payload = JSON.parse(event.body || '{}');
-      console.log('Sending request to Replicate API', {
-        modelVersion: MODEL_VERSION,
-        payload: payload
+      console.log('[generate-image] Request payload:', {
+        hasWorkflow: !!payload.workflow_json,
+        imageUrl: payload.imageUrl,
+        format: payload.outputFormat
       });
-      // Send workflow_json directly since it's already a string
       const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: {
@@ -37,7 +37,7 @@ export const handler = async (event) => {
         body: JSON.stringify({
           version: MODEL_VERSION,
           input: {
-            workflow_json: payload.workflow_json,  // Already stringified
+            workflow_json: payload.workflow_json,
             input_file: payload.imageUrl,
             output_format: payload.outputFormat,
             output_quality: payload.outputQuality,
@@ -55,9 +55,9 @@ export const handler = async (event) => {
     }
 
     const prediction = await replicateResponse.json();
-    console.log('Replicate API Response:', {
+    console.log('[generate-image] Replicate response:', {
       status: replicateResponse.status,
-      prediction: prediction
+      predictionId: prediction.id
     });
     return {
       statusCode: 200,
