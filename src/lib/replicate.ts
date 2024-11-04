@@ -29,6 +29,14 @@ export async function generateImage(
   }
 
   try {
+    // Add before API call
+    console.log('Initiating image generation request', {
+      workflowLength: workflowJson.length,
+      outputFormat,
+      outputQuality,
+      randomiseSeeds
+    });
+
     const response = await fetch('/.netlify/functions/generate-image', {
       method: 'POST',
       headers: {
@@ -61,13 +69,25 @@ export async function generateImage(
       throw new Error('Invalid response from image generation service');
     }
 
+    // Add after API response
+    console.log('Image generation response received', {
+      status: response.status,
+      headers: response.headers,
+      hasImageUrl: !!data?.imageUrl
+    });
+
     if (!data.imageUrl) {
       throw new Error('No image URL in response');
     }
 
     return data.imageUrl;
   } catch (error) {
-    console.error('Image generation error:', error);
+    // Enhanced error logging
+    console.error('Image generation error:', {
+      error: error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     throw error instanceof Error ? error : new Error('Failed to generate image');
   }
 }

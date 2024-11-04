@@ -7,6 +7,13 @@ const supabase = createClient(
 )
 
 const handler: Handler = async (event) => {
+    // Add detailed logging for webhook payload
+    console.log('Webhook Function Started', {
+        timestamp: new Date().toISOString(),
+        headers: event.headers,
+        rawBody: event.body
+    });
+
     console.log('Webhook received event:', event);
     console.log('Webhook request body:', event.body);
 
@@ -18,6 +25,15 @@ const handler: Handler = async (event) => {
 
     if (status === 'succeeded') {
         console.log('Processing successful prediction, updating database...');
+
+        // Add before database update
+        console.log('Attempting database update', {
+            imageId: metadata.imageId,
+            predictionId: id,
+            status: status,
+            output: output
+        });
+
         const { data, error } = await supabase
             .from('generated_images')
             .update({
@@ -27,6 +43,13 @@ const handler: Handler = async (event) => {
             })
             .match({ id: metadata.imageId })
             .select();
+
+        // Add after database update
+        console.log('Database update completed', {
+            success: !error,
+            data: data,
+            error: error
+        });
 
         if (error) {
             console.error('Database update error:', error);
