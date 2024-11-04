@@ -15,7 +15,6 @@
 
 [functions]
   node_bundler = "esbuild"
-  external_node_modules = ["node-fetch"]
 
 [functions.generate-image]
   timeout = 60
