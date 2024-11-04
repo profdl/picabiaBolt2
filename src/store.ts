@@ -1,10 +1,17 @@
 import { create } from 'zustand';
+import { createClient } from '@supabase/supabase-js';
 import { CanvasState, Position, Shape } from './types';
+import { supabase } from './lib/supabase';
 import { generateImage } from './lib/replicate';
 import { saveGeneratedImage } from './lib/supabase';
 import workflowJson from './lib/workflow.json';
 import controlWorkflow from './lib/controlWorkflow.json';
 
+//test
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 interface BoardState extends CanvasState {
   shapes: Shape[];
   selectedShapes: string[];
@@ -298,17 +305,27 @@ export const useStore = create<BoardState>((set, get) => ({
     })),
 
   setError: (error: string | null) => set({ error }),
-
   handleGenerate: async () => {
     const state = get();
-    const { shapes, advancedSettings } = state;
+    const { shapes, advancedSettings } = state;  // Get advancedSettings from state
 
-    const stickyWithPrompt = shapes.find(
-      shape => shape.type === 'sticky' && shape.showPrompt && shape.content
-    );
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User must be authenticated');
 
     const imageWithPrompt = shapes.find(
       shape => (shape.type === 'image' || shape.type === 'canvas') && shape.showPrompt
+    );
+    let imageData;
+    if (imageWithPrompt?.type === 'canvas') {
+      imageData = imageWithPrompt.getCanvasImage?.();
+    } else if (imageWithPrompt?.type === 'image') {
+      imageData = imageWithPrompt.imageUrl;
+    }
+
+    const stickyWithPrompt = shapes.find(
+      shape => shape.type === 'sticky' && shape.showPrompt && shape.content
     );
 
     if (!stickyWithPrompt?.content) {
@@ -316,69 +333,65 @@ export const useStore = create<BoardState>((set, get) => ({
       return;
     }
 
+    // Log the image data before inserting into workflow
+    console.log('Image data:', imageData);
+
+    // Update workflow and log the specific node
     const customWorkflow = JSON.parse(JSON.stringify(controlWorkflow));
-    customWorkflow[6].inputs.text = stickyWithPrompt.content;
+    customWorkflow[12].inputs.image = imageData;
+    console.log('LoadImage node:', customWorkflow[12]);
 
-    // Get the input image for the control workflow
-    const inputFile = imageWithPrompt?.type === 'canvas'
-      ? imageWithPrompt.getCanvasImage?.()
-      : imageWithPrompt?.imageUrl;
-
-    if (inputFile) {
-      customWorkflow[12].inputs.image = inputFile;
-    }
+    // Log the complete workflow
+    console.log('Full workflow with image:', customWorkflow);
 
     set({ isGenerating: true, error: null });
 
     try {
-      const imageUrl = await generateImage(
-        JSON.stringify(customWorkflow),
-        inputFile,
-        advancedSettings.outputFormat,
-        advancedSettings.outputQuality,
-        advancedSettings.randomiseSeeds
-      );
-
-      if (!imageUrl) {
-        throw new Error('Failed to generate image');
+      if (!user) {
+        throw new Error('User must be authenticated to generate images');
       }
 
-      // Try to save the generated image
-      try {
-        await saveGeneratedImage(imageUrl, stickyWithPrompt.content, state.aspectRatio);
-      } catch (error) {
-        console.error('Error saving image:', error);
-        // Continue even if saving fails - we can still show the image
+      const { data: pendingImage, error: dbError } = await supabase
+        .from('generated_images')
+        .insert({
+          user_id: user.id,
+          prompt: stickyWithPrompt.content,
+          status: 'pending',
+          aspect_ratio: state.aspectRatio,
+          image_url: '',
+          created_at: new Date().toISOString(),
+          prediction_id: null
+        })
+        .select()
+        .single();
+
+      if (dbError || !pendingImage) {
+        throw new Error('Failed to create pending image entry');
       }
 
-      // Calculate dimensions
-      let width = 512;
-      let height = 512;
+      const requestPayload = {
+        workflow_json: JSON.stringify(customWorkflow),  // Ensure workflow is stringified
+        outputFormat: advancedSettings.outputFormat,
+        outputQuality: advancedSettings.outputQuality,
+        randomiseSeeds: advancedSettings.randomiseSeeds,
+        imageId: pendingImage.id,
+        imageUrl: imageData
+      };
 
-      const [w, h] = state.aspectRatio.split(':').map(Number);
-      if (w > h) {
-        height = (512 * h) / w;
-      } else if (h > w) {
-        width = (512 * w) / h;
-      }
-      // Use current state for center calculation
-      const center = getViewportCenter(state);
+      // Verify final payload
+      console.log('Final request payload:', requestPayload);
 
-      state.addShape({
-        id: Math.random().toString(36).substr(2, 9),
-        type: 'image',
-        position: {
-          x: center.x - width / 2,
-          y: center.y - height / 2,
+      const response = await fetch('/.netlify/functions/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         },
-        width,
-        height,
-        color: 'transparent',
-        imageUrl,
-        rotation: 0,
-        aspectRatio: width / height,
+        body: JSON.stringify(requestPayload)
       });
-      state.setTool('select');
+      if (!response.ok) {
+        throw new Error('Failed to start image generation');
+      }
+
     } catch (error) {
       console.error('Error generating image:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to generate image' });
@@ -387,3 +400,4 @@ export const useStore = create<BoardState>((set, get) => ({
     }
   }
 }));
+

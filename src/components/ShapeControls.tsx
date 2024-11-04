@@ -69,7 +69,7 @@ export function ShapeControls({
                             <input
                                 type="checkbox"
                                 id={`prompt-${shape.id}`}
-                                checked={shape.showPrompt}
+                                checked={shape.showPrompt || false}
                                 onChange={(e) => {
                                     if (e.target.checked) {
                                         shapes.forEach(otherShape => {
@@ -97,7 +97,7 @@ export function ShapeControls({
                                     min="0"
                                     max="1"
                                     step="0.05"
-                                    value={shape.promptStrength || 0.8}
+                                    value={shape.promptStrength || 0.8}  // Default to 0.8 if undefined
                                     onChange={(e) => updateShape(shape.id, {
                                         promptStrength: parseFloat(e.target.value)
                                     })}
