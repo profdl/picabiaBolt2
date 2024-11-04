@@ -1,6 +1,5 @@
-import { Handler } from '@netlify/functions'
-import { createClient } from '@supabase/supabase-js'
-
+const { Handler } = require('@netlify/functions')
+const { createClient } = require('@supabase/supabase-js')
 const supabase = createClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_KEY!
