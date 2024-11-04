@@ -7,11 +7,17 @@ const supabase = createClient(
 )
 
 const handler: Handler = async (event) => {
-    console.log('Received event:', event)
-    const payload = JSON.parse(event.body)
-    const { id, output, status, metadata } = payload
+    console.log('Webhook received event:', event);
+    console.log('Webhook request body:', event.body);
+
+    const payload = JSON.parse(event.body);
+    console.log('Parsed webhook payload:', payload);
+
+    const { id, output, status, metadata } = payload;
+    console.log('Webhook data:', { id, output, status, metadata });
 
     if (status === 'succeeded') {
+        console.log('Processing successful prediction, updating database...');
         const { data, error } = await supabase
             .from('generated_images')
             .update({
@@ -20,14 +26,17 @@ const handler: Handler = async (event) => {
                 prediction_id: id
             })
             .match({ id: metadata.imageId })
-            .select()
+            .select();
 
         if (error) {
+            console.error('Database update error:', error);
             return {
                 statusCode: 500,
                 body: JSON.stringify({ error: 'Failed to update image status' })
             }
         }
+
+        console.log('Database updated successfully:', data);
     }
 
     return {
