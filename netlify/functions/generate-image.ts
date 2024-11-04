@@ -1,11 +1,10 @@
-import { Handler } from '@netlify/functions';
-import fetch from 'node-fetch';
-
-const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.VITE_REPLICATE_API_TOKEN;
+const { Handler } = require('@netlify/functions');
+const fetch = require('node-fetch');
 
 const MODEL_VERSION = "10990543610c5a77a268f426adb817753842697fa0fa5819dc4a396b632a5c15";
+const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.VITE_REPLICATE_API_TOKEN;
 
-export const handler: Handler = async (event) => {
+exports.handler = async (event) => {
   console.log('Generate Image Function Details:', {
     timestamp: new Date().toISOString(),
     requestId: event.requestContext?.requestId,
@@ -20,11 +19,6 @@ export const handler: Handler = async (event) => {
   });
   console.log('Received event:', event);
 
-  console.log('Replicate API Request:', {
-    endpoint: 'https://api.replicate.com/v1/predictions',
-    inputImageUrl: payload.imageUrl,
-    hasWorkflowJson: !!payload.workflow_json
-  });
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
