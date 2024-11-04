@@ -315,20 +315,24 @@ export const useStore = create<BoardState>((set, get) => ({
       return;
     }
 
-    const customWorkflow = JSON.parse(advancedSettings.workflowJson);
-    customWorkflow["6"].inputs.text = stickyWithPrompt.content;
+    const customWorkflow = JSON.parse(JSON.stringify(controlWorkflow));
+    customWorkflow[6].inputs.text = stickyWithPrompt.content;
 
-    // Get the image URL if available
+    // Get the input image for the control workflow
     const inputFile = imageWithPrompt?.type === 'canvas'
       ? imageWithPrompt.getCanvasImage?.()
       : imageWithPrompt?.imageUrl;
+
+    if (inputFile) {
+      customWorkflow[12].inputs.image = inputFile;
+    }
 
     set({ isGenerating: true, error: null });
 
     try {
       const imageUrl = await generateImage(
         JSON.stringify(customWorkflow),
-        inputFile || undefined,  // Send undefined instead of null
+        inputFile,
         advancedSettings.outputFormat,
         advancedSettings.outputQuality,
         advancedSettings.randomiseSeeds
