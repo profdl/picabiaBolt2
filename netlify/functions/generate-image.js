@@ -4,6 +4,11 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.VITE_
 const MODEL_VERSION = "10990543610c5a77a268f426adb817753842697fa0fa5819dc4a396b632a5c15";
 
 export const handler = async (event) => {
+  console.log('Generate Image Function Started', {
+    timestamp: new Date().toISOString(),
+    httpMethod: event.httpMethod,
+    headers: event.headers
+  });
   console.log("Received event:", event);
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -18,6 +23,10 @@ export const handler = async (event) => {
 
   try {
       const payload = JSON.parse(event.body || '{}');
+      console.log('Sending request to Replicate API', {
+        modelVersion: MODEL_VERSION,
+        payload: payload
+      });
       // Send workflow_json directly since it's already a string
       const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
@@ -46,6 +55,10 @@ export const handler = async (event) => {
     }
 
     const prediction = await replicateResponse.json();
+    console.log('Replicate API Response:', {
+      status: replicateResponse.status,
+      prediction: prediction
+    });
     return {
       statusCode: 200,
       headers,
