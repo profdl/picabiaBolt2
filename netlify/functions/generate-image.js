@@ -1,143 +1,63 @@
-const fetch = require("node-fetch");
+import fetch from "node-fetch";
 
-const REPLICATE_API_TOKEN = process.env.VITE_REPLICATE_API_TOKEN;
-// Update the model version to the ComfyUI model
+const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.VITE_REPLICATE_API_TOKEN;
 const MODEL_VERSION = "10990543610c5a77a268f426adb817753842697fa0fa5819dc4a396b632a5c15";
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
+  console.log("Received event:", event);
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Content-Type": "application/json",
+    "Content-Type": "application/json"
   };
 
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 204,
-      headers,
-      body: "",
-    };
-  }
-
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: "Method not allowed" }),
-    };
-  }
-
-  if (!REPLICATE_API_TOKEN) {
-    console.error("Missing Replicate API token");
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: "Server configuration error" }),
-    };
+    return { statusCode: 204, headers, body: "" };
   }
 
   try {
-    const {
-      workflow_json,
-      input_file,
-      output_format = 'webp',
-      output_quality = 95,
-      randomise_seeds = true,
-      force_reset_cache = false,
-      return_temp_files = false
-    } = JSON.parse(event.body || '{}');
-
-    if (!workflow_json) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Workflow JSON is required' })
-      };
-    }
-
-    // Start the prediction with new input schema
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        version: MODEL_VERSION,
-        input: {
-          workflow_json,
-          input_file,
-          output_format,
-          output_quality,
-          randomise_seeds,
-          force_reset_cache,
-          return_temp_files
+      const payload = JSON.parse(event.body || '{}');
+      // Send workflow_json directly since it's already a string
+      const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
+          "Content-Type": "application/json"
         },
-      }),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("Replicate API error:", error);
-      throw new Error(error.detail || "Failed to start image generation");
-    }
-
-    const prediction = await response.json();
-    console.log("Prediction started:", prediction);
-
-    // Poll for completion
-    let result;
-    let attempts = 0;
-    const maxAttempts = 60;
-    const pollInterval = 1000;
-
-    while (attempts < maxAttempts) {
-      const pollResponse = await fetch(
-        `https://api.replicate.com/v1/predictions/${prediction.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
-            "Content-Type": "application/json",
+        body: JSON.stringify({
+          version: MODEL_VERSION,
+          input: {
+            workflow_json: payload.workflow_json,  // Already stringified
+            input_file: payload.imageUrl,
+            output_format: payload.outputFormat,
+            output_quality: payload.outputQuality,
+            randomise_seeds: payload.randomiseSeeds
           },
-        }
-      );
+          webhook: process.env.WEBHOOK_URL,
+          webhook_events_filter: ["completed"]
+        })
+      });
+      
 
-      if (!pollResponse.ok) {
-        throw new Error("Failed to check generation status");
-      }
-
-      result = await pollResponse.json();
-      console.log("Poll status:", result.status);
-
-      if (result.status === "succeeded") {
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ imageUrl: result.output[0] }),
-        };
-      }
-
-      if (result.status === "failed") {
-        throw new Error(result.error || "Image generation failed");
-      }
-
-      if (result.status === "canceled") {
-        throw new Error("Image generation was canceled");
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
-      attempts++;
+    if (!replicateResponse.ok) {
+      const errorData = await replicateResponse.json();
+      throw new Error(errorData.detail || "Failed to start image generation");
     }
 
-    throw new Error("Image generation timed out");
+    const prediction = await replicateResponse.json();
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ predictionId: prediction.id })
+    };
+
   } catch (error) {
-    console.error("Error generating image:", error);
+    console.error('Function error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({
-        error: error.message || "Failed to generate image",
-      }),
+      body: JSON.stringify({ error: error.message || "Failed to generate image" })
     };
   }
 };
