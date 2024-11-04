@@ -3,6 +3,7 @@ import { CanvasState, Position, Shape } from './types';
 import { generateImage } from './lib/replicate';
 import { saveGeneratedImage } from './lib/supabase';
 import workflowJson from './lib/workflow.json';
+import controlWorkflow from './lib/controlWorkflow.json';
 
 interface BoardState extends CanvasState {
   shapes: Shape[];
