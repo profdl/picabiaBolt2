@@ -14,6 +14,9 @@ export async function generateImage(
   outputQuality: number = 95,
   randomiseSeeds: boolean = true,
 ): Promise<string> {
+  // Create a unique imageId for tracking
+  const imageId = Math.random().toString(36).substring(2);
+
   // Create a deep copy of the control workflow
   const workflow = JSON.parse(JSON.stringify(controlWorkflow));
 
@@ -44,9 +47,11 @@ export async function generateImage(
       },
       body: JSON.stringify({
         workflow_json: JSON.stringify(workflow),
+        imageUrl: inputImage,
         output_format: outputFormat,
         output_quality: outputQuality,
         randomise_seeds: randomiseSeeds,
+        imageId: imageId  // Add this line
       }),
     });
 
