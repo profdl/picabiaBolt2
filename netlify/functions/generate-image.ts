@@ -6,12 +6,25 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.VITE_
 const MODEL_VERSION = "10990543610c5a77a268f426adb817753842697fa0fa5819dc4a396b632a5c15";
 
 export const handler: Handler = async (event) => {
+  console.log('Generate Image Function Details:', {
+    timestamp: new Date().toISOString(),
+    requestId: event.requestContext?.requestId,
+    webhookUrl: process.env.WEBHOOK_URL,
+    modelVersion: MODEL_VERSION
+  });
+
   console.log('Generate Image TypeScript Function Started', {
     timestamp: new Date().toISOString(),
     httpMethod: event.httpMethod,
     headers: event.headers
   });
   console.log('Received event:', event);
+
+  console.log('Replicate API Request:', {
+    endpoint: 'https://api.replicate.com/v1/predictions',
+    inputImageUrl: payload.imageUrl,
+    hasWorkflowJson: !!payload.workflow_json
+  });
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
