@@ -1,11 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
+const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_KEY
-)
+);
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
     console.log('[webhook] Received webhook:', {
         timestamp: new Date().toISOString(),
         headers: event.headers
@@ -36,13 +36,11 @@ export const handler = async (event) => {
 
     const { id, output, status, metadata } = payload;
 
-    // Rest of your handler code...
-
     // Add after successful DB update
     console.log('Webhook Processing Complete:', {
         predictionId: id,
         imageId: metadata.imageId,
-        outputUrl: output[0],
+        outputUrl: output?.[0],
         processingTime: Date.now() - new Date(payload.created_at).getTime()
     });
 
@@ -89,6 +87,4 @@ export const handler = async (event) => {
         statusCode: 200,
         body: JSON.stringify({ success: true })
     }
-}
-
-export { handler }
+};
