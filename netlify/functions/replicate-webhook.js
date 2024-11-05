@@ -1,13 +1,13 @@
 const { createClient } = require('@supabase/supabase-js');
 
 function logEnvironmentStatus() {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  var supabaseUrl = process.env.SUPABASE_URL;
+  var supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   console.log('Environment Status:', {
-    SUPABASE_URL: supabaseUrl ? `${supabaseUrl.substring(0, 8)}...` : 'undefined',
+    SUPABASE_URL: supabaseUrl ? supabaseUrl.substring(0, 8) + '...' : 'undefined',
     SUPABASE_SERVICE_ROLE_KEY: supabaseKey ? 
-      `${supabaseKey.substring(0, 3)}...${supabaseKey.substring(supabaseKey.length - 3)}` : 
+      supabaseKey.substring(0, 3) + '...' + supabaseKey.substring(supabaseKey.length - 3) : 
       'undefined'
   });
 }
@@ -25,76 +25,119 @@ function initSupabase() {
   );
 }
 
-let supabase = null;
+var supabase = null;
 
-exports.handler = async function(event) {
+exports.handler = function(event, context, callback) {
   console.log('Webhook received:', new Date().toISOString());
   
-  try {
-    if (!supabase) {
+  if (!supabase) {
+    try {
       supabase = initSupabase();
-    }
-
-    if (!event.body) {
-      throw new Error('No webhook payload received');
-    }
-
-    const { output, status, id } = JSON.parse(event.body);
-    console.log('Webhook data:', { status, hasOutput: !!output, id });
-
-    if (!id) {
-      throw new Error('No prediction ID provided');
-    }
-
-    if (status === 'succeeded' && Array.isArray(output) && output.length > 0) {
-      console.log('Processing prediction:', { id, imageUrl: output[0] });
-      
-      const { data, error } = await supabase
-        .from('generated_images')
-        .update({ 
-          image_url: output[0],
-          status: 'completed',
-          replicate_id: id,
-          updated_at: new Date().toISOString()
+    } catch (err) {
+      console.error('Failed to initialize Supabase:', err);
+      callback(null, {
+        statusCode: 500,
+        body: JSON.stringify({
+          success: false,
+          error: 'Failed to initialize database connection'
         })
-        .eq('replicate_id', id)
-        .select();
+      });
+      return;
+    }
+  }
+
+  if (!event.body) {
+    callback(null, {
+      statusCode: 400,
+      body: JSON.stringify({
+        success: false,
+        error: 'No webhook payload received'
+      })
+    });
+    return;
+  }
+
+  var payload;
+  try {
+    payload = JSON.parse(event.body);
+  } catch (err) {
+    callback(null, {
+      statusCode: 400,
+      body: JSON.stringify({
+        success: false,
+        error: 'Invalid JSON payload'
+      })
+    });
+    return;
+  }
+
+  var output = payload.output;
+  var status = payload.status;
+  var id = payload.id;
+
+  console.log('Webhook data:', { status: status, hasOutput: !!output, id: id });
+
+  if (!id) {
+    callback(null, {
+      statusCode: 400,
+      body: JSON.stringify({
+        success: false,
+        error: 'No prediction ID provided'
+      })
+    });
+    return;
+  }
+
+  if (status === 'succeeded' && Array.isArray(output) && output.length > 0) {
+    console.log('Processing prediction:', { id: id, imageUrl: output[0] });
+    
+    supabase
+      .from('generated_images')
+      .update({ 
+        image_url: output[0],
+        status: 'completed',
+        replicate_id: id,
+        updated_at: new Date().toISOString()
+      })
+      .eq('replicate_id', id)
+      .select()
+      .then(function(result) {
+        var data = result.data;
+        var error = result.error;
         
-      if (error) {
-        throw new Error(`Database update failed: ${error.message}`);
-      }
-      
-      console.log('Record updated:', { id, affectedRows: data?.length });
-      
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ 
-          success: true, 
-          message: 'Image record updated successfully',
-          data: { id, status: 'completed' }
-        })
-      };
-    }
-
-    return {
+        if (error) {
+          throw error;
+        }
+        
+        console.log('Record updated:', { id: id, affectedRows: data ? data.length : 0 });
+        
+        callback(null, {
+          statusCode: 200,
+          body: JSON.stringify({ 
+            success: true, 
+            message: 'Image record updated successfully',
+            data: { id: id, status: 'completed' }
+          })
+        });
+      })
+      .catch(function(error) {
+        console.error('Database error:', error);
+        callback(null, {
+          statusCode: 500,
+          body: JSON.stringify({
+            success: false,
+            error: 'Database update failed'
+          })
+        });
+      });
+  } else {
+    callback(null, {
       statusCode: 200,
       body: JSON.stringify({ 
         success: true, 
         message: 'Webhook received but no update required',
-        data: { id, status }
+        data: { id: id, status: status }
       })
-    };
-    
-  } catch (error) {
-    console.error('Error:', error);
-    
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ 
-        success: false, 
-        error: error.message,
-        timestamp: new Date().toISOString()
-      })
-    };
+    });
   }
 };
