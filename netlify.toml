@@ -4,32 +4,52 @@
   functions = "netlify/functions"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "18.x"  # More flexible version specification
 
 [functions]
   node_bundler = "esbuild"
-  external_node_modules = ["@supabase/supabase-js"]
+  # Include all external modules that need special handling
+  external_node_modules = [
+    "@supabase/supabase-js",
+    "@supabase/postgrest-js",
+    "@supabase/realtime-js",
+    "@supabase/storage-js"
+  ]
 
+# Function-specific configurations
 [functions.generate-image]
   timeout = 60
-  included_files = ["node_modules/@supabase/supabase-js/**/*"]
+  memory = 1024  # MB
+  included_files = [
+    "node_modules/@supabase/**/*"  # Catch all Supabase related files
+  ]
 
 [functions.replicate-webhook]
   timeout = 30
-  included_files = ["node_modules/@supabase/supabase-js/**/*"]
+  memory = 1024  # MB
+  included_files = [
+    "node_modules/@supabase/**/*"  # Catch all Supabase related files
+  ]
 
 [functions.test-endpoint]
   timeout = 60
+  memory = 256  # MB
 
+# API redirects
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+  force = true  # Ensure redirect always happens
 
+# SPA fallback
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = true
 
 [dev]
   targetPort = 5173
+  port = 8888  # Specify Netlify dev server port
+  framework = "#custom"  # Explicitly state custom framework
