@@ -1,45 +1,65 @@
 const { createClient } = require('@supabase/supabase-js');
 
-// Validate required environment variables
-const validateEnvVars = () => {
-  const required = {
-    SUPABASE_URL: process.env.SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY
-  };
+// Debug environment variables (safely)
+const debugEnvVars = () => {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  console.log('Environment Debug:', {
+    SUPABASE_URL: supabaseUrl ? `${supabaseUrl.substring(0, 8)}...` : 'undefined',
+    SUPABASE_SERVICE_ROLE_KEY: supabaseKey ? 
+      `${supabaseKey.substring(0, 3)}...${supabaseKey.substring(supabaseKey.length - 3)}` : 
+      'undefined',
+    NODE_ENV: process.env.NODE_ENV,
+    // Log all env var names (but not values) to see what's available
+    availableEnvVars: Object.keys(process.env)
+  });
+};
 
-  const missing = Object.entries(required)
-    .filter(([_, value]) => !value)
-    .map(([key]) => key);
-
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+// Initialize Supabase client with more explicit error handling
+const initSupabase = () => {
+  debugEnvVars();
+  
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is undefined. ' +
+      'Check: \n' +
+      '1. Environment variable is set in Netlify\n' +
+      '2. Function is in netlify/functions directory\n' +
+      '3. Recent deployment includes environment variables'
+    );
   }
 
-  return required;
+  return createClient(
+    process.env.SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
 };
 
-// Initialize Supabase client
 let supabase = null;
-const initSupabase = () => {
-  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = validateEnvVars();
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-};
 
 exports.handler = async function(event) {
-  console.log('Webhook received at:', new Date().toISOString());
+  console.log('Webhook handler started:', new Date().toISOString());
   
   try {
-    // Initialize Supabase if not already initialized
+    // Initialize Supabase with more detailed error reporting
     if (!supabase) {
-      supabase = initSupabase();
+      try {
+        supabase = initSupabase();
+      } catch (error) {
+        console.error('Supabase initialization failed:', {
+          error: error.message,
+          stack: error.stack
+        });
+        throw error;
+      }
     }
-
     // Validate webhook payload
     if (!event.body) {
       throw new Error('No webhook payload received');
     }
 
-    const { output, status, id } = JSON.parse(event.body);
+    const { output, status, id } = JSON.parse(event.body || '{}');
     console.log('Parsed webhook data:', { status, hasOutput: !!output, id });
 
     if (!id) {
@@ -69,34 +89,32 @@ exports.handler = async function(event) {
       return {
         statusCode: 200,
         body: JSON.stringify({ 
-          success: true, 
-          message: 'Image record updated successfully',
-          data: { id, status: 'completed' }
+          success: true,
+          message: 'Webhook received',
+          debug: {
+            hasSupabase: !!supabase,
+            receivedId: id,
+            status
+          }
         })
       };
-    } else {
-      // Log non-success states for debugging
-      console.log('Skipping update - invalid status or output:', { status, outputLength: output?.length });
+      
+    } catch (error) {
+      console.error('Webhook handler error:', {
+        message: error.message,
+        stack: error.stack,
+        type: error.constructor.name
+      });
+      
       return {
-        statusCode: 200,
+        statusCode: 500,
         body: JSON.stringify({ 
-          success: true, 
-          message: 'Webhook received but no update required',
-          data: { id, status }
+          success: false,
+          error: error.message,
+          errorType: error.constructor.name,
+          timestamp: new Date().toISOString()
         })
       };
     }
-    
-  } catch (error) {
-    console.error('Webhook handler error:', error);
-    
-    return {
-      statusCode: error.statusCode || 500,
-      body: JSON.stringify({ 
-        success: false, 
-        error: error.message || 'Internal server error',
-        timestamp: new Date().toISOString()
-      })
-    };
-  }
+  };
 };
