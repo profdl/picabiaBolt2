@@ -1,6 +1,6 @@
-const { Handler } = require('@netlify/functions');
+import { Handler } from '@netlify/functions';
 
-exports.handler = async (event) => {
+export const handler: Handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
