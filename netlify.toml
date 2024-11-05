@@ -2,14 +2,13 @@
   command = "npm run build"
   publish = "dist"
   functions = "netlify/functions"
-  framework = "vite"  
+  framework = "vite"
 
 [build.environment]
-  NODE_VERSION = "18.x"  # More flexible version specification
+  NODE_VERSION = "18.x"
 
 [functions]
   node_bundler = "esbuild"
-  # Include all external modules that need special handling
   external_node_modules = [
     "@supabase/supabase-js",
     "@supabase/postgrest-js",
@@ -17,36 +16,13 @@
     "@supabase/storage-js"
   ]
 
-# Function-specific configurations
-[functions.generate-image]
-  timeout = 60
-  memory = 1024  # MB
-  included_files = [
-    "node_modules/@supabase/**/*"  # Catch all Supabase related files
-  ]
-
-[functions.replicate-webhook]
-  timeout = 30
-  memory = 1024  # MB
-  included_files = [
-    "node_modules/@supabase/**/*"  # Catch all Supabase related files
-  ]
-
-[functions.test-endpoint]
-  timeout = 60
-  memory = 256  # MB
-
-# API redirects
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
-  force = true  # Ensure redirect always happens
-
-# SPA fallback
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
   force = true
 
+[dev]
+  framework = "vite"
+  targetPort = 5173
+  port = 8888
