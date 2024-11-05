@@ -1,8 +1,14 @@
 const { createClient } = require('@supabase/supabase-js');
 
+// Log environment variables availability (but not their values)
+console.log('Environment variables check:', {
+  hasSupabaseUrl: !!process.env.SUPABASE_URL,
+  hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+});
+
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
 exports.handler = async function(event) {
