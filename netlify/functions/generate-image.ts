@@ -1,10 +1,10 @@
-const { Handler } = require('@netlify/functions');
-const fetch = require('node-fetch');
+import { Handler } from '@netlify/functions';
+import fetch from 'node-fetch';
 
 const MODEL_VERSION = "10990543610c5a77a268f426adb817753842697fa0fa5819dc4a396b632a5c15";
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.VITE_REPLICATE_API_TOKEN;
 
-exports.handler = async (event) => {
+export const handler: Handler = async (event) => {
   console.log('Generate Image Function Details:', {
     timestamp: new Date().toISOString(),
     requestId: event.requestContext?.requestId,
