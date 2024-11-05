@@ -87,7 +87,6 @@ exports.handler = function(event, context, callback) {
     });
     return;
   }
-
   if (status === 'succeeded' && Array.isArray(output) && output.length > 0) {
     console.log('Processing prediction:', { id: id, imageUrl: output[0] });
     
@@ -101,9 +100,8 @@ exports.handler = function(event, context, callback) {
       })
       .eq('replicate_id', id)
       .select()
-      .then(function(result) {
-        var data = result.data;
-        var error = result.error;
+      .then((result) => {
+        const { data, error } = result;
         
         if (error) {
           throw error;
@@ -120,7 +118,7 @@ exports.handler = function(event, context, callback) {
           })
         });
       })
-      .catch(function(error) {
+      .catch((error) => {
         console.error('Database error:', error);
         callback(null, {
           statusCode: 500,
@@ -130,6 +128,7 @@ exports.handler = function(event, context, callback) {
           })
         });
       });
+  }
   } else {
     callback(null, {
       statusCode: 200,
