@@ -1,56 +1,50 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 exports.handler = async function(event) {
-    console.log('Webhook received:', event.body);
+  console.log('Webhook received:', event.body);
   
-    const { output, status } = JSON.parse(event.body);
-    console.log('Parsed webhook data - status:', status, 'output:', output);
+  const { output, status, id } = JSON.parse(event.body);
+  console.log('Parsed webhook data - status:', status, 'output:', output, 'id:', id);
   
-    if (status === 'succeeded' && output) {
-      console.log('Starting image processing for URL:', output[0]);
+  if (status === 'succeeded' && output) {
+    console.log('Processing successful prediction with output:', output);
     
-      const imageResponse = await fetch(output[0]);
-      console.log('Image fetched from Replicate, status:', imageResponse.status);
-    
-      const imageBuffer = await imageResponse.arrayBuffer();
-      console.log('Image converted to buffer, size:', imageBuffer.byteLength);
-    
-      const fileName = `generated-${Date.now()}.png`;
-      console.log('Uploading to Supabase storage with filename:', fileName);
-    
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('generated-images')
-        .upload(fileName, imageBuffer, {
-          contentType: 'image/png'
-        });
+    try {
+      // Get the first generated image URL
+      const imageUrl = output[0];
+      console.log('Using image URL:', imageUrl);
       
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        throw uploadError;
-      }
-      console.log('Successfully uploaded to storage:', uploadData);
-    
+      // Update the generated_images record with the output URL
       const { data, error } = await supabase
         .from('generated_images')
-        .insert([{
-          image_url: uploadData.path,
-          prompt: JSON.parse(event.body).input.prompt
-        }]);
-      
+        .update({ 
+          image_url: imageUrl,
+          status: 'completed',
+          replicate_id: id
+        })
+        .eq('replicate_id', id)
+        .select();
+        
       if (error) {
-        console.error('Database insert error:', error);
+        console.error('Database update error:', error);
         throw error;
       }
-      console.log('Successfully inserted record into database:', data);
+      
+      console.log('Successfully updated record:', data);
+      
+    } catch (err) {
+      console.error('Error processing webhook:', err);
+      throw err;
     }
+  }
   
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ received: true })
-    };
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ received: true })
+  };
 };
