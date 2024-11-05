@@ -2,89 +2,55 @@ const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-exports.handler = async (event) => {
-    console.log('[webhook] Received webhook:', {
-        timestamp: new Date().toISOString(),
-        headers: event.headers
-    });
-
-    const payload = JSON.parse(event.body);
-    console.log('[webhook] Payload:', {
-        id: payload.id,
-        status: payload.status,
-        hasOutput: !!payload.output
-    });
-
-    // Log database operations
-    console.log('[webhook] Database operation:', {
-        imageId: payload.metadata?.imageId,
-        operation: 'update',
-        status: 'started'
-    });
-
-    // Validate required fields
-    if (!payload.metadata?.imageId) {
-        console.log('Missing imageId in metadata:', payload);
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: 'Missing imageId in metadata' })
-        };
-    }
-
-    const { id, output, status, metadata } = payload;
-
-    // Add after successful DB update
-    console.log('Webhook Processing Complete:', {
-        predictionId: id,
-        imageId: metadata.imageId,
-        outputUrl: output?.[0],
-        processingTime: Date.now() - new Date(payload.created_at).getTime()
-    });
-
-    if (status === 'succeeded') {
-        console.log('Processing successful prediction, updating database...');
-
-        // Add before database update
-        console.log('Attempting database update', {
-            imageId: metadata.imageId,
-            predictionId: id,
-            status: status,
-            output: output
+exports.handler = async function(event) {
+    console.log('Webhook received:', event.body);
+  
+    const { output, status } = JSON.parse(event.body);
+    console.log('Parsed webhook data - status:', status, 'output:', output);
+  
+    if (status === 'succeeded' && output) {
+      console.log('Starting image processing for URL:', output[0]);
+    
+      const imageResponse = await fetch(output[0]);
+      console.log('Image fetched from Replicate, status:', imageResponse.status);
+    
+      const imageBuffer = await imageResponse.arrayBuffer();
+      console.log('Image converted to buffer, size:', imageBuffer.byteLength);
+    
+      const fileName = `generated-${Date.now()}.png`;
+      console.log('Uploading to Supabase storage with filename:', fileName);
+    
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('generated-images')
+        .upload(fileName, imageBuffer, {
+          contentType: 'image/png'
         });
-
-        const { data, error } = await supabase
-            .from('generated_images')
-            .update({
-                image_url: output[0],
-                status: 'completed',
-                prediction_id: id
-            })
-            .match({ id: metadata.imageId })
-            .select();
-
-        // Add after database update
-        console.log('Database update completed', {
-            success: !error,
-            data: data,
-            error: error
-        });
-
-        if (error) {
-            console.error('Database update error:', error);
-            return {
-                statusCode: 500,
-                body: JSON.stringify({ error: 'Failed to update image status' })
-            }
-        }
-
-        console.log('Database updated successfully:', data);
+      
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw uploadError;
+      }
+      console.log('Successfully uploaded to storage:', uploadData);
+    
+      const { data, error } = await supabase
+        .from('generated_images')
+        .insert([{
+          image_url: uploadData.path,
+          prompt: JSON.parse(event.body).input.prompt
+        }]);
+      
+      if (error) {
+        console.error('Database insert error:', error);
+        throw error;
+      }
+      console.log('Successfully inserted record into database:', data);
     }
-
+  
     return {
-        statusCode: 200,
-        body: JSON.stringify({ success: true })
-    }
+      statusCode: 200,
+      body: JSON.stringify({ received: true })
+    };
 };
