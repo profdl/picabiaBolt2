@@ -3,6 +3,24 @@
   publish = "dist"
   functions = "netlify/functions"
 
+[build.environment]
+  NODE_VERSION = "18"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@supabase/supabase-js"]
+
+[functions.generate-image]
+  timeout = 60
+  included_files = ["node_modules/@supabase/supabase-js/**/*"]
+
+[functions.replicate-webhook]
+  timeout = 30
+  included_files = ["node_modules/@supabase/supabase-js/**/*"]
+
+[functions.test-endpoint]
+  timeout = 60
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
@@ -13,14 +31,5 @@
   to = "/index.html"
   status = 200
 
-[functions]
-  node_bundler = "esbuild"
-
-[functions.generate-image]
-  timeout = 60
-
-[functions.test-endpoint]
-  timeout = 60
-
-[build.environment]
-  NODE_VERSION = "18"
+[dev]
+  targetPort = 5173
