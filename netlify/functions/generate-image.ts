@@ -1,5 +1,6 @@
 import { Handler } from '@netlify/functions';
 import fetch from 'node-fetch';
+// Rest of the file remains the same
 
 const MODEL_VERSION = "10990543610c5a77a268f426adb817753842697fa0fa5819dc4a396b632a5c15";
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.VITE_REPLICATE_API_TOKEN;
