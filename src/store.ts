@@ -353,23 +353,23 @@ export const useStore = create<BoardState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestPayload)
       });
-
       const responseData = await response.json();
       console.log('Response from generate-image:', responseData);
 
-      const { replicate_id } = responseData;
-      console.log('Extracted replicate_id:', replicate_id);
+      const { predictionId } = responseData;
+      console.log('Extracted predictionId:', predictionId);
 
       const insertData = {
         user_id: user.id,
         prompt: stickyWithPrompt.content,
         status: 'pending',
-        replicate_id: replicate_id,
+        replicate_id: predictionId,  // Use predictionId here as replicate_id
         image_url: '',
         aspect_ratio: state.aspectRatio,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+
 
       console.log('Data being inserted into Supabase:', insertData);
 
