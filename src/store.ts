@@ -364,12 +364,13 @@ export const useStore = create<BoardState>((set, get) => ({
         user_id: user.id,
         prompt: stickyWithPrompt.content,
         status: 'pending',
-        prediction_id: prediction_id,
+        prediction_id: responseData.prediction.id,  // Use the correct field name from Replicate response
         image_url: '',
         aspect_ratio: state.aspectRatio,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+
 
       console.log('Data being inserted into Supabase:', insertData);
 
