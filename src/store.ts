@@ -306,6 +306,7 @@ export const useStore = create<BoardState>((set, get) => ({
 
   setError: (error: string | null) => set({ error }),
   handleGenerate: async () => {
+    console.log('Generate function triggered');
     const state = get();
     const { shapes, advancedSettings } = state;
 
@@ -363,6 +364,5 @@ export const useStore = create<BoardState>((set, get) => ({
       set({ isGenerating: false });
     }
   }
-
 }));
 
