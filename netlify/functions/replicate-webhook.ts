@@ -45,15 +45,14 @@ export const handler: Handler = async (event) => {
                     status: 'completed',
                     updated_at: new Date().toISOString()
                 })
-                .eq('replicate_id', id)
+                .eq('prediction_id', id)
 
             console.log('Update operation details:', {
-                replicate_id: id,
+                prediction_id: id,
                 success: !error,
                 rowsAffected: data?.length,
                 error: error?.message
             });
-
             if (error) throw error;
 
             return {
