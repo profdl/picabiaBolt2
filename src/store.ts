@@ -306,18 +306,17 @@ export const useStore = create<BoardState>((set, get) => ({
 
   setError: (error: string | null) => set({ error }),
   handleGenerate: async () => {
-    console.log('Generate function triggered');
     const state = get();
-    const { shapes, advancedSettings } = state;
+    const { shapes } = state;
 
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User must be authenticated');
 
+    // Find the active prompts
     const imageWithPrompt = shapes.find(
       shape => (shape.type === 'image' || shape.type === 'canvas') && shape.showPrompt
     );
-
     const stickyWithPrompt = shapes.find(
       shape => shape.type === 'sticky' && shape.showPrompt && shape.content
     );
@@ -330,32 +329,46 @@ export const useStore = create<BoardState>((set, get) => ({
     set({ isGenerating: true, error: null });
 
     try {
+      // Clone the control workflow
+      const workflow = JSON.parse(JSON.stringify(controlWorkflow));
+
+      // Update the positive prompt in the workflow
+      workflow["6"].inputs.text = stickyWithPrompt.content;
+
+      // If there's an image prompt, update its URL
+      if (imageWithPrompt?.imageUrl) {
+        workflow["12"].inputs.image = imageWithPrompt.imageUrl;
+      }
+
+      const requestPayload = {
+        workflow_json: workflow,
+        imageUrl: imageWithPrompt?.imageUrl || null,
+        outputFormat: state.advancedSettings.outputFormat,
+        outputQuality: state.advancedSettings.outputQuality,
+        randomiseSeeds: state.advancedSettings.randomiseSeeds
+      };
+
       const response = await fetch('/.netlify/functions/generate-image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestPayload)
       });
 
+      if (!response.ok) {
+        throw new Error('Failed to start image generation');
+      }
+
       const { predictionId } = await response.json();
 
-      // Create Supabase record with predictionId
-      const { data: pendingImage, error: dbError } = await supabase
-        .from('generated_images')
-        .insert({
-          user_id: user.id,
-          prompt: stickyWithPrompt.content,
-          status: 'pending',
-          replicate_id: predictionId,
-          aspect_ratio: state.aspectRatio,
-          image_url: '',
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
+      // Create Supabase record
+      await supabase.from('generated_images').insert({
+        user_id: user.id,
+        prompt: stickyWithPrompt.content,
+        status: 'pending',
+        replicate_id: predictionId,
+        image_url: '',
+        created_at: new Date().toISOString()
+      });
 
     } catch (error) {
       console.error('Error generating image:', error);
