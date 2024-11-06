@@ -354,22 +354,31 @@ export const useStore = create<BoardState>((set, get) => ({
         body: JSON.stringify(requestPayload)
       });
 
-      const { predictionId } = await response.json();
+      const responseData = await response.json();
+      console.log('Response from generate-image:', responseData);
+
+      const { predictionId } = responseData;
+      console.log('Extracted predictionId:', predictionId);
+
+      const insertData = {
+        user_id: user.id,
+        prompt: stickyWithPrompt.content,
+        status: 'pending',
+        prediction_id: predictionId,
+        image_url: '',
+        aspect_ratio: state.aspectRatio,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      console.log('Data being inserted into Supabase:', insertData);
 
       const { data: pendingImage, error: dbError } = await supabase
         .from('generated_images')
-        .insert({
-          user_id: user.id,
-          prompt: stickyWithPrompt.content,
-          status: 'pending',
-          prediction_id: predictionId,  // Match the exact field name from the response
-          image_url: '',
-          aspect_ratio: state.aspectRatio,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .insert(insertData)
         .select()
         .single();
+
+      console.log('Supabase insert result:', { data: pendingImage, error: dbError });
     } catch (error) {
       console.error('Error generating image:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to generate image' });
