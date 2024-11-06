@@ -354,19 +354,18 @@ export const useStore = create<BoardState>((set, get) => ({
         body: JSON.stringify(requestPayload)
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to start image generation');
-      }
+      // Get the prediction ID from the response
+      const data = await response.json();
+      console.log('Replicate response:', data); // Add this to verify the response structure
 
-      const { prediction } = await response.json();
-
+      // Now create the record with the prediction ID
       const { data: pendingImage, error: dbError } = await supabase
         .from('generated_images')
         .insert({
           user_id: user.id,
           prompt: stickyWithPrompt.content,
           status: 'pending',
-          prediction_id: prediction.id,
+          prediction_id: data.id, // Use the ID from Replicate's response
           image_url: '',
           aspect_ratio: state.aspectRatio,
           created_at: new Date().toISOString(),
@@ -374,7 +373,6 @@ export const useStore = create<BoardState>((set, get) => ({
         })
         .select()
         .single();
-
     } catch (error) {
       console.error('Error generating image:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to generate image' });
