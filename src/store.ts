@@ -364,12 +364,13 @@ export const useStore = create<BoardState>((set, get) => ({
         user_id: user.id,
         prompt: stickyWithPrompt.content,
         status: 'pending',
-        prediction_id: predictionId,
+        replicate_id: predictionId,
         image_url: '',
         aspect_ratio: state.aspectRatio,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+
       console.log('Data being inserted into Supabase:', insertData);
 
       const { data: pendingImage, error: dbError } = await supabase
@@ -386,5 +387,6 @@ export const useStore = create<BoardState>((set, get) => ({
       set({ isGenerating: false });
     }
   }
-}));
+
+));
 
