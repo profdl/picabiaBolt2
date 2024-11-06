@@ -388,5 +388,5 @@ export const useStore = create<BoardState>((set, get) => ({
     }
   }
 
-));
+}));
 
