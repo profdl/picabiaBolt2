@@ -357,10 +357,10 @@ export const useStore = create<BoardState>((set, get) => ({
           user_id: user.id,
           prompt: stickyWithPrompt.content,
           status: 'pending',
+          replicate_id: prediction.id,
           aspect_ratio: state.aspectRatio,
           image_url: '',
-          created_at: new Date().toISOString(),
-          prediction_id: null
+          created_at: new Date().toISOString()
         })
         .select()
         .single();
