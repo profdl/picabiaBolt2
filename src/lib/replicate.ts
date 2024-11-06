@@ -1,4 +1,4 @@
-import { handleError } from './supabase/errors';
+import { handleSupabaseError } from './supabase';
 
 interface GenerateImageResponse {
   imageUrl?: string;
