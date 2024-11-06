@@ -356,7 +356,8 @@ export const useStore = create<BoardState>((set, get) => ({
       const responseData = await response.json();
       console.log('Response from generate-image:', responseData);
 
-      const { prediction_id } = responseData;
+      // Extract ID from the nested prediction object
+      const prediction_id = responseData.prediction.id;
       console.log('Extracted prediction_id:', prediction_id);
 
       const insertData = {
