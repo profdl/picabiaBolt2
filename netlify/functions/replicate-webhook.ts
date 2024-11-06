@@ -49,6 +49,13 @@ export const handler: Handler = async (event) => {
                 .eq('replicate_id', id)
                 .select();
 
+            console.log('Update operation details:', {
+                replicate_id: id,
+                success: !error,
+                rowsAffected: data?.length,
+                error: error?.message
+            });
+
             if (error) throw error;
 
             return {
