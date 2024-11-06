@@ -47,7 +47,7 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({
         version: MODEL_VERSION,
         input: {
-          workflow_json: payload.workflow_json,
+          workflow_json: JSON.stringify(payload.workflow_json),  // Convert object to string
           input_file: payload.imageUrl,
           output_format: payload.outputFormat,
           output_quality: payload.outputQuality,
