@@ -307,8 +307,7 @@ export const useStore = create<BoardState>((set, get) => ({
   setError: (error: string | null) => set({ error }),
   handleGenerate: async () => {
     const state = get();
-    const { shapes, advancedSettings } = state;  // Get advancedSettings from state
-
+    const { shapes, advancedSettings } = state;
 
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -317,12 +316,6 @@ export const useStore = create<BoardState>((set, get) => ({
     const imageWithPrompt = shapes.find(
       shape => (shape.type === 'image' || shape.type === 'canvas') && shape.showPrompt
     );
-    let imageData;
-    if (imageWithPrompt?.type === 'canvas') {
-      imageData = imageWithPrompt.getCanvasImage?.();
-    } else if (imageWithPrompt?.type === 'image') {
-      imageData = imageWithPrompt.imageUrl;
-    }
 
     const stickyWithPrompt = shapes.find(
       shape => shape.type === 'sticky' && shape.showPrompt && shape.content
@@ -333,23 +326,9 @@ export const useStore = create<BoardState>((set, get) => ({
       return;
     }
 
-    // Log the image data before inserting into workflow
-    console.log('Image data:', imageData);
-
-    // Update workflow and log the specific node
-    const customWorkflow = JSON.parse(JSON.stringify(controlWorkflow));
-    customWorkflow[12].inputs.image = imageData;
-    console.log('LoadImage node:', customWorkflow[12]);
-
-    // Log the complete workflow
-    console.log('Full workflow with image:', customWorkflow);
-
     set({ isGenerating: true, error: null });
 
     try {
-      if (!user) {
-        throw new Error('User must be authenticated to generate images');
-      }
       const response = await fetch('/.netlify/functions/generate-image', {
         method: 'POST',
         headers: {
@@ -360,13 +339,14 @@ export const useStore = create<BoardState>((set, get) => ({
 
       const { predictionId } = await response.json();
 
+      // Create Supabase record with predictionId
       const { data: pendingImage, error: dbError } = await supabase
         .from('generated_images')
         .insert({
           user_id: user.id,
           prompt: stickyWithPrompt.content,
           status: 'pending',
-          replicate_id: predictionId,  // Add the prediction ID here
+          replicate_id: predictionId,
           aspect_ratio: state.aspectRatio,
           image_url: '',
           created_at: new Date().toISOString()
@@ -374,25 +354,8 @@ export const useStore = create<BoardState>((set, get) => ({
         .select()
         .single();
 
-      if (dbError || !pendingImage) {
-        throw new Error('Failed to create pending image entry');
-      }
+      if (dbError) throw dbError;
 
-      const requestPayload = {
-        workflow_json: JSON.stringify(customWorkflow),  // Ensure workflow is stringified
-        outputFormat: advancedSettings.outputFormat,
-        outputQuality: advancedSettings.outputQuality,
-        randomiseSeeds: advancedSettings.randomiseSeeds,
-        imageId: pendingImage.id,
-        imageUrl: imageData
-      };
-
-      // Verify final payload
-      console.log('Final request payload:', requestPayload);
-
-      if (!response.ok) {
-        throw new Error('Failed to start image generation');
-      }
     } catch (error) {
       console.error('Error generating image:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to generate image' });
@@ -400,5 +363,6 @@ export const useStore = create<BoardState>((set, get) => ({
       set({ isGenerating: false });
     }
   }
+
 }));
 
