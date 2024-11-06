@@ -377,7 +377,7 @@ export const useStore = create<BoardState>((set, get) => ({
         .insert([insertData, insertData, insertData])
         .select();
 
-      console.log('Supabase insert result:', { data: pendingImage, error: dbError });
+      console.log('Supabase insert result:', { data: pendingImages, error: dbError });
     } catch (error) {
       console.error('Error generating image:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to generate image' });
