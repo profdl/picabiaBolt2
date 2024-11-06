@@ -43,11 +43,9 @@ export const handler: Handler = async (event) => {
                 .update({
                     image_url: output[0],
                     status: 'completed',
-                    replicate_id: id,
                     updated_at: new Date().toISOString()
                 })
                 .eq('replicate_id', id)
-                .select();
 
             console.log('Update operation details:', {
                 replicate_id: id,
