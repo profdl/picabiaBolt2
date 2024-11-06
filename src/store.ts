@@ -354,18 +354,15 @@ export const useStore = create<BoardState>((set, get) => ({
         body: JSON.stringify(requestPayload)
       });
 
-      // Get the prediction ID from the response
-      const data = await response.json();
-      console.log('Replicate response:', data); // Add this to verify the response structure
+      const { predictionId } = await response.json();
 
-      // Now create the record with the prediction ID
       const { data: pendingImage, error: dbError } = await supabase
         .from('generated_images')
         .insert({
           user_id: user.id,
           prompt: stickyWithPrompt.content,
           status: 'pending',
-          prediction_id: data.id, // Use the ID from Replicate's response
+          prediction_id: predictionId,  // Match the exact field name from the response
           image_url: '',
           aspect_ratio: state.aspectRatio,
           created_at: new Date().toISOString(),
