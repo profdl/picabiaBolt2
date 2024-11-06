@@ -371,13 +371,19 @@ export const useStore = create<BoardState>((set, get) => ({
         updated_at: new Date().toISOString()
       };
 
-      // Create three records with the same prediction_id
+      // Create three records with different image indices
+      const records = [0, 1, 2].map(index => ({
+        ...insertData,
+        image_index: index
+      }));
+
       const { data: pendingImages, error: dbError } = await supabase
         .from('generated_images')
-        .insert([insertData, insertData, insertData])
+        .insert(records)
         .select();
 
-      // Add validation to ensure we created all three records
+
+      // Validate the insert
       if (dbError || !pendingImages || pendingImages.length !== 3) {
         throw new Error('Failed to create all three image records');
       }
