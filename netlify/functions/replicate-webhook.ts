@@ -36,16 +36,26 @@ export const handler: Handler = async (event) => {
         }
 
         if (status === 'succeeded' && Array.isArray(output) && output.length > 0) {
-            console.log('Processing prediction:', { id, imageUrl: output[0] });
+            // Get all pending records with this prediction_id
+            const { data: records } = await supabase
+                .from('generated_images')
+                .select('*')
+                .eq('prediction_id', id)
+                .eq('status', 'pending');
+
+            // Update each record with a corresponding image
+            const updates = records.map((record, index) => ({
+                ...record,
+                image_url: output[index],
+                status: 'completed',
+                updated_at: new Date().toISOString()
+            }));
 
             const { data, error } = await supabase
                 .from('generated_images')
-                .update({
-                    image_url: output[0],
-                    status: 'completed',
-                    updated_at: new Date().toISOString()
-                })
-                .eq('prediction_id', id)
+                .upsert(updates);
+
+            if (error) throw error;
 
             console.log('Update operation details:', {
                 prediction_id: id,
@@ -53,13 +63,12 @@ export const handler: Handler = async (event) => {
                 rowsAffected: data?.length,
                 error: error?.message
             });
-            if (error) throw error;
 
             return {
                 statusCode: 200,
                 body: JSON.stringify({
                     success: true,
-                    message: 'Image record updated successfully',
+                    message: 'Image records updated successfully',
                     data: { id, status: 'completed' }
                 })
             };

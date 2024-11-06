@@ -364,21 +364,18 @@ export const useStore = create<BoardState>((set, get) => ({
         user_id: user.id,
         prompt: stickyWithPrompt.content,
         status: 'pending',
-        prediction_id: responseData.prediction.id,  // Use the correct field name from Replicate response
+        prediction_id: responseData.prediction.id,
         image_url: '',
         aspect_ratio: state.aspectRatio,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
-
-      console.log('Data being inserted into Supabase:', insertData);
-
-      const { data: pendingImage, error: dbError } = await supabase
+      // Create three records with the same prediction_id
+      const { data: pendingImages, error: dbError } = await supabase
         .from('generated_images')
-        .insert(insertData)
-        .select()
-        .single();
+        .insert([insertData, insertData, insertData])
+        .select();
 
       console.log('Supabase insert result:', { data: pendingImage, error: dbError });
     } catch (error) {
