@@ -61,17 +61,13 @@ export const handler: Handler = async (event) => {
       const errorData = await replicateResponse.json();
       throw new Error(errorData.detail || "Failed to start image generation");
     }
-
     const prediction = await replicateResponse.json();
-    console.log('Replicate API Response:', {
-      status: replicateResponse.status,
-      prediction: prediction
-    });
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ prediction_id: prediction.id })
+      body: JSON.stringify({ prediction: prediction })  // Return the full prediction object
     };
+
 
   } catch (error) {
     console.error("Error generating image:", error);
