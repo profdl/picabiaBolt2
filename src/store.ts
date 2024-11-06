@@ -357,14 +357,14 @@ export const useStore = create<BoardState>((set, get) => ({
       const responseData = await response.json();
       console.log('Response from generate-image:', responseData);
 
-      const { predictionId } = responseData;
-      console.log('Extracted predictionId:', predictionId);
+      const { replicate_id } = responseData;
+      console.log('Extracted replicate_id:', replicate_id);
 
       const insertData = {
         user_id: user.id,
         prompt: stickyWithPrompt.content,
         status: 'pending',
-        replicate_id: predictionId,
+        replicate_id: replicate_id,
         image_url: '',
         aspect_ratio: state.aspectRatio,
         created_at: new Date().toISOString(),
