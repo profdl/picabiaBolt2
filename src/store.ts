@@ -350,6 +350,15 @@ export const useStore = create<BoardState>((set, get) => ({
       if (!user) {
         throw new Error('User must be authenticated to generate images');
       }
+      const response = await fetch('/.netlify/functions/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestPayload)
+      });
+
+      const { predictionId } = await response.json();
 
       const { data: pendingImage, error: dbError } = await supabase
         .from('generated_images')
@@ -357,7 +366,7 @@ export const useStore = create<BoardState>((set, get) => ({
           user_id: user.id,
           prompt: stickyWithPrompt.content,
           status: 'pending',
-          replicate_id: prediction.id,
+          replicate_id: predictionId,  // Add the prediction ID here
           aspect_ratio: state.aspectRatio,
           image_url: '',
           created_at: new Date().toISOString()
@@ -381,17 +390,9 @@ export const useStore = create<BoardState>((set, get) => ({
       // Verify final payload
       console.log('Final request payload:', requestPayload);
 
-      const response = await fetch('/.netlify/functions/generate-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestPayload)
-      });
       if (!response.ok) {
         throw new Error('Failed to start image generation');
       }
-
     } catch (error) {
       console.error('Error generating image:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to generate image' });
