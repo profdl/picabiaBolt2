@@ -377,14 +377,23 @@ export const useStore = create<BoardState>((set, get) => ({
         .insert([insertData, insertData, insertData])
         .select();
 
-      console.log('Supabase insert result:', { data: pendingImages, error: dbError });
-    } catch (error) {
-      console.error('Error generating image:', error);
-      set({ error: error instanceof Error ? error.message : 'Failed to generate image' });
-    } finally {
-      set({ isGenerating: false });
-    }
-  }
+      // Add validation to ensure we created all three records
+      if (dbError || !pendingImages || pendingImages.length !== 3) {
+        throw new Error('Failed to create all three image records');
+      }
 
+      console.log('Supabase insert result:', {
+        data: pendingImages,
+        count: pendingImages.length,
+        error: dbError
+      });
+    } catch (error) {
+      console.error('Error in handleGenerate:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to generate image',
+        isGenerating: false
+      });
+    }
+  },
 }));
 
