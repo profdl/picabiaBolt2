@@ -70,7 +70,7 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ replicate_id: prediction.id })  // Send as replicate_id
+      body: JSON.stringify({ replicate_id: prediction.id })
     };
 
   } catch (error) {
