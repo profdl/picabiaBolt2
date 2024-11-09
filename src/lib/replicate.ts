@@ -1,4 +1,3 @@
-import { handleSupabaseError } from './supabase';
 
 interface GenerateImageResponse {
   imageUrl?: string;
@@ -70,7 +69,7 @@ export async function generateImage(
     let data: GenerateImageResponse;
     try {
       data = await response.json();
-    } catch (err) {
+    } catch {
       throw new Error('Invalid response from image generation service');
     }
 

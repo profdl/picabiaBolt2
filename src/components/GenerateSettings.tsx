@@ -1,8 +1,13 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { AlertCircle } from 'lucide-react';
+import React from 'react';
 import { useStore } from '../store';
 
-export const ImageGeneratePanel: React.FC = () => {
+interface GenerateSettingsProps {
+  onClose: () => void;
+  isOpen?: boolean;
+  refreshTrigger?: number;
+}
+
+export const GenerateSettings: React.FC<GenerateSettingsProps> = ({ onClose }) => {
   const {
     advancedSettings,
     setAdvancedSettings,
@@ -50,6 +55,7 @@ export const ImageGeneratePanel: React.FC = () => {
             <span className="text-sm text-gray-700">Randomize Seeds</span>
           </label>
         </div>
+        <button onClick={onClose}>Close</button>
       </div>
     </div>
   );

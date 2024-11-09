@@ -4,7 +4,7 @@ import workflowJson from '../../lib/workflow.json'
 import controlWorkflow from '../../lib/controlWorkflow.json'
 
 interface ImageGenerationSlice {
-    showImageGenerate: boolean
+    showGenerateSettings: boolean
     showUnsplash: boolean
     showGallery: boolean
     isGenerating: boolean
@@ -23,7 +23,7 @@ interface ImageGenerationSlice {
         randomiseSeeds: boolean
     }
 
-    toggleImageGenerate: () => void
+    toggleGenerateSettings: () => void
     toggleUnsplash: () => void
     toggleGallery: () => void
     setIsGenerating: (isGenerating: boolean) => void
@@ -34,7 +34,7 @@ interface ImageGenerationSlice {
 }
 
 export const createImageGenerationSlice: StateCreator<ImageGenerationSlice> = (set, get) => ({
-    showImageGenerate: false,
+    showGenerateSettings: false,
     showUnsplash: false,
     showGallery: false,
     isGenerating: false,
@@ -53,7 +53,7 @@ export const createImageGenerationSlice: StateCreator<ImageGenerationSlice> = (s
         randomiseSeeds: true,
     },
 
-    toggleImageGenerate: () => set(state => ({ showImageGenerate: !state.showImageGenerate })),
+    toggleGenerateSettings: () => set(state => ({ showGenerateSettings: !state.showGenerateSettings })),
     toggleUnsplash: () => set(state => ({ showUnsplash: !state.showUnsplash })),
     toggleGallery: () => set(state => ({ showGallery: !state.showGallery })),
     setIsGenerating: (isGenerating) => set({ isGenerating }),

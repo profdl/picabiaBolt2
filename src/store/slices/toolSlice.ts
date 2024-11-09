@@ -12,6 +12,7 @@ interface ToolState {
     gridEnabled: boolean;
     gridSize: number;
     showShortcuts: boolean;
+    showAssets: boolean;
 }
 
 interface ToolActions {
@@ -24,12 +25,13 @@ interface ToolActions {
     setIsDragging: (isDragging: boolean) => void;
     toggleGrid: () => void;
     setShowShortcuts: (show: boolean) => void;
+    toggleAssets: () => void;
 }
-
 
 interface ToolSlice extends ToolState, ToolActions { }
 
-export const createToolSlice: StateCreator<ToolSlice> = (set) => ({    // State
+export const createToolSlice: StateCreator<ToolSlice> = (set) => ({
+    // State
     tool: 'select',
     currentColor: '#000000',
     strokeWidth: 2,
@@ -40,6 +42,7 @@ export const createToolSlice: StateCreator<ToolSlice> = (set) => ({    // State
     gridEnabled: true,
     gridSize: 20,
     showShortcuts: false,
+    showAssets: false,
 
     // Actions
     setTool: (tool: 'select' | 'pan' | 'pen' | 'brush') => set({ tool }),
@@ -51,4 +54,5 @@ export const createToolSlice: StateCreator<ToolSlice> = (set) => ({    // State
     setIsDragging: (isDragging: boolean) => set({ isDragging }),
     toggleGrid: () => set((state) => ({ gridEnabled: !state.gridEnabled })),
     setShowShortcuts: (show: boolean) => set({ showShortcuts: show }),
+    toggleAssets: () => set((state) => ({ showAssets: !state.showAssets }))
 })

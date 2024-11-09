@@ -27,6 +27,8 @@ interface ShapeSlice {
     pasteShapes: (offset?: Position) => void
     undo: () => void
     redo: () => void
+    resetState: () => void
+
 }
 
 export const createShapeSlice: StateCreator<ShapeSlice> = (set, get) => ({
@@ -181,4 +183,13 @@ export const createShapeSlice: StateCreator<ShapeSlice> = (set, get) => ({
             })
         }
     },
+    resetState: () => set({
+        shapes: [],
+        selectedShapes: [],
+        history: [[]],
+        historyIndex: 0,
+        clipboard: [],
+        zoom: 1,
+        offset: { x: 0, y: 0 }
+    })
 })

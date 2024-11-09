@@ -23,7 +23,7 @@ import {
 import { useStore } from '../store';
 import { Position } from '../types';
 import { useState, useRef } from 'react';
-import { ImageGeneratePanel } from './GenerateSettings';
+import { GenerateSettings } from './GenerateSettings';
 import { useEffect } from 'react';
 import { BrushShapeSelector } from './BrushShapeSelector';
 
@@ -145,26 +145,26 @@ const SettingsButton = () => {
         <span className="text-sm font-medium">Settings</span>
       </button>
 
-      {showPanel && <ImageGeneratePanel />}
+      {showPanel && <GenerateSettings />}
     </div>
   );
 };
 
 
 interface ToolbarProps {
-  onShowImageGenerate: () => void;
+  onShowGenerateSettings: () => void;
   onShowUnsplash: () => void;
   onShowGallery: () => void;
-  showImageGenerate?: boolean;
+  showGenerateSettings?: boolean;
   showUnsplash?: boolean;
   showGallery?: boolean;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
-  onShowImageGenerate,
+  onShowGenerateSettings,
   onShowUnsplash,
   onShowGallery,
-  showImageGenerate,
+  showGenerateSettings,
   showUnsplash,
   showGallery
 }) => {
@@ -181,7 +181,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setCurrentColor,
     strokeWidth,
     setStrokeWidth,
-    toggleImageGenerate,
+    toggleGenerateSettings,
     toggleUnsplash,
     toggleGallery,
     handleGenerate,

@@ -84,7 +84,7 @@ export async function saveGeneratedImage(imageUrl: string, prompt: string, aspec
   const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`
 
   // Upload binary image data
-  const { data: uploadData, error: uploadError } = await supabase
+  const { error: uploadError } = await supabase
     .storage
     .from('generated-images')
     .upload(filename, imageData, {

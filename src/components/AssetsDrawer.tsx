@@ -16,6 +16,7 @@ interface Asset {
   user_id: string;
 }
 
+
 interface UnsplashImage {
   id: string;
   urls: {
@@ -30,6 +31,8 @@ interface UnsplashImage {
   width: number;
   height: number;
 }
+
+
 
 export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   isOpen,

@@ -1,4 +1,4 @@
-import { create, StateCreator, StoreApi } from 'zustand'
+import { create } from 'zustand'
 import { createShapeSlice } from './slices/shapeSlice'
 import { createToolSlice } from './slices/toolSlice'
 import { createImageGenerationSlice } from './slices/imageGenerationSlice'
