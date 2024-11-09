@@ -115,26 +115,19 @@ export function ShapeComponent({ shape }: ShapeProps) {
     if (!dragStart) return;
 
     const handleMouseMove = (e: MouseEvent) => {
+      // Calculate the exact delta based on initial drag position
       const dx = (e.clientX - dragStart.x) / zoom;
       const dy = (e.clientY - dragStart.y) / zoom;
 
+      // Update position relative to the initial position only
       if (Array.isArray(selectedShapes) && selectedShapes.includes(shape.id)) {
-        // Store initial positions of all selected shapes
-        const initialPositions = new Map(
-          selectedShapes.map(id => {
-            const shape = shapes.find(s => s.id === id);
-            return [id, shape?.position];
-          })
-        );
-
-        // Update each selected shape maintaining relative positions
         selectedShapes.forEach(id => {
-          const initialPos = initialPositions.get(id);
-          if (initialPos) {
+          const shape = shapes.find(s => s.id === id);
+          if (shape) {
             updateShape(id, {
               position: {
-                x: initialPos.x + dx,
-                y: initialPos.y + dy
+                x: dragStart.initialPosition.x + dx,
+                y: dragStart.initialPosition.y + dy
               }
             });
           }
