@@ -4,7 +4,7 @@ import { useStore } from '../store';
 import { Shape } from '../types';
 import { useBrush } from './BrushTool';
 import { ShapeControls } from './ShapeControls';
-import { useShapeDrag } from './useShapeDrag';
+import { useShapeDrag } from '../hooks/useShapeDrag';
 
 
 interface ShapeProps {
