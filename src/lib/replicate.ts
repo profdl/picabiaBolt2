@@ -15,29 +15,33 @@ export async function generateImage(
 ): Promise<string> {
   // Create a unique imageId for tracking
   const imageId = Math.random().toString(36).substring(2);
-
   // Create a deep copy of the control workflow
   const workflow = JSON.parse(JSON.stringify(controlWorkflow));
 
-  // Update the LoadImage node with the input image
-  workflow[12].inputs.image = inputImage;
-
+  // Update the workflow nodes while preserving their structure
   workflow[6] = {
     ...workflow[6],
     class_type: "CLIPTextEncode",
     inputs: {
-      ...workflow[6].inputs,
       text: workflowJson,
-      clip: [
-        "4",
-        1
-      ]
+      clip: ["4", 1]
     },
     _meta: {
       title: "CLIP Text Encode (Positive)"
     }
   };
 
+  workflow[12] = {
+    ...workflow[12],
+    class_type: "LoadImage",
+    inputs: {
+      image: inputImage,
+      upload: "image"
+    },
+    _meta: {
+      title: "Load Image"
+    }
+  };
   // Set random seed if enabled
   if (randomiseSeeds) {
     workflow[3].inputs.seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
