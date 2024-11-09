@@ -8,9 +8,9 @@ interface DraggablePanelProps {
   initialY?: number;
 }
 
-export const DraggablePanel: React.FC<DraggablePanelProps> = ({ 
-  title, 
-  children, 
+export const DraggablePanel: React.FC<DraggablePanelProps> = ({
+  title,
+  children,
   onClose,
   initialPosition = 'left',
   initialY = 72
@@ -35,86 +35,96 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({
 
   const updateStackedPosition = () => {
     if (!stackedTo) return;
-    
+
     const parentPanel = document.querySelector(`[data-panel-id="${stackedTo}"]`);
     if (!parentPanel) return;
 
     const parentRect = parentPanel.getBoundingClientRect();
-    setPosition(prev => ({
+    setPosition(() => ({
       x: parentRect.left,
       y: parentRect.bottom + 2
     }));
-  };
 
-  useEffect(() => {
-    if (stackedTo) {
-      const resizeObserver = new ResizeObserver(updateStackedPosition);
-      const parentPanel = document.querySelector(`[data-panel-id="${stackedTo}"]`);
-      if (parentPanel) {
-        resizeObserver.observe(parentPanel);
-      }
-      return () => resizeObserver.disconnect();
-    }
-  }, [stackedTo, updateStackedPosition]);
 
-  const snapToEdgesAndPanels = (x: number, y: number) => {
-    const panel = panelRef.current;
-    if (!panel) return { x, y };
-
-    const rect = panel.getBoundingClientRect();
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    const navbarHeight = 64; // Adjust this value based on your navbar height
-
-    // Snap to window edges
-    if (x < SNAP_THRESHOLD) x = 0; // Left edge
-    if (x + rect.width > windowWidth - SNAP_THRESHOLD) x = windowWidth - rect.width; // Right edge
-    if (y < navbarHeight + SNAP_THRESHOLD) y = navbarHeight; // Navbar
-    if (y + rect.height > windowHeight - SNAP_THRESHOLD) y = windowHeight - rect.height; // Bottom edge
-
-    const otherPanels = Array.from(document.querySelectorAll('.draggable-panel'))
-      .filter(el => el !== panel);
-
-    let newStackedTo = null;
-
-    otherPanels.forEach(el => {
-      const otherRect = el.getBoundingClientRect();
-    
-      // Horizontal snapping
-      if (Math.abs(x - (otherRect.right + 2)) < SNAP_THRESHOLD) {
-        x = otherRect.right + 2; // Snap to right side
-      }
-      if (Math.abs(x + rect.width - otherRect.left + 2) < SNAP_THRESHOLD) {
-        x = otherRect.left - rect.width - 2; // Snap to left side
-      }
-
-      // Vertical snapping
-      if (Math.abs(x - otherRect.left) < SNAP_THRESHOLD) {
-        x = otherRect.left;
-        if (Math.abs(y - (otherRect.bottom + 2)) < SNAP_THRESHOLD) {
-          y = otherRect.bottom + 2;
-          newStackedTo = el.getAttribute('data-panel-id');
+    useEffect(() => {
+      if (stackedTo) {
+        const resizeObserver = new ResizeObserver(updateStackedPosition);
+        const parentPanel = document.querySelector(`[data-panel-id="${stackedTo}"]`);
+        if (parentPanel) {
+          resizeObserver.observe(parentPanel);
         }
+        return () => resizeObserver.disconnect();
       }
-    });
+    }, [stackedTo, updateStackedPosition]);
 
-    setStackedTo(newStackedTo);
-    return { x, y };
-  };
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent text selection
-    if (panelRef.current) {
-      const rect = panelRef.current.getBoundingClientRect();
-      setDragOffset({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+    const snapToEdgesAndPanels = (x: number, y: number) => {
+      const panel = panelRef.current;
+      if (!panel) return { x, y };
+
+      const rect = panel.getBoundingClientRect();
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const navbarHeight = 64; // Adjust this value based on your navbar height
+
+      // Snap to window edges
+      if (x < SNAP_THRESHOLD) x = 0; // Left edge
+      if (x + rect.width > windowWidth - SNAP_THRESHOLD) x = windowWidth - rect.width; // Right edge
+      if (y < navbarHeight + SNAP_THRESHOLD) y = navbarHeight; // Navbar
+      if (y + rect.height > windowHeight - SNAP_THRESHOLD) y = windowHeight - rect.height; // Bottom edge
+
+      const otherPanels = Array.from(document.querySelectorAll('.draggable-panel'))
+        .filter(el => el !== panel);
+
+      let newStackedTo = null;
+
+      otherPanels.forEach(el => {
+        const otherRect = el.getBoundingClientRect();
+
+        // Horizontal snapping
+        if (Math.abs(x - (otherRect.right + 2)) < SNAP_THRESHOLD) {
+          x = otherRect.right + 2; // Snap to right side
+        }
+        if (Math.abs(x + rect.width - otherRect.left + 2) < SNAP_THRESHOLD) {
+          x = otherRect.left - rect.width - 2; // Snap to left side
+        }
+
+        // Vertical snapping
+        if (Math.abs(x - otherRect.left) < SNAP_THRESHOLD) {
+          x = otherRect.left;
+          if (Math.abs(y - (otherRect.bottom + 2)) < SNAP_THRESHOLD) {
+            y = otherRect.bottom + 2;
+            newStackedTo = el.getAttribute('data-panel-id');
+          }
+        }
       });
-      setIsDragging(true);
-      document.body.style.userSelect = 'none'; // Disable text selection globally while dragging
-    }
-  };
 
-  useEffect(() => {
+      setStackedTo(newStackedTo);
+      return { x, y };
+    };
+    const handleMouseDown = (e: React.MouseEvent) => {
+      e.preventDefault(); // Prevent text selection
+      if (panelRef.current) {
+        const rect = panelRef.current.getBoundingClientRect();
+        setDragOffset({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        });
+        setIsDragging(true);
+        document.body.style.userSelect = 'none'; // Disable text selection globally while dragging
+      }
+    };
+
+    useEffect(() => {
+      if (isDragging) {
+        window.addEventListener('mousemove', handleMouseMove)
+        window.addEventListener('mouseup', handleMouseUp)
+      }
+
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove)
+        window.removeEventListener('mouseup', handleMouseUp)
+      }
+    }, [isDragging])
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
         const newPosition = snapToEdgesAndPanels(
@@ -138,58 +148,56 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = ''; // Cleanup
-    };
-  }, [isDragging, dragOffset]);
-  return (
-    <div
-      ref={panelRef}
-      data-panel-id={panelId.current}
-      className="fixed bg-white rounded-lg shadow-lg draggable-panel"
-      style={{
-        left: position.x,
-        top: position.y,
-        width: '320px',
-        zIndex: 1000,
-        transition: isDragging ? 'none' : 'all 0.2s ease-out'
-      }}
-    >
-      <div 
-        className="px-4 py-3 cursor-move bg-gray-50 rounded-t-lg flex justify-between items-center"
-        onMouseDown={handleMouseDown}
-      >
-        <h3 className="font-medium text-gray-700">{title}</h3>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setIsMinimized(!isMinimized)}
-            className="p-1 hover:bg-gray-200 rounded-lg"
+
+      return (
+        <div
+          ref={panelRef}
+          data-panel-id={panelId.current}
+          className="fixed bg-white rounded-lg shadow-lg draggable-panel"
+          style={{
+            left: position.x,
+            top: position.y,
+            width: '320px',
+            zIndex: 1000,
+            transition: isDragging ? 'none' : 'all 0.2s ease-out'
+          }}
+        >
+          <div
+            className="px-4 py-3 cursor-move bg-gray-50 rounded-t-lg flex justify-between items-center"
+            onMouseDown={handleMouseDown}
           >
-            {isMinimized ? 
-              <ChevronUp className="w-4 h-4" /> : 
-              <ChevronDown className="w-4 h-4" />
-            }
-          </button>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-200 rounded-lg"
+            <h3 className="font-medium text-gray-700">{title}</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsMinimized(!isMinimized)}
+                className="p-1 hover:bg-gray-200 rounded-lg"
+              >
+                {isMinimized ?
+                  <ChevronUp className="w-4 h-4" /> :
+                  <ChevronDown className="w-4 h-4" />
+                }
+              </button>
+              <button
+                onClick={onClose}
+                className="p-1 hover:bg-gray-200 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <div
+            className={`
+            transition-all 
+            duration-200 
+            overflow-y-auto
+            ${isMinimized ? 'h-0' : 'max-h-[calc(100vh-200px)]'}
+          `}
+            style={{
+              overflowY: isMinimized ? 'hidden' : 'auto'
+            }}
           >
-            <X className="w-4 h-4" />
-          </button>
+            {children}
+          </div>
         </div>
-      </div>
-      <div 
-        className={`
-          transition-all 
-          duration-200 
-          overflow-y-auto
-          ${isMinimized ? 'h-0' : 'max-h-[calc(100vh-200px)]'}
-        `}
-        style={{
-          overflowY: isMinimized ? 'hidden' : 'auto'
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-};
+      );
+    };

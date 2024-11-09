@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RotateCw } from 'lucide-react';
 import { useStore } from '../store';
-import { Shape } from '../types';
+import { Shape, Position } from '../types';
 import { useBrush } from './BrushTool';
 import { ShapeControls } from './ShapeControls';
 
@@ -18,9 +18,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     updateShape,
     deleteShape,
     tool,
-    currentColor,
-    brushSize,
-    brushOpacity,
+
     zoom,
     shapes,
   } = useStore();
@@ -66,13 +64,17 @@ export function ShapeComponent({ shape }: ShapeProps) {
           tempCanvas.height = 512;
 
           // Draw current canvas content scaled to 512x512
-          tempCtx.drawImage(canvasRef.current, 0, 0, 512, 512);
+          if (tempCtx) {
+            if (canvasRef.current) {
+              tempCtx.drawImage(canvasRef.current, 0, 0, 512, 512);
+            }
+          }
 
           return tempCanvas.toDataURL('image/png');
         }
       });
     }
-  }, [shape.id, updateShape]);
+  }, [shape.id, shape.type, updateShape]);
 
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -151,7 +153,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragStart, selectedShapes, updateShape, shape.id, zoom]);
+  }, [dragStart, selectedShapes, updateShape, shape.id, zoom, shapes]);
 
   const handleRotateStart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -256,15 +258,15 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizeStart, shape.type, shape.aspectRatio, updateShape, zoom]);
+  }, [resizeStart, shape.type, shape.aspectRatio, shape.id, shape.promptStrength, updateShape, zoom]);
 
-  // Moved the input element outside of the useEffect
+
   <input
     type="range"
     min="0"
     max="1"
     step="0.05"
-    value={(shape as any).promptStrength ?? 0.8}  // Use type assertion
+    value={shape.promptStrength ?? 0.8}
     onChange={(e) => {
       e.stopPropagation();
       updateShape(shape.id, {
@@ -274,9 +276,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     onMouseDown={(e) => e.stopPropagation()}
     className="w-full"
   />
-  // Add to existing refs
-  const isDrawing = useRef(false);
-  const lastPoint = useRef<{ x: number, y: number } | null>(null);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (shape.type === 'text' || shape.type === 'sticky') {

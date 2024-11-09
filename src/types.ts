@@ -19,6 +19,17 @@ export interface Shape {
   strokeWidth?: number;
   showPrompt?: boolean;
   canvasData?: ImageData;
+  getCanvasImage?: () => string; // Added property
+  promptStrength?: number;
+}
+
+
+export interface Project {
+  id: string;
+  name: string;
+  thumbnail?: string | null;
+
+  updated_at: string;
 
 }
 export interface CanvasState {

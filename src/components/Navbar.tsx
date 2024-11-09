@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, LogOut, LayoutGrid, Save, Keyboard, Sun, Moon } from 'lucide-react';
+import { LayoutGrid, Save, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ProjectsSidebar } from './ProjectsSidebar';
 import { useProjects } from '../hooks/useProjects';
@@ -23,11 +23,7 @@ export const Navbar = () => {
     return false;
   });
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-    localStorage.setItem('darkMode', (!isDarkMode).toString());
-  };
+
 
   // Add this effect to handle initial dark mode state
   useEffect(() => {

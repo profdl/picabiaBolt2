@@ -26,7 +26,7 @@ export function useProjects() {
         .order('updated_at', { ascending: false });
 
       if (fetchError) throw fetchError;
-      
+
       setProjects(fetchedProjects || []);
     } catch (err) {
       const errorMessage = handleSupabaseError(err);
@@ -55,11 +55,11 @@ export function useProjects() {
         const errorMessage = handleSupabaseError(error);
         throw new Error(errorMessage);
       }
-      
+
       if (!data) {
         throw new Error('Project not found');
       }
-      
+
       return data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : handleSupabaseError(err);
@@ -110,7 +110,7 @@ export function useProjects() {
 
     try {
       setError(null);
-      
+
       if (updates.thumbnail?.startsWith('data:image/')) {
         updates.thumbnail = updates.thumbnail.split(',')[1];
       }
@@ -130,12 +130,12 @@ export function useProjects() {
         prev.map(project =>
           project.id === id
             ? {
-                ...project,
-                ...updates,
-                thumbnail: updates.thumbnail
-                  ? `data:image/jpeg;base64,${updates.thumbnail}`
-                  : null,
-              }
+              ...project,
+              ...updates,
+              thumbnail: updates.thumbnail
+                ? `data:image/jpeg;base64,${updates.thumbnail}`
+                : null,
+            }
             : project
         )
       );

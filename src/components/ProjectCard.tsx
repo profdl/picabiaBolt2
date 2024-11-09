@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock, MoreVertical, Edit2, Trash2, X, Check } from 'lucide-react';
-import { Project } from '../hooks/useProjects';
+import { Project } from '../types';
 
 interface ProjectCardProps {
   project: Project;
@@ -63,7 +63,7 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
 
   return (
     <div className="relative bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow group">
-      <div 
+      <div
         className="cursor-pointer"
         onClick={isRenaming ? undefined : onOpen}
       >

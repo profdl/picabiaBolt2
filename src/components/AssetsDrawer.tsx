@@ -40,7 +40,7 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
 }) => {
   // Existing assets state
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addShape = useStore(state => state.addShape);
@@ -51,7 +51,6 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
   const [query, setQuery] = useState('');
   const [unsplashImages, setUnsplashImages] = useState<UnsplashImage[]>([]);
   const [unsplashLoading, setUnsplashLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -153,7 +152,6 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
       }
 
       setUnsplashLoading(true);
-      setError(null);
 
       try {
         const response = await fetch(
@@ -172,7 +170,6 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
         const data = await response.json();
         setUnsplashImages(data.results);
       } catch (err) {
-        setError('Failed to load images. Please try again.');
         console.error('Error fetching Unsplash images:', err);
       } finally {
         setUnsplashLoading(false);

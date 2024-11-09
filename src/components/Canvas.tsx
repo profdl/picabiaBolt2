@@ -8,7 +8,7 @@ export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [startPan, setStartPan] = useState<Position | null>(null);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
-  const [spacePressed, setSpacePressed] = useState(false);
+  const [spacePressed] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPath, setCurrentPath] = useState<Position[]>([]);
   const [drawingShape, setDrawingShape] = useState<Shape | null>(null);
@@ -215,7 +215,6 @@ export function Canvas() {
     if (!gridEnabled || !canvasRef.current || !shapes) return null;
 
     const rect = canvasRef.current.getBoundingClientRect();
-    const gridSizeScaled = gridSize * zoom;
 
     const visibleStartX = -offset.x / zoom;
     const visibleStartY = -offset.y / zoom;
