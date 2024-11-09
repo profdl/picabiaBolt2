@@ -1,12 +1,6 @@
 import { create } from 'zustand';
-import { createClient } from '@supabase/supabase-js';
 import { CanvasState, Position, Shape } from './types';
-import { supabase } from './supabaseClient';
 import { handleGenerate } from './supabaseClient';
-import { generateImage } from './lib/replicate';
-import { saveGeneratedImage } from './lib/supabase';
-import workflowJson from './lib/workflow.json';
-import controlWorkflow from './lib/controlWorkflow.json';
 
 
 interface BoardState extends CanvasState {
@@ -43,6 +37,9 @@ interface BoardState extends CanvasState {
     scheduler: string;
     seed: number;
     steps: number;
+    outputFormat: string;
+    outputQuality: number;
+    randomiseSeeds: boolean;
 
   };
 
@@ -87,7 +84,7 @@ interface BoardState extends CanvasState {
 
 const MAX_HISTORY = 50;
 
-const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never }> = {
+const initialState: Omit<BoardState, 'resetState' | 'setShapes' | 'addShape' | 'addShapes' | 'updateShape' | 'updateShapes' | 'deleteShape' | 'deleteShapes' | 'setSelectedShapes' | 'setZoom' | 'setOffset' | 'setIsDragging' | 'setTool' | 'setCurrentColor' | 'setStrokeWidth' | 'copyShapes' | 'cutShapes' | 'pasteShapes' | 'undo' | 'redo' | 'toggleGrid' | 'setShowShortcuts' | 'toggleImageGenerate' | 'toggleUnsplash' | 'toggleAssets' | 'toggleGallery' | 'setIsGenerating' | 'setAspectRatio' | 'setAdvancedSettings' | 'handleGenerate' | 'setError' | 'setBrushSize' | 'setBrushOpacity' | 'setBrushTexture'> = {
   shapes: [],
   selectedShapes: [],
   zoom: 1,
@@ -108,28 +105,24 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   showGallery: false,
   showShortcuts: false,
   isGenerating: false,
-  aspectRatio: '1:1',
-  error: null,
   advancedSettings: {
-    workflowJson: JSON.stringify(workflowJson),
+    negativePrompt: '',
+    numInferenceSteps: 50,
+    guidanceScale: 7.5,
+    scheduler: 'default',
+    seed: 42,
+    steps: 50,
     outputFormat: 'webp',
     outputQuality: 95,
     randomiseSeeds: true,
   },
   brushSize: 30,
   brushOpacity: 1,
-  brushTexture: 'basic'
+  brushTexture: 'basic',
+  aspectRatio: '16:9',
+  error: null
 };
 
-const getViewportCenter = (currentState: typeof initialState) => {
-  const rect = document.querySelector('#root')?.getBoundingClientRect();
-  if (!rect) return { x: 0, y: 0 };
-
-  return {
-    x: (rect.width / 2 - currentState.offset.x) / currentState.zoom,
-    y: (rect.height / 2 - currentState.offset.y) / currentState.zoom
-  };
-};
 
 export const useStore = create<BoardState>((set, get) => ({
   ...initialState,
@@ -303,5 +296,16 @@ export const useStore = create<BoardState>((set, get) => ({
 
   setError: (error: string | null) => set({ error }),
 
+  handleGenerate: async () => {
+    const state = get();
+    const modifiedState = {
+      ...state,
+      advancedSettings: {
+        ...state.advancedSettings,
+        outputQuality: state.advancedSettings.outputQuality.toString()
+      }
+    };
+    return handleGenerate(modifiedState);
+  },
 }));
 

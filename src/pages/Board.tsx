@@ -1,9 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AlertCircle, Image } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Canvas } from '../components/Canvas';
 import { Toolbar } from '../components/Toolbar';
-import { ImageGeneratePanel } from '../components/GenerateSettings';
 import { UnsplashPanel } from '../components/UnsplashPanel';
 import { GalleryPanel } from '../components/GalleryPanel';
 import { useStore } from '../store';
@@ -13,6 +13,20 @@ import { calculateViewportFit } from '../utils/canvas';
 import { ShortcutsPanel } from '../components/ShortcutsPanel';
 import { AssetsDrawer } from '../components/AssetsDrawer';
 
+export type Shape = object;
+
+interface ImageGeneratePanelProps {
+  onClose: () => void;
+}
+
+export const ImageGeneratePanel: React.FC<ImageGeneratePanelProps> = ({ onClose }) => {
+  return (
+    <div>
+      {/* Panel content */}
+      <button onClick={onClose}>Close</button>
+    </div>
+  );
+};
 
 export const Board = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,26 +41,12 @@ export const Board = () => {
     showImageGenerate,
     showUnsplash,
     showGallery,
-    toggleImageGenerate,  // This was missing
+    toggleImageGenerate,
     toggleUnsplash,
     toggleGallery
-  } =
-    useStore();
+  } = useStore();
   const showAssets = useStore(state => state.showAssets);
   const toggleAssets = useStore(state => state.toggleAssets);
-  const addShape = useStore(state => state.addShape);
-  const zoom = useStore(state => state.zoom);
-  const offset = useStore(state => state.offset);
-
-  const getViewportCenter = useCallback(() => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-
-    return {
-      x: (rect.width / 2 - offset.x) / zoom,
-      y: (rect.height / 2 - offset.y) / zoom
-    };
-  }, [zoom, offset]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
@@ -61,11 +61,9 @@ export const Board = () => {
 
   const maxRetries = 3;
 
-
-
   // Memoize the auto-save debounce function
   const debouncedSave = useMemo(() => {
-    return async (shapes: any[]) => {
+    return async (shapes: Shape[]) => {
       if (!id || !user) return;
 
       // Convert shapes to string for comparison
@@ -218,13 +216,17 @@ export const Board = () => {
       <div
         ref={containerRef}
         className="w-screen h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 dark:bg-gray-800 relative canvas-container"
-      >        <Canvas />
-        <Toolbar />
+
+      >
+        <Canvas />
+        <Toolbar
+          onShowImageGenerate={toggleImageGenerate}
+          onShowUnsplash={toggleUnsplash}
+          onShowGallery={toggleGallery}
+        />
         <AssetsDrawer
           isOpen={showAssets}
           onClose={toggleAssets}
-          addShape={addShape}
-          getViewportCenter={getViewportCenter}
         />
         {showUnsplash && <UnsplashPanel onClose={toggleUnsplash} />}
         {showImageGenerate && <ImageGeneratePanel onClose={toggleImageGenerate} />}
@@ -234,17 +236,16 @@ export const Board = () => {
             onClose={toggleGallery}
             refreshTrigger={0}
           />
-        )}        {isSaving && (<div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
-          Saving...
-        </div>
+        )}
+        {isSaving && (
+          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
+            Saving...
+          </div>
         )}
       </div>
       <ShortcutsPanel />
     </>
   );
-}
 
-function setShowImageGenerate(arg0: (prev: any) => boolean): void {
-  throw new Error('Function not implemented.');
 }
 

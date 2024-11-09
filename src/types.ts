@@ -5,7 +5,7 @@ export interface Position {
 
 export interface Shape {
   id: string;
-  type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing' | 'canvas';
+  type: string;
   position: Position;
   content?: string;
   width: number;
@@ -19,8 +19,10 @@ export interface Shape {
   strokeWidth?: number;
   showPrompt?: boolean;
   canvasData?: ImageData;
-
+  isGenerating: boolean;
+  error?: string | null;
 }
+
 export interface CanvasState {
   shapes: Shape[];
   selectedShapes: string[];

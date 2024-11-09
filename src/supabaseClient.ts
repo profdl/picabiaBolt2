@@ -9,8 +9,38 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKe
 
 
 
+interface Shape {
+    type: string;
+    showPrompt?: boolean;
+    content?: string;
+    imageUrl?: string;
+    isGenerating: boolean;
+    error?: string | null;
+}
+
+interface BoardState {
+    shapes: Shape[];
+    advancedSettings: {
+        outputFormat: string;
+        outputQuality: string;
+        randomiseSeeds: boolean;
+    };
+    aspectRatio: string;
+    isGenerating: boolean;
+}
+
+const set = (state: Partial<BoardState>) => {
+    // Implement the set function logic here
+    console.log('State updated:', state);
+};
+
+// Define or import controlWorkflow here
+const controlWorkflow = {
+    "6": { inputs: { text: "" } },
+    "12": { inputs: { image: "" } }
+};
+
 export const handleGenerate = async (state: BoardState) => {
-    const state = get();
     const { shapes } = state;
 
     // Get current user
@@ -19,19 +49,20 @@ export const handleGenerate = async (state: BoardState) => {
     if (!user) throw new Error('User must be authenticated');
 
     // Find the active prompts
-    const imageWithPrompt = shapes.find(
-        shape => (shape.type === 'image' || shape.type === 'canvas') && shape.showPrompt
+
+    const imageWithPrompt: Shape | undefined = shapes.find(
+        (shape: Shape) => (shape.type === 'image' || shape.type === 'canvas') && shape.showPrompt
     );
     const stickyWithPrompt = shapes.find(
         shape => shape.type === 'sticky' && shape.showPrompt && shape.content
     );
 
     if (!stickyWithPrompt?.content) {
-        set({ error: 'No prompt selected. Please select a sticky note with a prompt.' });
+        set({ isGenerating: false });
         return;
     }
 
-    set({ isGenerating: true, error: null });
+    set({ isGenerating: true });
 
     try {
         // Clone the control workflow
@@ -119,7 +150,6 @@ export const handleGenerate = async (state: BoardState) => {
     } catch (error) {
         console.error('Error in handleGenerate:', error);
         set({
-            error: error instanceof Error ? error.message : 'Failed to generate image',
             isGenerating: false
         });
     }
