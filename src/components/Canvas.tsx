@@ -106,7 +106,7 @@ export function Canvas() {
       const point = getCanvasPoint(e);
       setCurrentPath([point]);
       setIsDrawing(true);
-      
+
       const newShape: Shape = {
         id: Math.random().toString(36).substr(2, 9),
         type: 'drawing',
@@ -221,7 +221,7 @@ export function Canvas() {
     const visibleStartY = -offset.y / zoom;
     const visibleEndX = (rect.width - offset.x) / zoom;
     const visibleEndY = (rect.height - offset.y) / zoom;
-    
+
     const startX = Math.floor(visibleStartX / gridSize - 1) * gridSize;
     const startY = Math.floor(visibleStartY / gridSize - 1) * gridSize;
     const endX = Math.ceil(visibleEndX / gridSize + 1) * gridSize;
@@ -277,10 +277,9 @@ export function Canvas() {
   return (
     <div
       ref={canvasRef}
-      className={`w-full h-full overflow-hidden bg-white relative ${
-        tool === 'pan' || spacePressed ? 'cursor-grab' : 
+      className={`w-full h-full overflow-hidden bg-white relative ${tool === 'pan' || spacePressed ? 'cursor-grab' :
         tool === 'pen' ? 'cursor-crosshair' : 'cursor-default'
-      } ${isDragging ? '!cursor-grabbing' : ''}`}
+        } ${isDragging ? '!cursor-grabbing' : ''}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -300,9 +299,8 @@ export function Canvas() {
       <div
         className="relative w-full h-full"
         style={{
-          transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${
-            offset.y / zoom
-          }px)`,
+          transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${offset.y / zoom
+            }px)`,
           transformOrigin: '0 0',
         }}
       >

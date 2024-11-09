@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Loader,  Image as ImageIcon } from 'lucide-react';
+import { Search, Loader, Image as ImageIcon } from 'lucide-react';
 import { useStore } from '../store';
 import debounce from 'lodash/debounce';
 import { DraggablePanel } from './DraggablePanel';
@@ -30,7 +30,7 @@ export const UnsplashPanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draggedImage, setDraggedImage] = useState<UnsplashImage | null>(null);
-  
+
   const addShape = useStore(state => state.addShape);
   const zoom = useStore(state => state.zoom);
   const offset = useStore(state => state.offset);
@@ -93,12 +93,12 @@ export const UnsplashPanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
   const handleDragStart = (e: React.DragEvent, image: UnsplashImage) => {
     setDraggedImage(image);
-    
+
     // Create a ghost image
     const ghostImage = new Image();
     ghostImage.src = image.urls.thumb;
     ghostImage.style.opacity = '0.5';
-    
+
     e.dataTransfer.setDragImage(ghostImage, 0, 0);
     e.dataTransfer.effectAllowed = 'copy';
   };
@@ -149,24 +149,24 @@ export const UnsplashPanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     const handleDrop = (e: DragEvent) => {
       e.preventDefault();
       if (!draggedImage) return;
-  
+
       handleAddImage(draggedImage, e.clientX, e.clientY);
       setDraggedImage(null);
     };
-  
+
     const handleDragOver = (e: DragEvent) => {
       e.preventDefault();
       if (draggedImage) {
         e.dataTransfer!.dropEffect = 'copy';
       }
     };
-  
+
     const canvas = document.querySelector('.canvas-container');
     if (canvas) {
       canvas.addEventListener('drop', handleDrop as EventListener);
       canvas.addEventListener('dragover', handleDragOver as EventListener);
     }
-  
+
     return () => {
       if (canvas) {
         canvas.removeEventListener('drop', handleDrop as EventListener);
@@ -174,11 +174,11 @@ export const UnsplashPanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
       }
     };
   }, [draggedImage]);
-  
+
 
   return (
-    <DraggablePanel 
-      title="Unsplash Images" 
+    <DraggablePanel
+      title="Unsplash Images"
       onClose={onClose}
       initialPosition="left"
     >
