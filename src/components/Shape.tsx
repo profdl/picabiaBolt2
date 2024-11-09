@@ -1,26 +1,42 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RotateCw } from 'lucide-react';
 import { useStore } from '../store';
-import { Shape } from '../types';
 import { useBrush } from './BrushTool';
 import { ShapeControls } from './ShapeControls';
 
-
+export interface Shape {
+  showPrompt: boolean | undefined;
+  strokeWidth: number | undefined;
+  id: string;
+  type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'canvas' | 'drawing';
+  position: { x: number; y: number };
+  width: number;
+  height: number;
+  color: string;
+  rotation: number;
+  imageUrl?: string;
+  aspectRatio?: number;
+  content?: string;
+  fontSize?: number;
+  locked?: boolean;
+  getCanvasImage?: () => string;
+  promptStrength?: number;
+  points?: { x: number; y: number }[];
+  isGenerating: boolean;
+}
 
 interface ShapeProps {
   shape: Shape;
 }
 
 export function ShapeComponent({ shape }: ShapeProps) {
+  shape.isGenerating = shape.isGenerating ?? false;
   const {
     selectedShapes,
     setSelectedShapes,
     updateShape,
     deleteShape,
     tool,
-    currentColor,
-    brushSize,
-    brushOpacity,
     zoom,
     shapes,
   } = useStore();
@@ -32,7 +48,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const [dragStart, setDragStart] = useState<{
     x: number;
     y: number;
-    initialPosition: Position;
+    initialPosition: { x: number; y: number };
   } | null>(null);
   const [rotateStart, setRotateStart] = useState<{
     angle: number;
@@ -45,8 +61,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     height: number;
     aspectRatio: number;
   } | null>(null);
-
-
 
   useEffect(() => {
     if (isEditing && textRef.current) {
@@ -66,15 +80,17 @@ export function ShapeComponent({ shape }: ShapeProps) {
           tempCanvas.height = 512;
 
           // Draw current canvas content scaled to 512x512
-          tempCtx.drawImage(canvasRef.current, 0, 0, 512, 512);
+          if (canvasRef.current) {
+            if (tempCtx) {
+              tempCtx.drawImage(canvasRef.current, 0, 0, 512, 512);
+            }
+          }
 
           return tempCanvas.toDataURL('image/png');
         }
-      });
+      } as Partial<Shape>);
     }
-  }, [shape.id, updateShape]);
-
-
+  }, [shape.id, shape.type, updateShape]);
   const handleMouseDown = (e: React.MouseEvent) => {
     if (tool === 'pan' || tool === 'pen') return;
     e.stopPropagation();
@@ -151,7 +167,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragStart, selectedShapes, updateShape, shape.id, zoom]);
+  }, [dragStart, selectedShapes, updateShape, shape.id, zoom, shapes]);
 
   const handleRotateStart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -244,9 +260,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
         e.stopPropagation();
         updateShape(shape.id, {
           promptStrength: parseFloat(e.target.value)
-        });
-      }}
-      onMouseDown={(e) => e.stopPropagation()}
+        } as Partial<Shape>);
+      }} onMouseDown={(e) => e.stopPropagation()}
       className="w-full"
     />
     document.addEventListener('mousemove', handleMouseMove);
@@ -256,7 +271,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizeStart, shape.type, shape.aspectRatio, updateShape, zoom]);
+  }, [resizeStart, shape.type, shape.aspectRatio, updateShape, zoom, shape.id, shape.promptStrength]);
 
   // Moved the input element outside of the useEffect
   <input
@@ -264,19 +279,16 @@ export function ShapeComponent({ shape }: ShapeProps) {
     min="0"
     max="1"
     step="0.05"
-    value={(shape as any).promptStrength ?? 0.8}  // Use type assertion
+    value={shape.promptStrength ?? 0.8}
     onChange={(e) => {
       e.stopPropagation();
       updateShape(shape.id, {
-        promptStrength: parseFloat(e.target.value)
-      });
+        promptStrength: parseFloat(e.target.value) as number
+      } as Partial<Shape>);
     }}
     onMouseDown={(e) => e.stopPropagation()}
     className="w-full"
   />
-  // Add to existing refs
-  const isDrawing = useRef(false);
-  const lastPoint = useRef<{ x: number, y: number } | null>(null);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (shape.type === 'text' || shape.type === 'sticky') {
@@ -298,7 +310,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
   };
 
   const isSelected = selectedShapes.includes(shape.id);
-
 
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush(canvasRef);
 
@@ -394,9 +405,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     zIndex: isSelected ? 100 : 1,
     pointerEvents: tool === 'select' ? 'all' : 'none',
   };
-
-
-
 
   return (
     <div
@@ -524,7 +532,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
                   value={shape.promptStrength || 0.8}
                   onChange={(e) => updateShape(shape.id, {
                     promptStrength: parseFloat(e.target.value)
-                  })}
+                  } as Partial<Shape>)}
                   onMouseDown={(e) => e.stopPropagation()}
                   className="w-full"
                 />

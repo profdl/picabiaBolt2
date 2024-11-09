@@ -31,18 +31,17 @@ interface UnsplashImage {
   height: number;
 }
 
-export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
-  isOpen, 
-  onClose 
+export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
+  isOpen,
+  onClose
 }) => {
   // Existing assets state
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addShape = useStore(state => state.addShape);
   const { zoom, offset } = useStore();
-  
+
   // Add Unsplash state
   const [activeTab, setActiveTab] = useState('my-assets');
   const [query, setQuery] = useState('');
@@ -55,22 +54,19 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
       fetchAssets();
     }
   }, [isOpen]);
-  
+
 
   const fetchAssets = async () => {
-    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('assets')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       setAssets(data || []);
     } catch (err) {
       console.error('Error fetching assets:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -85,18 +81,18 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
 
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
+
       // Read file as ArrayBuffer to ensure we're uploading raw image data
       const arrayBuffer = await file.arrayBuffer();
       const fileData = new Uint8Array(arrayBuffer);
-      
+
       const { error: uploadError } = await supabase.storage
         .from('assets')
         .upload(fileName, fileData, {
           contentType: file.type,
           upsert: false
         });
-      
+
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
@@ -105,9 +101,9 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
 
       const { error: dbError } = await supabase
         .from('assets')
-        .insert([{ 
+        .insert([{
           url: publicUrl,
-          user_id: user.id 
+          user_id: user.id
         }]);
 
       if (dbError) throw dbError;
@@ -138,6 +134,7 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
       color: 'transparent',
       imageUrl: asset.url,
       rotation: 0,
+      isGenerating: false,
     });
   };
 
@@ -183,13 +180,12 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
     }
     return () => searchImages.cancel();
   }, [query, searchImages]);
-  
+
   const handleImageClick = (image: UnsplashImage) => {
     const center = {
       x: (window.innerWidth / 2 - offset.x) / zoom,
       y: (window.innerHeight / 2 - offset.y) / zoom
     };
-
     addShape({
       id: Math.random().toString(36).substr(2, 9),
       type: 'image',
@@ -202,7 +198,9 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
       color: 'transparent',
       imageUrl: image.urls.regular,
       rotation: 0,
+      isGenerating: false,
     });
+
   };
 
   return (
@@ -216,21 +214,19 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab('my-assets')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${
-              activeTab === 'my-assets' 
-                ? 'border-blue-500 text-blue-600' 
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'my-assets'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             My Assets
           </button>
           <button
             onClick={() => setActiveTab('stock')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${
-              activeTab === 'stock' 
-                ? 'border-blue-500 text-blue-600' 
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'stock'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             Stock Images
           </button>
@@ -329,11 +325,14 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
                   <p>Search for images to add to your canvas</p>
                 </div>
               )}
+              {error && (
+                <p className="text-center text-red-500 py-4">{error}</p>
+              )}
             </div>
           </div>
         )}
       </div>
     </Drawer>
 
-      );
-      };
+  )
+}

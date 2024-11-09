@@ -1,8 +1,6 @@
 import React from 'react';
 import {
-  Square,
-  Circle,
-  Type,
+
   ZoomIn,
   ZoomOut,
   StickyNote,
@@ -12,16 +10,13 @@ import {
   Sparkles,
   Settings,
   Image as ImageIcon,
-  ImagePlus,
   Loader2,
   Upload,
   Grid,
-  Plus,
   Brush,
   Frame
 } from 'lucide-react';
 import { useStore } from '../store';
-import { Position } from '../types';
 import { useState, useRef } from 'react';
 import { ImageGeneratePanel } from './GenerateSettings';
 import { useEffect } from 'react';
@@ -48,7 +43,14 @@ const AssetsButton = () => {
 
 
 
-const UploadButton = ({ addShape, getViewportCenter }) => {
+import { Shape } from '../types'; // Ensure you have the correct import for Shape
+
+interface UploadButtonProps {
+  addShape: (shape: Shape) => void;
+  getViewportCenter: () => { x: number; y: number };
+}
+
+const UploadButton: React.FC<UploadButtonProps> = ({ addShape, getViewportCenter }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,6 +74,7 @@ const UploadButton = ({ addShape, getViewportCenter }) => {
           imageUrl,
           rotation: 0,
           aspectRatio: 1.5,
+          isGenerating: false
         });
       };
       reader.readAsDataURL(file);
@@ -161,14 +164,8 @@ interface ToolbarProps {
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
-  onShowImageGenerate,
-  onShowUnsplash,
-  onShowGallery,
-  showImageGenerate,
-  showUnsplash,
   showGallery
 }) => {
-  const [showAssets, setShowAssets] = useState(false);
 
   const {
     zoom,
@@ -181,8 +178,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setCurrentColor,
     strokeWidth,
     setStrokeWidth,
-    toggleImageGenerate,
-    toggleUnsplash,
     toggleGallery,
     handleGenerate,
     isGenerating,
@@ -229,7 +224,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         height: 512,
         color: '#ffffff',
         rotation: 0,
-        locked: true // Prevents rotation/scaling
+        isGenerating: false
       });
       setTool('select');
       return;
@@ -255,6 +250,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         imageUrl: url,
         rotation: 0,
         aspectRatio: 1.5,
+        isGenerating: false
       });
       setTool('select');
       return;
@@ -274,9 +270,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       content: type === 'text' || type === 'sticky' ? 'Double click to edit' : undefined,
       fontSize: 16,
       rotation: 0,
+      isGenerating: false
     });
-
-    const toggleAssets = () => setShowAssets(!showAssets);
 
   };
 
@@ -288,7 +283,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <div className="flex items-center gap-2">
             <AssetsButton />
             <div className="w-px bg-gray-200 mx-2" />
-            {/* <UploadButton addShape={addShape} getViewportCenter={getViewportCenter} /> */}
+            <UploadButton addShape={addShape} getViewportCenter={getViewportCenter} />
           </div>
         </div>
 
