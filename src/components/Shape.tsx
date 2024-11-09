@@ -24,7 +24,6 @@ export interface Shape {
   points?: { x: number; y: number }[];
   isGenerating: boolean;
 }
-
 interface ShapeProps {
   shape: Shape;
 }
@@ -124,7 +123,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
       });
     }
   };
-
   useEffect(() => {
     if (!dragStart) return;
 
@@ -133,22 +131,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
       const dy = (e.clientY - dragStart.y) / zoom;
 
       if (Array.isArray(selectedShapes) && selectedShapes.includes(shape.id)) {
-        // Store initial positions of all selected shapes
-        const initialPositions = new Map(
-          selectedShapes.map(id => {
-            const shape = shapes.find(s => s.id === id);
-            return [id, shape?.position];
-          })
-        );
-
-        // Update each selected shape maintaining relative positions
         selectedShapes.forEach(id => {
-          const initialPos = initialPositions.get(id);
-          if (initialPos) {
+          const shape = shapes.find(s => s.id === id);
+          if (shape) {
             updateShape(id, {
               position: {
-                x: initialPos.x + dx,
-                y: initialPos.y + dy
+                x: dragStart.initialPosition.x + dx,
+                y: dragStart.initialPosition.y + dy
               }
             });
           }
@@ -162,13 +151,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [dragStart, selectedShapes, updateShape, shape.id, zoom, shapes]);
-
   const handleRotateStart = (e: React.MouseEvent) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -279,8 +266,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     min="0"
     max="1"
     step="0.05"
-    value={shape.promptStrength ?? 0.8}
-    onChange={(e) => {
+    value={shape.promptStrength ?? 0.8} onChange={(e) => {
       e.stopPropagation();
       updateShape(shape.id, {
         promptStrength: parseFloat(e.target.value) as number

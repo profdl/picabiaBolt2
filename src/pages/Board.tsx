@@ -170,6 +170,7 @@ export const Board = () => {
     }
   }, [shapes, loading, debouncedSave]);
 
+
   if (error) {
     return (
       <div className="w-screen h-[calc(100vh-4rem)] flex items-center justify-center">

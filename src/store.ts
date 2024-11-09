@@ -302,7 +302,7 @@ export const useStore = create<BoardState>((set, get) => ({
       ...state,
       advancedSettings: {
         ...state.advancedSettings,
-        outputQuality: state.advancedSettings.outputQuality.toString()
+        outputQuality: parseInt(state.advancedSettings.outputQuality.toString(), 10)
       }
     };
     return handleGenerate(modifiedState);

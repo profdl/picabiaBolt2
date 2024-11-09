@@ -1,4 +1,3 @@
-import { handleSupabaseError } from './supabase';
 
 interface GenerateImageResponse {
   imageUrl?: string;
@@ -23,8 +22,21 @@ export async function generateImage(
   // Update the LoadImage node with the input image
   workflow[12].inputs.image = inputImage;
 
-  // Update the positive prompt
-  workflow[6].inputs.text = workflowJson;
+  workflow[6] = {
+    ...workflow[6],
+    class_type: "CLIPTextEncode",
+    inputs: {
+      ...workflow[6].inputs,
+      text: workflowJson,
+      clip: [
+        "4",
+        1
+      ]
+    },
+    _meta: {
+      title: "CLIP Text Encode (Positive)"
+    }
+  };
 
   // Set random seed if enabled
   if (randomiseSeeds) {
@@ -70,7 +82,7 @@ export async function generateImage(
     let data: GenerateImageResponse;
     try {
       data = await response.json();
-    } catch (err) {
+    } catch {
       throw new Error('Invalid response from image generation service');
     }
 
