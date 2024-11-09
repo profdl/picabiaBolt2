@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RotateCw } from 'lucide-react';
 import { useStore } from '../store';
-import { Shape, Position } from '../types';
+import { Shape } from '../types';
 import { useBrush } from './BrushTool';
 import { ShapeControls } from './ShapeControls';
-
+import { useShapeDrag } from './useShapeDrag';
 
 
 interface ShapeProps {
@@ -14,7 +14,7 @@ interface ShapeProps {
 export function ShapeComponent({ shape }: ShapeProps) {
   const {
     selectedShapes,
-    setSelectedShapes,
+
     updateShape,
     deleteShape,
     tool,
@@ -26,12 +26,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const textRef = useRef<HTMLTextAreaElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { handleMouseDown } = useShapeDrag(shape);
 
-  const [dragStart, setDragStart] = useState<{
-    x: number;
-    y: number;
-    initialPosition: Position;
-  } | null>(null);
   const [rotateStart, setRotateStart] = useState<{
     angle: number;
     startRotation: number;
@@ -77,77 +73,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
   }, [shape.id, shape.type, updateShape]);
 
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (tool === 'pan' || tool === 'pen') return;
-    e.stopPropagation();
-
-    const initialPosition = { ...shape.position };
-    const currentSelected = Array.isArray(selectedShapes) ? selectedShapes : [];
-
-    if (e.shiftKey) {
-      const newSelection = currentSelected.includes(shape.id)
-        ? currentSelected.filter(id => id !== shape.id)
-        : [...currentSelected, shape.id];
-
-      setSelectedShapes(newSelection);
-
-      // Set dragStart immediately if shape is in the new selection
-      if (newSelection.includes(shape.id)) {
-        setDragStart({
-          x: e.clientX,
-          y: e.clientY,
-          initialPosition
-        });
-      }
-    } else {
-      if (!currentSelected.includes(shape.id)) {
-        setSelectedShapes([shape.id]);
-      }
-      setDragStart({
-        x: e.clientX,
-        y: e.clientY,
-        initialPosition
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (!dragStart) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!dragStart) return;
-
-      const selectedShapesInitialPositions = new Map(
-        selectedShapes.map(id => {
-          const selectedShape = shapes.find(s => s.id === id);
-          return [id, selectedShape?.position];
-        })
-      );
-
-      selectedShapes.forEach(id => {
-        const initialPos = selectedShapesInitialPositions.get(id);
-        if (initialPos) {
-          const newX = initialPos.x + (e.clientX - dragStart.x) / zoom;
-          const newY = initialPos.y + (e.clientY - dragStart.y) / zoom;
-
-          updateShape(id, {
-            position: { x: newX, y: newY }
-          });
-        }
-      });
-    };
-    const handleMouseUp = () => {
-      setDragStart(null);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [dragStart, selectedShapes, updateShape, shape.id, zoom, shapes]);
 
   const handleRotateStart = (e: React.MouseEvent) => {
     e.stopPropagation();
