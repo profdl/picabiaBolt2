@@ -1,4 +1,3 @@
-
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -83,6 +82,8 @@ export const handleGenerate = async (state: BoardState) => {
             outputQuality: state.advancedSettings.outputQuality,
             randomiseSeeds: state.advancedSettings.randomiseSeeds
         };
+
+
 
         const response = await fetch('/.netlify/functions/generate-image', {
             method: 'POST',

@@ -1,5 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { AlertCircle } from 'lucide-react';
+import React from 'react';
 import { useStore } from '../store';
 
 export const ImageGeneratePanel: React.FC = () => {
@@ -25,30 +24,14 @@ export const ImageGeneratePanel: React.FC = () => {
             <option value="png">PNG</option>
           </select>
         </div>
-
         <div className="space-y-2">
-          <label className="block text-sm text-gray-700">
-            Output Quality ({advancedSettings.outputQuality})
-          </label>
+          <label className="block text-sm text-gray-700">Output Quality</label>
           <input
-            type="range"
-            min="0"
-            max="100"
+            type="number"
             value={advancedSettings.outputQuality}
-            onChange={(e) => setAdvancedSettings({ outputQuality: parseInt(e.target.value) })}
-            className="w-full"
+            onChange={(e) => setAdvancedSettings({ outputQuality: parseInt(e.target.value, 10) })}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
           />
-        </div>
-
-        <div className="space-y-2">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={advancedSettings.randomiseSeeds}
-              onChange={(e) => setAdvancedSettings({ randomiseSeeds: e.target.checked })}
-            />
-            <span className="text-sm text-gray-700">Randomize Seeds</span>
-          </label>
         </div>
       </div>
     </div>
