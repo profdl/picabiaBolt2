@@ -18,7 +18,13 @@ export function useShapeDrag(shape: Shape) {
 
         // Store initial positions of all selected shapes
         const initialPositions = new Map<string, Position>();
-        if (Array.isArray(selectedShapes)) {
+
+        // If clicking an unselected shape, select it first
+        if (!selectedShapes.includes(shape.id) && !e.shiftKey) {
+            setSelectedShapes([shape.id]);
+            initialPositions.set(shape.id, { ...shape.position });
+        } else {
+            // For already selected shapes or shift+click
             selectedShapes.forEach(id => {
                 const shape = shapes.find(s => s.id === id);
                 if (shape) {
@@ -27,32 +33,12 @@ export function useShapeDrag(shape: Shape) {
             });
         }
 
-        // Handle selection
-        const currentSelected = Array.isArray(selectedShapes) ? selectedShapes : [];
-        if (e.shiftKey) {
-            const newSelection = currentSelected.includes(shape.id)
-                ? currentSelected.filter(id => id !== shape.id)
-                : [...currentSelected, shape.id];
-            setSelectedShapes(newSelection);
-
-            // Only set dragStart if the shape is in the new selection
-            if (newSelection.includes(shape.id)) {
-                setDragStart({
-                    x: e.clientX,
-                    y: e.clientY,
-                    initialPositions
-                });
-            }
-        } else {
-            if (!currentSelected.includes(shape.id)) {
-                setSelectedShapes([shape.id]);
-            }
-            setDragStart({
-                x: e.clientX,
-                y: e.clientY,
-                initialPositions
-            });
-        }
+        // Always initialize drag start
+        setDragStart({
+            x: e.clientX,
+            y: e.clientY,
+            initialPositions
+        });
     };
 
     useEffect(() => {
