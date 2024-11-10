@@ -11,6 +11,7 @@ import { useProjects } from '../hooks/useProjects';
 import { calculateViewportFit } from '../utils/canvas';
 import { ShortcutsPanel } from '../components/ShortcutsPanel';
 import { AssetsDrawer } from '../components/AssetsDrawer';
+import { GalleryPanel } from '../components/GalleryPanel';
 
 
 export const Board = () => {
@@ -219,7 +220,7 @@ export const Board = () => {
         {showUnsplash && <UnsplashPanel onClose={toggleUnsplash} />}
         {showGenerateSettings && <GenerateSettings onClose={toggleGenerateSettings} />}
         {showGallery && (
-          <GenerateSettings
+          <GalleryPanel
             isOpen={showGallery}
             onClose={toggleGallery}
             refreshTrigger={0}
