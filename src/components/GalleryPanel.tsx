@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Drawer } from './Drawer';
 import { useStore } from '../store';
 import { createClient } from '@supabase/supabase-js';
@@ -58,11 +58,30 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     }
   };
 
+  const handleImageClick = useCallback((image: SavedImage) => {
+    const center = {
+      x: (window.innerWidth / 2 - offset.x) / zoom,
+      y: (window.innerHeight / 2 - offset.y) / zoom
+    };
+
+    addShape({
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'image',
+      position: {
+        x: center.x - 256,
+        y: center.y - 256
+      },
+      width: 512,
+      height: 512,
+      color: 'transparent',
+      imageUrl: image.image_url,
+      rotation: 0,
+    });
+  }, [zoom, offset, addShape]);
+
   useEffect(() => {
-    // Initial fetch
     fetchImages();
 
-    // Set up real-time subscription
     const channel = supabase
       .channel('generated_images_changes')
       .on(
@@ -72,29 +91,11 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
           schema: 'public',
           table: 'generated_images'
         },
-        (payload) => {
+        (payload: { new: SavedImage }) => {
           fetchImages();
 
-          // If status changed to completed, add to whiteboard
-          if (payload.new.status === 'completed') {
-            const center = {
-              x: (window.innerWidth / 2 - offset.x) / zoom,
-              y: (window.innerHeight / 2 - offset.y) / zoom
-            };
-
-            addShape({
-              id: Math.random().toString(36).substr(2, 9),
-              type: 'image',
-              position: {
-                x: center.x - 256,
-                y: center.y - 256
-              },
-              width: 512,
-              height: 512,
-              color: 'transparent',
-              imageUrl: payload.new.image_url,
-              rotation: 0,
-            });
+          if (payload.new.status === 'completed' && payload.new.image_url) {
+            handleImageClick(payload.new);
           }
         }
       )
@@ -103,7 +104,9 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     return () => {
       channel.unsubscribe();
     };
-  }, [isOpen, zoom, offset, addShape]);
+  }, [isOpen, zoom, offset, addShape, handleImageClick]);
+
+
   const displayImages: SavedImage[] = isGenerating ? [
     {
       id: 'generating-placeholder',
@@ -129,26 +132,6 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     }
   }, [isOpen, galleryRefreshCounter]);
 
-  const handleImageClick = (image: SavedImage) => {
-    const center = {
-      x: (window.innerWidth / 2 - offset.x) / zoom,
-      y: (window.innerHeight / 2 - offset.y) / zoom
-    };
-
-    addShape({
-      id: Math.random().toString(36).substr(2, 9),
-      type: 'image',
-      position: {
-        x: center.x - 256,
-        y: center.y - 256
-      },
-      width: 512,
-      height: 512,
-      color: 'transparent',
-      imageUrl: image.image_url,
-      rotation: 0,
-    });
-  };
 
   const handleDeleteImage = async (imageId: string) => {
     try {
@@ -245,7 +228,6 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     </Drawer>
   );
 };
-
 
 
 
