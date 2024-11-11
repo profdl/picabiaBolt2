@@ -3,6 +3,7 @@ import { Drawer } from './Drawer';
 import { useStore } from '../store';
 import { createClient } from '@supabase/supabase-js';
 
+
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY,
@@ -42,6 +43,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   const { zoom, offset } = useStore();
   const showGallery = useStore(state => state.showGallery);
   const [hasGeneratingImages, setHasGeneratingImages] = useState(false);
+  const toggleGallery = useStore(state => state.toggleGallery);
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
@@ -212,5 +214,6 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     </Drawer>
   );
 };
+
 
 
