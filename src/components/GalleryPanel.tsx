@@ -95,23 +95,36 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
           fetchImages();
 
           if (payload.new.status === 'completed') {
-            const lastImage = [
-              payload.new.image_url_4,
-              payload.new.image_url_3,
+            const images = [
+              payload.new.image_url,
               payload.new.image_url_2,
-              payload.new.image_url
-            ].find(url => url !== null);
+              payload.new.image_url_3,
+              payload.new.image_url_4
+            ].filter(url => url !== null);
 
-            if (lastImage) {
-              handleImageClick({
-                ...payload.new,
-                image_url: lastImage
+            images.forEach((imageUrl, index) => {
+              const center = {
+                x: (window.innerWidth / 2 - offset.x) / zoom + (index * 520), // Add spacing between images
+                y: (window.innerHeight / 2 - offset.y) / zoom
+              };
+
+              addShape({
+                id: Math.random().toString(36).substr(2, 9),
+                type: 'image',
+                position: {
+                  x: center.x - 256,
+                  y: center.y - 256
+                },
+                width: 512,
+                height: 512,
+                color: 'transparent',
+                imageUrl,
+                rotation: 0,
               });
-            }
+            });
           }
         }
       ).subscribe();
-
     return () => {
       channel.unsubscribe();
     };
