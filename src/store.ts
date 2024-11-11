@@ -219,8 +219,29 @@ export const useStore = create<BoardState>((set, get) => ({
   },
 
   setSelectedShapes: (ids: string[]) => set({ selectedShapes: ids }),
-  setZoom: (zoom: number) => set({ zoom }),
-  setOffset: (offset: Position) => set({ offset }),
+  setZoom: (newZoom: number, center?: Position) => {
+    set(state => {
+      if (!center) {
+        return { zoom: newZoom };
+      }
+
+      // Calculate new offset to maintain zoom center
+      const oldZoom = state.zoom;
+      const scale = newZoom / oldZoom;
+
+      const newOffset = {
+        x: center.x - (center.x - state.offset.x) * scale,
+        y: center.y - (center.y - state.offset.y) * scale
+      };
+
+      return {
+        zoom: newZoom,
+        offset: newOffset
+      };
+    });
+  }
+
+  , setOffset: (offset: Position) => set({ offset }),
   setIsDragging: (isDragging: boolean) => set({ isDragging }),
   setTool: (tool: 'select' | 'pan' | 'pen' | 'brush') => set({ tool }),
   setCurrentColor: (color: string) => set({ currentColor: color }),

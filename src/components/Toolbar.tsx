@@ -430,27 +430,30 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 
           <div className="w-px bg-gray-200 mx-2" />
-
           {/* Zoom Controls */}
-          <button
-            onClick={() => setZoom(zoom * 1.1)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Zoom In"
-          >
-            <ZoomIn className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setZoom(zoom * 0.9)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Zoom Out"
-          >
-            <ZoomOut className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              value={Math.round(zoom * 100)}
+              onChange={(e) => {
+                const newZoom = Math.max(0.1, Math.min(5, Number(e.target.value) / 100))
+                const rect = document.querySelector('.canvas-container')?.getBoundingClientRect()
+                if (!rect) return
 
-          <div className="px-2 flex items-center text-sm text-gray-600">
-            {Math.round(zoom * 100)}%
+                const center = {
+                  x: rect.width / 2,
+                  y: rect.height / 2
+                }
+
+                setZoom(newZoom, center)
+              }}
+              className="w-16 px-2 py-1 text-sm border rounded"
+              min="10"
+              max="500"
+              step="10"
+            />
+            <span className="text-sm text-gray-600">%</span>
           </div>
-
           <div className="w-px bg-gray-200 mx-2" />
           {/* Image Generation Tools (now without Gallery) */}
           <button

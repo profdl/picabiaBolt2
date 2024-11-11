@@ -3,6 +3,8 @@ import { useStore } from '../store';
 import { Position, Shape } from '../types';
 import { ShapeComponent } from './Shape';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { getImageDimensions } from '../utils/image';
+import { supabase } from '../lib/supabase';
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -106,7 +108,7 @@ export function Canvas() {
       const point = getCanvasPoint(e);
       setCurrentPath([point]);
       setIsDrawing(true);
-      
+
       const newShape: Shape = {
         id: Math.random().toString(36).substr(2, 9),
         type: 'drawing',
@@ -190,21 +192,31 @@ export function Canvas() {
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
 
     for (const file of imageFiles) {
+      // Convert to WebP format
+      const webpBlob = await convertToWebP(file);
       const reader = new FileReader();
-      reader.onload = () => {
+
+      reader.onload = async () => {
         const point = getCanvasPoint(e);
+        const dimensions = await getImageDimensions(reader.result as string);
+
+        // Upload to Supabase and get public URL
+        const { publicUrl } = await uploadAssetToSupabase(webpBlob);
+
+        // Add to canvas
         addShape({
           id: Math.random().toString(36).substr(2, 9),
           type: 'image',
           position: {
-            x: point.x - 150, // Center image on drop point
-            y: point.y - 100,
+            x: point.x - (dimensions.width / 2),
+            y: point.y - (dimensions.height / 2)
           },
-          width: 300,
-          height: 200,
+          width: dimensions.width,
+          height: dimensions.height,
           color: 'transparent',
-          imageUrl: reader.result as string,
+          imageUrl: publicUrl,
           rotation: 0,
+          showPrompt: false,
         });
       };
       reader.readAsDataURL(file);
@@ -221,7 +233,7 @@ export function Canvas() {
     const visibleStartY = -offset.y / zoom;
     const visibleEndX = (rect.width - offset.x) / zoom;
     const visibleEndY = (rect.height - offset.y) / zoom;
-    
+
     const startX = Math.floor(visibleStartX / gridSize - 1) * gridSize;
     const startY = Math.floor(visibleStartY / gridSize - 1) * gridSize;
     const endX = Math.ceil(visibleEndX / gridSize + 1) * gridSize;
@@ -277,10 +289,9 @@ export function Canvas() {
   return (
     <div
       ref={canvasRef}
-      className={`w-full h-full overflow-hidden bg-white relative ${
-        tool === 'pan' || spacePressed ? 'cursor-grab' : 
+      className={`w-full h-full overflow-hidden bg-white relative ${tool === 'pan' || spacePressed ? 'cursor-grab' :
         tool === 'pen' ? 'cursor-crosshair' : 'cursor-default'
-      } ${isDragging ? '!cursor-grabbing' : ''}`}
+        } ${isDragging ? '!cursor-grabbing' : ''}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -300,9 +311,8 @@ export function Canvas() {
       <div
         className="relative w-full h-full"
         style={{
-          transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${
-            offset.y / zoom
-          }px)`,
+          transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${offset.y / zoom
+            }px)`,
           transformOrigin: '0 0',
         }}
       >
@@ -316,3 +326,49 @@ export function Canvas() {
     </div>
   );
 }
+
+const convertToWebP = async (file: File): Promise<Blob> => {
+  const img = new Image();
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+
+  await new Promise((resolve) => {
+    img.onload = resolve;
+    img.src = URL.createObjectURL(file);
+  });
+
+  canvas.width = img.width;
+  canvas.height = img.height;
+  ctx.drawImage(img, 0, 0);
+
+  return new Promise((resolve) => {
+    canvas.toBlob(blob => resolve(blob!), 'image/webp', 0.95);
+  });
+};
+
+const uploadAssetToSupabase = async (blob: Blob) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User must be authenticated');
+
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('assets')
+    .upload(fileName, blob, {
+      contentType: 'image/webp',
+      upsert: false
+    });
+
+  if (uploadError) throw uploadError;
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('assets')
+    .getPublicUrl(fileName);
+
+  await supabase.from('assets').insert([{
+    url: publicUrl,
+    user_id: user.id
+  }]);
+
+  return { publicUrl };
+};

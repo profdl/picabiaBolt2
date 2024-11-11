@@ -46,7 +46,7 @@ export interface CanvasState {
   cutShapes: () => void;
   pasteShapes: (offset?: Position) => void;
   setSelectedShapes: (ids: string[]) => void;
-  setZoom: (zoom: number) => void;
+  setZoom: (zoom: number, center?: Position) => void;
   setOffset: (offset: Position) => void;
   setIsDragging: (isDragging: boolean) => void;
   setTool: (tool: 'select' | 'pan' | 'pen' | 'brush') => void;

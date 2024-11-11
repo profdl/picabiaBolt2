@@ -121,3 +121,49 @@ export async function saveGeneratedImage(imageUrls: string[], prompt: string, as
   if (error) throw error
   return data
 }
+
+export const convertToWebP = async (file: File): Promise<Blob> => {
+  const img = new Image();
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+
+  await new Promise((resolve) => {
+    img.onload = resolve;
+    img.src = URL.createObjectURL(file);
+  });
+
+  canvas.width = img.width;
+  canvas.height = img.height;
+  ctx.drawImage(img, 0, 0);
+
+  return new Promise((resolve) => {
+    canvas.toBlob(blob => resolve(blob!), 'image/webp', 0.95);
+  });
+};
+
+export const uploadAssetToSupabase = async (blob: Blob) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User must be authenticated');
+
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('assets')
+    .upload(fileName, blob, {
+      contentType: 'image/webp',
+      upsert: false
+    });
+
+  if (uploadError) throw uploadError;
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('assets')
+    .getPublicUrl(fileName);
+
+  await supabase.from('assets').insert([{
+    url: publicUrl,
+    user_id: user.id
+  }]);
+
+  return { publicUrl };
+};
