@@ -81,6 +81,8 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       channel.unsubscribe();
     };
   }, [isOpen]);
+  const galleryRefreshCounter = useStore(state => state.galleryRefreshCounter);
+
   useEffect(() => {
     const fetchImages = async () => {
       try {
@@ -106,7 +108,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     if (isOpen) {
       fetchImages();
     }
-  }, [isOpen, refreshTrigger]);
+  }, [isOpen, galleryRefreshCounter]);
 
   const handleImageClick = (image: SavedImage) => {
     const center = {

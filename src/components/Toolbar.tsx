@@ -467,7 +467,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               setTimeout(() => {
                 toggleGallery();
                 setTimeout(() => toggleGallery(), 0);
-              }, 1000); // Give it a second to ensure record is in database
+              }, 2000);
             }}
             disabled={!hasActivePrompt || isGenerating}
             className={`p-2 rounded-lg flex items-center gap-1 ${hasActivePrompt && !isGenerating

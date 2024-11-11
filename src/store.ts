@@ -37,6 +37,7 @@ interface BoardState extends CanvasState {
   brushSize: number;
   brushOpacity: number;
   brushTexture: string;
+  galleryRefreshCounter: number;
 
 
   advancedSettings: {
@@ -85,9 +86,8 @@ interface BoardState extends CanvasState {
   setBrushOpacity: (opacity: number) => void;
   getCanvasImage?: () => string | undefined;
   setBrushTexture: (texture: string) => void;
-
+  refreshGallery: () => void;
 }
-
 const MAX_HISTORY = 50;
 
 const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never }> = {
