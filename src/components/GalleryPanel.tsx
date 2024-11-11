@@ -33,6 +33,22 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   const [hasGeneratingImages, setHasGeneratingImages] = useState(false);
   const toggleGallery = useStore(state => state.toggleGallery);
   const [loading, setLoading] = useState(false);
+  const isGenerating = useStore(state => state.isGenerating);
+
+  const displayImages: SavedImage[] = isGenerating ? [
+    {
+      id: 'generating-placeholder',
+      prompt: 'Creating your image...',
+      status: 'generating',
+      created_at: new Date().toISOString(),
+      image_url: '',
+      image_url_2: null,
+      image_url_3: null,
+      image_url_4: null,
+      aspect_ratio: '1:1'
+    },
+    ...images
+  ] : images;
 
   const fetchImages = async () => {
     setLoading(true);
@@ -152,60 +168,63 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
             <p className="mt-2 text-gray-600">Loading images...</p>
           </div>
-        ) : images.length === 0 ? (
+        ) : displayImages.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <p>No generated images yet</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2 p-4">
-            {images.map(image => (
-              <div
-                key={image.id}
-                className="relative aspect-square bg-gray-50 rounded-lg overflow-hidden"
-              >
-                {image.status === 'generating' ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                      <p className="text-sm font-medium text-gray-600">Generating...</p>
+            {displayImages.map(image => {
+              const key = `${image.id}-${image.status}`; // Stable key that only changes when needed
+              return (
+                <div
+                  key={key}
+                  className="relative aspect-square bg-gray-50 rounded-lg overflow-hidden"
+                >
+                  {image.status === 'generating' ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                        <p className="text-sm font-medium text-gray-600">Generating...</p>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <>
-                    {[image.image_url, image.image_url_2, image.image_url_3, image.image_url_4]
-                      .filter(url => url !== null)
-                      .map((url, index) => (
-                        <div key={`${image.id}-${index}`} className="absolute inset-0">
-                          <img
-                            src={url || ''}
-                            alt={image.prompt}
-                            className="w-full h-full object-cover"
-                            onClick={() => handleImageClick({
-                              ...image,
-                              image_url: url as string
-                            })}
-                          />
-                          <div className="absolute inset-x-0 bottom-0 bg-white bg-opacity-75 p-2">
-                            <p className="text-sm text-gray-600 truncate">{image.prompt}</p>
+                  ) : (
+                    <>
+                      {[image.image_url, image.image_url_2, image.image_url_3, image.image_url_4]
+                        .filter(url => url !== null)
+                        .map((url, index) => (
+                          <div key={`${image.id}-${index}`} className="absolute inset-0">
+                            <img
+                              src={url || ''}
+                              alt={image.prompt}
+                              className="w-full h-full object-cover"
+                              onClick={() => handleImageClick({
+                                ...image,
+                                image_url: url as string
+                              })}
+                            />
+                            <div className="absolute inset-x-0 bottom-0 bg-white bg-opacity-75 p-2">
+                              <p className="text-sm text-gray-600 truncate">{image.prompt}</p>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteImage(image.id);
+                              }}
+                              className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M18 6L6 18M6 6l12 12" />
+                              </svg>
+                            </button>
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteImage(image.id);
-                            }}
-                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M18 6L6 18M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))
-                    }
-                  </>
-                )}
-              </div>
-            ))}
+                        ))
+                      }
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
         )}
@@ -213,6 +232,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     </Drawer>
   );
 };
+
 
 
 
