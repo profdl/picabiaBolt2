@@ -34,32 +34,43 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
 
   useEffect(() => {
     // Initial fetch when panel opens
-    if (isOpen) {
-      fetchImages();
-    }
+    const fetchImages = async () => {
+      const { data, error } = await supabase
+        .from('generated_images')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    // Real-time subscription
+      if (error) {
+        console.log('Error fetching images:', error);
+        return;
+      }
+      setImages(data || []);
+    };
+
+    fetchImages();
+
+    // Enhanced real-time subscription
     const channel = supabase
       .channel('public:generated_images')
       .on('INSERT', payload => {
-        console.log('New image inserted:', payload);
+        console.log('New generation started:', payload);
         setImages(prev => [{
           ...payload.new,
           status: 'generating'
         }, ...prev]);
       })
       .on('UPDATE', payload => {
-        console.log('Image updated:', payload);
+        console.log('Generation completed:', payload);
         setImages(prev => prev.map(img =>
-          img.id === payload.new.id ? payload.new : img
+          img.id === payload.new.id ? { ...payload.new, status: 'completed' } : img
         ));
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
-  }, [isOpen]);
+  }, []);
   useEffect(() => {
     const fetchImages = async () => {
       try {
