@@ -72,15 +72,38 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
           schema: 'public',
           table: 'generated_images'
         },
-        () => fetchImages()
+        (payload) => {
+          fetchImages();
+
+          // If status changed to completed, add to whiteboard
+          if (payload.new.status === 'completed') {
+            const center = {
+              x: (window.innerWidth / 2 - offset.x) / zoom,
+              y: (window.innerHeight / 2 - offset.y) / zoom
+            };
+
+            addShape({
+              id: Math.random().toString(36).substr(2, 9),
+              type: 'image',
+              position: {
+                x: center.x - 256,
+                y: center.y - 256
+              },
+              width: 512,
+              height: 512,
+              color: 'transparent',
+              imageUrl: payload.new.image_url,
+              rotation: 0,
+            });
+          }
+        }
       )
       .subscribe();
 
     return () => {
       channel.unsubscribe();
     };
-  }, [isOpen]);
-
+  }, [isOpen, zoom, offset, addShape]);
   const displayImages: SavedImage[] = isGenerating ? [
     {
       id: 'generating-placeholder',
