@@ -78,7 +78,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
 
     // Start polling if we have generating images
     if (hasGeneratingImages) {
-      pollInterval = setInterval(fetchImages, 1000);
+      pollInterval = setInterval(fetchImages, 600);
     }
 
     return () => {
