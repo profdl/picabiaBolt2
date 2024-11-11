@@ -195,28 +195,43 @@ export function Canvas() {
       // Convert to WebP format
       const webpBlob = await convertToWebP(file);
       const reader = new FileReader();
-
       reader.onload = async () => {
         const point = getCanvasPoint(e);
         const dimensions = await getImageDimensions(reader.result as string);
+        const aspectRatio = dimensions.width / dimensions.height;
+
+        // Calculate 40% of window dimensions
+        const maxWidth = window.innerWidth * 0.4;
+        const maxHeight = window.innerHeight * 0.4;
+
+        // Determine which dimension to fit to while maintaining aspect ratio
+        let width, height;
+        if (maxWidth / aspectRatio <= maxHeight) {
+          width = maxWidth;
+          height = maxWidth / aspectRatio;
+        } else {
+          height = maxHeight;
+          width = height * aspectRatio;
+        }
 
         // Upload to Supabase and get public URL
         const { publicUrl } = await uploadAssetToSupabase(webpBlob);
 
-        // Add to canvas
+        // Add shape with calculated dimensions
         addShape({
           id: Math.random().toString(36).substr(2, 9),
           type: 'image',
           position: {
-            x: point.x - (dimensions.width / 2),
-            y: point.y - (dimensions.height / 2)
+            x: point.x - (width / 2),
+            y: point.y - (height / 2)
           },
-          width: dimensions.width,
-          height: dimensions.height,
+          width,
+          height,
           color: 'transparent',
           imageUrl: publicUrl,
           rotation: 0,
           showPrompt: false,
+          promptStrength: 0.8
         });
       };
       reader.readAsDataURL(file);
