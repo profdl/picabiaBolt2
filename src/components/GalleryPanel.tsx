@@ -33,45 +33,33 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   const toggleGallery = useStore(state => state.toggleGallery);
 
   useEffect(() => {
+    // Initial fetch when panel opens
+    if (isOpen) {
+      fetchImages();
+    }
+
+    // Real-time subscription
     const channel = supabase
       .channel('public:generated_images')
       .on('INSERT', payload => {
+        console.log('New image inserted:', payload);
         setImages(prev => [{
           ...payload.new,
           status: 'generating'
         }, ...prev]);
       })
       .on('UPDATE', payload => {
+        console.log('Image updated:', payload);
         setImages(prev => prev.map(img =>
-          img.id === payload.new.id ? { ...payload.new, status: 'completed' } : img
+          img.id === payload.new.id ? payload.new : img
         ));
-
-        // Add completed image to whiteboard
-        const center = {
-          x: (window.innerWidth / 2 - offset.x) / zoom,
-          y: (window.innerHeight / 2 - offset.y) / zoom
-        };
-
-        addShape({
-          id: Math.random().toString(36).substr(2, 9),
-          type: 'image',
-          position: {
-            x: center.x - 256,
-            y: center.y - 256
-          },
-          width: 512,
-          height: 512,
-          color: 'transparent',
-          imageUrl: payload.new.image_url,
-          rotation: 0,
-        });
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [addShape, zoom, offset]);
+  }, [isOpen]);
   useEffect(() => {
     const fetchImages = async () => {
       try {
@@ -91,8 +79,6 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
         setImages(imagesWithStatus || []);
       } catch (err) {
         console.error('Error fetching images:', err);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -137,6 +123,8 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       console.error('Error deleting image:', err);
     }
   };
+
+
   return (
     <Drawer
       title="Generated Images"
@@ -155,56 +143,55 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
             <p>No generated images yet</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {images.map(image => {
-              const allUrls = [
-                image.image_url,
-                image.image_url_2,
-                image.image_url_3,
-                image.image_url_4
-              ].filter(url => url !== null);
-              return allUrls.map((url, index) => (
-                <div
-                  key={`${image.id}-${index}`}
-                  className="group relative cursor-pointer rounded-lg overflow-hidden border border-gray-200 hover:border-blue-500 transition-all bg-white"
-                >
-                  <div className="aspect-square overflow-hidden">
-                    {image.status === 'generating' ? (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                          <p className="text-sm text-gray-500">Generating...</p>
+          <div className="grid grid-cols-2 gap-2 p-4">
+            {images.map(image => (
+              <div
+                key={image.id}
+                className="relative aspect-square bg-gray-50 rounded-lg overflow-hidden"
+              >
+                {image.status === 'generating' ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                      <p className="text-sm font-medium text-gray-600">Generating...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {[image.image_url, image.image_url_2, image.image_url_3, image.image_url_4]
+                      .filter(url => url !== null)
+                      .map((url, index) => (
+                        <div key={`${image.id}-${index}`} className="absolute inset-0">
+                          <img
+                            src={url || ''}
+                            alt={image.prompt}
+                            className="w-full h-full object-cover"
+                            onClick={() => handleImageClick({
+                              ...image,
+                              image_url: url as string
+                            })}
+                          />
+                          <div className="absolute inset-x-0 bottom-0 bg-white bg-opacity-75 p-2">
+                            <p className="text-sm text-gray-600 truncate">{image.prompt}</p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteImage(image.id);
+                            }}
+                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
+                          </button>
                         </div>
-                      </div>
-                    ) : (
-                      <img
-                        src={url || ''}
-                        alt={image.prompt}
-                        className="w-full h-full object-cover"
-                        onClick={() => handleImageClick({
-                          ...image,
-                          image_url: url as string
-                        })}
-                      />
-                    )}
-                  </div>
-                  <div className="p-2 text-sm">
-                    <p className="text-gray-600 truncate">{image.prompt}</p>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteImage(image.id);
-                    }}
-                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ));
-            })}
+                      ))
+                    }
+                  </>
+                )}
+              </div>
+            ))}
           </div>
 
         )}
