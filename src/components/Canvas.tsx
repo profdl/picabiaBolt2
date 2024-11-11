@@ -188,6 +188,36 @@ export function Canvas() {
     e.preventDefault();
     setIsDraggingFile(false);
 
+    // Handle dragged assets
+    const assetData = e.dataTransfer.getData('application/json');
+    if (assetData) {
+      try {
+        const { type, url } = JSON.parse(assetData);
+        if (type === 'asset') {
+          const point = getCanvasPoint(e);
+          const dimensions = await getImageDimensions(url);
+        
+          addShape({
+            id: Math.random().toString(36).substr(2, 9),
+            type: 'image',
+            position: {
+              x: point.x - (dimensions.width / 2),
+              y: point.y - (dimensions.height / 2)
+            },
+            width: dimensions.width,
+            height: dimensions.height,
+            color: 'transparent',
+            imageUrl: url,
+            rotation: 0
+          });
+          return;
+        }
+      } catch (err) {
+        console.error('Error handling asset drop:', err);
+      }
+    }
+
+    // Existing file drop handling...
     const files = Array.from(e.dataTransfer.files);
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
 
@@ -230,14 +260,12 @@ export function Canvas() {
           color: 'transparent',
           imageUrl: publicUrl,
           rotation: 0,
-          showPrompt: false,
-          promptStrength: 0.8
+          showPrompt: false
         });
       };
       reader.readAsDataURL(file);
     }
   };
-
   const renderGrid = () => {
     if (!gridEnabled || !canvasRef.current || !shapes) return null;
 

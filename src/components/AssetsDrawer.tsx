@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Upload, Loader2, Search, ImageIcon } from 'lucide-react';
+import { Upload, Loader2, Search, ImageIcon, TrashIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { useStore } from '../store';
 import { Drawer } from './Drawer';
@@ -50,6 +50,13 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
   const [unsplashImages, setUnsplashImages] = useState<UnsplashImage[]>([]);
   const [unsplashLoading, setUnsplashLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, asset: Asset) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      type: 'asset',
+      url: asset.url
+    }));
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -193,6 +200,26 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
     return () => searchImages.cancel();
   }, [query, searchImages]);
 
+  const deleteAsset = async (asset: Asset, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering handleAssetClick
+    setLoading(true);
+    try {
+      // Delete from storage
+      const fileName = asset.url.split('/').pop();
+      if (fileName) {
+        await supabase.storage.from('assets').remove([fileName]);
+      }
+      // Delete from database
+      await supabase.from('assets').delete().match({ id: asset.id });
+      // Refresh assets list
+      await fetchAssets();
+    } catch (err) {
+      console.error('Error deleting asset:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleImageClick = async (image: UnsplashImage) => {
     const aspectRatio = image.width / image.height;
 
@@ -226,126 +253,142 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
       onClose={onClose}
       position="left"
     >
-      <div>
+      <div className="flex flex-col h-full">
+        {/* Tabs Navigation */}
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab('my-assets')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'my-assets'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === 'my-assets'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
           >
             My Assets
           </button>
           <button
             onClick={() => setActiveTab('stock')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'stock'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === 'stock'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
           >
             Stock Images
           </button>
         </div>
 
-        {activeTab === 'my-assets' && (
-          <div className="p-4">
-            {/* My Assets Content */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="w-full mb-4 p-2 flex items-center justify-center gap-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-            >
-              {uploading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Upload className="w-5 h-5" />
-              )}
-              {uploading ? 'Uploading...' : 'Upload Image'}
-            </button>
-            <div className="grid grid-cols-2 gap-2">
-              {assets.map((asset) => (
-                <div
-                  key={asset.id}
-                  onClick={() => handleAssetClick(asset)}
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                >
-                  <img
-                    src={asset.url}
-                    alt="Asset"
-                    className="w-full h-32 object-cover rounded"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'stock' && (
-          <div className="p-4">
-            <div className="relative mb-3">
+        {/* Tab Content */}
+        <div className="flex-1 overflow-y-auto">
+          {activeTab === 'my-assets' && (
+            <div className="p-4">
               <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search images..."
-                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
               />
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-            </div>
-
-            <div className="space-y-2 max-h-[calc(100vh-16rem)] overflow-y-auto">
-              {unsplashLoading ? (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-                </div>
-              ) : unsplashImages.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {unsplashImages.map((image) => (
-                    <div
-                      key={image.id}
-                      className="group relative cursor-grab rounded-md overflow-hidden hover:ring-2 hover:ring-blue-500"
-                      onClick={() => handleImageClick(image)}
-                    >
-                      <img
-                        src={image.urls.thumb}
-                        alt={image.alt_description || 'Unsplash image'}
-                        className="w-full h-32 object-cover"
-                        draggable={false}
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
-                        <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium">
-                          Click to add
-                        </span>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
-                        <p className="text-xs text-white">
-                          Photo by {image.user.name}
-                        </p>
-                      </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full mb-4 p-2 flex items-center justify-center gap-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 sticky top-0"
+              >
+                {uploading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Upload className="w-5 h-5" />
+                )}
+                {uploading ? 'Uploading...' : 'Upload Image'}
+              </button>
+              <div className="grid grid-cols-2 gap-2">
+                {assets.map((asset) => (
+                  <div
+                    key={asset.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, asset)}
+                    onClick={() => handleAssetClick(asset)}
+                    className="relative group cursor-pointer"
+                  >
+                    <img
+                      src={asset.url}
+                      alt="Asset"
+                      className="w-full h-32 object-cover rounded"
+                    />
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => deleteAsset(asset, e)}
+                        className="p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
                     </div>
-                  ))}
-                </div>
-              ) : query ? (
-                <p className="text-center text-gray-500 py-4">No images found</p>
-              ) : (
-                <div className="text-center text-gray-500 py-4">
-                  <ImageIcon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p>Search for images to add to your canvas</p>
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+      
+          {activeTab === 'stock' && (
+            <div className="p-4">
+              <div className="relative mb-3">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search images..."
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              </div>
+
+              <div className="space-y-2 max-h-[calc(100vh-16rem)] overflow-y-auto">
+                {unsplashLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                  </div>
+                ) : unsplashImages.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {unsplashImages.map((image) => (
+                      <div
+                        key={image.id}
+                        className="group relative cursor-grab rounded-md overflow-hidden hover:ring-2 hover:ring-blue-500"
+                        onClick={() => handleImageClick(image)}
+                      >
+                        <img
+                          src={image.urls.thumb}
+                          alt={image.alt_description || 'Unsplash image'}
+                          className="w-full h-32 object-cover"
+                          draggable={false}
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
+                          <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium">
+                            Click to add
+                          </span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                          <p className="text-xs text-white">
+                            Photo by {image.user.name}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : query ? (
+                  <p className="text-center text-gray-500 py-4">No images found</p>
+                ) : (
+                  <div className="text-center text-gray-500 py-4">
+                    <ImageIcon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p>Search for images to add to your canvas</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </Drawer>
-
-  );
+  )
 };
+
+
