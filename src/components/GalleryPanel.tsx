@@ -94,12 +94,23 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
         (payload: { new: SavedImage }) => {
           fetchImages();
 
-          if (payload.new.status === 'completed' && payload.new.image_url) {
-            handleImageClick(payload.new);
+          if (payload.new.status === 'completed') {
+            const lastImage = [
+              payload.new.image_url_4,
+              payload.new.image_url_3,
+              payload.new.image_url_2,
+              payload.new.image_url
+            ].find(url => url !== null);
+
+            if (lastImage) {
+              handleImageClick({
+                ...payload.new,
+                image_url: lastImage
+              });
+            }
           }
         }
-      )
-      .subscribe();
+      ).subscribe();
 
     return () => {
       channel.unsubscribe();
