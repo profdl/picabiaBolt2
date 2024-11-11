@@ -12,8 +12,8 @@ type SavedImage = {
   image_url_4: string | null;
   prompt: string;
   created_at: string;
+  status: 'generating' | 'completed' | 'failed';
 }
-
 interface GalleryPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -36,11 +36,18 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   useEffect(() => {
     const channel = supabase
       .channel('public:generated_images')
-      .on('broadcast', { event: 'new_image' }, ({ payload }) => {
-        // Add new image to gallery state
-        setImages(prev => [payload, ...prev]);
+      .on('INSERT', payload => {
+        setImages(prev => [{
+          ...payload.new,
+          status: 'generating'
+        }, ...prev]);
+      })
+      .on('UPDATE', payload => {
+        setImages(prev => prev.map(img =>
+          img.id === payload.new.id ? { ...payload.new, status: 'completed' } : img
+        ));
 
-        // Auto-add the image to canvas
+        // Add completed image to whiteboard
         const center = {
           x: (window.innerWidth / 2 - offset.x) / zoom,
           y: (window.innerHeight / 2 - offset.y) / zoom
@@ -56,7 +63,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
           width: 512,
           height: 512,
           color: 'transparent',
-          imageUrl: payload.image_url,
+          imageUrl: payload.new.image_url,
           rotation: 0,
         });
       })
@@ -66,7 +73,6 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       supabase.removeChannel(channel);
     };
   }, [addShape, zoom, offset]);
-
   useEffect(() => {
     const fetchImages = async () => {
       try {
@@ -157,21 +163,30 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
                 image.image_url_3,
                 image.image_url_4
               ].filter(url => url !== null);
-
               return allUrls.map((url, index) => (
                 <div
                   key={`${image.id}-${index}`}
                   className="group relative cursor-pointer rounded-lg overflow-hidden border border-gray-200 hover:border-blue-500 transition-all bg-white"
                 >
-                  <div className="aspect-square overflow-hidden" onClick={() => handleImageClick({
-                    ...image,
-                    image_url: url as string
-                  })}>
-                    <img
-                      src={url || ''}
-                      alt={image.prompt}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="aspect-square overflow-hidden">
+                    {image.status === 'generating' ? (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                          <p className="text-sm text-gray-500">Generating...</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={url || ''}
+                        alt={image.prompt}
+                        className="w-full h-full object-cover"
+                        onClick={() => handleImageClick({
+                          ...image,
+                          image_url: url as string
+                        })}
+                      />
+                    )}
                   </div>
                   <div className="p-2 text-sm">
                     <p className="text-gray-600 truncate">{image.prompt}</p>

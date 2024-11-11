@@ -454,11 +454,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <div className="w-px bg-gray-200 mx-2" />
           {/* Image Generation Tools (now without Gallery) */}
           <button
-            onClick={handleGenerate}
+            onClick={() => {
+              handleGenerate()
+              toggleGallery(); // Show the gallery panel
+            }}
             disabled={!hasActivePrompt || isGenerating}
             className={`p-2 rounded-lg flex items-center gap-1 ${hasActivePrompt && !isGenerating
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'opacity-50 cursor-not-allowed text-gray-400'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'opacity-50 cursor-not-allowed text-gray-400'
               }`}
             title={
               !hasActivePrompt
