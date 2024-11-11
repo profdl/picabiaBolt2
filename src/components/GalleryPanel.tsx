@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Drawer } from './Drawer';
 import { useStore } from '../store';
-import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
+  }
+);
 
 type SavedImage = {
   aspect_ratio: string;
@@ -26,7 +38,6 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   refreshTrigger
 }) => {
   const [images, setImages] = useState<SavedImage[]>([]);
-  const [loading, setLoading] = useState(true);
   const addShape = useStore(state => state.addShape);
   const { zoom, offset } = useStore();
   const showGallery = useStore(state => state.showGallery);
@@ -36,16 +47,16 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     let pollInterval: NodeJS.Timeout;
 
     const fetchImages = async () => {
-      console.log('Fetching images...');
+      console.log('🎯 Fetching images...'); // Distinctive emoji helps spot the log
       const { data, error } = await supabase
         .from('generated_images')
         .select('*')
         .order('created_at', { ascending: false });
 
-      console.log('Received data:', data);
+      console.log('📦 Received data:', data); // Log the raw data
       if (data) {
         setImages(data);
-        console.log('State updated with:', data.length, 'images');
+        console.log('✨ Updated gallery with:', data.length, 'images'); // Log the state update
       }
     };
 
