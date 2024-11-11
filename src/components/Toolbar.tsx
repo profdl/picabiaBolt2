@@ -454,9 +454,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <div className="w-px bg-gray-200 mx-2" />
           {/* Image Generation Tools (now without Gallery) */}
           <button
-            onClick={() => {
-              handleGenerate()
-              toggleGallery(); // Show the gallery panel
+            onClick={async () => {
+              // First ensure gallery is open
+              if (!showGallery) {
+                toggleGallery();
+              }
+
+              // Then generate the image
+              await handleGenerate();
+
+              // Force a refresh after the record is added
+              toggleGallery();
+              setTimeout(() => toggleGallery(), 0);
             }}
             disabled={!hasActivePrompt || isGenerating}
             className={`p-2 rounded-lg flex items-center gap-1 ${hasActivePrompt && !isGenerating
