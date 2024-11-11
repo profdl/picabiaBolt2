@@ -327,7 +327,7 @@ export const useStore = create<BoardState>((set, get) => ({
     }
 
     set({ isGenerating: true, error: null });
-
+    set({ showGallery: true });
     try {
       // Clone the control workflow
       const workflow = JSON.parse(JSON.stringify(controlWorkflow));
@@ -363,8 +363,8 @@ export const useStore = create<BoardState>((set, get) => ({
       const insertData = {
         user_id: user.id,
         prompt: stickyWithPrompt.content,
-        status: 'pending',
-        prediction_id: responseData.prediction.id,  // Use the correct field name from Replicate response
+        status: 'generating',
+        prediction_id: responseData.prediction.id,
         image_url: '',
         aspect_ratio: state.aspectRatio,
         created_at: new Date().toISOString(),

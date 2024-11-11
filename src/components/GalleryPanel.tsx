@@ -83,12 +83,13 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
 
         if (error) throw error;
 
-        const imagesWithPublicUrls = data?.map(image => ({
+        const imagesWithStatus = data?.map(image => ({
           ...image,
-          image_url: image.image_url
+          image_url: image.image_url,
+          status: image.status || 'completed'
         }));
 
-        setImages(imagesWithPublicUrls || []);
+        setImages(imagesWithStatus || []);
       } catch (err) {
         console.error('Error fetching images:', err);
       } finally {

@@ -45,11 +45,10 @@ export const handler: Handler = async (event) => {
                     image_url_2: output[1] || null,
                     image_url_3: output[2] || null,
                     image_url_4: output[3] || null,
-                    status: 'completed',
+                    status: 'completed',  // Explicitly set status to completed
                     updated_at: new Date().toISOString()
                 })
                 .eq('prediction_id', id)
-
 
             console.log('Update operation details:', {
                 prediction_id: id,
