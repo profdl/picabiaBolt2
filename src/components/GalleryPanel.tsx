@@ -32,6 +32,41 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   const addShape = useStore(state => state.addShape);
   const { zoom, offset } = useStore();
 
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:generated_images')
+      .on('broadcast', { event: 'new_image' }, ({ payload }) => {
+        // Add new image to gallery state
+        setImages(prev => [payload, ...prev]);
+
+        // Auto-add the image to canvas
+        const center = {
+          x: (window.innerWidth / 2 - offset.x) / zoom,
+          y: (window.innerHeight / 2 - offset.y) / zoom
+        };
+
+        addShape({
+          id: Math.random().toString(36).substr(2, 9),
+          type: 'image',
+          position: {
+            x: center.x - 256,
+            y: center.y - 256
+          },
+          width: 512,
+          height: 512,
+          color: 'transparent',
+          imageUrl: payload.image_url,
+          rotation: 0,
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [addShape, zoom, offset]);
+
   useEffect(() => {
     const fetchImages = async () => {
       try {
@@ -162,3 +197,5 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     </Drawer>
   );
 };
+
+

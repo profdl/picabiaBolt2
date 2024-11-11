@@ -69,6 +69,17 @@ export const handler: Handler = async (event) => {
             };
         }
 
+        if (status === 'succeeded') {
+            const channel = supabase.channel('public:generated_images');
+            channel.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'generated_images' }, (payload) => {
+                channel.send({
+                    type: 'broadcast',
+                    event: 'new_image',
+                    payload: payload.new
+                });
+            }).subscribe();
+        }
+
         return {
             statusCode: 200,
             body: JSON.stringify({
