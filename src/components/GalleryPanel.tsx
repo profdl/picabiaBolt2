@@ -44,22 +44,35 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   const showGallery = useStore(state => state.showGallery);
   const [hasGeneratingImages, setHasGeneratingImages] = useState(false);
   const toggleGallery = useStore(state => state.toggleGallery);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
 
     const fetchImages = async () => {
-      const { data, error } = await supabase
-        .from('generated_images')
-        .select('*')
-        .order('created_at', { ascending: false });
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('generated_images')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (data) {
-        setImages(data);
-        // Check if any images are still generating
-        setHasGeneratingImages(data.some(img => img.status === 'generating'));
+        if (error) throw error;
+
+        const imagesWithStatus = data?.map(image => ({
+          ...image,
+          image_url: image.image_url,
+          status: image.status || 'completed'
+        }));
+
+        setImages(imagesWithStatus || []);
+      } catch (err) {
+        console.error('Error fetching images:', err);
+      } finally {
+        setLoading(false);
       }
     };
+
 
     fetchImages();
 
