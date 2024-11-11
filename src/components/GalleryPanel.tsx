@@ -3,7 +3,6 @@ import { Drawer } from './Drawer';
 import { useStore } from '../store';
 import { createClient } from '@supabase/supabase-js';
 
-
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY,
@@ -109,6 +108,50 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
         console.error('Error fetching images:', err);
       }
     };
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('generated_images_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'generated_images'
+        },
+        () => {
+          // Refresh the images list when updates occur
+          fetchImages();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('generated_images')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const imagesWithStatus = data?.map(image => ({
+          ...image,
+          image_url: image.image_url,
+          status: image.status || 'completed'
+        }));
+
+        setImages(imagesWithStatus || []);
+      } catch (err) {
+        console.error('Error fetching images:', err);
+      }
+    };
 
     if (isOpen) {
       fetchImages();
@@ -151,6 +194,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       console.error('Error deleting image:', err);
     }
   };
+
 
 
   return (
