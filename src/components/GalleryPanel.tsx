@@ -33,44 +33,41 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   const toggleGallery = useStore(state => state.toggleGallery);
 
   useEffect(() => {
-    // Initial fetch when panel opens
+    let pollInterval: NodeJS.Timeout;
+
     const fetchImages = async () => {
       const { data, error } = await supabase
         .from('generated_images')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.log('Error fetching images:', error);
-        return;
+      if (data) {
+        setImages(data);
+        console.log('Images refreshed:', data);
       }
-      setImages(data || []);
     };
 
+    // Initial fetch
     fetchImages();
 
-    // Enhanced real-time subscription
+    // Set up polling every 3 seconds while panel is open
+    if (isOpen) {
+      pollInterval = setInterval(fetchImages, 500);
+    }
+
+    // Real-time subscription as backup
     const channel = supabase
       .channel('public:generated_images')
-      .on('INSERT', payload => {
-        console.log('New generation started:', payload);
-        setImages(prev => [{
-          ...payload.new,
-          status: 'generating'
-        }, ...prev]);
-      })
-      .on('UPDATE', payload => {
-        console.log('Generation completed:', payload);
-        setImages(prev => prev.map(img =>
-          img.id === payload.new.id ? { ...payload.new, status: 'completed' } : img
-        ));
+      .on('*', () => {
+        fetchImages();
       })
       .subscribe();
 
     return () => {
+      clearInterval(pollInterval);
       channel.unsubscribe();
     };
-  }, []);
+  }, [isOpen]);
   useEffect(() => {
     const fetchImages = async () => {
       try {
