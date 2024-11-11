@@ -20,8 +20,6 @@ interface GalleryPanelProps {
   refreshTrigger?: number;
 }
 
-
-
 export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   isOpen,
   onClose,
@@ -31,7 +29,8 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   const [loading, setLoading] = useState(true);
   const addShape = useStore(state => state.addShape);
   const { zoom, offset } = useStore();
-
+  const showGallery = useStore(state => state.showGallery);
+  const toggleGallery = useStore(state => state.toggleGallery);
 
   useEffect(() => {
     const channel = supabase
@@ -141,8 +140,8 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   return (
     <Drawer
       title="Generated Images"
-      isOpen={isOpen}
-      onClose={onClose}
+      isOpen={showGallery}
+      onClose={toggleGallery}
       position="right"
     >
       <div className="p-2">
