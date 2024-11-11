@@ -36,19 +36,51 @@ export const handler: Handler = async (event) => {
         }
 
         if (status === 'succeeded' && Array.isArray(output) && output.length > 0) {
-            console.log('Processing prediction:', { id, imageUrls: output });
+            // First upload all images to Supabase storage
+            const uploadPromises = output.map(async (imageUrl, index) => {
+                // Fetch image from Replicate URL
+                const response = await fetch(imageUrl);
+                const imageBuffer = await response.arrayBuffer();
+                const imageData = new Uint8Array(imageBuffer);
 
+                // Generate unique filename
+                const filename = `${id}-${index}-${Date.now()}.png`;
+
+                // Upload to Supabase bucket
+                const { data: uploadData, error: uploadError } = await supabase
+                    .storage
+                    .from('generated-images')
+                    .upload(filename, imageData, {
+                        contentType: 'image/png',
+                        cacheControl: '3600'
+                    });
+
+                if (uploadError) throw uploadError;
+
+                // Get public URL
+                const { data: { publicUrl } } = supabase
+                    .storage
+                    .from('generated-images')
+                    .getPublicUrl(filename);
+
+                return publicUrl;
+            });
+
+            // Wait for all uploads to complete
+            const publicUrls = await Promise.all(uploadPromises);
+
+            // Update the database record with Supabase storage URLs
             const { data, error } = await supabase
                 .from('generated_images')
                 .update({
-                    image_url: output[0],
-                    image_url_2: output[1] || null,
-                    image_url_3: output[2] || null,
-                    image_url_4: output[3] || null,
-                    status: 'completed',  // Explicitly set status to completed
+                    image_url: publicUrls[0],
+                    image_url_2: publicUrls[1] || null,
+                    image_url_3: publicUrls[2] || null,
+                    image_url_4: publicUrls[3] || null,
+                    status: 'completed',
                     updated_at: new Date().toISOString()
                 })
-                .eq('prediction_id', id)
+                .eq('prediction_id', id);
 
             console.log('Update operation details:', {
                 prediction_id: id,
