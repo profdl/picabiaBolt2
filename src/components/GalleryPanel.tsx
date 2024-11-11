@@ -30,25 +30,9 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   const addShape = useStore(state => state.addShape);
   const { zoom, offset } = useStore();
   const showGallery = useStore(state => state.showGallery);
-  const [hasGeneratingImages, setHasGeneratingImages] = useState(false);
   const toggleGallery = useStore(state => state.toggleGallery);
-  const [loading, setLoading] = useState(false);
   const isGenerating = useStore(state => state.isGenerating);
-
-  const displayImages: SavedImage[] = isGenerating ? [
-    {
-      id: 'generating-placeholder',
-      prompt: 'Creating your image...',
-      status: 'generating',
-      created_at: new Date().toISOString(),
-      image_url: '',
-      image_url_2: null,
-      image_url_3: null,
-      image_url_4: null,
-      aspect_ratio: '1:1'
-    },
-    ...images
-  ] : images;
+  const [loading, setLoading] = useState(false);
 
   const fetchImages = async () => {
     setLoading(true);
@@ -67,7 +51,6 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       }));
 
       setImages(imagesWithStatus || []);
-      setHasGeneratingImages(imagesWithStatus?.some(img => img.status === 'generating') || false);
     } catch (err) {
       console.error('Error fetching images:', err);
     } finally {
@@ -76,8 +59,6 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   };
 
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
-
     // Initial fetch
     fetchImages();
 
@@ -95,18 +76,27 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       )
       .subscribe();
 
-    // Backup polling for generating images
-    if (hasGeneratingImages) {
-      pollInterval = setInterval(fetchImages, 1000);
-    }
-
     return () => {
       channel.unsubscribe();
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
     };
-  }, [isOpen, hasGeneratingImages]);
+  }, [isOpen]);
+
+  const displayImages: SavedImage[] = isGenerating ? [
+    {
+      id: 'generating-placeholder',
+      prompt: 'Creating your image...',
+      status: 'generating',
+      created_at: new Date().toISOString(),
+      image_url: '',
+      image_url_2: null,
+      image_url_3: null,
+      image_url_4: null,
+      aspect_ratio: '1:1'
+    },
+    ...images
+  ] : images;
+
+  // Rest of your component remains the same
 
   const galleryRefreshCounter = useStore(state => state.galleryRefreshCounter);
 
