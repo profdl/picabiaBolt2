@@ -41,47 +41,37 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   const addShape = useStore(state => state.addShape);
   const { zoom, offset } = useStore();
   const showGallery = useStore(state => state.showGallery);
-  const toggleGallery = useStore(state => state.toggleGallery);
+  const [hasGeneratingImages, setHasGeneratingImages] = useState(false);
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
 
     const fetchImages = async () => {
-      console.log('🎯 Fetching images...'); // Distinctive emoji helps spot the log
       const { data, error } = await supabase
         .from('generated_images')
         .select('*')
         .order('created_at', { ascending: false });
 
-      console.log('📦 Received data:', data); // Log the raw data
       if (data) {
         setImages(data);
-        console.log('✨ Updated gallery with:', data.length, 'images'); // Log the state update
+        // Check if any images are still generating
+        setHasGeneratingImages(data.some(img => img.status === 'generating'));
       }
     };
 
-    // Initial fetch
     fetchImages();
 
-    // Set up polling every 3 seconds while panel is open
-    if (isOpen) {
-      pollInterval = setInterval(fetchImages, 500);
+    // Start polling if we have generating images
+    if (hasGeneratingImages) {
+      pollInterval = setInterval(fetchImages, 1000);
     }
 
-    // Real-time subscription as backup
-    const channel = supabase
-      .channel('public:generated_images')
-      .on('*', () => {
-        fetchImages();
-      })
-      .subscribe();
-
     return () => {
-      clearInterval(pollInterval);
-      channel.unsubscribe();
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
     };
-  }, [isOpen]);
-  const galleryRefreshCounter = useStore(state => state.galleryRefreshCounter);
+  }, [isOpen, hasGeneratingImages]); const galleryRefreshCounter = useStore(state => state.galleryRefreshCounter);
 
   useEffect(() => {
     const fetchImages = async () => {
