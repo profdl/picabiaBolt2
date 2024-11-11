@@ -36,14 +36,16 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     let pollInterval: NodeJS.Timeout;
 
     const fetchImages = async () => {
+      console.log('Fetching images...');
       const { data, error } = await supabase
         .from('generated_images')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('Received data:', data);
       if (data) {
         setImages(data);
-        console.log('Images refreshed:', data);
+        console.log('State updated with:', data.length, 'images');
       }
     };
 
