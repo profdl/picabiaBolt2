@@ -460,17 +460,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 toggleGallery();
               }
 
-              // Then generate the image
+              // Generate the image
               await handleGenerate();
 
-              // Force a refresh after the record is added
-              toggleGallery();
-              setTimeout(() => toggleGallery(), 0);
+              // Wait for Supabase insert to complete
+              setTimeout(() => {
+                toggleGallery();
+                setTimeout(() => toggleGallery(), 0);
+              }, 1000); // Give it a second to ensure record is in database
             }}
             disabled={!hasActivePrompt || isGenerating}
             className={`p-2 rounded-lg flex items-center gap-1 ${hasActivePrompt && !isGenerating
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'opacity-50 cursor-not-allowed text-gray-400'
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'opacity-50 cursor-not-allowed text-gray-400'
               }`}
             title={
               !hasActivePrompt
