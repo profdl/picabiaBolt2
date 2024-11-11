@@ -5,14 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
-  {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  }
+  import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
 type SavedImage = {
@@ -28,14 +21,10 @@ type SavedImage = {
 }
 interface GalleryPanelProps {
   isOpen: boolean;
-  onClose: () => void;
-  refreshTrigger?: number;
 }
 
 export const GalleryPanel: React.FC<GalleryPanelProps> = ({
-  isOpen,
-  onClose,
-  refreshTrigger
+  isOpen
 }) => {
   const [images, setImages] = useState<SavedImage[]>([]);
   const addShape = useStore(state => state.addShape);
@@ -45,69 +34,37 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   const toggleGallery = useStore(state => state.toggleGallery);
   const [loading, setLoading] = useState(false);
 
+  const fetchImages = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('generated_images')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const imagesWithStatus = data?.map(image => ({
+        ...image,
+        image_url: image.image_url,
+        status: image.status || 'completed'
+      }));
+
+      setImages(imagesWithStatus || []);
+      setHasGeneratingImages(imagesWithStatus?.some(img => img.status === 'generating') || false);
+    } catch (err) {
+      console.error('Error fetching images:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
 
-    const fetchImages = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('generated_images')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        const imagesWithStatus = data?.map(image => ({
-          ...image,
-          image_url: image.image_url,
-          status: image.status || 'completed'
-        }));
-
-        setImages(imagesWithStatus || []);
-      } catch (err) {
-        console.error('Error fetching images:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-
+    // Initial fetch
     fetchImages();
 
-    // Start polling if we have generating images
-    if (hasGeneratingImages) {
-      pollInterval = setInterval(fetchImages, 600);
-    }
-
-    return () => {
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-    };
-  }, [isOpen, hasGeneratingImages]); const galleryRefreshCounter = useStore(state => state.galleryRefreshCounter);
-
-  useEffect(() => {
-    const fetchImages = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('generated_images')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        const imagesWithStatus = data?.map(image => ({
-          ...image,
-          image_url: image.image_url,
-          status: image.status || 'completed'
-        }));
-
-        setImages(imagesWithStatus || []);
-      } catch (err) {
-        console.error('Error fetching images:', err);
-      }
-    };
     // Set up real-time subscription
     const channel = supabase
       .channel('generated_images_changes')
@@ -118,41 +75,26 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
           schema: 'public',
           table: 'generated_images'
         },
-        () => {
-          // Refresh the images list when updates occur
-          fetchImages();
-        }
+        () => fetchImages()
       )
       .subscribe();
 
-    // Cleanup subscription
+    // Backup polling for generating images
+    if (hasGeneratingImages) {
+      pollInterval = setInterval(fetchImages, 1000);
+    }
+
     return () => {
       channel.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    const fetchImages = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('generated_images')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        const imagesWithStatus = data?.map(image => ({
-          ...image,
-          image_url: image.image_url,
-          status: image.status || 'completed'
-        }));
-
-        setImages(imagesWithStatus || []);
-      } catch (err) {
-        console.error('Error fetching images:', err);
+      if (pollInterval) {
+        clearInterval(pollInterval);
       }
     };
+  }, [isOpen, hasGeneratingImages]);
 
+  const galleryRefreshCounter = useStore(state => state.galleryRefreshCounter);
+
+  useEffect(() => {
     if (isOpen) {
       fetchImages();
     }
