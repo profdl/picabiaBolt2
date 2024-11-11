@@ -69,35 +69,37 @@ export const retryOperation = async <T>(
 
 
 
-export async function saveGeneratedImage(imageUrl: string, prompt: string, aspectRatio: string) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+export async function saveGeneratedImage(imageUrls: string[], prompt: string, aspectRatio: string) {
+  const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) throw new Error('User must be authenticated to save images')
 
-  // Fetch image data as an array buffer
-  const response = await fetch(imageUrl)
-  const arrayBuffer = await response.arrayBuffer()
-  const imageData = new Uint8Array(arrayBuffer)
+  // Upload all images in parallel
+  const uploadPromises = imageUrls.map(async (imageUrl, index) => {
+    const response = await fetch(imageUrl)
+    const arrayBuffer = await response.arrayBuffer()
+    const imageData = new Uint8Array(arrayBuffer)
+    const filename = `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}.png`
 
-  const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
+      .from('generated-images')
+      .upload(filename, imageData, {
+        contentType: 'image/png',
+        cacheControl: '3600'
+      })
 
-  // Upload binary image data
-  const { data: uploadData, error: uploadError } = await supabase
-    .storage
-    .from('generated-images')
-    .upload(filename, imageData, {
-      contentType: 'image/png',
-      cacheControl: '3600'
-    })
+    if (uploadError) throw uploadError
 
-  if (uploadError) throw uploadError
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('generated-images')
+      .getPublicUrl(filename)
 
-  const { data: { publicUrl } } = supabase
-    .storage
-    .from('generated-images')
-    .getPublicUrl(filename)
+    return publicUrl
+  })
+
+  const publicUrls = await Promise.all(uploadPromises)
 
   const [width, height] = aspectRatio.split(':').map(Number)
   const aspectRatioValue = width / height
@@ -106,7 +108,10 @@ export async function saveGeneratedImage(imageUrl: string, prompt: string, aspec
     .from('generated_images')
     .insert({
       user_id: user.id,
-      image_url: publicUrl,
+      image_url: publicUrls[0],
+      image_url_2: publicUrls[1] || null,
+      image_url_3: publicUrls[2] || null,
+      image_url_4: publicUrls[3] || null,
       prompt: prompt,
       aspect_ratio: aspectRatioValue
     })

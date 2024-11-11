@@ -7,9 +7,13 @@ type SavedImage = {
   aspect_ratio: string;
   id: string;
   image_url: string;
+  image_url_2: string | null;
+  image_url_3: string | null;
+  image_url_4: string | null;
   prompt: string;
   created_at: string;
 }
+
 
 interface GalleryPanelProps {
   isOpen: boolean;
@@ -17,10 +21,10 @@ interface GalleryPanelProps {
   refreshTrigger?: number;
 }
 
-export const GalleryPanel: React.FC<GalleryPanelProps> = ({ 
-  isOpen, 
-  onClose, 
-  refreshTrigger 
+export const GalleryPanel: React.FC<GalleryPanelProps> = ({
+  isOpen,
+  onClose,
+  refreshTrigger
 }) => {
   const [images, setImages] = useState<SavedImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,14 +38,14 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
           .from('generated_images')
           .select('*')
           .order('created_at', { ascending: false });
-          
+
         if (error) throw error;
-        
+
         const imagesWithPublicUrls = data?.map(image => ({
           ...image,
           image_url: image.image_url
         }));
-        
+
         setImages(imagesWithPublicUrls || []);
       } catch (err) {
         console.error('Error fetching images:', err);
@@ -77,9 +81,9 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   };
 
   return (
-    <Drawer 
-      title="Generated Images" 
-      isOpen={isOpen} 
+    <Drawer
+      title="Generated Images"
+      isOpen={isOpen}
       onClose={onClose}
       position="right"
     >
@@ -95,26 +99,42 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
-            {images.map(image => (
-              <div 
-                key={image.id}
-                onClick={() => handleImageClick(image)}
-                className="group cursor-pointer rounded-lg overflow-hidden border border-gray-200 hover:border-blue-500 transition-all bg-white"
-              >
-                <div className="aspect-square overflow-hidden">
-                  <img 
-                    src={image.image_url} 
-                    alt={image.prompt}
-                    className="w-full h-full object-cover"
-                  />
+            {images.map(image => {
+              const allUrls = [
+                image.image_url,
+                image.image_url_2,
+                image.image_url_3,
+                image.image_url_4
+              ].filter(url => url !== null);
+
+              return allUrls.map((url, index) => (
+                <div
+                  key={`${image.id}-${index}`}
+                  onClick={() => handleImageClick({
+                    ...image,
+                    image_url: url as string
+                  })}
+                  className="group cursor-pointer rounded-lg overflow-hidden border border-gray-200 hover:border-blue-500 transition-all bg-white"
+                >
+                  <div className="aspect-square overflow-hidden">
+                    <img
+                      src={url || ''}
+                      alt={`${image.prompt} - variation ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-1.5 text-xs">
+                    <p className="text-gray-900 truncate">
+                      {new Date(image.created_at).toLocaleDateString()}
+                      {allUrls.length > 1 && ` - Variation ${index + 1}`}
+                    </p>
+                    <p className="text-gray-600 truncate mt-0.5">{image.prompt}</p>
+                  </div>
                 </div>
-                <div className="p-1.5 text-xs">
-                  <p className="text-gray-900 truncate">{new Date(image.created_at).toLocaleDateString()}</p>
-                  <p className="text-gray-600 truncate mt-0.5">{image.prompt}</p>
-                </div>
-              </div>
-            ))}
+              ));
+            })}
           </div>
+
         )}
       </div>
     </Drawer>

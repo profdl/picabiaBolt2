@@ -36,16 +36,20 @@ export const handler: Handler = async (event) => {
         }
 
         if (status === 'succeeded' && Array.isArray(output) && output.length > 0) {
-            console.log('Processing prediction:', { id, imageUrl: output[0] });
+            console.log('Processing prediction:', { id, imageUrls: output });
 
             const { data, error } = await supabase
                 .from('generated_images')
                 .update({
                     image_url: output[0],
+                    image_url_2: output[1] || null,
+                    image_url_3: output[2] || null,
+                    image_url_4: output[3] || null,
                     status: 'completed',
                     updated_at: new Date().toISOString()
                 })
                 .eq('prediction_id', id)
+
 
             console.log('Update operation details:', {
                 prediction_id: id,
