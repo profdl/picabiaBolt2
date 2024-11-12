@@ -204,15 +204,28 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
     e.stopPropagation(); // Prevent triggering handleAssetClick
     setLoading(true);
     try {
-      // Delete from storage
+      // Extract filename from the URL
       const fileName = asset.url.split('/').pop();
+
       if (fileName) {
-        await supabase.storage.from('assets').remove([fileName]);
+        // First delete from Supabase storage bucket
+        const { error: storageError } = await supabase.storage
+          .from('assets')
+          .remove([fileName]);
+
+        if (storageError) throw storageError;
       }
-      // Delete from database
-      await supabase.from('assets').delete().match({ id: asset.id });
-      // Refresh assets list
-      await fetchAssets();
+
+      // Then delete the record from the assets table
+      const { error: dbError } = await supabase
+        .from('assets')
+        .delete()
+        .match({ id: asset.id });
+
+      if (dbError) throw dbError;
+
+      // Update local state by removing the deleted asset
+      setAssets(prevAssets => prevAssets.filter(a => a.id !== asset.id));
     } catch (err) {
       console.error('Error deleting asset:', err);
     } finally {
@@ -258,21 +271,19 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab('my-assets')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${
-              activeTab === 'my-assets'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'my-assets'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             My Assets
           </button>
           <button
             onClick={() => setActiveTab('stock')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${
-              activeTab === 'stock'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'stock'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             Stock Images
           </button>
@@ -328,7 +339,7 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
               </div>
             </div>
           )}
-      
+
           {activeTab === 'stock' && (
             <div className="p-4">
               <div className="relative mb-3">
