@@ -474,7 +474,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         shape.content
       )}
       {/* Selection controls */}
-      {isSelected && !isEditing && tool === 'select' && (
+      {tool === 'select' && (
         <ShapeControls
           shape={shape}
           isSelected={isSelected}

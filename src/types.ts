@@ -20,7 +20,15 @@ export interface Shape {
   showPrompt?: boolean;
   canvasData?: ImageData;
   isUploading: boolean;
-
+  showDepth?: boolean;
+  showEdges?: boolean;
+  showContent?: boolean;
+  showPose?: boolean;
+  depthStrength?: number;
+  edgesStrength?: number;
+  contentStrength?: number;
+  poseStrength?: number;
+  
 }
 export interface CanvasState {
   shapes: Shape[];

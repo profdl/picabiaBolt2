@@ -21,19 +21,28 @@ export function ShapeControls({
     const { updateShape, shapes } = useStore();
     const tool = useStore(state => state.tool);
 
-    if (!isSelected || isEditing || tool !== 'select') return null;
+    // Hide controls if editing or wrong tool
+    if (isEditing || tool !== 'select') return null;
+
+    // Show resize/rotate controls only when selected
+    const showManipulationControls = isSelected;
+    
+    // Show checkboxes when selected OR any control is active
+    const showControlPanel = isSelected || shape.showDepth || shape.showEdges || shape.showContent || shape.showPose;
 
     return (
         <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
             {/* Resize handle */}
-            <div
-                className="absolute -right-2 -bottom-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-se-resize"
-                style={{ zIndex: 101, pointerEvents: 'all' }}
-                onMouseDown={handleResizeStart}
-            />
+            {showManipulationControls && (
+                <div
+                    className="absolute -right-2 -bottom-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-se-resize"
+                    style={{ zIndex: 101, pointerEvents: 'all' }}
+                    onMouseDown={handleResizeStart}
+                />
+            )}
 
             {/* Rotate handle */}
-            {shape.type !== 'sticky' && (
+            {showManipulationControls && shape.type !== 'sticky' && (
                 <div
                     className="absolute w-6 h-6 bg-white border-2 border-blue-500 rounded-full cursor-pointer hover:bg-blue-50 flex items-center justify-center"
                     style={{
@@ -60,57 +69,56 @@ export function ShapeControls({
                 />
             )}
 
-              {/* Image/Canvas controls */}
-              {(shape.type === 'image' || shape.type === 'canvas') && (
+            {/* Image/Canvas controls */}
+            {(shape.type === 'image' || shape.type === 'canvas') && showControlPanel && (
                 <div
-                  className="absolute left-1/2 top-full mt-2 bg-white p-2 rounded border border-gray-200 transform -translate-x-1/2"
-                  style={{ zIndex: 101, pointerEvents: 'all', width: '220px' }}
+                    className="absolute left-1/2 top-full mt-2 bg-white p-2 rounded border border-gray-200 transform -translate-x-1/2"
+                    style={{ zIndex: 101, pointerEvents: 'all', width: '220px' }}
                 >
-                  <div className="flex flex-col gap-2">
-                    {['Depth', 'Edges', 'Content', 'Pose'].map((controlType) => (
-                      <div key={controlType} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id={`${controlType.toLowerCase()}-${shape.id}`}
-                          checked={shape[`show${controlType}`] || false}
-                          onChange={(e) => {
-                            if (e.target.checked && controlType !== 'Content') {
-                              // Uncheck same control type on other shapes (except for Content)
-                              shapes.forEach(otherShape => {
-                                if ((otherShape.type === 'image' || otherShape.type === 'canvas') && 
-                                    otherShape.id !== shape.id && 
-                                    otherShape[`show${controlType}`]) {
-                                  updateShape(otherShape.id, { [`show${controlType}`]: false });
-                                }
-                              });
-                            }
-                            updateShape(shape.id, { [`show${controlType}`]: e.target.checked });
-                          }}
-                          className="cursor-pointer"
-                        />
-                        <label
-                          htmlFor={`${controlType.toLowerCase()}-${shape.id}`}
-                          className="text-sm text-gray-700 cursor-pointer whitespace-nowrap flex-grow"
-                        >
-                          {controlType}
-                        </label>
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.05"
-                          value={shape[`${controlType.toLowerCase()}Strength`] || 0.5}
-                          onChange={(e) => updateShape(shape.id, {
-                            [`${controlType.toLowerCase()}Strength`]: parseFloat(e.target.value)
-                          })}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          className="w-16"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                    <div className="flex flex-col gap-2">
+                        {['Depth', 'Edges', 'Content', 'Pose'].map((controlType) => (
+                            <div key={controlType} className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id={`${controlType.toLowerCase()}-${shape.id}`}
+                                    checked={shape[`show${controlType}`] || false}
+                                    onChange={(e) => {
+                                        if (e.target.checked && controlType !== 'Content') {
+                                            shapes.forEach(otherShape => {
+                                                if ((otherShape.type === 'image' || otherShape.type === 'canvas') && 
+                                                    otherShape.id !== shape.id && 
+                                                    otherShape[`show${controlType}`]) {
+                                                    updateShape(otherShape.id, { [`show${controlType}`]: false });
+                                                }
+                                            });
+                                        }
+                                        updateShape(shape.id, { [`show${controlType}`]: e.target.checked });
+                                    }}
+                                    className="cursor-pointer"
+                                />
+                                <label
+                                    htmlFor={`${controlType.toLowerCase()}-${shape.id}`}
+                                    className="text-sm text-gray-700 cursor-pointer whitespace-nowrap flex-grow"
+                                >
+                                    {controlType}
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.05"
+                                    value={shape[`${controlType.toLowerCase()}Strength`] || 0.5}
+                                    onChange={(e) => updateShape(shape.id, {
+                                        [`${controlType.toLowerCase()}Strength`]: parseFloat(e.target.value)
+                                    })}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    className="w-16"
+                                />
+                            </div>
+                        ))}
+                    </div>
                 </div>
-              )}
+            )}
             {/* Sticky note prompt controls */}
             {shape.type === 'sticky' && (
                 <div
