@@ -201,14 +201,15 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
   }, [query, searchImages]);
 
   const deleteAsset = async (asset: Asset, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent triggering handleAssetClick
+    e.stopPropagation();
     setLoading(true);
+
     try {
-      // Extract filename from the URL
+      // Get the filename from the last part of the URL
       const fileName = asset.url.split('/').pop();
 
+      // Delete from storage bucket first
       if (fileName) {
-        // First delete from Supabase storage bucket
         const { error: storageError } = await supabase.storage
           .from('assets')
           .remove([fileName]);
@@ -216,16 +217,17 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
         if (storageError) throw storageError;
       }
 
-      // Then delete the record from the assets table
+      // Delete the record from assets table
       const { error: dbError } = await supabase
         .from('assets')
         .delete()
-        .match({ id: asset.id });
+        .eq('id', asset.id);
 
       if (dbError) throw dbError;
 
-      // Update local state by removing the deleted asset
-      setAssets(prevAssets => prevAssets.filter(a => a.id !== asset.id));
+      // Update local state immediately
+      setAssets(currentAssets => currentAssets.filter(a => a.id !== asset.id));
+
     } catch (err) {
       console.error('Error deleting asset:', err);
     } finally {
