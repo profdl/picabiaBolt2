@@ -206,7 +206,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     });
   };
 
-
   useEffect(() => {
     if (!resizeStart) return;
 
@@ -217,39 +216,42 @@ export function ShapeComponent({ shape }: ShapeProps) {
       let newWidth = Math.max(50, resizeStart.width + dx);
       let newHeight = Math.max(50, resizeStart.height + dy);
 
-      // Maintain aspect ratio by default, unless shift is pressed
-      if (!e.shiftKey && (shape.type === 'image' && shape.aspectRatio)) {
+      // Maintain aspect ratio when shift is pressed for all shape types
+      if (e.shiftKey) {
+        const aspectRatio = resizeStart.width / resizeStart.height;
         if (Math.abs(dx) > Math.abs(dy)) {
-          newHeight = newWidth / resizeStart.aspectRatio;
+          newHeight = newWidth / aspectRatio;
         } else {
-          newWidth = newHeight * resizeStart.aspectRatio;
+          newWidth = newHeight * aspectRatio;
         }
       }
 
-      updateShape(shape.id, {
-        width: newWidth,
-        height: newHeight
-      });
+      if (shape.type === 'drawing' && shape.points) {
+        const scaleX = newWidth / resizeStart.width;
+        const scaleY = newHeight / resizeStart.height;
+
+        const scaledPoints = shape.points.map(point => ({
+          x: point.x * scaleX,
+          y: point.y * scaleY
+        }));
+
+        updateShape(shape.id, {
+          width: newWidth,
+          height: newHeight,
+          points: scaledPoints
+        });
+      } else {
+        updateShape(shape.id, {
+          width: newWidth,
+          height: newHeight
+        });
+      }
     };
+
     const handleMouseUp = () => {
       setResizeStart(null);
     };
 
-    <input
-      type="range"
-      min="0"
-      max="1"
-      step="0.05"
-      value={shape.promptStrength ?? 0.8}  // Use nullish coalescing
-      onChange={(e) => {
-        e.stopPropagation();
-        updateShape(shape.id, {
-          promptStrength: parseFloat(e.target.value)
-        });
-      }}
-      onMouseDown={(e) => e.stopPropagation()}
-      className="w-full"
-    />
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 
@@ -257,7 +259,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizeStart, shape.type, shape.aspectRatio, updateShape, zoom]);
+  }, [resizeStart, shape.type, updateShape, zoom]);
+
 
   // Moved the input element outside of the useEffect
   <input
