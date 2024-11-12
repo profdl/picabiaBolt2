@@ -222,11 +222,12 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
         .from('assets')
         .delete()
         .eq('id', asset.id)
-        .eq('user_id', user.id);  // Adding this condition
+        .eq('user_id', user.id);
 
       if (dbError) throw dbError;
 
-      setAssets(currentAssets => currentAssets.filter(a => a.id !== asset.id));
+      // Fetch fresh assets list after deletion
+      await fetchAssets();
 
     } catch (err) {
       console.error('Error deleting asset:', err);
