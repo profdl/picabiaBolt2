@@ -38,8 +38,8 @@ interface BoardState extends CanvasState {
   brushOpacity: number;
   brushTexture: string;
   galleryRefreshCounter: number;
-  uploadingAssets: string[]; // Array of temporary IDs for uploading assets
-
+  uploadingAssets: string[];
+  assetsRefreshTrigger: number;
 
   advancedSettings: {
     negativePrompt: string;
@@ -90,6 +90,8 @@ interface BoardState extends CanvasState {
   refreshGallery: () => void;
   addUploadingAsset: (id: string) => void;
   removeUploadingAsset: (id: string) => void;
+  triggerAssetsRefresh: () => void;
+
 }const MAX_HISTORY = 50;
 
 const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never }> = {
@@ -123,9 +125,9 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   },
   brushSize: 30,
   brushOpacity: 1,
-  brushTexture: 'basic'
+  brushTexture: 'basic',
+  assetsRefreshTrigger: 0
 };
-
 const getViewportCenter = (currentState: typeof initialState) => {
   const rect = document.querySelector('#root')?.getBoundingClientRect();
   if (!rect) return { x: 0, y: 0 };
@@ -140,6 +142,11 @@ export const useStore = create<BoardState>((set, get) => ({
   ...initialState,
 
   resetState: () => set(initialState),
+
+  triggerAssetsRefresh: () => set(state => ({
+    ...state,
+    assetsRefreshTrigger: state.assetsRefreshTrigger + 1
+  })),
 
   setShapes: (shapes: Shape[]) => {
     set({
@@ -413,4 +420,3 @@ export const useStore = create<BoardState>((set, get) => ({
   }
 
 }));
-

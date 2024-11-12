@@ -58,11 +58,13 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
     }));
   };
 
+  const assetsRefreshTrigger = useStore(state => state.assetsRefreshTrigger);
+
   useEffect(() => {
     if (isOpen) {
       fetchAssets();
     }
-  }, [isOpen]);
+  }, [isOpen, assetsRefreshTrigger]);
 
 
   const fetchAssets = async () => {

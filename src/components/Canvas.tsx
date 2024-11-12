@@ -3,17 +3,17 @@ import { useStore } from '../store';
 import { Position, Shape } from '../types';
 import { ShapeComponent } from './Shape';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import { getImageDimensions } from '../utils/image';
-import { supabase } from '../lib/supabase';
+import { useImageUpload } from '../hooks/useImageUpload';
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [startPan, setStartPan] = useState<Position | null>(null);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
-  const [spacePressed, setSpacePressed] = useState(false);
+  const [spacePressed] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPath, setCurrentPath] = useState<Position[]>([]);
   const [drawingShape, setDrawingShape] = useState<Shape | null>(null);
+  const { handleImageUpload } = useImageUpload();
 
   const {
     shapes,
@@ -31,6 +31,18 @@ export function Canvas() {
     addShape,
     setSelectedShapes,
   } = useStore();
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFile(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const point = getCanvasPoint(e);
+
+    for (const file of imageFiles) {
+      await handleImageUpload(file, point);
+    }
+  };
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
@@ -118,7 +130,8 @@ export function Canvas() {
         color: currentColor,
         points: [{ x: 0, y: 0 }],
         strokeWidth,
-        rotation: 0
+        rotation: 0,
+        isUploading: false
       };
       setDrawingShape(newShape);
     } else if (!e.shiftKey) {
@@ -184,80 +197,10 @@ export function Canvas() {
     setIsDraggingFile(false);
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingFile(false);
-
-    // Handle dragged assets
-    const assetData = e.dataTransfer.getData('application/json');
-    if (assetData) {
-      try {
-        const { type, url } = JSON.parse(assetData);
-        if (type === 'asset') {
-          const point = getCanvasPoint(e);
-          const dimensions = await getImageDimensions(url);
-
-          addShape({
-            id: Math.random().toString(36).substr(2, 9),
-            type: 'image',
-            position: {
-              x: point.x - (dimensions.width / 2),
-              y: point.y - (dimensions.height / 2)
-            },
-            width: dimensions.width,
-            height: dimensions.height,
-            color: 'transparent',
-            imageUrl: url,
-            rotation: 0
-          });
-          return;
-        }
-      } catch (err) {
-        console.error('Error handling asset drop:', err);
-      }
-    }
-
-    // Existing file drop handling...
-    const files = Array.from(e.dataTransfer.files);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
-
-    for (const file of imageFiles) {
-      const tempId = Math.random().toString(36).substr(2, 9);
-      const point = getCanvasPoint(e);
-
-      // Add placeholder shape immediately
-      addShape({
-        id: tempId,
-        type: 'image',
-        position: point,
-        width: 300, // Default width
-        height: 300,
-        color: 'transparent',
-        imageUrl: URL.createObjectURL(file), // Show local preview
-        rotation: 0,
-        isUploading: true // Add this flag
-      });
-
-      // Handle upload
-      try {
-        const { publicUrl } = await uploadAssetToSupabase(file);
-
-        // Update shape with final URL
-        updateShape(tempId, {
-          imageUrl: publicUrl,
-          isUploading: false
-        });
-
-      } catch (err) {
-        console.error('Upload failed:', err);
-        deleteShape(tempId); // Remove failed upload
-      }
-    }
-  }; const renderGrid = () => {
+  const renderGrid = () => {
     if (!gridEnabled || !canvasRef.current || !shapes) return null;
 
     const rect = canvasRef.current.getBoundingClientRect();
-    const gridSizeScaled = gridSize * zoom;
 
     const visibleStartX = -offset.x / zoom;
     const visibleStartY = -offset.y / zoom;
@@ -356,49 +299,3 @@ export function Canvas() {
     </div>
   );
 }
-
-const convertToWebP = async (file: File): Promise<Blob> => {
-  const img = new Image();
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d')!;
-
-  await new Promise((resolve) => {
-    img.onload = resolve;
-    img.src = URL.createObjectURL(file);
-  });
-
-  canvas.width = img.width;
-  canvas.height = img.height;
-  ctx.drawImage(img, 0, 0);
-
-  return new Promise((resolve) => {
-    canvas.toBlob(blob => resolve(blob!), 'image/webp', 0.95);
-  });
-};
-
-const uploadAssetToSupabase = async (blob: Blob) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('User must be authenticated');
-
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('assets')
-    .upload(fileName, blob, {
-      contentType: 'image/webp',
-      upsert: false
-    });
-
-  if (uploadError) throw uploadError;
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('assets')
-    .getPublicUrl(fileName);
-
-  await supabase.from('assets').insert([{
-    url: publicUrl,
-    user_id: user.id
-  }]);
-
-  return { publicUrl };
-};

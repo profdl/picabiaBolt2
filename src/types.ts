@@ -19,6 +19,7 @@ export interface Shape {
   strokeWidth?: number;
   showPrompt?: boolean;
   canvasData?: ImageData;
+  isUploading: boolean;
 
 }
 export interface CanvasState {
