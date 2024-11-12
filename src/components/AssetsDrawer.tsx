@@ -207,7 +207,13 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log('No user found');
+        return;
+      }
+
+      // Log the asset details we're trying to delete
+      console.log('Deleting asset:', asset);
 
       // Get filename from URL
       const fileName = asset.url.split('/').pop();
@@ -218,21 +224,23 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
           .from('assets')
           .remove([fileName]);
 
-        if (storageError) throw storageError;
+        console.log('Storage deletion result:', { error: storageError });
       }
 
-      // Delete from assets table with specific user_id
-      const { error: dbError } = await supabase
+      // Delete from assets table with logging
+      const { data: deleteData, error: dbError } = await supabase
         .from('assets')
         .delete()
         .match({
           id: asset.id,
           user_id: user.id
-        });
+        })
+        .select();
+
+      console.log('Database deletion result:', { data: deleteData, error: dbError });
 
       if (dbError) throw dbError;
 
-      // Update UI
       setAssets(currentAssets => currentAssets.filter(a => a.id !== asset.id));
 
     } catch (err) {
