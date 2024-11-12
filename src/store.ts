@@ -38,6 +38,7 @@ interface BoardState extends CanvasState {
   brushOpacity: number;
   brushTexture: string;
   galleryRefreshCounter: number;
+  uploadingAssets: string[]; // Array of temporary IDs for uploading assets
 
 
   advancedSettings: {
@@ -87,8 +88,9 @@ interface BoardState extends CanvasState {
   getCanvasImage?: () => string | undefined;
   setBrushTexture: (texture: string) => void;
   refreshGallery: () => void;
-}
-const MAX_HISTORY = 50;
+  addUploadingAsset: (id: string) => void;
+  removeUploadingAsset: (id: string) => void;
+}const MAX_HISTORY = 50;
 
 const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never }> = {
   shapes: [],

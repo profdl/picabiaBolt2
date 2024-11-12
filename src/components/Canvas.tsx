@@ -196,7 +196,7 @@ export function Canvas() {
         if (type === 'asset') {
           const point = getCanvasPoint(e);
           const dimensions = await getImageDimensions(url);
-        
+
           addShape({
             id: Math.random().toString(36).substr(2, 9),
             type: 'image',
@@ -222,51 +222,38 @@ export function Canvas() {
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
 
     for (const file of imageFiles) {
-      // Convert to WebP format
-      const webpBlob = await convertToWebP(file);
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const point = getCanvasPoint(e);
-        const dimensions = await getImageDimensions(reader.result as string);
-        const aspectRatio = dimensions.width / dimensions.height;
+      const tempId = Math.random().toString(36).substr(2, 9);
+      const point = getCanvasPoint(e);
 
-        // Calculate 40% of window dimensions
-        const maxWidth = window.innerWidth * 0.4;
-        const maxHeight = window.innerHeight * 0.4;
+      // Add placeholder shape immediately
+      addShape({
+        id: tempId,
+        type: 'image',
+        position: point,
+        width: 300, // Default width
+        height: 300,
+        color: 'transparent',
+        imageUrl: URL.createObjectURL(file), // Show local preview
+        rotation: 0,
+        isUploading: true // Add this flag
+      });
 
-        // Determine which dimension to fit to while maintaining aspect ratio
-        let width, height;
-        if (maxWidth / aspectRatio <= maxHeight) {
-          width = maxWidth;
-          height = maxWidth / aspectRatio;
-        } else {
-          height = maxHeight;
-          width = height * aspectRatio;
-        }
+      // Handle upload
+      try {
+        const { publicUrl } = await uploadAssetToSupabase(file);
 
-        // Upload to Supabase and get public URL
-        const { publicUrl } = await uploadAssetToSupabase(webpBlob);
-
-        // Add shape with calculated dimensions
-        addShape({
-          id: Math.random().toString(36).substr(2, 9),
-          type: 'image',
-          position: {
-            x: point.x - (width / 2),
-            y: point.y - (height / 2)
-          },
-          width,
-          height,
-          color: 'transparent',
+        // Update shape with final URL
+        updateShape(tempId, {
           imageUrl: publicUrl,
-          rotation: 0,
-          showPrompt: false
+          isUploading: false
         });
-      };
-      reader.readAsDataURL(file);
+
+      } catch (err) {
+        console.error('Upload failed:', err);
+        deleteShape(tempId); // Remove failed upload
+      }
     }
-  };
-  const renderGrid = () => {
+  }; const renderGrid = () => {
     if (!gridEnabled || !canvasRef.current || !shapes) return null;
 
     const rect = canvasRef.current.getBoundingClientRect();

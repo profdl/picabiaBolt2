@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { RotateCw } from 'lucide-react';
+import { RotateCw, Loader2 } from 'lucide-react';
 import { useStore } from '../store';
 import { Shape } from '../types';
 import { useBrush } from './BrushTool';
@@ -12,7 +12,24 @@ interface ShapeProps {
 }
 
 export function ShapeComponent({ shape }: ShapeProps) {
-  const {
+  if (shape.type === 'image' && shape.isUploading) {
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          left: shape.position.x,
+          top: shape.position.y,
+          width: shape.width,
+          height: shape.height,
+          transform: `rotate(${shape.rotation}deg)`,
+        }}
+        className="animate-pulse bg-gray-200 rounded-lg flex items-center justify-center"
+      >
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+
+  } const {
     selectedShapes,
     setSelectedShapes,
     updateShape,
