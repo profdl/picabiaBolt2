@@ -279,22 +279,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
   }, [resizeStart, shape.type, updateShape, zoom]);
 
 
-  // Moved the input element outside of the useEffect
-  <input
-    type="range"
-    min="0"
-    max="1"
-    step="0.05"
-    value={(shape as any).promptStrength ?? 0.8}  // Use type assertion
-    onChange={(e) => {
-      e.stopPropagation();
-      updateShape(shape.id, {
-        promptStrength: parseFloat(e.target.value)
-      });
-    }}
-    onMouseDown={(e) => e.stopPropagation()}
-    className="w-full"
-  />
   // Add to existing refs
   const isDrawing = useRef(false);
   const lastPoint = useRef<{ x: number, y: number } | null>(null);
@@ -500,90 +484,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
         />
       )}
 
-      {/* Separate image prompt controls */}
-      {(shape.type === 'image' || shape.type === 'canvas') && (shape.showPrompt || isSelected) && (
-        <div
-          className="absolute left-1/2 top-full mt-2 bg-white p-2 rounded border border-gray-200 transform -translate-x-1/2"
-          style={{ zIndex: 101, pointerEvents: 'all', width: '180px' }}
-        >
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id={`prompt-${shape.id}`}
-                checked={shape.showPrompt}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    shapes.forEach(otherShape => {
-                      if ((otherShape.type === 'image' || otherShape.type === 'canvas') && otherShape.showPrompt) {
-                        updateShape(otherShape.id, { showPrompt: false });
-                      }
-                    });
-                  }
-                  updateShape(shape.id, { showPrompt: e.target.checked });
-                }}
-                className="cursor-pointer"
-              />
-              <label
-                htmlFor={`prompt-${shape.id}`}
-                className="text-sm text-gray-700 cursor-pointer whitespace-nowrap"
-              >
-                Image Prompt
-              </label>
-            </div>
-
-            {shape.showPrompt && (
-              <div className="space-y-1">
-                <label className="block text-xs text-gray-600">
-                  Prompt Strength ({shape.promptStrength || 0.8})
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={shape.promptStrength || 0.8}
-                  onChange={(e) => updateShape(shape.id, {
-                    promptStrength: parseFloat(e.target.value)
-                  })}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  className="w-full"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      {shape.type === 'sticky' && (shape.showPrompt || isSelected) && (
-        <div
-          className="absolute left-1/2 top-full mt-2 bg-white p-2 rounded border border-gray-200 transform -translate-x-1/2"
-          style={{ zIndex: 101, pointerEvents: 'all', width: '180px' }}
-        >
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id={`prompt-${shape.id}`}
-              checked={shape.showPrompt}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  shapes.forEach(otherShape => {
-                    if (otherShape.type === 'sticky' && otherShape.showPrompt) {
-                      updateShape(otherShape.id, { showPrompt: false });
-                    }
-                  });
-                }
-                updateShape(shape.id, { showPrompt: e.target.checked });
-              }}
-              className="cursor-pointer"
-            />
-            <label
-              htmlFor={`prompt-${shape.id}`}
-              className="text-sm text-gray-700 cursor-pointer whitespace-nowrap"
-            >
-              Text Prompt
-            </label>
-          </div>
-        </div>
-      )}    </div>
+   </div>
   );
 }
