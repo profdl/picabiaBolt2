@@ -206,6 +206,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     });
   };
 
+
   useEffect(() => {
     if (!resizeStart) return;
 
@@ -216,7 +217,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
       let newWidth = Math.max(50, resizeStart.width + dx);
       let newHeight = Math.max(50, resizeStart.height + dy);
 
-      if (e.shiftKey || (shape.type === 'image' && shape.aspectRatio)) {
+      // Maintain aspect ratio by default, unless shift is pressed
+      if (!e.shiftKey && (shape.type === 'image' && shape.aspectRatio)) {
         if (Math.abs(dx) > Math.abs(dy)) {
           newHeight = newWidth / resizeStart.aspectRatio;
         } else {
@@ -229,7 +231,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
         height: newHeight
       });
     };
-
     const handleMouseUp = () => {
       setResizeStart(null);
     };
@@ -566,4 +567,3 @@ export function ShapeComponent({ shape }: ShapeProps) {
       )}    </div>
   );
 }
-
