@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, MoreVertical, Edit2, Trash2, X, Check } from 'lucide-react';
+import { Clock, MoreVertical, Edit2, Trash2, X, Check, Image as ImageIcon } from 'lucide-react';
 import { Project } from '../hooks/useProjects';
 
 interface ProjectCardProps {
@@ -63,20 +63,21 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
 
   return (
     <div className="relative bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow group">
-      <div 
+      <div
         className="cursor-pointer"
         onClick={isRenaming ? undefined : onOpen}
       >
-        <div className="aspect-w-16 aspect-h-9 bg-gray-100">
-          {thumbnailUrl ? (
+        <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center">
+          {project.preview_url ? (
             <img
-              src={thumbnailUrl}
+              src={project.preview_url}
               alt={project.name}
-              className="object-cover rounded-t-lg"
+              className="w-full h-full object-cover rounded-t-lg"
             />
           ) : (
-            <div className="flex items-center justify-center h-full">
-              <span className="text-gray-400">No preview</span>
+            <div className="flex flex-col items-center justify-center w-full h-full">
+              <ImageIcon className="w-12 h-12 text-gray-300" />
+              <span className="text-sm text-gray-400 mt-2">No preview available</span>
             </div>
           )}
         </div>
