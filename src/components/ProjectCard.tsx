@@ -68,7 +68,7 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
   };
 
   return (
-    <div className="relative bg-white rounded-lg shadow-md hover:shadow-md transition-shadow group">
+    <div className="relative bg-white rounded-lg shadow-md hover:shadow-md transition-shadow group border border-gray-200">
       <div
         className="cursor-pointer"
         onClick={isRenaming ? undefined : onOpen}
@@ -87,7 +87,7 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
             </div>
           )}
         </div>
-        <div className="p-4 bg-gray-50">
+        <div className="p-4 bg-gray-50 border-t border-gray-200">
           <div className="flex items-center justify-between">
             {isRenaming ? (
               <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
