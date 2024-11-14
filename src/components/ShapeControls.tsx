@@ -81,26 +81,28 @@ export function ShapeControls({
                                 <input
                                     type="checkbox"
                                     id={`${controlType.toLowerCase()}-${shape.id}`}
-                                    checked={shape[`show${controlType}`] || false}
+                                    checked={controlType === 'Depth' ? shape.showPrompt : shape[`show${controlType}`] || false}
                                     onChange={(e) => {
                                         if (e.target.checked && controlType !== 'Content') {
                                             shapes.forEach(otherShape => {
                                                 if ((otherShape.type === 'image' || otherShape.type === 'canvas') &&
-                                                    otherShape.id !== shape.id &&
-                                                    otherShape[`show${controlType}`]) {
-                                                    updateShape(otherShape.id, {
-                                                        [`show${controlType}`]: false,
-                                                        // Keep showPrompt in sync with Depth checkbox
-                                                        showPrompt: controlType === 'Depth' ? false : otherShape.showPrompt
-                                                    });
+                                                    otherShape.id !== shape.id) {
+                                                    if (controlType === 'Depth') {
+                                                        if (otherShape.showPrompt) {
+                                                            updateShape(otherShape.id, { showPrompt: false });
+                                                        }
+                                                    } else if (otherShape[`show${controlType}`]) {
+                                                        updateShape(otherShape.id, { [`show${controlType}`]: false });
+                                                    }
                                                 }
                                             });
                                         }
-                                        updateShape(shape.id, {
-                                            [`show${controlType}`]: e.target.checked,
-                                            // Keep showPrompt in sync with Depth checkbox
-                                            showPrompt: controlType === 'Depth' ? e.target.checked : shape.showPrompt
-                                        });
+
+                                        if (controlType === 'Depth') {
+                                            updateShape(shape.id, { showPrompt: e.target.checked });
+                                        } else {
+                                            updateShape(shape.id, { [`show${controlType}`]: e.target.checked });
+                                        }
                                     }}
                                     className="cursor-pointer"
                                 />
