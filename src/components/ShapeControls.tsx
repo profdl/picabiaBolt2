@@ -27,8 +27,11 @@ export function ShapeControls({
     // Show resize/rotate controls only when selected
     const showManipulationControls = isSelected;
 
-    // Show checkboxes when selected OR any control is active
-    const showControlPanel = isSelected || shape.showDepth || shape.showEdges || shape.showContent || shape.showPose;
+    const anyCheckboxChecked = shape.showDepth || shape.showEdges || shape.showContent || shape.showPose || shape.showPrompt;
+    const showControlPanel = isSelected || anyCheckboxChecked;
+
+    // Show controls if selected OR if any checkbox is checked
+    if (!showControlPanel) return null;
 
     return (
         <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
