@@ -36,7 +36,6 @@ export function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center gap-4 mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Your Boards</h1>
         <button
           onClick={handleCreateProject}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
@@ -63,7 +62,10 @@ export function Dashboard() {
               project={project}
               onOpen={() => navigate(`/board/${project.id}`)}
               onRename={async (newName) => {
-                await updateProject(project.id, { name: newName });
+                await updateProject(project.id, {
+                  name: newName,
+                  thumbnail: project.thumbnail
+                });
               }}
               onDelete={async () => {
                 await deleteProject(project.id);

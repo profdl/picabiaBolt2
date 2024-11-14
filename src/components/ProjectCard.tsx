@@ -17,6 +17,12 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('Project updated:', {
+      name: project.name,
+      thumbnail: project.thumbnail,
+      thumbnailUrl
+    });
+
     if (project.thumbnail) {
       // If it's already a data URL, use it directly
       if (project.thumbnail.startsWith('data:image/')) {
@@ -28,7 +34,7 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
     } else {
       setThumbnailUrl(null);
     }
-  }, [project.thumbnail]);
+  }, [project.thumbnail, project.name]); // Add project.name to dependencies
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -62,7 +68,7 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
   };
 
   return (
-    <div className="relative bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow group">
+    <div className="relative bg-white rounded-lg shadow-md hover:shadow-md transition-shadow group">
       <div
         className="cursor-pointer"
         onClick={isRenaming ? undefined : onOpen}
@@ -81,7 +87,7 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
             </div>
           )}
         </div>
-        <div className="p-4">
+        <div className="p-4 bg-gray-50">
           <div className="flex items-center justify-between">
             {isRenaming ? (
               <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
@@ -145,8 +151,7 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
             )}
           </div>
           <div className="mt-2 flex items-center text-sm text-gray-500">
-            <Clock className="h-4 w-4 mr-1" />
-            <span>Updated {formatDate(project.updated_at)}</span>
+            <span>{formatDate(project.updated_at)}</span>
           </div>
         </div>
       </div>
