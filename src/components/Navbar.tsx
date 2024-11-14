@@ -61,20 +61,37 @@ export const Navbar = () => {
     }
   };
 
+  const handleNavigation = async () => {
+    if (isBoard && boardId) {
+      await handleSave();
+    }
+    window.location.href = '/';
+  };
+
+  const handleProjectsClick = async () => {
+    if (isBoard && boardId) {
+      await handleSave();
+    }
+    setIsSidebarOpen(true);
+  };
+
   return (
     <>
       <nav className="bg-white dark:bg-gray-900 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center gap-4">
-              <Link to="/" className="flex items-center">
+              <Link to="/" className="flex items-center" onClick={(e) => {
+                e.preventDefault();
+                handleNavigation();
+              }}>
                 <span className="text-xl font-bold text-gray-900">Picabia</span>
               </Link>
               {user && (
                 <>
                   {!isDashboard && (
                     <button
-                      onClick={() => setIsSidebarOpen(true)}
+                      onClick={handleProjectsClick}
                       className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                     >
                       <LayoutGrid className="w-4 h-4" />
