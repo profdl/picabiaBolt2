@@ -68,15 +68,9 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
         onClick={isRenaming ? undefined : onOpen}
       >
         <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center">
-          {project.thumbnail ? (
+          {thumbnailUrl ? (
             <img
-              src={`data:image/jpeg;base64,${project.thumbnail}`}
-              alt={project.name}
-              className="w-full h-full object-cover rounded-t-lg"
-            />
-          ) : project.preview_url ? (
-            <img
-              src={project.preview_url}
+              src={thumbnailUrl}
               alt={project.name}
               className="w-full h-full object-cover rounded-t-lg"
             />
@@ -88,89 +82,68 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
           )}
         </div>
         <div className="p-4">
-          {isRenaming ? (
-            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="flex-1 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleRename();
-                  if (e.key === 'Escape') {
+          <div className="flex items-center justify-between">
+            {isRenaming ? (
+              <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="flex-1 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRename();
+                    if (e.key === 'Escape') {
+                      setNewName(project.name);
+                      setIsRenaming(false);
+                    }
+                  }}
+                />
+                <button
+                  onClick={handleRename}
+                  className="p-1 text-green-600 hover:bg-green-50 rounded"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
                     setNewName(project.name);
                     setIsRenaming(false);
-                  }
-                }}
-              />
-              <button
-                onClick={handleRename}
-                className="p-1 text-green-600 hover:bg-green-50 rounded"
-              >
-                <Check className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  setNewName(project.name);
-                  setIsRenaming(false);
-                }}
-                className="p-1 text-gray-600 hover:bg-gray-50 rounded"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900 truncate">
-                {project.name}
-              </h3>
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsMenuOpen(!isMenuOpen);
                   }}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded-full"
+                  className="p-1 text-gray-600 hover:bg-gray-50 rounded"
                 >
-                  <MoreVertical className="h-5 w-5 text-gray-500" />
+                  <X className="w-4 h-4" />
                 </button>
-                {isMenuOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0"
-                      onClick={() => setIsMenuOpen(false)}
-                    />
-                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-10">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsMenuOpen(false);
-                          setIsRenaming(true);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        Rename
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsMenuOpen(false);
-                          handleDelete();
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                        disabled={isDeleting}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        {isDeleting ? 'Deleting...' : 'Delete'}
-                      </button>
-                    </div>
-                  </>
-                )}
               </div>
-            </div>
-          )}
+            ) : (
+              <>
+                <h3 className="text-lg font-medium text-gray-900 truncate flex-1">
+                  {project.name}
+                </h3>
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsRenaming(true);
+                    }}
+                    className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete();
+                    }}
+                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           <div className="mt-2 flex items-center text-sm text-gray-500">
             <Clock className="h-4 w-4 mr-1" />
             <span>Updated {formatDate(project.updated_at)}</span>
