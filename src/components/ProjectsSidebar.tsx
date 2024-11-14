@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProjects } from '../hooks/useProjects';
 
@@ -9,7 +9,7 @@ interface ProjectsSidebarProps {
 }
 
 export function ProjectsSidebar({ isOpen, onClose }: ProjectsSidebarProps) {
-  const { projects, loading, fetchProjects } = useProjects();
+  const { projects, loading, fetchProjects, createProject} = useProjects();
   const navigate = useNavigate();
 
   // Refresh projects when sidebar is opened
@@ -54,6 +54,19 @@ export function ProjectsSidebar({ isOpen, onClose }: ProjectsSidebarProps) {
                 </button>
               </div>
 
+              <div className="mt-4">
+                <button
+                  onClick={async () => {
+                    const newProject = await createProject();
+                    handleProjectClick(newProject.id);
+                  }}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Project
+                </button>
+              </div>
+
               {loading ? (
                 <div className="mt-8 flex justify-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
@@ -94,8 +107,7 @@ export function ProjectsSidebar({ isOpen, onClose }: ProjectsSidebarProps) {
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+              )}            </div>
           </div>
         </div>
       </div>

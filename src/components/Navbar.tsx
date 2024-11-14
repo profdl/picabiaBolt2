@@ -39,6 +39,8 @@ export const Navbar = () => {
   }, []);
 
   const isBoard = location.pathname.startsWith('/board/');
+  const isDashboard = location.pathname === '/' || location.pathname === '/dashboard';
+  console.log('Current pathname:', location.pathname);
   const boardId = isBoard ? location.pathname.split('/')[2] : null;
 
   const handleSave = async () => {
@@ -70,21 +72,22 @@ export const Navbar = () => {
               </Link>
               {user && (
                 <>
-                  <button
-                    onClick={() => setIsSidebarOpen(true)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                    <span>Projects</span>
-                  </button>
+                  {!isDashboard && (
+                    <button
+                      onClick={() => setIsSidebarOpen(true)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    >
+                      <LayoutGrid className="w-4 h-4" />
+                      <span>Projects</span>
+                    </button>
+                  )}
                   {isBoard && (
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-md ${isSaving
-                        ? 'bg-gray-100 text-gray-400'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                        }`}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md ${
+                        isSaving ? 'bg-gray-100 text-gray-400' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
                     >
                       <Save className={`w-4 h-4 ${isSaving ? 'animate-pulse' : ''}`} />
                       <span>{isSaving ? 'Saving...' : 'Save'}</span>
@@ -93,8 +96,7 @@ export const Navbar = () => {
                 </>
               )}
             </div>
-            {user ? (
-              <div className="flex items-center gap-4">
+            {user ? (              <div className="flex items-center gap-4">
 
                 <button
                   onClick={logout}
