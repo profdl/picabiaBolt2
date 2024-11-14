@@ -117,7 +117,7 @@ export function ShapeControls({
                                     min="0"
                                     max="1"
                                     step="0.05"
-                                    value={shape[`${controlType.toLowerCase()}Strength`] || 0.5}
+                                    value={shape[`${controlType.toLowerCase()}Strength`] ?? 0.5}
                                     onChange={(e) => updateShape(shape.id, {
                                         [`${controlType.toLowerCase()}Strength`]: parseFloat(e.target.value)
                                     })}

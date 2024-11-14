@@ -76,6 +76,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       color: 'transparent',
       imageUrl: image.image_url,
       rotation: 0,
+      isUploading: false
     });
   }, [zoom, offset, addShape]);
 
@@ -120,6 +121,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
                 color: 'transparent',
                 imageUrl,
                 rotation: 0,
+                isUploading: false
               });
             });
           }
@@ -159,19 +161,45 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
 
   const handleDeleteImage = async (imageId: string) => {
     try {
-      const { error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Directly delete the database record first
+      const { error: dbError } = await supabase
         .from('generated_images')
         .delete()
-        .match({ id: imageId });
+        .eq('id', imageId)
+        .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      // Remove the deleted image from the local state
-      setImages(images.filter(img => img.id !== imageId));
+      // Update local state immediately
+      setImages(prevImages => prevImages.filter(img => img.id !== imageId));
+
+      // Clean up storage files using the current image data from state
+      const imageToDelete = images.find(img => img.id === imageId);
+      if (imageToDelete) {
+        const urls = [
+          imageToDelete.image_url,
+          imageToDelete.image_url_2,
+          imageToDelete.image_url_3,
+          imageToDelete.image_url_4
+        ].filter(Boolean);
+
+        const filenames = urls.map(url => url.split('/').pop()).filter(Boolean);
+
+        if (filenames.length > 0) {
+          await supabase.storage
+            .from('generated-images')
+            .remove(filenames);
+        }
+      }
+
     } catch (err) {
       console.error('Error deleting image:', err);
     }
   };
+
 
 
 
@@ -213,28 +241,29 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
                       {[image.image_url, image.image_url_2, image.image_url_3, image.image_url_4]
                         .filter(url => url !== null)
                         .map((url, index) => (
-                          <div key={`${image.id}-${index}`} className="absolute inset-0">
+                          <div
+                            key={`${image.id}-${index}`}
+                            className="absolute inset-0 group" // Add group class here
+                          >
                             <img
                               src={url || ''}
                               alt={image.prompt}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover cursor-pointer"
                               onClick={() => handleImageClick({
                                 ...image,
                                 image_url: url as string
                               })}
                             />
-                            <div className="absolute inset-x-0 bottom-0 bg-white bg-opacity-75 p-2">
-                              <p className="text-sm text-gray-600 truncate">{image.prompt}</p>
-                            </div>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteImage(image.id);
                               }}
-                              className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M18 6L6 18M6 6l12 12" />
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                                <path d="M10 11v6M14 11v6" />
                               </svg>
                             </button>
                           </div>
