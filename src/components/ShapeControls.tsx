@@ -124,36 +124,37 @@ export function ShapeControls({
                                 />
                             </div>
                         ))}
-            )}
-                        {/* Sticky note prompt controls */}
-                        {shape.type === 'sticky' && (
-                            <div
-                                className="absolute left-1/2 top-full mt-2 bg-white p-2 rounded border border-gray-200 transform -translate-x-1/2"
-                                style={{ zIndex: 101, pointerEvents: 'all', width: '180px' }}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        id={`prompt-${shape.id}`}
-                                        checked={shape.showPrompt || false}
-                                        onChange={(e) => {
-                                            if (e.target.checked) {
-                                                shapes.forEach(otherShape => {
-                                                    if (otherShape.type === 'sticky' && otherShape.showPrompt) {
-                                                        updateShape(otherShape.id, { showPrompt: false });
-                                                    }
-                                                });
-                                            }
-                                            updateShape(shape.id, { showPrompt: e.target.checked });
-                                        }}
-                                        className="cursor-pointer"
-                                    />
-                                    <label htmlFor={`prompt-${shape.id}`} className="text-sm text-gray-700 cursor-pointer whitespace-nowrap">
-                                        Text Prompt
-                                    </label>
-                                </div>
-                            </div>
-                        )}
                     </div>
-                    );
+                </div>
+            )}
+            {/* Sticky note prompt controls */}
+            {shape.type === 'sticky' && (
+                <div className="absolute left-1/2 top-full mt-2 bg-white p-2 rounded border border-gray-200 transform -translate-x-1/2"
+                    style={{ zIndex: 101, pointerEvents: 'all', width: '180px' }}>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            id={`prompt-${shape.id}`}
+                            checked={shape.showPrompt || false}
+                            onChange={(e) => {
+                                if (e.target.checked) {
+                                    shapes.forEach(otherShape => {
+                                        if (otherShape.type === 'sticky' && otherShape.showPrompt) {
+                                            updateShape(otherShape.id, { showPrompt: false });
+                                        }
+                                    });
+                                }
+                                updateShape(shape.id, { showPrompt: e.target.checked });
+                            }}
+                            className="cursor-pointer"
+                        />
+                        <label htmlFor={`prompt-${shape.id}`} className="text-sm text-gray-700 cursor-pointer whitespace-nowrap">
+                            Text Prompt
+                        </label>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+
 }
