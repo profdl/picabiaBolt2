@@ -68,7 +68,13 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
         onClick={isRenaming ? undefined : onOpen}
       >
         <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center">
-          {project.preview_url ? (
+          {project.thumbnail ? (
+            <img
+              src={`data:image/jpeg;base64,${project.thumbnail}`}
+              alt={project.name}
+              className="w-full h-full object-cover rounded-t-lg"
+            />
+          ) : project.preview_url ? (
             <img
               src={project.preview_url}
               alt={project.name}

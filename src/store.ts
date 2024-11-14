@@ -12,6 +12,8 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
+
+
 interface BoardState extends CanvasState {
   shapes: Shape[];
   selectedShapes: string[];
@@ -128,6 +130,8 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   brushTexture: 'basic',
   assetsRefreshTrigger: 0
 };
+
+
 const getViewportCenter = (currentState: typeof initialState) => {
   const rect = document.querySelector('#root')?.getBoundingClientRect();
   if (!rect) return { x: 0, y: 0 };
@@ -420,3 +424,5 @@ export const useStore = create<BoardState>((set, get) => ({
   }
 
 }));
+
+
