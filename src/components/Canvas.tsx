@@ -14,7 +14,13 @@ export function Canvas() {
   const [currentPath, setCurrentPath] = useState<Position[]>([]);
   const [drawingShape, setDrawingShape] = useState<Shape | null>(null);
   const { handleImageUpload } = useImageUpload();
-
+  const [selectionBox, setSelectionBox] = useState<{
+    startX: number;
+    startY: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  
   const {
     shapes,
     zoom,
@@ -137,6 +143,15 @@ export function Canvas() {
     } else if (!e.shiftKey) {
       setSelectedShapes([]);
     }
+    if (tool !== 'select') return;
+  
+    const point = getCanvasPoint(e);
+    setSelectionBox({
+      startX: point.x,
+      startY: point.y,
+      width: 0,
+      height: 0
+    });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -173,6 +188,17 @@ export function Canvas() {
         points: normalizedPoints
       } : null);
     }
+    if (!selectionBox) return;
+  
+    const currentPoint = getCanvasPoint(e);
+    const width = currentPoint.x - selectionBox.startX;
+    const height = currentPoint.y - selectionBox.startY;
+    
+    setSelectionBox(prev => ({
+      ...prev!,
+      width,
+      height
+    }));
   };
 
   const handleMouseUp = () => {
@@ -186,6 +212,25 @@ export function Canvas() {
     setIsDrawing(false);
     setCurrentPath([]);
     setDrawingShape(null);
+    if (!selectionBox) return;
+
+    const selectedShapeIds = shapes.filter(shape => {
+      const shapeRight = shape.position.x + shape.width;
+      const shapeBottom = shape.position.y + shape.height;
+      
+      const boxLeft = Math.min(selectionBox.startX, selectionBox.startX + selectionBox.width);
+      const boxRight = Math.max(selectionBox.startX, selectionBox.startX + selectionBox.width);
+      const boxTop = Math.min(selectionBox.startY, selectionBox.startY + selectionBox.height);
+      const boxBottom = Math.max(selectionBox.startY, selectionBox.startY + selectionBox.height);
+  
+      return shape.position.x < boxRight &&
+             shapeRight > boxLeft &&
+             shape.position.y < boxBottom &&
+             shapeBottom > boxTop;
+    }).map(shape => shape.id);
+  
+    setSelectedShapes(selectedShapeIds);
+    setSelectionBox(null);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -296,6 +341,21 @@ export function Canvas() {
           <ShapeComponent shape={drawingShape} />
         )}
       </div>
-    </div>
-  );
+      {selectionBox && (
+      <div
+        style={{
+          position: 'absolute',
+          left: Math.min(selectionBox.startX, selectionBox.startX + selectionBox.width) * zoom + offset.x,
+          top: Math.min(selectionBox.startY, selectionBox.startY + selectionBox.height) * zoom + offset.y,
+          width: Math.abs(selectionBox.width) * zoom,
+          height: Math.abs(selectionBox.height) * zoom,
+          border: '2px solid #2196f3',
+          backgroundColor: 'rgba(33, 150, 243, 0.1)',
+          pointerEvents: 'none'
+        }}
+      />
+    )}
+  </div>
+);
 }
+
