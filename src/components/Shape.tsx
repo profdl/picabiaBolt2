@@ -180,8 +180,27 @@ export function ShapeComponent({ shape }: ShapeProps) {
     };
 
     const handleMouseUp = () => {
+      if (dragStart && shape.groupId) {
+        // Recalculate group boundaries after moving a shape within it
+        const groupShape = shapes.find(s => s.id === shape.groupId);
+        if (groupShape) {
+          const groupedShapes = shapes.filter(s => s.groupId === shape.groupId);
+          const minX = Math.min(...groupedShapes.map(s => s.position.x));
+          const minY = Math.min(...groupedShapes.map(s => s.position.y));
+          const maxX = Math.max(...groupedShapes.map(s => s.position.x + s.width));
+          const maxY = Math.max(...groupedShapes.map(s => s.position.y + s.height));
+
+          updateShape(shape.groupId, {
+            position: { x: minX, y: minY },
+            width: maxX - minX,
+            height: maxY - minY
+          });
+        }
+      }
       setDragStart(null);
+      setResizeStart(null);
     };
+
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
@@ -433,16 +452,22 @@ export function ShapeComponent({ shape }: ShapeProps) {
       </div>
     );
   }
-
   const shapeStyles: React.CSSProperties = {
     position: 'absolute',
     left: shape.position.x,
     top: shape.position.y,
     width: shape.width,
     height: shape.height,
-    backgroundColor: shape.type === 'image' || shape.color === 'transparent'
-      ? 'transparent'
-      : shape.color,
+    backgroundColor: shape.type === 'group'
+      ? 'white'
+      : shape.type === 'image' || shape.color === 'transparent'
+        ? 'transparent'
+        : shape.color,
+    overflow: 'visible',
+    transformOrigin: 'center center',
+    transition: 'box-shadow 0.2s ease-in-out',
+    zIndex: shape.type === 'group' ? 1 : isSelected ? 100 : 10,
+    pointerEvents: tool === 'select' ? 'all' : 'none',
     cursor: tool === 'select' ? 'move' : 'default',
     border: shape.type === 'canvas'
       ? '2px dashed #e5e7eb'
@@ -459,12 +484,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     fontSize: shape.fontSize || 16,
     padding: '8px',
     boxShadow: shape.type === 'sticky' ? '0 4px 6px rgba(0, 0, 0, 0.1)' : undefined,
-    overflow: 'visible',
-    transform: `rotate(${shape.rotation || 0}deg)`,
-    transformOrigin: 'center center',
-    transition: 'box-shadow 0.2s ease-in-out',
-    zIndex: isSelected ? 100 : 1,
-    pointerEvents: tool === 'select' ? 'all' : 'none',
+    transform: `rotate(${shape.rotation || 0}deg)`
   };
 
 
