@@ -72,3 +72,15 @@ export interface CanvasState {
   redo: () => void;
   toggleGrid: () => void;
 }
+
+export interface ContextMenuItem {
+  label: string;
+  action: () => void;
+  icon?: React.ReactNode;
+}
+
+export interface ContextMenuState {
+  x: number;
+  y: number;
+  items: ContextMenuItem[];
+}

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { CanvasState, Position, Shape } from './types';
 import workflowJson from './lib/workflow.json';
 import controlWorkflow from './lib/controlWorkflow.json';
+import { ContextMenuState } from './types';
 
 //test
 const supabase = createClient(
@@ -93,7 +94,8 @@ interface BoardState extends CanvasState {
   addUploadingAsset: (id: string) => void;
   removeUploadingAsset: (id: string) => void;
   triggerAssetsRefresh: () => void;
-
+  contextMenu: ContextMenuState | null;
+  setContextMenu: (menu: ContextMenuState | null) => void;
 }const MAX_HISTORY = 50;
 
 const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never }> = {
@@ -135,6 +137,8 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
 
 export const useStore = create<BoardState>((set, get) => ({
   ...initialState,
+  contextMenu: null,
+  setContextMenu: (menu) => set({ contextMenu: menu }),
 
   createGroup: (shapeIds: string[]) => {
     const groupId = Math.random().toString(36).substr(2, 9);

@@ -12,6 +12,7 @@ import { useProjects } from '../hooks/useProjects';
 import { calculateViewportFit } from '../utils/canvas';
 import { ShortcutsPanel } from '../components/ShortcutsPanel';
 import { AssetsDrawer } from '../components/AssetsDrawer';
+import { ContextMenu, } from '../components/ContextMenu';
 
 
 export const Board = () => {
@@ -37,6 +38,8 @@ export const Board = () => {
   const addShape = useStore(state => state.addShape);
   const zoom = useStore(state => state.zoom);
   const offset = useStore(state => state.offset);
+  const contextMenu = useStore(state => state.contextMenu);
+  const setContextMenu = useStore(state => state.setContextMenu);
 
   const getViewportCenter = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -65,7 +68,7 @@ export const Board = () => {
 
   // Memoize the auto-save debounce function
   const debouncedSave = useMemo(() => {
-    return async (shapes: any[]) => {
+    return async (shapes: unknown[]) => {
       if (!id || !user) return;
 
       // Convert shapes to string for comparison
@@ -127,7 +130,7 @@ export const Board = () => {
         lastSavedRef.current = JSON.stringify(project.shapes);
         initialFitDone.current = false;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching project:', err);
       setError(err.message || 'Failed to load project. Please try again.');
 
@@ -219,7 +222,13 @@ export const Board = () => {
         ref={containerRef}
         className="w-screen h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 dark:bg-gray-800 relative canvas-container"
       >        <Canvas />
-        <Toolbar />
+        <Toolbar onShowImageGenerate={function (): void {
+          throw new Error('Function not implemented.');
+        }} onShowUnsplash={function (): void {
+          throw new Error('Function not implemented.');
+        }} onShowGallery={function (): void {
+          throw new Error('Function not implemented.');
+        }} />
         <AssetsDrawer
           isOpen={showAssets}
           onClose={toggleAssets}
@@ -240,11 +249,14 @@ export const Board = () => {
         )}
       </div>
       <ShortcutsPanel />
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={contextMenu.items}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </>
   );
-}
-
-function setShowImageGenerate(arg0: (prev: any) => boolean): void {
-  throw new Error('Function not implemented.');
-}
-
+};

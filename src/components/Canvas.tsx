@@ -4,6 +4,8 @@ import { Position, Shape } from '../types';
 import { ShapeComponent } from './Shape';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useImageUpload } from '../hooks/useImageUpload';
+import { ContextMenu } from './ContextMenu';
+import { Square, Circle } from 'lucide-react';
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -14,13 +16,26 @@ export function Canvas() {
   const [currentPath, setCurrentPath] = useState<Position[]>([]);
   const [drawingShape, setDrawingShape] = useState<Shape | null>(null);
   const { handleImageUpload } = useImageUpload();
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Get canvas-relative coordinates
+    const rect = e.currentTarget.getBoundingClientRect();
+    setContextMenu({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+  };
+
+
   const [selectionBox, setSelectionBox] = useState<{
     startX: number;
     startY: number;
     width: number;
     height: number;
   } | null>(null);
-  
+
   const {
     shapes,
     zoom,
@@ -144,7 +159,7 @@ export function Canvas() {
       setSelectedShapes([]);
     }
     if (tool !== 'select') return;
-  
+
     const point = getCanvasPoint(e);
     setSelectionBox({
       startX: point.x,
@@ -189,11 +204,11 @@ export function Canvas() {
       } : null);
     }
     if (!selectionBox) return;
-  
+
     const currentPoint = getCanvasPoint(e);
     const width = currentPoint.x - selectionBox.startX;
     const height = currentPoint.y - selectionBox.startY;
-    
+
     setSelectionBox(prev => ({
       ...prev!,
       width,
@@ -217,18 +232,18 @@ export function Canvas() {
     const selectedShapeIds = shapes.filter(shape => {
       const shapeRight = shape.position.x + shape.width;
       const shapeBottom = shape.position.y + shape.height;
-      
+
       const boxLeft = Math.min(selectionBox.startX, selectionBox.startX + selectionBox.width);
       const boxRight = Math.max(selectionBox.startX, selectionBox.startX + selectionBox.width);
       const boxTop = Math.min(selectionBox.startY, selectionBox.startY + selectionBox.height);
       const boxBottom = Math.max(selectionBox.startY, selectionBox.startY + selectionBox.height);
-  
+
       return shape.position.x < boxRight &&
-             shapeRight > boxLeft &&
-             shape.position.y < boxBottom &&
-             shapeBottom > boxTop;
+        shapeRight > boxLeft &&
+        shape.position.y < boxBottom &&
+        shapeBottom > boxTop;
     }).map(shape => shape.id);
-  
+
     setSelectedShapes(selectedShapeIds);
     setSelectionBox(null);
   };
@@ -304,6 +319,9 @@ export function Canvas() {
     );
   };
 
+
+
+
   return (
     <div
       ref={canvasRef}
@@ -317,7 +335,28 @@ export function Canvas() {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onContextMenu={handleContextMenu}
+      onWheel={handleWheel}
     >
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              label: 'Add Rectangle',
+              action: () => {/* Add shape action */ },
+              icon: <Square className="w-4 h-4" />
+            },
+            {
+              label: 'Add Circle',
+              action: () => {/* Add shape action */ },
+              icon: <Circle className="w-4 h-4" />
+            }
+          ]}
+        />
+      )}
       {isDraggingFile && (
         <div className="absolute inset-0 bg-blue-500/10 border-2 border-blue-500 border-dashed z-50 pointer-events-none flex items-center justify-center">
           <div className="bg-white px-4 py-2 rounded-lg shadow-lg">
@@ -342,20 +381,20 @@ export function Canvas() {
         )}
       </div>
       {selectionBox && (
-      <div
-        style={{
-          position: 'absolute',
-          left: Math.min(selectionBox.startX, selectionBox.startX + selectionBox.width) * zoom + offset.x,
-          top: Math.min(selectionBox.startY, selectionBox.startY + selectionBox.height) * zoom + offset.y,
-          width: Math.abs(selectionBox.width) * zoom,
-          height: Math.abs(selectionBox.height) * zoom,
-          border: '2px solid #2196f3',
-          backgroundColor: 'rgba(33, 150, 243, 0.1)',
-          pointerEvents: 'none'
-        }}
-      />
-    )}
-  </div>
-);
+        <div
+          style={{
+            position: 'absolute',
+            left: Math.min(selectionBox.startX, selectionBox.startX + selectionBox.width) * zoom + offset.x,
+            top: Math.min(selectionBox.startY, selectionBox.startY + selectionBox.height) * zoom + offset.y,
+            width: Math.abs(selectionBox.width) * zoom,
+            height: Math.abs(selectionBox.height) * zoom,
+            border: '2px solid #2196f3',
+            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+            pointerEvents: 'none'
+          }}
+        />
+      )}
+    </div>
+  );
 }
 

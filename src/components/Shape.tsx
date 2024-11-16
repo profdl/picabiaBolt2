@@ -1,15 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { RotateCw, Loader2 } from 'lucide-react';
+import { RotateCw, Loader2, Copy, Trash2, } from 'lucide-react';
 import { useStore } from '../store';
 import { Shape, DragStart } from '../types';
 import { useBrush } from './BrushTool';
 import { ShapeControls } from './ShapeControls';
 
-
-
 interface ShapeProps {
   shape: Shape;
 }
+
 
 export function ShapeComponent({ shape }: ShapeProps) {
   const {
@@ -26,6 +25,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dragStart, setDragStart] = useState<DragStart | null>(null);
+  const copyShapes = useStore(state => state.copyShapes);
+  const setContextMenu = useStore(state => state.setContextMenu);
+
 
   const [rotateStart, setRotateStart] = useState<{
     angle: number;
@@ -70,6 +72,27 @@ export function ShapeComponent({ shape }: ShapeProps) {
     }
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        {
+          label: 'Copy',
+          action: () => copyShapes(),
+          icon: <Copy className="w-4 h-4" />
+        },
+        {
+          label: 'Delete',
+          action: () => deleteShape(shape.id),
+          icon: <Trash2 className="w-4 h-4" />
+        }
+      ]
+    });
+  };
   useEffect(() => {
     if (!dragStart) return;
 
@@ -312,6 +335,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
           pointerEvents: tool === 'select' ? 'all' : 'none',
         }}
         onMouseDown={handleMouseDown}
+        onContextMenu={handleContextMenu}
         className={isSelected ? 'selected' : ''}
       >
         <svg
@@ -390,88 +414,94 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
 
 
-
   return (
-    <div
-      id={shape.id}
-      style={shapeStyles}
-      onMouseDown={handleMouseDown}
-      onDoubleClick={handleDoubleClick}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-      className="group transition-shadow hover:shadow-xl relative"
-    >
-      {/* Image and content rendering */}
-      {shape.type === 'canvas' && (
-        <>
-          <div className="absolute -top-6 left-0 text-sm text-gray-300 font-medium ">
-            Canvas
-          </div>
-          <canvas
-            ref={canvasRef}
-            width={512}
-            height={512}
-            className="w-full h-full"
-            style={{
-              pointerEvents: (tool === 'select' || tool === 'brush') ? 'all' : 'none',
-              backgroundColor: '#e5e7eb',
-            }}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              handlePointerDown(e);
-            }}
-            onPointerMove={(e) => {
-              e.stopPropagation();
-              handlePointerMove(e);
-            }}
-            onPointerUp={(e) => {
-              e.stopPropagation();
-              handlePointerUpOrLeave();
-            }}
-            onPointerLeave={(e) => {
-              e.stopPropagation();
-              handlePointerUpOrLeave();
-            }}
-          />
-        </>
-      )}
-      {shape.type === 'image' && shape.imageUrl ? (
-        <img
-          ref={imageRef}
-          src={shape.imageUrl}
-          alt="User uploaded content"
-          className="w-full h-full object-cover"
-          onLoad={() => {
-            if (imageRef.current && !shape.aspectRatio) {
-              const ratio = imageRef.current.naturalWidth / imageRef.current.naturalHeight;
-              updateShape(shape.id, { aspectRatio: ratio });
-            }
-          }}
-          draggable={false}
-        />
-      ) : isEditing ? (
-        <textarea
-          ref={textRef}
-          value={shape.content || ''}
-          onChange={(e) => updateShape(shape.id, { content: e.target.value })}
-          onBlur={() => setIsEditing(false)}
-          className="w-full h-full bg-transparent resize-none outline-none text-center"
-          style={{ fontSize: shape.fontSize || 16 }}
-        />
-      ) : (
-        shape.content
-      )}
-      {/* Selection controls */}
-      {tool === 'select' && (
-        <ShapeControls
-          shape={shape}
-          isSelected={isSelected}
-          isEditing={isEditing}
-          handleResizeStart={handleResizeStart}
-          handleRotateStart={handleRotateStart}
-        />
-      )}
+    <>
+      <div
+        id={shape.id}
+        style={shapeStyles}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
+        onKeyDown={handleKeyDown}
+        onContextMenu={handleContextMenu}
+        tabIndex={0}
+        className="group transition-shadow hover:shadow-xl relative"
+      >
+        {/* Image and content rendering */}
+        {shape.type === 'canvas' && (
+          <>
+            <div className="absolute -top-6 left-0 text-sm text-gray-300 font-medium ">
+              Canvas
+            </div>
+            <canvas
+              ref={canvasRef}
+              width={512}
+              height={512}
+              className="w-full h-full"
+              onContextMenu={handleContextMenu}
 
-    </div>
+              style={{
+                pointerEvents: (tool === 'select' || tool === 'brush') ? 'all' : 'none',
+                backgroundColor: '#e5e7eb',
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                handlePointerDown(e);
+              }}
+              onPointerMove={(e) => {
+                e.stopPropagation();
+                handlePointerMove(e);
+              }}
+              onPointerUp={(e) => {
+                e.stopPropagation();
+                handlePointerUpOrLeave();
+              }}
+              onPointerLeave={(e) => {
+                e.stopPropagation();
+                handlePointerUpOrLeave();
+              }}
+            />
+          </>
+        )}
+        {shape.type === 'image' && shape.imageUrl ? (
+          <img
+            ref={imageRef}
+            src={shape.imageUrl}
+            alt="User uploaded content"
+            className="w-full h-full object-cover"
+            onContextMenu={handleContextMenu}
+            onLoad={() => {
+              if (imageRef.current && !shape.aspectRatio) {
+                const ratio = imageRef.current.naturalWidth / imageRef.current.naturalHeight;
+                updateShape(shape.id, { aspectRatio: ratio });
+              }
+            }}
+            draggable={false}
+          />
+        ) : isEditing ? (
+          <textarea
+            ref={textRef}
+            value={shape.content || ''}
+            onChange={(e) => updateShape(shape.id, { content: e.target.value })}
+            onBlur={() => setIsEditing(false)}
+            className="w-full h-full bg-transparent resize-none outline-none text-center"
+            style={{ fontSize: shape.fontSize || 16 }}
+          />
+        ) : (
+          shape.content
+        )}
+        {/* Selection controls */}
+        {tool === 'select' && (
+          <ShapeControls
+            shape={shape}
+            isSelected={isSelected}
+            isEditing={isEditing}
+            handleResizeStart={handleResizeStart}
+            handleRotateStart={handleRotateStart}
+
+          />
+        )}
+      </div>
+
+    </>
   );
 }
