@@ -247,19 +247,55 @@ export const useStore = create<BoardState>((set, get) => ({
       historyIndex: historyIndex + 1,
     });
   },
-
   updateShapes: (updates: { id: string; shape: Partial<Shape> }[]) => {
     const { shapes, historyIndex, history } = get();
+
+    // Find if we're updating a group
+    const groupUpdate = updates.find(u => shapes.find(s => s.id === u.id)?.type === 'group');
+
+    if (groupUpdate) {
+      const groupShape = shapes.find(s => s.id === groupUpdate.id);
+      if (groupShape && groupShape.type === 'group') {
+        const newWidth = groupUpdate.shape.width || groupShape.width;
+        const newHeight = groupUpdate.shape.height || groupShape.height;
+
+        // Calculate scale factors
+        const scaleX = newWidth / groupShape.width;
+        const scaleY = newHeight / groupShape.height;
+
+        // Get all shapes in this group
+        const groupedShapes = shapes.filter(s => s.groupId === groupShape.id);
+
+        // Add scaled updates for all shapes in group
+        const groupedUpdates = groupedShapes.map(shape => ({
+          id: shape.id,
+          shape: {
+            width: shape.width * scaleX,
+            height: shape.height * scaleY,
+            position: {
+              x: groupShape.position.x + (shape.position.x - groupShape.position.x) * scaleX,
+              y: groupShape.position.y + (shape.position.y - groupShape.position.y) * scaleY
+            }
+          }
+        }));
+
+        updates = [...updates, ...groupedUpdates];
+      }
+    }
+
     const newShapes = shapes.map((shape) => {
       const update = updates.find((u) => u.id === shape.id);
       return update ? { ...shape, ...update.shape } : shape;
     });
+
     set({
       shapes: newShapes,
       history: [...history.slice(0, historyIndex + 1), newShapes].slice(-MAX_HISTORY),
       historyIndex: historyIndex + 1,
     });
-  },
+  }
+
+  ,
 
   deleteShape: (id: string) => {
     const { shapes, historyIndex, history, selectedShapes } = get();

@@ -7,10 +7,9 @@ interface ShapeControlsProps {
     shape: Shape;
     isSelected: boolean;
     isEditing: boolean;
-    handleResizeStart: (e: React.MouseEvent) => void;
-    handleRotateStart: (e: React.MouseEvent) => void;
+    handleResizeStart: (e: React.MouseEvent<HTMLDivElement>) => void;
+    handleRotateStart: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
-
 export function ShapeControls({
     shape,
     isSelected,

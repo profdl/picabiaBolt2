@@ -17,6 +17,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     selectedShapes,
     setSelectedShapes,
     updateShape,
+    updateShapes,
     deleteShape,
     tool,
     zoom,
@@ -36,6 +37,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dragStart, setDragStart] = useState<DragStart | null>(null);
+  const handleMouseUp = () => {
+    setResizeStart(null);
+  };
 
 
   const [rotateStart, setRotateStart] = useState<{
@@ -245,7 +249,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     }
   }, [shape.id, shape.type, updateShape]);
 
-
   useEffect(() => {
     if (!resizeStart) return;
 
@@ -253,43 +256,26 @@ export function ShapeComponent({ shape }: ShapeProps) {
       const dx = (e.clientX - resizeStart.x) / zoom;
       const dy = (e.clientY - resizeStart.y) / zoom;
 
-      let newWidth = Math.max(50, resizeStart.width + dx);
-      let newHeight = Math.max(50, resizeStart.height + dy);
+      // Calculate new dimensions while respecting minimum size
+      const newWidth = Math.max(50, resizeStart.width + dx);
+      const newHeight = Math.max(50, resizeStart.height + dy);
 
-      // Maintain aspect ratio when shift is pressed for all shape types
-      if (e.shiftKey) {
-        const aspectRatio = resizeStart.width / resizeStart.height;
-        if (Math.abs(dx) > Math.abs(dy)) {
-          newHeight = newWidth / aspectRatio;
-        } else {
-          newWidth = newHeight * aspectRatio;
-        }
-      }
-
-      if (shape.type === 'drawing' && shape.points) {
-        const scaleX = newWidth / resizeStart.width;
-        const scaleY = newHeight / resizeStart.height;
-
-        const scaledPoints = shape.points.map(point => ({
-          x: point.x * scaleX,
-          y: point.y * scaleY
-        }));
-
-        updateShape(shape.id, {
-          width: newWidth,
-          height: newHeight,
-          points: scaledPoints
-        });
+      if (shape.type === 'group') {
+        // For groups, use updateShapes to trigger group scaling logic
+        updateShapes([{
+          id: shape.id,
+          shape: {
+            width: newWidth,
+            height: newHeight
+          }
+        }]);
       } else {
+        // For individual shapes, use regular updateShape
         updateShape(shape.id, {
           width: newWidth,
           height: newHeight
         });
       }
-    };
-
-    const handleMouseUp = () => {
-      setResizeStart(null);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -299,7 +285,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizeStart, shape.id, shape.points, shape.type, updateShape, zoom]);
+  }, [resizeStart, shape, shapes, updateShape, updateShapes, zoom]);
 
 
   if (shape.type === 'image' && shape.isUploading) {
