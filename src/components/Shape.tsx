@@ -257,11 +257,19 @@ export function ShapeComponent({ shape }: ShapeProps) {
       const dy = (e.clientY - resizeStart.y) / zoom;
 
       // Calculate new dimensions while respecting minimum size
-      const newWidth = Math.max(50, resizeStart.width + dx);
-      const newHeight = Math.max(50, resizeStart.height + dy);
+      let newWidth = Math.max(50, resizeStart.width + dx);
+      let newHeight = Math.max(50, resizeStart.height + dy);
+
+      // Maintain aspect ratio if shift is held
+      if (e.shiftKey && resizeStart.aspectRatio) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          newHeight = newWidth / resizeStart.aspectRatio;
+        } else {
+          newWidth = newHeight * resizeStart.aspectRatio;
+        }
+      }
 
       if (shape.type === 'group') {
-        // For groups, use updateShapes to trigger group scaling logic
         updateShapes([{
           id: shape.id,
           shape: {
@@ -270,7 +278,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
           }
         }]);
       } else {
-        // For individual shapes, use regular updateShape
         updateShape(shape.id, {
           width: newWidth,
           height: newHeight
