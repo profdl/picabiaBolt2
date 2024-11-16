@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RotateCw, Loader2 } from 'lucide-react';
 import { useStore } from '../store';
-import { Shape } from '../types';
+import { Shape, DragStart } from '../types';
 import { useBrush } from './BrushTool';
 import { ShapeControls } from './ShapeControls';
 
@@ -12,49 +12,30 @@ interface ShapeProps {
 }
 
 export function ShapeComponent({ shape }: ShapeProps) {
-  if (shape.type === 'image' && shape.isUploading) {
-    return (
-      <div
-        style={{
-          position: 'absolute',
-          left: shape.position.x,
-          top: shape.position.y,
-          width: shape.width,
-          height: shape.height,
-          transform: `rotate(${shape.rotation}deg)`,
-        }}
-        className="animate-pulse bg-gray-200 rounded-lg flex items-center justify-center"
-      >
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-      </div>
-    );
-
-  } const {
+  const {
     selectedShapes,
     setSelectedShapes,
     updateShape,
     deleteShape,
     tool,
-    currentColor,
-    brushSize,
-    brushOpacity,
     zoom,
-    shapes,
+    shapes
   } = useStore();
   const [isEditing, setIsEditing] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [dragStart, setDragStart] = useState<DragStart | null>(null);
 
-  const [dragStart, setDragStart] = useState<{
-    x: number;
-    y: number;
-    initialPosition: Position;
-  } | null>(null);
   const [rotateStart, setRotateStart] = useState<{
     angle: number;
     startRotation: number;
   } | null>(null);
+
+
+
+
+
   const [resizeStart, setResizeStart] = useState<{
     x: number;
     y: number;
@@ -62,67 +43,30 @@ export function ShapeComponent({ shape }: ShapeProps) {
     height: number;
     aspectRatio: number;
   } | null>(null);
-
-
-
-  useEffect(() => {
-    if (isEditing && textRef.current) {
-      textRef.current.focus();
-      textRef.current.select();
-    }
-  }, [isEditing]);
-
-  useEffect(() => {
-    if (shape.type === 'canvas' && canvasRef.current) {
-      updateShape(shape.id, {
-        getCanvasImage: () => {
-          // Create temp canvas for resizing
-          const tempCanvas = document.createElement('canvas');
-          const tempCtx = tempCanvas.getContext('2d');
-          tempCanvas.width = 512;
-          tempCanvas.height = 512;
-
-          // Draw current canvas content scaled to 512x512
-          tempCtx.drawImage(canvasRef.current, 0, 0, 512, 512);
-
-          return tempCanvas.toDataURL('image/png');
-        }
-      });
-    }
-  }, [shape.id, updateShape]);
-
-
+  const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush(canvasRef);
+  const isSelected = selectedShapes.includes(shape.id);
   const handleMouseDown = (e: React.MouseEvent) => {
     if (tool === 'pan' || tool === 'pen') return;
     e.stopPropagation();
 
-    const initialPosition = { ...shape.position };
-    const currentSelected = Array.isArray(selectedShapes) ? selectedShapes : [];
+    // Store initial positions of all shapes at drag start
+    const initialPositions = new Map(
+      shapes.map(s => [s.id, { ...s.position }])
+    );
+
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY,
+      initialPositions
+    });
 
     if (e.shiftKey) {
-      const newSelection = currentSelected.includes(shape.id)
-        ? currentSelected.filter(id => id !== shape.id)
-        : [...currentSelected, shape.id];
-
+      const newSelection = selectedShapes.includes(shape.id)
+        ? selectedShapes.filter(id => id !== shape.id)
+        : [...selectedShapes, shape.id];
       setSelectedShapes(newSelection);
-
-      // Set dragStart immediately if shape is in the new selection
-      if (newSelection.includes(shape.id)) {
-        setDragStart({
-          x: e.clientX,
-          y: e.clientY,
-          initialPosition
-        });
-      }
-    } else {
-      if (!currentSelected.includes(shape.id)) {
-        setSelectedShapes([shape.id]);
-      }
-      setDragStart({
-        x: e.clientX,
-        y: e.clientY,
-        initialPosition
-      });
+    } else if (!selectedShapes.includes(shape.id)) {
+      setSelectedShapes([shape.id]);
     }
   };
 
@@ -130,31 +74,22 @@ export function ShapeComponent({ shape }: ShapeProps) {
     if (!dragStart) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const dx = (e.clientX - dragStart.x) / zoom;
-      const dy = (e.clientY - dragStart.y) / zoom;
+      // Calculate total movement from initial position
+      const totalDx = (e.clientX - dragStart.x) / zoom;
+      const totalDy = (e.clientY - dragStart.y) / zoom;
 
-      if (Array.isArray(selectedShapes) && selectedShapes.includes(shape.id)) {
-        // Store initial positions of all selected shapes
-        const initialPositions = new Map(
-          selectedShapes.map(id => {
-            const shape = shapes.find(s => s.id === id);
-            return [id, shape?.position];
-          })
-        );
-
-        // Update each selected shape maintaining relative positions
-        selectedShapes.forEach(id => {
-          const initialPos = initialPositions.get(id);
-          if (initialPos) {
-            updateShape(id, {
-              position: {
-                x: initialPos.x + dx,
-                y: initialPos.y + dy
-              }
-            });
-          }
-        });
-      }
+      // Update all selected shapes based on their original positions
+      selectedShapes.forEach(id => {
+        const initialPos = dragStart.initialPositions.get(id);
+        if (initialPos) {
+          updateShape(id, {
+            position: {
+              x: initialPos.x + totalDx,
+              y: initialPos.y + totalDy
+            }
+          });
+        }
+      });
     };
 
     const handleMouseUp = () => {
@@ -168,21 +103,14 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragStart, selectedShapes, updateShape, shape.id, zoom]);
+  }, [dragStart, selectedShapes, updateShape, zoom]);
 
-  const handleRotateStart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-
-    setRotateStart({
-      angle: startAngle,
-      startRotation: shape.rotation || 0
-    });
-  };
-
+  useEffect(() => {
+    if (isEditing && textRef.current) {
+      textRef.current.focus();
+      textRef.current.select();
+    }
+  }, [isEditing]);
   useEffect(() => {
     if (!rotateStart) return;
 
@@ -212,16 +140,28 @@ export function ShapeComponent({ shape }: ShapeProps) {
     };
   }, [rotateStart, shape.id, updateShape]);
 
-  const handleResizeStart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setResizeStart({
-      x: e.clientX,
-      y: e.clientY,
-      width: shape.width,
-      height: shape.height,
-      aspectRatio: shape.width / shape.height
-    });
-  };
+  useEffect(() => {
+    if (shape.type === 'canvas' && canvasRef.current) {
+      updateShape(shape.id, {
+        getCanvasImage: () => {
+          // Create temp canvas for resizing
+          const tempCanvas = document.createElement('canvas');
+          const tempCtx = tempCanvas.getContext('2d');
+          if (!tempCtx) {
+            throw new Error('Failed to get 2D context');
+          }
+          tempCanvas.width = 512;
+          tempCanvas.height = 512;
+
+          // Draw current canvas content scaled to 512x512
+          tempCtx.drawImage(canvasRef.current, 0, 0, 512, 512);
+
+          return tempCanvas.toDataURL('image/png');
+        }
+      });
+    }
+  }, [shape.id, shape.type, updateShape]);
+
 
   useEffect(() => {
     if (!resizeStart) return;
@@ -276,12 +216,60 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizeStart, shape.type, updateShape, zoom]);
+  }, [resizeStart, shape.id, shape.points, shape.type, updateShape, zoom]);
 
 
-  // Add to existing refs
-  const isDrawing = useRef(false);
-  const lastPoint = useRef<{ x: number, y: number } | null>(null);
+  if (shape.type === 'image' && shape.isUploading) {
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          left: shape.position.x,
+          top: shape.position.y,
+          width: shape.width,
+          height: shape.height,
+          transform: `rotate(${shape.rotation}deg)`,
+        }}
+        className="animate-pulse bg-gray-200 rounded-lg flex items-center justify-center"
+      >
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+
+  }
+
+
+
+
+
+
+  const handleRotateStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+
+    setRotateStart({
+      angle: startAngle,
+      startRotation: shape.rotation || 0
+    });
+  };
+
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: shape.width,
+      height: shape.height,
+      aspectRatio: shape.width / shape.height
+    });
+  };
+
+
+
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (shape.type === 'text' || shape.type === 'sticky') {
@@ -302,10 +290,10 @@ export function ShapeComponent({ shape }: ShapeProps) {
     }
   };
 
-  const isSelected = selectedShapes.includes(shape.id);
 
 
-  const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush(canvasRef);
+
+
 
   if (shape.type === 'drawing') {
     return (
@@ -484,6 +472,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
         />
       )}
 
-   </div>
+    </div>
   );
 }

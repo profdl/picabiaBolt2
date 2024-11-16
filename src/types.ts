@@ -3,9 +3,15 @@ export interface Position {
   y: number;
 }
 
+export interface DragStart {
+  x: number;
+  y: number;
+  initialPositions: Map<string, Position>;
+}
+
 export interface Shape {
   id: string;
-  type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing' | 'canvas';
+  type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing' | 'canvas' | 'group';
   position: Position;
   content?: string;
   width: number;
@@ -28,7 +34,8 @@ export interface Shape {
   edgesStrength?: number;
   contentStrength?: number;
   poseStrength?: number;
-  
+  groupId?: string;
+  isGroup?: boolean;
 }
 export interface CanvasState {
   shapes: Shape[];

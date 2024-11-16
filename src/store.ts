@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import { createClient } from '@supabase/supabase-js';
 import { CanvasState, Position, Shape } from './types';
-import { supabase } from './lib/supabase';
-import { generateImage } from './lib/replicate';
-import { saveGeneratedImage } from './lib/supabase';
 import workflowJson from './lib/workflow.json';
 import controlWorkflow from './lib/controlWorkflow.json';
 
@@ -44,6 +41,9 @@ interface BoardState extends CanvasState {
   assetsRefreshTrigger: number;
 
   advancedSettings: {
+    randomiseSeeds: unknown;
+    outputQuality: unknown;
+    outputFormat: unknown;
     negativePrompt: string;
     numInferenceSteps: number;
     guidanceScale: number;
@@ -132,18 +132,64 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
 };
 
 
-const getViewportCenter = (currentState: typeof initialState) => {
-  const rect = document.querySelector('#root')?.getBoundingClientRect();
-  if (!rect) return { x: 0, y: 0 };
-
-  return {
-    x: (rect.width / 2 - currentState.offset.x) / currentState.zoom,
-    y: (rect.height / 2 - currentState.offset.y) / currentState.zoom
-  };
-};
 
 export const useStore = create<BoardState>((set, get) => ({
   ...initialState,
+
+  createGroup: (shapeIds: string[]) => {
+    const groupId = Math.random().toString(36).substr(2, 9);
+    const shapes = get().shapes;
+
+    // Calculate group bounds
+    const groupedShapes = shapes.filter(s => shapeIds.includes(s.id));
+    const minX = Math.min(...groupedShapes.map(s => s.position.x));
+    const minY = Math.min(...groupedShapes.map(s => s.position.y));
+    const maxX = Math.max(...groupedShapes.map(s => s.position.x + s.width));
+    const maxY = Math.max(...groupedShapes.map(s => s.position.y + s.height));
+
+    // Create group shape
+    const groupShape: Shape = {
+      id: groupId,
+      type: 'rectangle',
+      isGroup: true,
+      position: { x: minX, y: minY },
+      width: maxX - minX,
+      height: maxY - minY,
+      color: 'transparent',
+      rotation: 0,
+      isUploading: false
+    };
+
+    // Update all shapes in the group
+    const updatedShapes = shapes.map(shape =>
+      shapeIds.includes(shape.id)
+        ? { ...shape, groupId }
+        : shape
+    );
+
+    set({
+      shapes: [...updatedShapes, groupShape],
+      selectedShapes: [groupId]
+    });
+  },
+
+  ungroup: (groupId: string) => {
+    const shapes = get().shapes;
+    const updatedShapes = shapes
+      .filter(s => s.id !== groupId) // Remove group shape
+      .map(s => s.groupId === groupId
+        ? { ...s, groupId: undefined }
+        : s
+      );
+
+    set({
+      shapes: updatedShapes,
+      selectedShapes: shapes
+        .filter(s => s.groupId === groupId)
+        .map(s => s.id)
+    });
+  },
+
 
   resetState: () => set(initialState),
 
