@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { RotateCw, Loader2, Copy, Trash2, } from 'lucide-react';
+import { RotateCw, Loader2, Copy, Trash2, ArrowDown, ArrowUp, MoveDown, MoveUp } from 'lucide-react';
 import { useStore } from '../store';
 import { Shape, DragStart } from '../types';
 import { useBrush } from './BrushTool';
 import { ShapeControls } from './ShapeControls';
-
 interface ShapeProps {
   shape: Shape;
 }
@@ -18,15 +17,23 @@ export function ShapeComponent({ shape }: ShapeProps) {
     deleteShape,
     tool,
     zoom,
-    shapes
+    shapes,
+    sendBackward,
+    sendForward,
+    sendToBack,
+    sendToFront,
+    duplicate,
+    createGroup,
+    ungroup,
+    setContextMenu
   } = useStore();
+
   const [isEditing, setIsEditing] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dragStart, setDragStart] = useState<DragStart | null>(null);
   const copyShapes = useStore(state => state.copyShapes);
-  const setContextMenu = useStore(state => state.setContextMenu);
 
 
   const [rotateStart, setRotateStart] = useState<{
@@ -72,28 +79,65 @@ export function ShapeComponent({ shape }: ShapeProps) {
     }
   };
 
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
+    const menuItems = [
+      {
+        label: 'Send Backward',
+        action: sendBackward,
+        icon: <ArrowDown className="w-4 h-4" />
+      },
+      {
+        label: 'Send Forward',
+        action: sendForward,
+        icon: <ArrowUp className="w-4 h-4" />
+      },
+      {
+        label: 'Send to Back',
+        action: sendToBack,
+        icon: <MoveDown className="w-4 h-4" />
+      },
+      {
+        label: 'Send to Front',
+        action: sendToFront,
+        icon: <MoveUp className="w-4 h-4" />
+      },
+      {
+        label: 'Duplicate',
+        action: duplicate,
+        icon: <Copy className="w-4 h-4" />
+      },
+      {
+        label: 'Delete',
+        action: () => deleteShape(shape.id),
+        icon: <Trash2 className="w-4 h-4" />
+      }
+    ];
+
+    if (selectedShapes.length > 1) {
+      menuItems.unshift(
+        {
+          label: 'Group',
+          action: () => createGroup(selectedShapes),
+          icon: <Group className="w-4 h-4" />
+        },
+        {
+          label: 'Ungroup',
+          action: () => ungroup(shape.id),
+          icon: <Ungroup className="w-4 h-4" />
+        }
+      );
+    }
+
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
-      items: [
-        {
-          label: 'Copy',
-          action: () => copyShapes(),
-          icon: <Copy className="w-4 h-4" />
-        },
-        {
-          label: 'Delete',
-          action: () => deleteShape(shape.id),
-          icon: <Trash2 className="w-4 h-4" />
-        }
-      ]
+      items: menuItems
     });
-  };
-  useEffect(() => {
+  }; useEffect(() => {
     if (!dragStart) return;
 
     const handleMouseMove = (e: MouseEvent) => {

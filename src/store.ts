@@ -96,6 +96,13 @@ interface BoardState extends CanvasState {
   triggerAssetsRefresh: () => void;
   contextMenu: ContextMenuState | null;
   setContextMenu: (menu: ContextMenuState | null) => void;
+  sendBackward: () => void;
+  sendForward: () => void;
+  sendToBack: () => void;
+  sendToFront: () => void;
+  duplicate: () => void;
+  createGroup: (shapeIds: string[]) => void;
+  ungroup: (groupId: string) => void;
 }const MAX_HISTORY = 50;
 
 const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never }> = {
@@ -471,8 +478,60 @@ export const useStore = create<BoardState>((set, get) => ({
     } finally {
       set({ isGenerating: false });
     }
-  }
+  },
+  sendBackward: () => {
+    const { shapes, selectedShapes } = get();
+    const newShapes = [...shapes];
+    selectedShapes.forEach(id => {
+      const index = newShapes.findIndex(s => s.id === id);
+      if (index > 0) {
+        [newShapes[index - 1], newShapes[index]] = [newShapes[index], newShapes[index - 1]];
+      }
+    });
+    set({ shapes: newShapes });
+  },
 
+  sendForward: () => {
+    const { shapes, selectedShapes } = get();
+    const newShapes = [...shapes];
+    [...selectedShapes].reverse().forEach(id => {
+      const index = newShapes.findIndex(s => s.id === id);
+      if (index < newShapes.length - 1) {
+        [newShapes[index], newShapes[index + 1]] = [newShapes[index + 1], newShapes[index]];
+      }
+    });
+    set({ shapes: newShapes });
+  },
+
+  sendToBack: () => {
+    const { shapes, selectedShapes } = get();
+    const selectedShapeObjects = shapes.filter(s => selectedShapes.includes(s.id));
+    const otherShapes = shapes.filter(s => !selectedShapes.includes(s.id));
+    set({ shapes: [...selectedShapeObjects, ...otherShapes] });
+  },
+
+  sendToFront: () => {
+    const { shapes, selectedShapes } = get();
+    const selectedShapeObjects = shapes.filter(s => selectedShapes.includes(s.id));
+    const otherShapes = shapes.filter(s => !selectedShapes.includes(s.id));
+    set({ shapes: [...otherShapes, ...selectedShapeObjects] });
+  },
+
+  duplicate: () => {
+    const { shapes, selectedShapes, addShapes } = get();
+    const shapesToDuplicate = shapes
+      .filter(s => selectedShapes.includes(s.id))
+      .map(shape => ({
+        ...shape,
+        id: Math.random().toString(36).substr(2, 9),
+        position: {
+          x: shape.position.x + 20,
+          y: shape.position.y + 20
+        }
+      }));
+    addShapes(shapesToDuplicate);
+  }
 }));
+
 
 
