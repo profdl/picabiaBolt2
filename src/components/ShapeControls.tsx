@@ -43,8 +43,8 @@ export function ShapeControls({
                 />
             )}
 
-            {/* Rotate handle */}
-            {showManipulationControls && shape.type !== 'sticky' && (
+            {/* Rotate handle - hide for groups */}
+            {showManipulationControls && shape.type !== 'sticky' && shape.type !== 'group' && (
                 <div
                     className="absolute w-6 h-6 bg-white border-2 border-blue-500 rounded-full cursor-pointer hover:bg-blue-50 flex items-center justify-center"
                     style={{
@@ -60,8 +60,8 @@ export function ShapeControls({
                 </div>
             )}
 
-            {/* Color picker */}
-            {shape.type !== 'image' && shape.type !== 'canvas' && (
+            {/* Color picker - hide for groups */}
+            {shape.type !== 'image' && shape.type !== 'canvas' && shape.type !== 'group' && (
                 <input
                     type="color"
                     value={shape.color}

@@ -439,9 +439,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
     cursor: tool === 'select' ? 'move' : 'default',
     border: shape.type === 'canvas'
       ? '2px dashed #e5e7eb'
-      : isSelected
-        ? '2px solid #2196f3'
-        : 'none',
+      : shape.type === 'group'
+        ? '2px dashed #9ca3af'  // Persistent group border
+        : isSelected
+          ? '2px solid #2196f3'
+          : 'none',
     borderRadius: shape.type === 'circle' ? '50%' : shape.type === 'sticky' ? '8px' : '4px',
     display: 'flex',
     alignItems: 'center',
