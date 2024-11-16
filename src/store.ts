@@ -54,6 +54,7 @@ interface BoardState extends CanvasState {
 
   };
 
+
   // Methods
   resetState: () => void;
   setShapes: (shapes: Shape[]) => void;
@@ -148,8 +149,8 @@ export const useStore = create<BoardState>((set, get) => ({
   setContextMenu: (menu) => set({ contextMenu: menu }),
 
   createGroup: (shapeIds: string[]) => {
+    const { shapes } = get();
     const groupId = Math.random().toString(36).substr(2, 9);
-    const shapes = get().shapes;
 
     // Calculate group bounds
     const groupedShapes = shapes.filter(s => shapeIds.includes(s.id));
@@ -161,8 +162,7 @@ export const useStore = create<BoardState>((set, get) => ({
     // Create group shape
     const groupShape: Shape = {
       id: groupId,
-      type: 'rectangle',
-      isGroup: true,
+      type: 'group',
       position: { x: minX, y: minY },
       width: maxX - minX,
       height: maxY - minY,
@@ -171,11 +171,9 @@ export const useStore = create<BoardState>((set, get) => ({
       isUploading: false
     };
 
-    // Update all shapes in the group
+    // Update shapes with group info
     const updatedShapes = shapes.map(shape =>
-      shapeIds.includes(shape.id)
-        ? { ...shape, groupId }
-        : shape
+      shapeIds.includes(shape.id) ? { ...shape, groupId } : shape
     );
 
     set({
@@ -185,13 +183,10 @@ export const useStore = create<BoardState>((set, get) => ({
   },
 
   ungroup: (groupId: string) => {
-    const shapes = get().shapes;
+    const { shapes } = get();
     const updatedShapes = shapes
-      .filter(s => s.id !== groupId) // Remove group shape
-      .map(s => s.groupId === groupId
-        ? { ...s, groupId: undefined }
-        : s
-      );
+      .filter(s => s.id !== groupId)
+      .map(s => s.groupId === groupId ? { ...s, groupId: undefined } : s);
 
     set({
       shapes: updatedShapes,

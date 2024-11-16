@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { RotateCw, Loader2, Copy, Trash2, ArrowDown, ArrowUp, MoveDown, MoveUp } from 'lucide-react';
+import {
+  RotateCw, Loader2, Copy, Trash2, ArrowDown, ArrowUp, MoveDown, MoveUp, Group,
+  Ungroup
+} from 'lucide-react';
 import { useStore } from '../store';
 import { Shape, DragStart } from '../types';
 import { useBrush } from './BrushTool';
@@ -33,7 +36,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dragStart, setDragStart] = useState<DragStart | null>(null);
-  const copyShapes = useStore(state => state.copyShapes);
 
 
   const [rotateStart, setRotateStart] = useState<{
@@ -118,18 +120,20 @@ export function ShapeComponent({ shape }: ShapeProps) {
     ];
 
     if (selectedShapes.length > 1) {
-      menuItems.unshift(
-        {
-          label: 'Group',
-          action: () => createGroup(selectedShapes),
-          icon: <Group className="w-4 h-4" />
-        },
-        {
-          label: 'Ungroup',
-          action: () => ungroup(shape.id),
-          icon: <Ungroup className="w-4 h-4" />
-        }
-      );
+      menuItems.unshift({
+        label: 'Group',
+        action: () => createGroup(selectedShapes),
+        icon: <Group className="w-4 h-4" />
+      });
+    }
+
+    // Add ungroup option if this is a group
+    if (shape.type === 'group') {
+      menuItems.unshift({
+        label: 'Ungroup',
+        action: () => ungroup(shape.id),
+        icon: <Ungroup className="w-4 h-4" />
+      });
     }
 
     setContextMenu({
@@ -137,16 +141,28 @@ export function ShapeComponent({ shape }: ShapeProps) {
       y: e.clientY,
       items: menuItems
     });
-  }; useEffect(() => {
+  };
+
+  useEffect(() => {
     if (!dragStart) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      // Calculate total movement from initial position
       const totalDx = (e.clientX - dragStart.x) / zoom;
       const totalDy = (e.clientY - dragStart.y) / zoom;
 
-      // Update all selected shapes based on their original positions
-      selectedShapes.forEach(id => {
+      // Get all shapes that should move together
+      let shapesToMove = selectedShapes;
+
+      // If dragging a group, include all shapes in that group
+      if (shape.type === 'group') {
+        const groupedShapeIds = shapes
+          .filter(s => s.groupId === shape.id)
+          .map(s => s.id);
+        shapesToMove = [...new Set([...selectedShapes, ...groupedShapeIds])];
+      }
+
+      // Update positions of all affected shapes
+      shapesToMove.forEach(id => {
         const initialPos = dragStart.initialPositions.get(id);
         if (initialPos) {
           updateShape(id, {
@@ -170,7 +186,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragStart, selectedShapes, updateShape, zoom]);
+  }, [dragStart, selectedShapes, updateShape, zoom, shapes, shape.type, shape.id]);
 
   useEffect(() => {
     if (isEditing && textRef.current) {
