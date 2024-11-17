@@ -2,14 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Drawer } from './Drawer';
 import { useStore } from '../store';
 import { createClient } from '@supabase/supabase-js';
-
+import { ImageDetailsModal } from './ImageDetailsModal';
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-type SavedImage = {
-  aspect_ratio: string;
+interface SavedImage {
   id: string;
   image_url: string;
   image_url_2: string | null;
@@ -18,17 +17,23 @@ type SavedImage = {
   prompt: string;
   created_at: string;
   status: 'generating' | 'completed' | 'failed';
-}
-interface GalleryPanelProps {
-  isOpen: boolean;
+  aspect_ratio: string;
 }
 
+interface GalleryPanelProps {
+  isOpen: boolean;
+  viewingImage: SavedImage | null;
+  setViewingImage: (image: SavedImage | null) => void;
+}
+
+
+
+
 export const GalleryPanel: React.FC<GalleryPanelProps> = ({
-  isOpen
+  isOpen, setViewingImage
 }) => {
   const [images, setImages] = useState<SavedImage[]>([]);
   const addShape = useStore(state => state.addShape);
-  const { zoom, offset } = useStore();
   const showGallery = useStore(state => state.showGallery);
   const toggleGallery = useStore(state => state.toggleGallery);
   const isGenerating = useStore(state => state.isGenerating);
@@ -59,9 +64,12 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   };
 
   const handleImageClick = useCallback((image: SavedImage) => {
+    const currentZoom = useStore.getState().zoom;
+    const currentOffset = useStore.getState().offset;
+
     const center = {
-      x: (window.innerWidth / 2 - offset.x) / zoom,
-      y: (window.innerHeight / 2 - offset.y) / zoom
+      x: (window.innerWidth / 2 - currentOffset.x) / currentZoom,
+      y: (window.innerHeight / 2 - currentOffset.y) / currentZoom
     };
 
     addShape({
@@ -78,7 +86,8 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       rotation: 0,
       isUploading: false
     });
-  }, [zoom, offset, addShape]);
+  }, [addShape]); // Only depends on addShape now
+
 
   useEffect(() => {
     fetchImages();
@@ -96,6 +105,10 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
           fetchImages();
 
           if (payload.new.status === 'completed') {
+            // Get current zoom and offset values when needed
+            const currentZoom = useStore.getState().zoom;
+            const currentOffset = useStore.getState().offset;
+
             const images = [
               payload.new.image_url,
               payload.new.image_url_2,
@@ -105,8 +118,8 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
 
             images.forEach((imageUrl, index) => {
               const center = {
-                x: (window.innerWidth / 2 - offset.x) / zoom + (index * 520), // Add spacing between images
-                y: (window.innerHeight / 2 - offset.y) / zoom
+                x: (window.innerWidth / 2 - currentOffset.x) / currentZoom + (index * 520),
+                y: (window.innerHeight / 2 - currentOffset.y) / currentZoom
               };
 
               addShape({
@@ -130,7 +143,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     return () => {
       channel.unsubscribe();
     };
-  }, [isOpen, zoom, offset, addShape, handleImageClick]);
+  }, [isOpen, addShape, handleImageClick]);
 
 
   const displayImages: SavedImage[] = isGenerating ? [
@@ -243,30 +256,51 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
                         .map((url, index) => (
                           <div
                             key={`${image.id}-${index}`}
-                            className="absolute inset-0 group" // Add group class here
+                            className="absolute inset-0 group"
                           >
                             <img
                               src={url || ''}
                               alt={image.prompt}
-                              className="w-full h-full object-cover cursor-pointer"
+                              className="w-full h-full object-cover"
+                            />
+                            <button
                               onClick={() => handleImageClick({
                                 ...image,
                                 image_url: url as string
                               })}
-                            />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteImage(image.id);
-                              }}
-                              className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                              className="absolute inset-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                                <path d="M10 11v6M14 11v6" />
-                              </svg>
+                              <span className="bg-black/50 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-black/70 whitespace-nowrap">
+                                Add to Board
+                              </span>
                             </button>
+                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <button
+                                onClick={() => setViewingImage(image)}
+                                className="p-2 bg-black/50 text-white rounded-full hover:bg-black/70"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                  <circle cx="12" cy="12" r="3" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteImage(image.id);
+                                }}
+                                className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                                  <path d="M10 11v6M14 11v6" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
+
+
+
                         ))
                       }
                     </>
@@ -278,8 +312,11 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
 
         )}
       </div>
+
     </Drawer>
+
   );
+
 };
 
 

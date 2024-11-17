@@ -13,7 +13,7 @@ import { calculateViewportFit } from '../utils/canvas';
 import { ShortcutsPanel } from '../components/ShortcutsPanel';
 import { AssetsDrawer } from '../components/AssetsDrawer';
 import { ContextMenu, } from '../components/ContextMenu';
-
+import { ImageDetailsModal } from '../components/ImageDetailsModal';
 
 export const Board = () => {
   const { id } = useParams<{ id: string }>();
@@ -63,6 +63,7 @@ export const Board = () => {
   const resetState = useStore(state => state.resetState);
 
   const maxRetries = 3;
+  const [viewingImage, setViewingImage] = useState<SavedImage | null>(null);
 
 
 
@@ -241,14 +242,22 @@ export const Board = () => {
           <GalleryPanel
             isOpen={showGallery}
             onClose={toggleGallery}
-            refreshTrigger={0}
+            viewingImage={viewingImage}
+            setViewingImage={setViewingImage}
           />
+
         )}        {isSaving && (<div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
           Saving...
         </div>
         )}
       </div>
       <ShortcutsPanel />
+      {viewingImage && (
+        <ImageDetailsModal
+          image={viewingImage}
+          onClose={() => setViewingImage(null)}
+        />
+      )}
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}
