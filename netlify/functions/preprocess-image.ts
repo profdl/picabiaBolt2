@@ -2,6 +2,11 @@ import { Handler } from '@netlify/functions';
 import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
 
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 const MODEL_VERSION = "f6584ef76cf07a2014ffe1e9bdb1a5cfa714f031883ab43f8d4b05506625988e";
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.VITE_REPLICATE_API_TOKEN;
 
