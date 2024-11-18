@@ -58,10 +58,10 @@ export const handler: Handler = async (event) => {
                 processType,
                 status: 'processing'
             });
-
-            const { error: dbError } = await supabase
+            const { data, error: dbError } = await supabase
                 .from('preprocessed_images')
                 .insert({
+                    user_id: payload.userId,
                     prediction_id: prediction.id,
                     shapeId,
                     originalUrl: imageUrl,

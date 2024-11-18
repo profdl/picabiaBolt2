@@ -28,11 +28,7 @@ export const handler: Handler = async (event) => {
             .from('preprocessed_images')
             .select('*')
             .eq('prediction_id', id)
-            .single()
-            .headers({
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            });
+            .single();
 
         if (queryError || !prediction) {
             console.error('Failed to find prediction record:', { id, error: queryError });
