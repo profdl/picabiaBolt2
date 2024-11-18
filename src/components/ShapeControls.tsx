@@ -20,6 +20,42 @@ export function ShapeControls({
     const { updateShape, shapes } = useStore();
     const tool = useStore(state => state.tool);
     const generatePreprocessedImage = useStore(state => state.generatePreprocessedImage);
+    const depthProcessing = useStore(state => state.preprocessingStates[shape.id]?.depth);
+    const edgeProcessing = useStore(state => state.preprocessingStates[shape.id]?.edge);
+    const poseProcessing = useStore(state => state.preprocessingStates[shape.id]?.pose);
+
+    const controls = [
+        {
+            type: 'Original',
+            preview: shape.imageUrl,
+            showKey: null,
+            strengthKey: null,
+        },
+        {
+            type: 'Depth',
+            preview: shape.depthPreviewUrl,
+            showKey: 'showDepth',
+            strengthKey: 'depthStrength',
+            isProcessing: depthProcessing,
+            processType: 'depth' as const,
+        },
+        {
+            type: 'Edges',
+            preview: shape.edgePreviewUrl,
+            showKey: 'showEdges',
+            strengthKey: 'edgesStrength',
+            isProcessing: edgeProcessing,
+            processType: 'edge' as const,
+        },
+        {
+            type: 'Pose',
+            preview: shape.posePreviewUrl,
+            showKey: 'showPose',
+            strengthKey: 'poseStrength',
+            isProcessing: poseProcessing,
+            processType: 'pose' as const,
+        }
+    ];
 
     useEffect(() => {
         const channel = supabase
@@ -48,38 +84,7 @@ export function ShapeControls({
 
     if (!showControlPanel) return null;
 
-    const controls = [
-        {
-            type: 'Original',
-            preview: shape.imageUrl,
-            showKey: null,
-            strengthKey: null,
-        },
-        {
-            type: 'Depth',
-            preview: shape.depthPreviewUrl,
-            showKey: 'showDepth',
-            strengthKey: 'depthStrength',
-            isProcessing: shape.isDepthProcessing,
-            processType: 'depth' as const,
-        },
-        {
-            type: 'Edges',
-            preview: shape.edgePreviewUrl,
-            showKey: 'showEdges',
-            strengthKey: 'edgesStrength',
-            isProcessing: shape.isEdgeProcessing,
-            processType: 'edge' as const,
-        },
-        {
-            type: 'Pose',
-            preview: shape.posePreviewUrl,
-            showKey: 'showPose',
-            strengthKey: 'poseStrength',
-            isProcessing: shape.isPoseProcessing,
-            processType: 'pose' as const,
-        }
-    ];
+
 
 
     return (
