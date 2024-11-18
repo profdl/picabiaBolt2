@@ -186,9 +186,8 @@ export function ShapeControls({
 
                                 <div className="flex-grow min-w-0">
                                     <div className="flex items-center justify-between mb-1">
-                                        {/* Eye Icon and Type Label */}
+                                        {/* Type Label */}
                                         <div className="flex items-center gap-1">
-                                            <Eye className="w-3 h-3 text-gray-600" />
                                             <span className="text-xs font-medium text-gray-700 truncate">
                                                 {control.type}
                                             </span>
