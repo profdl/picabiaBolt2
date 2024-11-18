@@ -171,6 +171,7 @@ export function ShapeControls({
                                     ) : null}
                                 </div>
 
+
                                 <div className="flex-grow min-w-0">
                                     <div className="flex items-center justify-between mb-1">
                                         {/* Eye Icon and Type Label */}
