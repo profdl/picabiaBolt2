@@ -24,7 +24,7 @@ export const handler: Handler = async (event) => {
         const { output, status, id } = payload;
 
         console.log('Webhook data:', { status, hasOutput: !!output, id });
-        const { data: prediction } = await supabase
+        const { data: prediction, error: queryError } = await supabase
             .from('preprocessed_images')
             .select('*')
             .eq('prediction_id', id)
