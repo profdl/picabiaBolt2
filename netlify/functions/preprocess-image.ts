@@ -52,7 +52,7 @@ export const handler: Handler = async (event) => {
         }).then(r => r.json());
 
         // Create initial record
-        const { data: preprocessedImage, error: dbError } = await supabase
+        const { error: dbError } = await supabase
             .from('preprocessed_images')
             .insert({
                 prediction_id: prediction.id,
@@ -62,10 +62,9 @@ export const handler: Handler = async (event) => {
                 status: 'processing',
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
-            })
-            .select()
-            .single();
+            });
 
+        if (dbError) throw dbError;
         return {
             statusCode: 200,
             headers,
