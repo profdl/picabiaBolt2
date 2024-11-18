@@ -24,11 +24,15 @@ export const handler: Handler = async (event) => {
         const { output, status, id } = payload;
 
         console.log('Webhook data:', { status, hasOutput: !!output, id });
-        const { data: prediction, error: queryError } = await supabase
+        const { data: prediction } = await supabase
             .from('preprocessed_images')
             .select('*')
             .eq('prediction_id', id)
-            .single();
+            .single()
+            .headers({
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            });
 
         if (queryError || !prediction) {
             console.error('Failed to find prediction record:', { id, error: queryError });
