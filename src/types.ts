@@ -44,7 +44,10 @@ export interface Shape {
   posePreviewUrl?: string;
   isDepthProcessing?: boolean;
   isEdgeProcessing?: boolean;
-  isPoseProcessing?: boolean
+  isPoseProcessing?: boolean;
+  hasDepthGenerated?: boolean;
+  hasEdgeGenerated?: boolean;
+  hasPoseGenerated?: boolean;
 }
 export interface CanvasState {
   shapes: Shape[];

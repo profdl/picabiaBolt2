@@ -187,21 +187,26 @@ export function ShapeControls({
                                                 type="checkbox"
                                                 checked={shape[control.showKey] || false}
                                                 onChange={async (e) => {
-                                                    if (e.target.checked) {
+                                                    const previewUrl = shape[`${control.processType}PreviewUrl`];
+
+                                                    // Immediately update checkbox state
+                                                    updateShape(shape.id, { [control.showKey]: e.target.checked });
+
+                                                    if (e.target.checked && !previewUrl) {
                                                         try {
                                                             await generatePreprocessedImage(shape.id, control.processType);
                                                         } catch (error) {
-                                                            console.error('Failed to generate and save preprocessed image:', error);
-                                                            // Uncheck the box if processing failed
+                                                            console.error('Failed to generate preprocessed image:', error);
+                                                            // Only uncheck if generation fails
                                                             updateShape(shape.id, { [control.showKey]: false });
                                                         }
                                                     }
-                                                    updateShape(shape.id, { [control.showKey]: e.target.checked });
                                                 }}
-
                                                 className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
                                             />
                                         )}
+
+
                                     </div>
 
                                     {/* Strength Slider */}
