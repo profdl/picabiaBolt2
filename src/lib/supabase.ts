@@ -167,3 +167,53 @@ export const uploadAssetToSupabase = async (blob: Blob) => {
 
   return { publicUrl };
 };
+
+export async function savePreprocessedImage(
+  shapeId: string,
+  originalUrl: string,
+  processType: 'depth' | 'edge' | 'pose',
+  processedUrl: string
+) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User must be authenticated');
+
+  // Download image from Replicate URL
+  const response = await fetch(processedUrl);
+  const blob = await response.blob();
+
+  // Upload to Supabase bucket
+  const fileName = `${user.id}/${shapeId}/${processType}-${Date.now()}.png`;
+  const { data: uploadData, error: uploadError } = await supabase
+    .storage
+    .from('preprocessed-images')
+    .upload(fileName, blob);
+
+  if (uploadError) throw uploadError;
+
+  // Get public URL
+  const { data: { publicUrl } } = supabase
+    .storage
+    .from('preprocessed-images')
+    .getPublicUrl(fileName);
+
+  // Save record in database
+  const { data, error } = await supabase
+    .from('preprocessed_images')
+    .upsert({
+      user_id: user.id,
+      shapeId,
+      originalUrl,
+      [`${processType}Url`]: publicUrl,
+      created_at: new Date().toISOString()
+    }, {
+      onConflict: 'shapeId,user_id'
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+
+

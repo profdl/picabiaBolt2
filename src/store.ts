@@ -4,6 +4,7 @@ import { CanvasState, Position, Shape } from './types';
 import workflowJson from './lib/workflow.json';
 import controlWorkflow from './lib/controlWorkflow.json';
 import { ContextMenuState } from './types';
+import { savePreprocessedImage } from './lib/supabase';
 
 //test
 const supabase = createClient(
@@ -40,7 +41,13 @@ interface BoardState extends CanvasState {
   galleryRefreshCounter: number;
   uploadingAssets: string[];
   assetsRefreshTrigger: number;
-
+  preprocessingStates: {
+    [shapeId: string]: {
+      depth?: boolean;
+      edge?: boolean;
+      pose?: boolean;
+    };
+  };
   advancedSettings: {
     randomiseSeeds: unknown;
     outputQuality: unknown;
@@ -104,6 +111,8 @@ interface BoardState extends CanvasState {
   duplicate: () => void;
   createGroup: (shapeIds: string[]) => void;
   ungroup: (groupId: string) => void;
+  generatePreprocessedImage: (shapeId: string, processType: 'depth' | 'edge' | 'pose') => Promise<void>;
+
 }const MAX_HISTORY = 50;
 
 const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never }> = {
@@ -138,7 +147,9 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   brushSize: 30,
   brushOpacity: 1,
   brushTexture: 'basic',
-  assetsRefreshTrigger: 0
+  assetsRefreshTrigger: 0,
+  preprocessingStates: {},
+
 };
 
 
@@ -561,7 +572,38 @@ export const useStore = create<BoardState>((set, get) => ({
         }
       }));
     addShapes(shapesToDuplicate);
-  }
+  },
+  generatePreprocessedImage: async (shapeId: string, processType: 'depth' | 'edge' | 'pose') => {
+    const { shapes } = get();
+    const shape = shapes.find(s => s.id === shapeId);
+    if (!shape || !shape.imageUrl) return;
+
+    // Set loading state
+    set(state => ({
+      preprocessingStates: {
+        ...state.preprocessingStates,
+        [shapeId]: {
+          ...state.preprocessingStates[shapeId],
+          [processType]: true
+        }
+      }
+    }));
+
+    try {
+      await fetch('/.netlify/functions/preprocess-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: shape.imageUrl,
+          processType,
+          shapeId
+        })
+      });
+    } catch (error) {
+      console.error('Error preprocessing image:', error);
+    }
+  },
+
 }));
 
 

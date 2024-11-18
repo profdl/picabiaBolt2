@@ -36,6 +36,15 @@ export interface Shape {
   poseStrength?: number;
   groupId?: string;
   isGroup?: boolean;
+  depthMapUrl?: string;
+  edgeMapUrl?: string;
+  poseMapUrl?: string;
+  depthPreviewUrl?: string;
+  edgePreviewUrl?: string;
+  posePreviewUrl?: string;
+  isDepthProcessing?: boolean;
+  isEdgeProcessing?: boolean;
+  isPoseProcessing?: boolean
 }
 export interface CanvasState {
   shapes: Shape[];

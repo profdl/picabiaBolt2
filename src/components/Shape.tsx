@@ -209,7 +209,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragStart, selectedShapes, updateShape, zoom, shapes, shape.type, shape.id]);
+  }, [dragStart, selectedShapes, updateShape, zoom, shapes, shape.type, shape.id, shape.groupId]);
 
   useEffect(() => {
     if (isEditing && textRef.current) {
@@ -537,33 +537,54 @@ export function ShapeComponent({ shape }: ShapeProps) {
             />
           </>
         )}
-        {shape.type === 'image' && shape.imageUrl ? (
-          <img
-            ref={imageRef}
-            src={shape.imageUrl}
-            alt="User uploaded content"
-            className="w-full h-full object-cover"
-            onContextMenu={handleContextMenu}
-            onLoad={() => {
-              if (imageRef.current && !shape.aspectRatio) {
-                const ratio = imageRef.current.naturalWidth / imageRef.current.naturalHeight;
-                updateShape(shape.id, { aspectRatio: ratio });
-              }
-            }}
-            draggable={false}
-          />
-        ) : isEditing ? (
-          <textarea
-            ref={textRef}
-            value={shape.content || ''}
-            onChange={(e) => updateShape(shape.id, { content: e.target.value })}
-            onBlur={() => setIsEditing(false)}
-            className="w-full h-full bg-transparent resize-none outline-none text-center"
-            style={{ fontSize: shape.fontSize || 16 }}
-          />
-        ) : (
-          shape.content
+        {shape.type === 'image' && (
+          <>
+            {shape.showDepth && shape.depthPreviewUrl ? (
+              <img
+                src={shape.depthPreviewUrl}
+                alt="Depth map"
+                className="w-full h-full object-cover"
+                draggable={false}
+              />
+            ) : shape.showEdges && shape.edgePreviewUrl ? (
+              <img
+                src={shape.edgePreviewUrl}
+                alt="Edge detection"
+                className="w-full h-full object-cover"
+                draggable={false}
+              />
+            ) : shape.showPose && shape.posePreviewUrl ? (
+              <img
+                src={shape.posePreviewUrl}
+                alt="Pose detection"
+                className="w-full h-full object-cover"
+                draggable={false}
+              />
+            ) : shape.imageUrl ? (
+              <img
+                ref={imageRef}
+                src={shape.imageUrl}
+                alt="User uploaded content"
+                className="w-full h-full object-cover"
+                onLoad={() => {
+                  if (imageRef.current && !shape.aspectRatio) {
+                    const ratio = imageRef.current.naturalWidth / imageRef.current.naturalHeight;
+                    updateShape(shape.id, { aspectRatio: ratio });
+                  }
+                }} draggable={false}
+              />
+            ) : null}
+          </>
         )}
+        <textarea
+          ref={textRef}
+          value={shape.content || ''}
+          onChange={(e) => updateShape(shape.id, { content: e.target.value })}
+          onBlur={() => setIsEditing(false)}
+          className="w-full h-full bg-transparent resize-none outline-none text-center"
+          style={{ fontSize: shape.fontSize || 16 }}
+        />
+
         {/* Selection controls */}
         {tool === 'select' && (
           <ShapeControls
@@ -571,7 +592,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
             isSelected={isSelected}
             isEditing={isEditing}
             handleResizeStart={handleResizeStart}
-            handleRotateStart={handleRotateStart}
 
           />
         )}
