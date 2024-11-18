@@ -538,60 +538,44 @@ export function ShapeComponent({ shape }: ShapeProps) {
           </>
         )}
         {shape.type === 'image' && (
-          <div className="relative w-full h-full">
-            {/* Base image always visible */}
-            <img
-              ref={imageRef}
-              src={shape.imageUrl}
-              alt="Original content"
-              className="absolute inset-0 w-full h-full object-cover"
-              draggable={false}
-            />
-
-            {/* Depth overlay */}
-            {shape.showDepth && shape.depthPreviewUrl && (
+          <>
+            {shape.showDepth && shape.depthPreviewUrl ? (
               <img
                 src={shape.depthPreviewUrl}
                 alt="Depth map"
-                className="absolute inset-0 w-full h-full object-cover"
-                style={{
-                  mixBlendMode: 'multiply',
-                  opacity: shape.depthStrength || 0.5
-                }}
+                className="w-full h-full object-cover"
                 draggable={false}
               />
-            )}
-
-            {/* Edge overlay */}
-            {shape.showEdges && shape.edgePreviewUrl && (
+            ) : shape.showEdges && shape.edgePreviewUrl ? (
               <img
                 src={shape.edgePreviewUrl}
                 alt="Edge detection"
-                className="absolute inset-0 w-full h-full object-cover"
-                style={{
-                  mixBlendMode: 'multiply',
-                  opacity: shape.edgesStrength || 0.5
-                }}
+                className="w-full h-full object-cover"
                 draggable={false}
               />
-            )}
-
-            {/* Pose overlay */}
-            {shape.showPose && shape.posePreviewUrl && (
+            ) : shape.showPose && shape.posePreviewUrl ? (
               <img
                 src={shape.posePreviewUrl}
                 alt="Pose detection"
-                className="absolute inset-0 w-full h-full object-cover"
-                style={{
-                  mixBlendMode: 'multiply',
-                  opacity: shape.poseStrength || 0.5
-                }}
+                className="w-full h-full object-cover"
                 draggable={false}
               />
-            )}
-          </div>
+            ) : shape.imageUrl ? (
+              <img
+                ref={imageRef}
+                src={shape.imageUrl}
+                alt="User uploaded content"
+                className="w-full h-full object-cover"
+                onLoad={() => {
+                  if (imageRef.current && !shape.aspectRatio) {
+                    const ratio = imageRef.current.naturalWidth / imageRef.current.naturalHeight;
+                    updateShape(shape.id, { aspectRatio: ratio });
+                  }
+                }} draggable={false}
+              />
+            ) : null}
+          </>
         )}
-
         <textarea
           ref={textRef}
           value={shape.content || ''}
