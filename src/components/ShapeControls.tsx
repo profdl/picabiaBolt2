@@ -64,6 +64,11 @@ export function ShapeControls({
                 { event: 'UPDATE', schema: 'public', table: 'preprocessed_images' },
                 (payload) => {
                     if (payload.new.status === 'completed') {
+                        console.log('Webhook update:', {
+                            shapeId: payload.new.shapeId,
+                            processType: payload.new.processType,
+                            url: payload.new[`${payload.new.processType}Url`]
+                        });
                         updateShape(payload.new.shapeId, {
                             [`${payload.new.processType}PreviewUrl`]: payload.new[`${payload.new.processType}Url`]
                         });
@@ -75,7 +80,8 @@ export function ShapeControls({
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [updateShape]);
+
     if (isEditing || tool !== 'select') return null;
 
     const showManipulationControls = isSelected;
