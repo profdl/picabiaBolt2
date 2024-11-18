@@ -16,10 +16,6 @@ export const handler: Handler = async (event) => {
     try {
         const payload = JSON.parse(event.body || '{}');
         const { imageUrl, processType, shapeId } = payload;
-        const supabase = createClient(
-            process.env.SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
 
         const prediction = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
@@ -33,24 +29,37 @@ export const handler: Handler = async (event) => {
                     image: imageUrl,
                     canny: processType === 'edge',
                     midas: processType === 'depth',
-                    open_pose: processType === 'pose'
+                    open_pose: processType === 'pose',
+                    hed: false,
+                    sam: false,
+                    mlsd: false,
+                    pidi: false,
+                    leres: false,
+                    content: false,
+                    lineart: false,
+                    normal_bae: false,
+                    face_detector: false,
+                    lineart_anime: false
                 },
-                webhook: process.env.WEBHOOK_URL,
+                webhook: `${process.env.URL}/.netlify/functions/preprocess-webhook`,
                 webhook_events_filter: ["completed"]
             })
         }).then(r => r.json());
 
-        // Create pending record in Supabase
-        await supabase
+        // Create initial record
+        const { data: preprocessedImage, error: dbError } = await supabase
             .from('preprocessed_images')
             .insert({
                 prediction_id: prediction.id,
                 shapeId,
-                user_id: user.id,
                 originalUrl: imageUrl,
                 processType,
-                status: 'processing'
-            });
+                status: 'processing',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
 
         return {
             statusCode: 200,
