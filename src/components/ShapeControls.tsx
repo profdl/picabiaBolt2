@@ -81,6 +81,7 @@ export function ShapeControls({
         }
     ];
 
+
     return (
         <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
             {/* Resize handle */}
