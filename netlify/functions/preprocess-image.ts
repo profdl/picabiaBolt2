@@ -45,6 +45,7 @@ export const handler: Handler = async (event) => {
                 webhook_events_filter: ["completed"]
             })
         }).then(r => r.json());
+
         // Create initial record
         const { data: preprocessedImage, error: dbError } = await supabase
             .from('preprocessed_images')
@@ -58,27 +59,22 @@ export const handler: Handler = async (event) => {
                 updated_at: new Date().toISOString()
             })
             .select()
-            .single()
-
-        if (dbError) {
-            console.error('Database error:', dbError)
-            throw dbError
-        }
             .single();
 
-return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify({ prediction })
-};
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ prediction })
+        };
 
     } catch (error) {
-    return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({
-            error: error instanceof Error ? error.message : "Failed to preprocess image"
-        })
-    };
-}
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({
+                error: error instanceof Error ? error.message : "Failed to preprocess image"
+            })
+        };
+    }
+
 };

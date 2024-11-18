@@ -24,7 +24,22 @@ export const handler: Handler = async (event) => {
         const { output, status, id } = payload;
 
         console.log('Webhook data:', { status, hasOutput: !!output, id });
+        const { data: prediction, error: queryError } = await supabase
+            .from('preprocessed_images')
+            .select('*')
+            .eq('prediction_id', id)
+            .single();
 
+        if (queryError || !prediction) {
+            console.error('Failed to find prediction record:', { id, error: queryError });
+            return {
+                statusCode: 404,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Prediction record not found'
+                })
+            };
+        }
         if (!id) {
             return {
                 statusCode: 400,
