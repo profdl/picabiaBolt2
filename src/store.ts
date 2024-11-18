@@ -247,17 +247,32 @@ export const useStore = create<BoardState>((set, get) => ({
     });
   },
 
+  // In the updateShape function within useStore
   updateShape: (id: string, updatedProps: Partial<Shape>) => {
-    const { shapes, historyIndex, history } = get();
-    const newShapes = shapes.map((shape) =>
-      shape.id === id ? { ...shape, ...updatedProps } : shape
-    );
-    set({
-      shapes: newShapes,
-      history: [...history.slice(0, historyIndex + 1), newShapes].slice(-MAX_HISTORY),
-      historyIndex: historyIndex + 1,
+    set(state => {
+      // If we're updating a preview URL, clear its processing state
+      if (updatedProps.depthPreviewUrl) {
+        state.preprocessingStates[id] = { ...state.preprocessingStates[id], depth: false };
+      }
+      if (updatedProps.edgePreviewUrl) {
+        state.preprocessingStates[id] = { ...state.preprocessingStates[id], edge: false };
+      }
+      if (updatedProps.posePreviewUrl) {
+        state.preprocessingStates[id] = { ...state.preprocessingStates[id], pose: false };
+      }
+
+      const newShapes = state.shapes.map((shape) =>
+        shape.id === id ? { ...shape, ...updatedProps } : shape
+      );
+      return {
+        shapes: newShapes,
+        preprocessingStates: state.preprocessingStates,
+        history: [...state.history.slice(0, state.historyIndex + 1), newShapes].slice(-MAX_HISTORY),
+        historyIndex: state.historyIndex + 1,
+      };
     });
-  },
+  }
+  ,
   updateShapes: (updates: { id: string; shape: Partial<Shape> }[]) => {
     const { shapes, historyIndex, history } = get();
 
