@@ -48,12 +48,33 @@ export const Navbar = () => {
 
     setIsSaving(true);
     try {
-      const thumbnail = await generateThumbnail(shapes);
+      const thumbnailBase64 = await generateThumbnail(shapes);
+      // Convert base64 to blob
+      const response = await fetch(thumbnailBase64);
+      const blob = await response.blob();
+      
+      // Upload to Supabase storage
+      const fileName = `thumbnails/${boardId}-${Date.now()}.webp`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('assets')
+        .upload(fileName, blob, {
+          contentType: 'image/webp',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('assets')
+        .getPublicUrl(fileName);
+
+      // Update project with thumbnail URL
       await updateProject(boardId, {
         shapes,
-        thumbnail: thumbnail.split(',')[1]
+        thumbnail: publicUrl
       });
-      console.log('Project saved successfully');
+
     } catch (error) {
       console.error('Failed to save project:', error);
     } finally {
