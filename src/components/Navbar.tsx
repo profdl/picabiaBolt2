@@ -7,6 +7,7 @@ import { useProjects } from '../hooks/useProjects';
 import { useStore } from '../store';
 import { generateThumbnail } from '../utils/thumbnail';
 import { HelpCircle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
@@ -175,3 +176,4 @@ export const Navbar = () => {
     </>
   );
 }
+
