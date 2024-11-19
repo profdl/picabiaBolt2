@@ -536,14 +536,39 @@ export const useStore = create<BoardState>((set, get) => ({
       console.log('Extracted prediction_id:', prediction_id);
 
       const insertData = {
+        id: crypto.randomUUID(), // Generate UUID
         user_id: user.id,
         prompt: stickyWithPrompt.content,
-        status: 'generating',
-        prediction_id: responseData.prediction.id,
-        image_url: '',
         aspect_ratio: state.aspectRatio,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        prediction_id: responseData.prediction.id,
+        status: 'generating',
+        updated_at: new Date().toISOString(),
+        image_index: 0,
+        originalUrl: controlShape?.imageUrl || '',
+        depthMapUrl: controlShape?.depthMapUrl || '',
+        edgeMapUrl: controlShape?.edgeMapUrl || '',
+        poseMapUrl: controlShape?.poseMapUrl || '',
+        generated_01: '',
+        generated_02: '',
+        generated_03: '',
+        generated_04: '',
+        num_inference_steps: state.advancedSettings.numInferenceSteps?.toString() || '20',
+        prompt_negative: state.advancedSettings.negativePrompt || '',
+        width: 1024,
+        height: 1024,
+        num_outputs: 1,
+        scheduler: state.advancedSettings.scheduler || 'euler',
+        guidance_scale: state.advancedSettings.guidanceScale || 7.5,
+        prompt_strength: 1.0,
+        seed: state.advancedSettings.seed || Math.floor(Math.random() * 999999),
+        refine: '',
+        refine_steps: 0,
+        lora_scale: 1.0,
+        lora_weights: '',
+        depth_scale: controlShape?.depthStrength || 1.0,
+        edge_scale: controlShape?.edgesStrength || 1.0,
+        pose_scale: controlShape?.poseStrength || 1.0
       };
 
 
