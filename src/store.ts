@@ -559,7 +559,7 @@ export const useStore = create<BoardState>((set, get) => ({
         scheduler: state.advancedSettings.scheduler || 'euler',
         guidance_scale: parseFloat(state.advancedSettings.guidanceScale?.toString() || '7.5'),
         prompt_strength: parseFloat('1.0'),
-        seed: parseInt(state.advancedSettings.seed?.toString() || Math.floor(Math.random() * 999999).toString()),
+        seed: parseInt(state.advancedSettings.seed?.toString() || Math.floor(Math.random() * 32767).toString()),
         refine: '',
         refine_steps: parseInt('0'),
         lora_scale: parseFloat('1.0'),
