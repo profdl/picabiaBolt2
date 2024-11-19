@@ -477,48 +477,47 @@ export const useStore = create<BoardState>((set, get) => ({
     set({ isGenerating: true, error: null });
     set({ showGallery: true });
     try {
-      const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
+    const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
 
-      // Update the positive prompt in the workflow
-      workflow["6"].inputs.text = stickyWithPrompt.content;
+    // Update the KSampler node to use the correct model connection
+    workflow["3"].inputs.model = ["4", 0];  // Connect to CheckpointLoaderSimple
 
-      // Find any shape that has control maps enabled
-      const controlShape = shapes.find(shape => 
-        shape.type === 'image' && 
-        (shape.depthMapUrl || shape.edgeMapUrl || shape.poseMapUrl)
-      );
+    // The rest of the connections remain the same
+    workflow["6"].inputs.text = stickyWithPrompt.content;
 
-      // If no control maps are enabled, connect KSampler directly to base prompt
-      if (!controlShape) {
-        workflow["3"].inputs.positive = ["6", 0];
-      } else {
+    // Find any shape that has control maps enabled
+    const controlShape = shapes.find(shape => 
+      shape.type === 'image' && 
+      (shape.depthMapUrl || shape.edgeMapUrl || shape.poseMapUrl)
+    );
+    let currentConditioningNode = "6";
+
+    if (controlShape) {
         let currentConditioningNode = "6";
-
+          
         if (controlShape.depthMapUrl) {
-          workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["13"].inputs.image = controlShape.depthMapUrl;
-          currentConditioningNode = "11";
+            workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
+            workflow["13"].inputs.image = controlShape.depthMapUrl;
+            currentConditioningNode = "11";
         }
 
         if (controlShape.edgeMapUrl) {
-          workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["16"].inputs.image = controlShape.edgeMapUrl;
-          currentConditioningNode = "14";
+            workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
+            workflow["16"].inputs.image = controlShape.edgeMapUrl;
+            currentConditioningNode = "14";
         }
 
         if (controlShape.poseMapUrl) {
-          workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["19"].inputs.image = controlShape.poseMapUrl;
-          currentConditioningNode = "17";
+            workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
+            workflow["19"].inputs.image = controlShape.poseMapUrl;
+            currentConditioningNode = "17";
         }
+    }
 
-        workflow["3"].inputs.positive = [currentConditioningNode, 0];
-      }      
-      
-
+    workflow["3"].inputs.positive = [currentConditioningNode, 0];
       const requestPayload = {
         workflow_json: workflow,
-        imageUrl: imageWithPrompt?.imageUrl || null,
+        imageUrl: imageWithPrompt?.imageUrl || null,  
         outputFormat: state.advancedSettings.outputFormat,
         outputQuality: state.advancedSettings.outputQuality,
         randomiseSeeds: state.advancedSettings.randomiseSeeds
