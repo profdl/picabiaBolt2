@@ -1,5 +1,6 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
+import { error } from 'console';
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
@@ -86,28 +87,7 @@ export const handler: Handler = async (event) => {
             });
             if (error) throw error;
 
-            return {
-                statusCode: 200,
-                body: JSON.stringify({
-                    success: true,
-                    message: 'Image record updated successfully',
-                    data: { id, status: 'completed' }
-                })
-            };
-        }
-
-        if (status === 'succeeded') {
-            const channel = supabase.channel('public:generated_images');
-            channel.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'generated_images' }, (payload) => {
-                channel.send({
-                    type: 'broadcast',
-                    event: 'new_image',
-                    payload: payload.new
-                });
-            }).subscribe();
-        }
-
-        return {
+                  return {
             statusCode: 200,
             body: JSON.stringify({
                 success: true,
