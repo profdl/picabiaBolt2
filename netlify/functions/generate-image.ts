@@ -37,6 +37,8 @@ export const handler: Handler = async (event) => {
       webhookUrl: process.env.WEBHOOK_URL,
       payload: payload
     });
+
+    // Make sure we pass the imageId through
     const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -46,17 +48,17 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({
         version: MODEL_VERSION,
         input: {
-          workflow_json: JSON.stringify(payload.workflow_json),  // Convert object to string
+          workflow_json: JSON.stringify(payload.workflow_json),
           input_file: payload.imageUrl,
           output_format: payload.outputFormat,
           output_quality: payload.outputQuality,
           randomise_seeds: payload.randomiseSeeds
         },
         webhook: process.env.WEBHOOK_URL,
-        webhook_events_filter: ["completed"]
+        webhook_events_filter: ["completed"],
+        id: payload.imageId  // Add this line to pass through the imageId
       })
-    });
-    if (!replicateResponse.ok) {
+    });    if (!replicateResponse.ok) {
       const errorData = await replicateResponse.json();
       throw new Error(errorData.detail || "Failed to start image generation");
     }

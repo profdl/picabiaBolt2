@@ -481,41 +481,39 @@ export const useStore = create<BoardState>((set, get) => ({
 
       // Update the positive prompt in the workflow
       workflow["6"].inputs.text = stickyWithPrompt.content;
-      
+
       // Find any shape that has control maps enabled
       const controlShape = shapes.find(shape => 
         shape.type === 'image' && 
         (shape.depthMapUrl || shape.edgeMapUrl || shape.poseMapUrl)
       );
-      
-      if (controlShape) {
-        let currentConditioningNode = "6"; // Start with base prompt
-      
-        // Depth control uses nodes 11, 12, 13
+
+      // If no control maps are enabled, connect KSampler directly to base prompt
+      if (!controlShape) {
+        workflow["3"].inputs.positive = ["6", 0];
+      } else {
+        let currentConditioningNode = "6";
+
         if (controlShape.depthMapUrl) {
           workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
           workflow["13"].inputs.image = controlShape.depthMapUrl;
           currentConditioningNode = "11";
         }
-      
-        // Edge control uses nodes 14, 15, 16
+
         if (controlShape.edgeMapUrl) {
           workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
           workflow["16"].inputs.image = controlShape.edgeMapUrl;
           currentConditioningNode = "14";
         }
-      
-        // Pose control uses nodes 17, 18, 19
+
         if (controlShape.poseMapUrl) {
           workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
           workflow["19"].inputs.image = controlShape.poseMapUrl;
           currentConditioningNode = "17";
         }
-      
-        // Final KSampler node 3 takes the last conditioning
+
         workflow["3"].inputs.positive = [currentConditioningNode, 0];
-      }
-      
+      }      
       
 
       const requestPayload = {
