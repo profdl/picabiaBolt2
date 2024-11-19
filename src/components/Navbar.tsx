@@ -50,15 +50,17 @@ export const Navbar = () => {
     setIsSaving(true);
     try {
       const thumbnailBase64 = await generateThumbnail(shapes);
-      // Convert base64 to blob
-      const response = await fetch(thumbnailBase64);
-      const blob = await response.blob();
+      // Remove the data URL prefix to get just the base64 data
+      const base64Data = thumbnailBase64.split(',')[1];
+      
+      // Convert base64 to Uint8Array
+      const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
       
       // Upload to Supabase storage
       const fileName = `thumbnails/${boardId}-${Date.now()}.webp`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('assets')
-        .upload(fileName, blob, {
+        .upload(fileName, binaryData, {
           contentType: 'image/webp',
           upsert: true
         });
@@ -70,7 +72,7 @@ export const Navbar = () => {
         .from('assets')
         .getPublicUrl(fileName);
 
-      // Update project with thumbnail URL
+      // Update project with just the URL
       await updateProject(boardId, {
         shapes,
         thumbnail: publicUrl
