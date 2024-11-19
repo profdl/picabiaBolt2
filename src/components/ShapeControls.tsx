@@ -202,6 +202,18 @@ export function ShapeControls({
                                                     const previewUrl = shape[`${control.processType}PreviewUrl`];
                                                     const isChecked = e.target.checked;
 
+                                                    // Uncheck the same control type on all other images
+                                                    if (isChecked) {
+                                                        shapes.forEach(otherShape => {
+                                                            if (otherShape.id !== shape.id && (otherShape.type === 'image' || otherShape.type === 'canvas')) {
+                                                                const showKey = control.showKey as keyof Shape;
+                                                                if (otherShape[showKey]) {
+                                                                    updateShape(otherShape.id, { [control.showKey]: false });
+                                                                }
+                                                            }
+                                                        });
+                                                    }
+
                                                     // Force immediate state update
                                                     updateShape(shape.id, { [control.showKey]: isChecked });
 
@@ -214,6 +226,7 @@ export function ShapeControls({
                                                         }
                                                     }
                                                 }}
+
                                                 className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
                                             />
                                         )}
