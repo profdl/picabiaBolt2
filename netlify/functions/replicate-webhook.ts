@@ -69,24 +69,24 @@ export const handler: Handler = async (event) => {
 
             const publicUrls = await Promise.all(uploadPromises);
 
-            // Update the database record with Supabase storage URLs
-            const { data, error } = await supabase
+            const { data: updateData, error: updateError } = await supabase
                 .from('generated_images')
                 .update({
-                    image_url: publicUrls[0],  // We store the single generated image
+                    image_url: publicUrls[0],
                     status: 'completed',
                     updated_at: new Date().toISOString()
                 })
                 .eq('prediction_id', id);
-        }
+
             console.log('Update operation details:', {
                 prediction_id: id,
-                success: !error,
-                rowsAffected: data?.length,
-                error: error?.message
+                success: !updateError,
+                rowsAffected: updateData?.length,
+                error: updateError?.message
             });
-            if (error) throw error;
 
+            if (updateError) throw updateError;
+        }
                   return {
             statusCode: 200,
             body: JSON.stringify({

@@ -490,27 +490,25 @@ export const useStore = create<BoardState>((set, get) => ({
         (shape.depthMapUrl || shape.edgeMapUrl || shape.poseMapUrl)
       );
       let currentConditioningNode = "6";
+        if (controlShape) {
+          if (controlShape?.showDepth && controlShape.depthPreviewUrl) {
+            workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
+            workflow["13"].inputs.image = controlShape.depthPreviewUrl.replace(/^data:image\/[^;]+;base64,/, '');
+            currentConditioningNode = "11";
+          }
 
-      if (controlShape) {
-        if (controlShape.depthMapUrl) {
-          workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["13"].inputs.image = controlShape.depthMapUrl;
-          currentConditioningNode = "11";
+          if (controlShape.edgeMapUrl) {
+            workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
+            workflow["16"].inputs.image = controlShape.edgeMapUrl;
+            currentConditioningNode = "14";
+          }
+
+          if (controlShape.poseMapUrl) {
+            workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
+            workflow["19"].inputs.image = controlShape.poseMapUrl;
+            currentConditioningNode = "17";
+          }
         }
-
-        if (controlShape.edgeMapUrl) {
-          workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["16"].inputs.image = controlShape.edgeMapUrl;
-          currentConditioningNode = "14";
-        }
-
-        if (controlShape.poseMapUrl) {
-          workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["19"].inputs.image = controlShape.poseMapUrl;
-          currentConditioningNode = "17";
-        }
-      }
-
       workflow["3"].inputs.positive = [currentConditioningNode, 0];
 
       const requestPayload = {
