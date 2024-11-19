@@ -5,7 +5,7 @@ interface GenerateImageResponse {
   error?: string;
 }
 
-import controlWorkflow from './controlWorkflow.json';
+import multiControlWorkflow from './multiControl_API.json';
 
 export async function generateImage(
   workflowJson: string,
