@@ -69,10 +69,10 @@ export const handler: Handler = async (event) => {
 
             const publicUrls = await Promise.all(uploadPromises);
 
-            const { data: updateData, error: updateError } = await supabase
+            const { data, error } = await supabase
                 .from('generated_images')
                 .update({
-                    image_url: publicUrls[0],
+                    generated_01: publicUrls[0],  // Using generated_01 instead of image_url
                     status: 'completed',
                     updated_at: new Date().toISOString()
                 })
