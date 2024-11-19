@@ -49,16 +49,18 @@ export const handler: Handler = async (event) => {
         version: MODEL_VERSION,
         input: {
           workflow_json: JSON.stringify(payload.workflow_json),
-          input_file: payload.imageUrl,
+          // Remove input_file if no image URL is provided
+          ...(payload.imageUrl && { input_file: payload.imageUrl }),
           output_format: payload.outputFormat,
           output_quality: payload.outputQuality,
           randomise_seeds: payload.randomiseSeeds
         },
         webhook: process.env.WEBHOOK_URL,
-        webhook_events_filter: ["completed"],
-        id: payload.imageId  // Add this line to pass through the imageId
+        webhook_events_filter: ["completed"]
       })
-    });    if (!replicateResponse.ok) {
+    });
+
+    if (!replicateResponse.ok) {
       const errorData = await replicateResponse.json();
       throw new Error(errorData.detail || "Failed to start image generation");
     }
