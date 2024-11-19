@@ -534,9 +534,11 @@ export const useStore = create<BoardState>((set, get) => ({
       // Extract ID from the nested prediction object
       const prediction_id = responseData.prediction.id;
       console.log('Extracted prediction_id:', prediction_id);
+      console.log('Data being inserted:', insertData);
 
+      
       const insertData = {
-        id: crypto.randomUUID(), // Generate UUID
+        id: crypto.randomUUID(),
         user_id: user.id,
         prompt: stickyWithPrompt.content,
         aspect_ratio: state.aspectRatio,
@@ -553,22 +555,18 @@ export const useStore = create<BoardState>((set, get) => ({
         generated_02: '',
         generated_03: '',
         generated_04: '',
-        num_inference_steps: state.advancedSettings.numInferenceSteps?.toString() || '20',
-        prompt_negative: state.advancedSettings.negativePrompt || '',
-        width: 1024,
-        height: 1024,
-        num_outputs: 1,
-        scheduler: state.advancedSettings.scheduler || 'euler',
-        guidance_scale: state.advancedSettings.guidanceScale || 7.5,
-        prompt_strength: 1.0,
-        seed: state.advancedSettings.seed || Math.floor(Math.random() * 999999),
-        refine: '',
-        refine_steps: 0,
-        lora_scale: 1.0,
-        lora_weights: '',
-        depth_scale: controlShape?.depthStrength || 1.0,
-        edge_scale: controlShape?.edgesStrength || 1.0,
-        pose_scale: controlShape?.poseStrength || 1.0
+        num_inference_steps: parseInt(state.advancedSettings.numInferenceSteps?.toString() || '20'),
+        width: parseInt('1024'),
+        height: parseInt('1024'),
+        num_outputs: parseInt('1'),
+        guidance_scale: parseFloat(state.advancedSettings.guidanceScale?.toString() || '7.5'),
+        prompt_strength: parseFloat('1.0'),
+        seed: parseInt(state.advancedSettings.seed?.toString() || Math.floor(Math.random() * 999999).toString()),
+        refine_steps: parseInt('0'),
+        lora_scale: parseFloat('1.0'),
+        depth_scale: parseFloat(controlShape?.depthStrength?.toString() || '1.0'),
+        edge_scale: parseFloat(controlShape?.edgesStrength?.toString() || '1.0'),
+        pose_scale: parseFloat(controlShape?.poseStrength?.toString() || '1.0')
       };
 
 
