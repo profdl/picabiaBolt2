@@ -453,7 +453,9 @@ export const useStore = create<BoardState>((set, get) => ({
     })),
 
   setError: (error: string | null) => set({ error }),
+  
   handleGenerate: async () => {
+    const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
     const { shapes } = state;
 
@@ -476,45 +478,41 @@ export const useStore = create<BoardState>((set, get) => ({
 
     set({ isGenerating: true, error: null });
     set({ showGallery: true });
+
     try {
-    const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
+      // Update the KSampler node to use the correct model connection
+      workflow["3"].inputs.model = ["4", 0];  // Connect to CheckpointLoaderSimple
+      workflow["6"].inputs.text = stickyWithPrompt.content;
 
-    // Update the KSampler node to use the correct model connection
-    workflow["3"].inputs.model = ["4", 0];  // Connect to CheckpointLoaderSimple
+      // Find any shape that has control maps enabled
+      const controlShape = shapes.find(shape => 
+        shape.type === 'image' && 
+        (shape.depthMapUrl || shape.edgeMapUrl || shape.poseMapUrl)
+      );
+      let currentConditioningNode = "6";
 
-    // The rest of the connections remain the same
-    workflow["6"].inputs.text = stickyWithPrompt.content;
-
-    // Find any shape that has control maps enabled
-    const controlShape = shapes.find(shape => 
-      shape.type === 'image' && 
-      (shape.depthMapUrl || shape.edgeMapUrl || shape.poseMapUrl)
-    );
-    let currentConditioningNode = "6";
-
-    if (controlShape) {
-        let currentConditioningNode = "6";
-          
+      if (controlShape) {
         if (controlShape.depthMapUrl) {
-            workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
-            workflow["13"].inputs.image = controlShape.depthMapUrl;
-            currentConditioningNode = "11";
+          workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["13"].inputs.image = controlShape.depthMapUrl;
+          currentConditioningNode = "11";
         }
 
         if (controlShape.edgeMapUrl) {
-            workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
-            workflow["16"].inputs.image = controlShape.edgeMapUrl;
-            currentConditioningNode = "14";
+          workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["16"].inputs.image = controlShape.edgeMapUrl;
+          currentConditioningNode = "14";
         }
 
         if (controlShape.poseMapUrl) {
-            workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
-            workflow["19"].inputs.image = controlShape.poseMapUrl;
-            currentConditioningNode = "17";
+          workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["19"].inputs.image = controlShape.poseMapUrl;
+          currentConditioningNode = "17";
         }
-    }
+      }
 
-    workflow["3"].inputs.positive = [currentConditioningNode, 0];
+      workflow["3"].inputs.positive = [currentConditioningNode, 0];
+
       const requestPayload = {
         workflow_json: workflow,
         imageUrl: imageWithPrompt?.imageUrl || null,  
@@ -531,12 +529,9 @@ export const useStore = create<BoardState>((set, get) => ({
       const responseData = await response.json();
       console.log('Response from generate-image:', responseData);
 
-      // Extract ID from the nested prediction object
       const prediction_id = responseData.prediction.id;
       console.log('Extracted prediction_id:', prediction_id);
-      console.log('Data being inserted:', insertData);
 
-      
       const insertData = {
         id: crypto.randomUUID(),
         user_id: user.id,
@@ -556,19 +551,22 @@ export const useStore = create<BoardState>((set, get) => ({
         generated_03: '',
         generated_04: '',
         num_inference_steps: parseInt(state.advancedSettings.numInferenceSteps?.toString() || '20'),
+        prompt_negative: state.advancedSettings.negativePrompt || '',
         width: parseInt('1024'),
         height: parseInt('1024'),
         num_outputs: parseInt('1'),
+        scheduler: state.advancedSettings.scheduler || 'euler',
         guidance_scale: parseFloat(state.advancedSettings.guidanceScale?.toString() || '7.5'),
         prompt_strength: parseFloat('1.0'),
         seed: parseInt(state.advancedSettings.seed?.toString() || Math.floor(Math.random() * 999999).toString()),
+        refine: '',
         refine_steps: parseInt('0'),
         lora_scale: parseFloat('1.0'),
+        lora_weights: '',
         depth_scale: parseFloat(controlShape?.depthStrength?.toString() || '1.0'),
         edge_scale: parseFloat(controlShape?.edgesStrength?.toString() || '1.0'),
         pose_scale: parseFloat(controlShape?.poseStrength?.toString() || '1.0')
       };
-
 
       console.log('Data being inserted into Supabase:', insertData);
 
@@ -585,7 +583,10 @@ export const useStore = create<BoardState>((set, get) => ({
     } finally {
       set({ isGenerating: false });
     }
-  },
+  }
+
+  
+  ,
   sendBackward: () => {
     const { shapes, selectedShapes } = get();
     const newShapes = [...shapes];
