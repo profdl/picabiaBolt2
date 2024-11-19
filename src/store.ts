@@ -490,25 +490,36 @@ export const useStore = create<BoardState>((set, get) => ({
         (shape.depthMapUrl || shape.edgeMapUrl || shape.poseMapUrl)
       );
       let currentConditioningNode = "6";
-        if (controlShape) {
-          if (controlShape.showDepth && controlShape.depthPreviewUrl) {
-            workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
-            workflow["13"].inputs.image = controlShape.depthPreviewUrl;
-            currentConditioningNode = "11";
-          }
 
-          if (controlShape.showEdges && controlShape.edgePreviewUrl) {
-            workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
-            workflow["16"].inputs.image = controlShape.edgePreviewUrl;
-            currentConditioningNode = "14";
-          }
-
-          if (controlShape.showPose && controlShape.posePreviewUrl) {
-            workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
-            workflow["19"].inputs.image = controlShape.posePreviewUrl;
-            currentConditioningNode = "17";
-          }
+      if (controlShape) {
+        if (controlShape.showDepth) {
+          workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["13"].inputs = {
+            image: controlShape.depthPreviewUrl,
+            upload: "image"
+          };
+          currentConditioningNode = "11";
         }
+      
+        if (controlShape.showEdges) {
+          workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["16"].inputs = {
+            image: controlShape.edgePreviewUrl,
+            upload: "image"
+          };
+          currentConditioningNode = "14";
+        }
+      
+        if (controlShape.showPose) {
+          workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["19"].inputs = {
+            image: controlShape.posePreviewUrl,
+            upload: "image"
+          };
+          currentConditioningNode = "17";
+        }
+      }
+      
       workflow["3"].inputs.positive = [currentConditioningNode, 0];
 
       const requestPayload = {

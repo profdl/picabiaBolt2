@@ -69,10 +69,10 @@ export const handler: Handler = async (event) => {
 
             const publicUrls = await Promise.all(uploadPromises);
 
-            const { data, error } = await supabase
+            const { data: updateData, error } = await supabase
                 .from('generated_images')
                 .update({
-                    generated_01: publicUrls[0],  // Using generated_01 instead of image_url
+                    generated_01: publicUrls[0],
                     status: 'completed',
                     updated_at: new Date().toISOString()
                 })
@@ -80,14 +80,13 @@ export const handler: Handler = async (event) => {
 
             console.log('Update operation details:', {
                 prediction_id: id,
-                success: !updateError,
+                success: !error,
                 rowsAffected: updateData?.length,
-                error: updateError?.message
+                error: error?.message
             });
 
-            if (updateError) throw updateError;
-        }
-                  return {
+            if (error) throw error;
+        }                  return {
             statusCode: 200,
             body: JSON.stringify({
                 success: true,
