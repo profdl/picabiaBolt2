@@ -9,20 +9,14 @@ const supabase = createClient(
 );
 
 interface SavedImage {
-  generated_02: unknown;
-  generated_03: unknown;
-  generated_04: unknown;
-  generated_01: unknown;
   id: string;
-  image_url: string;
-  image_url_2: string | null;
-  image_url_3: string | null;
-  image_url_4: string | null;
+  generated_01: string;
   prompt: string;
   created_at: string;
   status: 'generating' | 'completed' | 'failed';
   aspect_ratio: string;
 }
+
 
 interface GalleryPanelProps {
   isOpen: boolean;
@@ -86,12 +80,11 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       width: 512,
       height: 512,
       color: 'transparent',
-      imageUrl: image.image_url,
+      imageUrl: image.generated_01,
       rotation: 0,
       isUploading: false
     });
-  }, [addShape]); // Only depends on addShape now
-
+  }, [addShape]);
 
   useEffect(() => {
     fetchImages();
@@ -113,33 +106,24 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
             const currentZoom = useStore.getState().zoom;
             const currentOffset = useStore.getState().offset;
 
-            const images = [
-              payload.new.image_url,
-              payload.new.image_url_2,
-              payload.new.image_url_3,
-              payload.new.image_url_4
-            ].filter(url => url !== null);
+            const center = {
+              x: (window.innerWidth / 2 - currentOffset.x) / currentZoom,
+              y: (window.innerHeight / 2 - currentOffset.y) / currentZoom
+            };
 
-            images.forEach((imageUrl, index) => {
-              const center = {
-                x: (window.innerWidth / 2 - currentOffset.x) / currentZoom + (index * 520),
-                y: (window.innerHeight / 2 - currentOffset.y) / currentZoom
-              };
-
-              addShape({
-                id: Math.random().toString(36).substr(2, 9),
-                type: 'image',
-                position: {
-                  x: center.x - 256,
-                  y: center.y - 256
-                },
-                width: 512,
-                height: 512,
-                color: 'transparent',
-                imageUrl,
-                rotation: 0,
-                isUploading: false
-              });
+            addShape({
+              id: Math.random().toString(36).substr(2, 9),
+              type: 'image',
+              position: {
+                x: center.x - 256,
+                y: center.y - 256
+              },
+              width: 512,
+              height: 512,
+              color: 'transparent',
+              imageUrl: payload.new.generated_01,
+              rotation: 0,
+              isUploading: false
             });
           }
         }
