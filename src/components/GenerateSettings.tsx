@@ -54,9 +54,26 @@ export const ImageGeneratePanel: React.FC = () => {
             onChange={(e) => setAdvancedSettings({ scheduler: e.target.value })}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
           >
-            <option value="euler">Euler</option>
-            <option value="dpm++">DPM++</option>
-            <option value="ddim">DDIM</option>
+            <option value="euler">euler</option>
+            <option value="euler_ancestral">euler_ancestral</option>
+            <option value="heun">heun</option>
+            <option value="dpm_2">dpm_2</option>
+            <option value="dpm_2_ancestral">dpm_2_ancestral</option>
+            <option value="lms">lms</option>
+            <option value="dpm_fast">dpm_fast</option>
+            <option value="dpm_adaptive">dpm_adaptive</option>
+            <option value="dpmpp_2s_ancestral">dpmpp_2s_ancestral</option>
+            <option value="dpmpp_sde">dpmpp_sde</option>
+            <option value="dpmpp_sde_gpu">dpmpp_sde_gpu</option>
+            <option value="dpmpp_2m">dpmpp_2m</option>
+            <option value="dpmpp_2m_sde">dpmpp_2m_sde</option>
+            <option value="dpmpp_2m_sde_gpu">dpmpp_2m_sde_gpu</option>
+            <option value="dpmpp_3m_sde">dpmpp_3m_sde</option>
+            <option value="dpmpp_3m_sde_gpu">dpmpp_3m_sde_gpu</option>
+            <option value="ddim">ddim</option>
+            <option value="uni_pc">uni_pc</option>
+            <option value="uni_pc_bh2">uni_pc_bh2</option>
+
           </select>
         </div>
 
