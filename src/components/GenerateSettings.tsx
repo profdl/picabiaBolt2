@@ -26,7 +26,7 @@ export const ImageGeneratePanel: React.FC = () => {
           <label className="block text-sm text-gray-700">Steps</label>
           <input
             type="number"
-            value={advancedSettings.steps || 20}
+            value={advancedSettings.steps || 35}
             onChange={(e) => setAdvancedSettings({ steps: parseInt(e.target.value) })}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
             min="1"
@@ -38,7 +38,7 @@ export const ImageGeneratePanel: React.FC = () => {
           <label className="block text-sm text-gray-700">CFG Scale</label>
           <input
             type="number"
-            value={advancedSettings.guidanceScale || 7.5}
+            value={advancedSettings.guidanceScale || 4.5}
             onChange={(e) => setAdvancedSettings({ guidanceScale: parseFloat(e.target.value) })}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
             min="1"
@@ -50,10 +50,11 @@ export const ImageGeneratePanel: React.FC = () => {
         <div className="space-y-2">
           <label className="block text-sm text-gray-700">Scheduler</label>
           <select
-            value={advancedSettings.scheduler || 'euler'}
+            value={advancedSettings.scheduler || 'dpmpp_2m_sde'}
             onChange={(e) => setAdvancedSettings({ scheduler: e.target.value })}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
           >
+            <option value="dpmpp_2m_sde">DPM++ 2M SDE</option>
             <option value="euler">euler</option>
             <option value="euler_ancestral">euler_ancestral</option>
             <option value="heun">heun</option>
@@ -62,7 +63,6 @@ export const ImageGeneratePanel: React.FC = () => {
             <option value="lms">lms</option>
             <option value="dpm_fast">dpm_fast</option>
             <option value="dpm_adaptive">dpm_adaptive</option>
-            <option value="dpmpp_2s_ancestral">dpmpp_2s_ancestral</option>
             <option value="dpmpp_sde">dpmpp_sde</option>
             <option value="dpmpp_sde_gpu">dpmpp_sde_gpu</option>
             <option value="dpmpp_2m">dpmpp_2m</option>

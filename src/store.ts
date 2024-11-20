@@ -141,9 +141,16 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   error: null,
   advancedSettings: {
     workflowJson: JSON.stringify(workflowJson),
+    steps: 35,
+    guidanceScale: 4.5,
+    scheduler: 'dpmpp_2m_sde',
+    seed: -1,
     outputFormat: 'webp',
     outputQuality: 95,
     randomiseSeeds: true,
+    negativePrompt: '',
+    width: 832,
+    height: 1216
   },
   brushSize: 30,
   brushOpacity: 1,
