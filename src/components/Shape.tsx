@@ -569,9 +569,17 @@ export function ShapeComponent({ shape }: ShapeProps) {
                 onLoad={() => {
                   if (imageRef.current && !shape.aspectRatio) {
                     const ratio = imageRef.current.naturalWidth / imageRef.current.naturalHeight;
-                    updateShape(shape.id, { aspectRatio: ratio });
+                    const newWidth = shape.width;
+                    const newHeight = newWidth / ratio;
+                    updateShape(shape.id, {
+                      aspectRatio: ratio,
+                      width: newWidth,
+                      height: newHeight
+                    });
                   }
-                }} draggable={false}
+                }}
+
+                draggable={false}
               />
             ) : null}
           </>

@@ -61,7 +61,19 @@ export function Canvas() {
     const point = getCanvasPoint(e);
 
     for (const file of imageFiles) {
-      await handleImageUpload(file, point);
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      img.onload = async () => {
+        const ratio = img.naturalWidth / img.naturalHeight;
+        const baseWidth = 512; // Base width
+        await handleImageUpload(file, point, {
+          width: baseWidth,
+          height: baseWidth / ratio
+        });
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
     }
   };
 
