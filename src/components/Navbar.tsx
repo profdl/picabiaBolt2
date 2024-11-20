@@ -50,15 +50,14 @@ export const Navbar = () => {
     setIsSaving(true);
     try {
       const thumbnailBase64 = await generateThumbnail(shapes);
-      // Remove the data URL prefix to get just the base64 data
+      // Convert base64 to binary data
       const base64Data = thumbnailBase64.split(',')[1];
-      
-      // Convert base64 to Uint8Array
       const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-      
-      // Upload to Supabase storage
+
       const fileName = `thumbnails/${boardId}-${Date.now()}.webp`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+
+      // Upload to Supabase storage
+      const { error: uploadError } = await supabase.storage
         .from('assets')
         .upload(fileName, binaryData, {
           contentType: 'image/webp',
@@ -67,7 +66,6 @@ export const Navbar = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('assets')
         .getPublicUrl(fileName);
@@ -77,13 +75,14 @@ export const Navbar = () => {
         shapes,
         thumbnail: publicUrl
       });
-
     } catch (error) {
       console.error('Failed to save project:', error);
     } finally {
       setIsSaving(false);
     }
   };
+
+
 
   const handleNavigation = async () => {
     if (isBoard && boardId) {
@@ -126,9 +125,8 @@ export const Navbar = () => {
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-md ${
-                        isSaving ? 'bg-gray-100 text-gray-400' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                      }`}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md ${isSaving ? 'bg-gray-100 text-gray-400' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
                     >
                       <Save className={`w-4 h-4 ${isSaving ? 'animate-pulse' : ''}`} />
                       <span>{isSaving ? 'Saving...' : 'Save'}</span>
@@ -137,24 +135,24 @@ export const Navbar = () => {
                 </>
               )}
             </div>
-            {user ? (              <div className="flex items-center gap-4">
+            {user ? (<div className="flex items-center gap-4">
 
+              <button
+                onClick={logout}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md text-sm font-medium"
+              >
+                Sign Out
+              </button>
+              {user && isBoard && (
                 <button
-                  onClick={logout}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md text-sm font-medium"
+                  onClick={() => setShowShortcuts(!showShortcuts)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  title="Toggle Keyboard Shortcuts"
                 >
-                  Sign Out
+                  <HelpCircle className="w-5 h-5" />
                 </button>
-                {user && isBoard && (
-                  <button
-                    onClick={() => setShowShortcuts(!showShortcuts)}
-                    className="p-2 hover:bg-gray-100 rounded-lg"
-                    title="Toggle Keyboard Shortcuts"
-                  >
-                    <HelpCircle className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
+              )}
+            </div>
             ) : (
               <div className="flex items-center gap-4">
                 <Link

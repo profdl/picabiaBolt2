@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { useProjects } from '../hooks/useProjects';
 import { ProjectCard } from '../components/ProjectCard';
 import { useNavigate } from 'react-router-dom';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export function Dashboard() {
   const { projects, createProject, updateProject, deleteProject, loading, error } = useProjects();

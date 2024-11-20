@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, MoreVertical, Edit2, Trash2, X, Check, Image as ImageIcon } from 'lucide-react';
+import { Edit2, Trash2, X, Check, Image as ImageIcon } from 'lucide-react';
 import { Project } from '../hooks/useProjects';
 
 interface ProjectCardProps {
@@ -10,31 +10,21 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCardProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(project.name);
   const [isDeleting, setIsDeleting] = useState(false);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-
   useEffect(() => {
-    console.log('Project updated:', {
-      name: project.name,
-      thumbnail: project.thumbnail,
-      thumbnailUrl
-    });
-
     if (project.thumbnail) {
-      // If it's already a data URL, use it directly
-      if (project.thumbnail.startsWith('data:image/')) {
-        setThumbnailUrl(project.thumbnail);
-      } else {
-        // Otherwise, convert base64 to data URL
-        setThumbnailUrl(`data:image/jpeg;base64,${project.thumbnail}`);
-      }
+      setThumbnailUrl(project.thumbnail);
     } else {
       setThumbnailUrl(null);
     }
-  }, [project.thumbnail, project.name]); // Add project.name to dependencies
+  }, [project.thumbnail]);
+
+
+
+
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
