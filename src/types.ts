@@ -9,6 +9,16 @@ export interface DragStart {
   initialPositions: Map<string, Position>;
 }
 
+export interface Project {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  user_id: string;
+  shapes: Shape[];
+  thumbnail: string | null;
+}
+
 export interface Shape {
   id: string;
   type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing' | 'canvas' | 'group';

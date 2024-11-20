@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Edit2, Trash2, X, Check, Image as ImageIcon } from 'lucide-react';
-import { Project } from '../hooks/useProjects';
+import { Project } from '../types';
 
 interface ProjectCardProps {
   project: Project;
@@ -16,7 +16,11 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: ProjectCard
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   useEffect(() => {
     if (project.thumbnail) {
-      setThumbnailUrl(project.thumbnail);
+      // Remove any data URL prefix if it exists
+      const cleanUrl = project.thumbnail.startsWith('data:')
+        ? project.thumbnail.split(',')[1]
+        : project.thumbnail;
+      setThumbnailUrl(cleanUrl);
     } else {
       setThumbnailUrl(null);
     }

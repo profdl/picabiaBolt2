@@ -3,6 +3,9 @@ import { supabase, handleSupabaseError } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Project } from '../types';
 
+
+
+
 export function useProjects() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -46,10 +49,10 @@ export function useProjects() {
     try {
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
-        .eq('id', id)
+        .select('id, created_at, updated_at, name, user_id, shapes, thumbnail')
         .eq('user_id', user.id)
-        .single();
+        .order('updated_at', { ascending: false });
+
 
       if (error) {
         const errorMessage = handleSupabaseError(error);
@@ -67,6 +70,7 @@ export function useProjects() {
       throw new Error(errorMessage);
     }
   }, [user]);
+
 
   const createProject = async () => {
     if (!user) {
