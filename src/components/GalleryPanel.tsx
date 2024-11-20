@@ -9,6 +9,10 @@ const supabase = createClient(
 );
 
 interface SavedImage {
+  generated_02: unknown;
+  generated_03: unknown;
+  generated_04: unknown;
+  generated_01: unknown;
   id: string;
   image_url: string;
   image_url_2: string | null;
@@ -251,7 +255,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
                     </div>
                   ) : (
                     <>
-                      {[image.image_url, image.image_url_2, image.image_url_3, image.image_url_4]
+                      {[image.generated_01, image.generated_02, image.generated_03, image.generated_04]
                         .filter(url => url !== null)
                         .map((url, index) => (
                           <div
@@ -274,6 +278,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
                                 Add to Board
                               </span>
                             </button>
+
                             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                               <button
                                 onClick={() => setViewingImage(image)}

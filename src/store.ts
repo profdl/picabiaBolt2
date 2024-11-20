@@ -453,7 +453,7 @@ export const useStore = create<BoardState>((set, get) => ({
     })),
 
   setError: (error: string | null) => set({ error }),
-  
+
   handleGenerate: async () => {
     const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
@@ -463,10 +463,7 @@ export const useStore = create<BoardState>((set, get) => ({
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User must be authenticated');
 
-    // Find the active prompts
-    const imageWithPrompt = shapes.find(
-      shape => (shape.type === 'image' || shape.type === 'canvas') && shape.showPrompt
-    );
+    // Find sticky note with prompt
     const stickyWithPrompt = shapes.find(
       shape => shape.type === 'sticky' && shape.showPrompt && shape.content
     );
@@ -481,50 +478,41 @@ export const useStore = create<BoardState>((set, get) => ({
 
     try {
       // Update the KSampler node to use the correct model connection
-      workflow["3"].inputs.model = ["4", 0];  // Connect to CheckpointLoaderSimple
+      workflow["3"].inputs.model = ["4", 0];
       workflow["6"].inputs.text = stickyWithPrompt.content;
 
-      // Find any shape that has control maps enabled
-      const controlShape = shapes.find(shape => 
-        shape.type === 'image' && 
-        (shape.depthMapUrl || shape.edgeMapUrl || shape.poseMapUrl)
+      // Find shape with control maps enabled
+      const controlShape = shapes.find(shape =>
+        shape.type === 'image' &&
+        (shape.showDepth || shape.showEdges || shape.showPose)
       );
+
       let currentConditioningNode = "6";
 
       if (controlShape) {
-        if (controlShape.showDepth) {
+        if (controlShape.showDepth && controlShape.depthPreviewUrl) {
           workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["13"].inputs = {
-            image: controlShape.depthPreviewUrl,
-            upload: "image"
-          };
+          workflow["13"].inputs.image = controlShape.depthPreviewUrl;
           currentConditioningNode = "11";
         }
-      
-        if (controlShape.showEdges) {
+
+        if (controlShape.showEdges && controlShape.edgePreviewUrl) {
           workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["16"].inputs = {
-            image: controlShape.edgePreviewUrl,
-            upload: "image"
-          };
+          workflow["16"].inputs.image = controlShape.edgePreviewUrl;
           currentConditioningNode = "14";
         }
-      
-        if (controlShape.showPose) {
+
+        if (controlShape.showPose && controlShape.posePreviewUrl) {
           workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["19"].inputs = {
-            image: controlShape.posePreviewUrl,
-            upload: "image"
-          };
+          workflow["19"].inputs.image = controlShape.posePreviewUrl;
           currentConditioningNode = "17";
         }
       }
-      
+
       workflow["3"].inputs.positive = [currentConditioningNode, 0];
 
       const requestPayload = {
         workflow_json: workflow,
-        imageUrl: imageWithPrompt?.imageUrl || null,  
         outputFormat: state.advancedSettings.outputFormat,
         outputQuality: state.advancedSettings.outputQuality,
         randomiseSeeds: state.advancedSettings.randomiseSeeds
@@ -555,7 +543,7 @@ export const useStore = create<BoardState>((set, get) => ({
         depthMapUrl: controlShape?.showDepth ? controlShape.depthPreviewUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
         edgeMapUrl: controlShape?.showEdges ? controlShape.edgePreviewUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
         poseMapUrl: controlShape?.showPose ? controlShape.posePreviewUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
-       
+
         generated_01: '',
         generated_02: '',
         generated_03: '',
@@ -595,7 +583,7 @@ export const useStore = create<BoardState>((set, get) => ({
     }
   }
 
-  
+
   ,
   sendBackward: () => {
     const { shapes, selectedShapes } = get();

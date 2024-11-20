@@ -38,7 +38,6 @@ export const handler: Handler = async (event) => {
       payload: payload
     });
 
-    // Make sure we pass the imageId through
     const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -49,8 +48,6 @@ export const handler: Handler = async (event) => {
         version: MODEL_VERSION,
         input: {
           workflow_json: JSON.stringify(payload.workflow_json),
-          // Remove input_file if no image URL is provided
-          ...(payload.imageUrl && { input_file: payload.imageUrl }),
           output_format: payload.outputFormat,
           output_quality: payload.outputQuality,
           randomise_seeds: payload.randomiseSeeds
@@ -59,6 +56,7 @@ export const handler: Handler = async (event) => {
         webhook_events_filter: ["completed"]
       })
     });
+
 
     if (!replicateResponse.ok) {
       const errorData = await replicateResponse.json();
