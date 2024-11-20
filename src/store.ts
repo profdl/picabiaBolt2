@@ -519,20 +519,19 @@ export const useStore = create<BoardState>((set, get) => ({
       workflow["3"].inputs.positive = [currentConditioningNode, 0];
       workflow["4"].inputs.ckpt_name = modelCheckpoints[state.advancedSettings.model || 'juggernautXL_v9'];
 
-
       const requestPayload = {
-        workflow_json: payload.workflow_json,
-        outputFormat: payload.outputFormat,
-        outputQuality: payload.outputQuality,
-        randomiseSeeds: payload.randomiseSeeds
+        workflow_json: workflow,
+        outputFormat: state.advancedSettings.outputFormat,
+        outputQuality: state.advancedSettings.outputQuality,
+        randomiseSeeds: state.advancedSettings.randomiseSeeds
       };
-
 
       const response = await fetch('/.netlify/functions/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestPayload)
       });
+
       const responseData = await response.json();
       console.log('Response from generate-image:', responseData);
 
