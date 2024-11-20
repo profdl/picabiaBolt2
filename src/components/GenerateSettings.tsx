@@ -16,8 +16,8 @@ export const ImageGeneratePanel: React.FC = () => {
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
           >
             <option value="juggernautXL">juggernautXL_juggernautX</option>
-            <option value="dreamshaper">dreamshaper_8.safetensors</option>
-            <option value="juggernautXL_v9">Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors</option>
+            <option value="epicrealismXL v10">epicrealismXL_v10.safetensors            </option>
+            <option value="juggernautXL v9">Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors</option>
           </select>
         </div>
 
