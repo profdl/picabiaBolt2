@@ -240,7 +240,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
         ) : (
           <div className="grid grid-cols-2 gap-2 p-4">
             {displayImages.map(image => {
-              const key = `${image.id}-${image.status}`; // Stable key that only changes when needed
+              const key = `${image.id}-${image.status}`;
               return (
                 <div
                   key={key}
@@ -254,66 +254,53 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
                       </div>
                     </div>
                   ) : (
-                    <>
-                      {[image.generated_01, image.generated_02, image.generated_03, image.generated_04]
-                        .filter(url => url !== null)
-                        .map((url, index) => (
-                          <div
-                            key={`${image.id}-${index}`}
-                            className="absolute inset-0 group"
-                          >
-                            <img
-                              src={url || ''}
-                              alt={image.prompt}
-                              className="w-full h-full object-cover"
-                            />
-                            <button
-                              onClick={() => handleImageClick({
-                                ...image,
-                                image_url: url as string
-                              })}
-                              className="absolute inset-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                            >
-                              <span className="bg-black/50 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-black/70 whitespace-nowrap">
-                                Add to Board
-                              </span>
-                            </button>
-
-                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <button
-                                onClick={() => setViewingImage(image)}
-                                className="p-2 bg-black/50 text-white rounded-full hover:bg-black/70"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                  <circle cx="12" cy="12" r="3" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteImage(image.id);
-                                }}
-                                className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                                  <path d="M10 11v6M14 11v6" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-
-
-
-                        ))
-                      }
-                    </>
+                    <div className="absolute inset-0 group">
+                      <img
+                        src={image.generated_01}
+                        alt={image.prompt}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={() => handleImageClick({
+                          ...image,
+                          image_url: image.generated_01
+                        })}
+                        className="absolute inset-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      >
+                        <span className="bg-black/50 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-black/70 whitespace-nowrap">
+                          Add to Board
+                        </span>
+                      </button>
+                      <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button
+                          onClick={() => setViewingImage(image)}
+                          className="p-2 bg-black/50 text-white rounded-full hover:bg-black/70"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteImage(image.id);
+                          }}
+                          className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                            <path d="M10 11v6M14 11v6" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               );
             })}
           </div>
+
 
         )}
       </div>
