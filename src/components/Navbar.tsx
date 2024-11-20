@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, LogOut, LayoutGrid, Save, Keyboard } from 'lucide-react';
+import { LayoutGrid, Save } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ProjectsSidebar } from './ProjectsSidebar';
 import { useProjects } from '../hooks/useProjects';
@@ -17,45 +17,22 @@ export const Navbar = () => {
   const { updateProject } = useProjects();
   const shapes = useStore(state => state.shapes);
   const { showShortcuts, setShowShortcuts } = useStore();
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
-    }
-    return false;
-  });
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-    localStorage.setItem('darkMode', (!isDarkMode).toString());
-  };
-
-  // Add this effect to handle initial dark mode state
-  useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-    if (savedDarkMode) {
-      document.documentElement.classList.add('dark');
-      setIsDarkMode(true);
-    }
-  }, []);
-
   const isBoard = location.pathname.startsWith('/board/');
   const isDashboard = location.pathname === '/' || location.pathname === '/dashboard';
-  console.log('Current pathname:', location.pathname);
   const boardId = isBoard ? location.pathname.split('/')[2] : null;
 
   const handleSave = async () => {
     if (!boardId) return;
-
     setIsSaving(true);
     try {
       const thumbnailBase64 = await generateThumbnail(shapes);
       const fileName = `thumbnails/${boardId}-${Date.now()}.webp`;
 
-      // Upload binary data directly without the data URL prefix
-      const base64Data = thumbnailBase64.split(',')[1];
+      // Extract just the binary data
+      const base64Data = thumbnailBase64.replace(/^data:image\/\w+;base64,/, '');
       const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
+      // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from('assets')
         .upload(fileName, binaryData, {
@@ -65,12 +42,12 @@ export const Navbar = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get clean public URL without data URL prefix
+      // Get the clean URL
       const { data: { publicUrl } } = supabase.storage
         .from('assets')
         .getPublicUrl(fileName);
 
-      // Save only the clean public URL to the project
+      // Update project with clean URL
       await updateProject(boardId, {
         shapes,
         thumbnail: publicUrl
@@ -81,6 +58,7 @@ export const Navbar = () => {
       setIsSaving(false);
     }
   };
+
 
 
 
