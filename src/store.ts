@@ -459,32 +459,41 @@ export const useStore = create<BoardState>((set, get) => ({
     const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
     const { shapes } = state;
-    const modelCheckpoints = {
-      juggernautXL: "juggernautXL_juggernautX.safetensors",
-      dreamshaper: "dreamshaper_8.safetensors",
-      juggernautXL_v9: "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
-    };
-    // Get current user
+
+    // 1. Authentication check
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User must be authenticated');
 
-    // Find sticky note with prompt
+    // 2. Prompt validation
     const stickyWithPrompt = shapes.find(
       shape => shape.type === 'sticky' && shape.showPrompt && shape.content
     );
-
     if (!stickyWithPrompt?.content) {
       set({ error: 'No prompt selected. Please select a sticky note with a prompt.' });
       return;
     }
 
+    // 3. Set UI states
     set({ isGenerating: true, error: null });
     set({ showGallery: true });
 
     try {
-      // Update the KSampler node to use the correct model connection
+      // 4. Update all workflow settings
+      workflow["3"].inputs.steps = state.advancedSettings.steps || 20;
+      workflow["3"].inputs.cfg = state.advancedSettings.guidanceScale || 7.5;
+      workflow["3"].inputs.sampler_name = state.advancedSettings.scheduler || 'euler';
+      workflow["3"].inputs.seed = state.advancedSettings.seed || Math.floor(Math.random() * 32767);
       workflow["3"].inputs.model = ["4", 0];
       workflow["6"].inputs.text = stickyWithPrompt.content;
+
+      // 5. Set model checkpoint
+      const modelCheckpoints = {
+        juggernautXL: "juggernautXL_juggernautX.safetensors",
+        dreamshaper: "dreamshaper_8.safetensors",
+        juggernautXL_v9: "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+      };
+      const selectedModel = state.advancedSettings.model || 'juggernautXL_v9';
+      workflow["4"].inputs.ckpt_name = modelCheckpoints[selectedModel as keyof typeof modelCheckpoints];
 
       // Find shape with control maps enabled
       const controlShape = shapes.find(shape =>
@@ -517,7 +526,6 @@ export const useStore = create<BoardState>((set, get) => ({
       }
 
       workflow["3"].inputs.positive = [currentConditioningNode, 0];
-      workflow["4"].inputs.ckpt_name = modelCheckpoints[state.advancedSettings.model || 'juggernautXL_v9'];
 
       const requestPayload = {
         workflow_json: workflow,
@@ -591,7 +599,6 @@ export const useStore = create<BoardState>((set, get) => ({
       set({ isGenerating: false });
     }
   }
-
 
   ,
   sendBackward: () => {
