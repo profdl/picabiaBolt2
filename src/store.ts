@@ -49,6 +49,8 @@ interface BoardState extends CanvasState {
     };
   };
   advancedSettings: {
+    height: number;
+    width: number;
     model: string;
     randomiseSeeds: unknown;
     outputQuality: unknown;
@@ -488,9 +490,11 @@ export const useStore = create<BoardState>((set, get) => ({
       // 4. Update all workflow settings
       workflow["3"].inputs.steps = state.advancedSettings.steps || 20;
       workflow["3"].inputs.cfg = state.advancedSettings.guidanceScale || 7.5;
-      workflow["3"].inputs.sampler_name = state.advancedSettings.scheduler || 'euler';
+      workflow["3"].inputs.sampler_name = state.advancedSettings.scheduler || 'karras';
       workflow["3"].inputs.seed = state.advancedSettings.seed || Math.floor(Math.random() * 32767);
       workflow["3"].inputs.model = ["4", 0];
+      workflow["5"].inputs.width = state.advancedSettings.width || 832;
+      workflow["5"].inputs.height = state.advancedSettings.height || 1216;
       workflow["6"].inputs.text = stickyWithPrompt.content;
 
       // 5. Set model checkpoint
