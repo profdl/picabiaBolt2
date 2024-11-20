@@ -49,8 +49,9 @@ interface BoardState extends CanvasState {
     };
   };
   advancedSettings: {
-    height: number;
     width: number;
+    height: number;
+    isHorizontal: boolean;
     model: string;
     randomiseSeeds: unknown;
     outputQuality: unknown;
