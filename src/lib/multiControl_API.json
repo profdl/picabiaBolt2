@@ -184,6 +184,15 @@
       "title": "EdgeImage"
     }
   },
+  "17": {
+  "inputs": {
+    "strength": 1,
+    "conditioning": ["14", 0],
+    "control_net": ["18", 0],
+    "image": ["19", 0]
+  },
+  "class_type": "ControlNetApply"
+},
   "18": {
     "inputs": {
       "control_net_name": "controlnet-openpose-sdxl-1.0.safetensors"

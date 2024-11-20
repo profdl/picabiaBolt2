@@ -503,10 +503,11 @@ export const useStore = create<BoardState>((set, get) => ({
         }
 
         if (controlShape.showPose && controlShape.posePreviewUrl) {
-          workflow["18"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
           workflow["19"].inputs.image = controlShape.posePreviewUrl;
-          currentConditioningNode = "18";
+          currentConditioningNode = "17";
         }
+
 
       }
 
