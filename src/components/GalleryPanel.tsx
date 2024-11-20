@@ -137,17 +137,15 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   const displayImages: SavedImage[] = isGenerating ? [
     {
       id: 'generating-placeholder',
+      generated_01: '',
       prompt: 'Creating your image...',
       status: 'generating',
       created_at: new Date().toISOString(),
-      image_url: '',
-      image_url_2: null,
-      image_url_3: null,
-      image_url_4: null,
       aspect_ratio: '1:1'
     },
     ...images
   ] : images;
+
 
   // Rest of your component remains the same
 
@@ -177,22 +175,14 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       // Update local state immediately
       setImages(prevImages => prevImages.filter(img => img.id !== imageId));
 
-      // Clean up storage files using the current image data from state
+      // Clean up storage file using the current image data from state
       const imageToDelete = images.find(img => img.id === imageId);
       if (imageToDelete) {
-        const urls = [
-          imageToDelete.image_url,
-          imageToDelete.image_url_2,
-          imageToDelete.image_url_3,
-          imageToDelete.image_url_4
-        ].filter(Boolean);
-
-        const filenames = urls.map(url => url.split('/').pop()).filter(Boolean);
-
-        if (filenames.length > 0) {
+        const filename = imageToDelete.generated_01.split('/').pop();
+        if (filename) {
           await supabase.storage
             .from('generated-images')
-            .remove(filenames);
+            .remove([filename]);
         }
       }
 
@@ -247,7 +237,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
                       <button
                         onClick={() => handleImageClick({
                           ...image,
-                          image_url: image.generated_01
+                          generated_01: image.generated_01
                         })}
                         className="absolute inset-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                       >
@@ -255,6 +245,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
                           Add to Board
                         </span>
                       </button>
+
                       <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <button
                           onClick={() => setViewingImage(image)}
@@ -289,7 +280,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
         )}
       </div>
 
-    </Drawer>
+    </Drawer >
 
   );
 
