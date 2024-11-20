@@ -49,6 +49,7 @@ interface BoardState extends CanvasState {
     };
   };
   advancedSettings: {
+    model: string;
     randomiseSeeds: unknown;
     outputQuality: unknown;
     outputFormat: unknown;
@@ -458,7 +459,11 @@ export const useStore = create<BoardState>((set, get) => ({
     const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
     const { shapes } = state;
-
+    const modelCheckpoints = {
+      juggernautXL: "juggernautXL_juggernautX.safetensors",
+      dreamshaper: "dreamshaper_8.safetensors",
+      juggernautXL_v9: "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+    };
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User must be authenticated');
@@ -512,13 +517,16 @@ export const useStore = create<BoardState>((set, get) => ({
       }
 
       workflow["3"].inputs.positive = [currentConditioningNode, 0];
+      workflow["4"].inputs.ckpt_name = modelCheckpoints[state.advancedSettings.model || 'juggernautXL_v9'];
+
 
       const requestPayload = {
-        workflow_json: workflow,
-        outputFormat: state.advancedSettings.outputFormat,
-        outputQuality: state.advancedSettings.outputQuality,
-        randomiseSeeds: state.advancedSettings.randomiseSeeds
+        workflow_json: payload.workflow_json,
+        outputFormat: payload.outputFormat,
+        outputQuality: payload.outputQuality,
+        randomiseSeeds: payload.randomiseSeeds
       };
+
 
       const response = await fetch('/.netlify/functions/generate-image', {
         method: 'POST',

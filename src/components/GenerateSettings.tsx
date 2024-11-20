@@ -7,7 +7,21 @@ export const ImageGeneratePanel: React.FC = () => {
   return (
     <div className="absolute bottom-full right-0 mb-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200">
       <div className="p-4 space-y-4">
-        {/* Sampling Settings */}
+        {/* Model Selection */}
+        <div className="space-y-2">
+          <label className="block text-sm text-gray-700">Model</label>
+          <select
+            value={advancedSettings.model || 'juggernautXL'}
+            onChange={(e) => setAdvancedSettings({ model: e.target.value })}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
+          >
+            <option value="juggernautXL">juggernautXL_juggernautX</option>
+            <option value="dreamshaper">dreamshaper_8.safetensors</option>
+            <option value="juggernautXL_v9">Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors</option>
+          </select>
+        </div>
+
+        {/* Existing Sampling Settings */}
         <div className="space-y-2">
           <label className="block text-sm text-gray-700">Steps</label>
           <input

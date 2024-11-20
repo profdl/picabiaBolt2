@@ -48,6 +48,9 @@ export interface Shape {
   hasDepthGenerated?: boolean;
   hasEdgeGenerated?: boolean;
   hasPoseGenerated?: boolean;
+  model?: string;
+  steps?: number;
+  guidanceScale?: number;
 }
 export interface CanvasState {
   shapes: Shape[];
