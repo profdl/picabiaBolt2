@@ -14,7 +14,7 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
-const MODEL_VERSION = "fofr/any-comfyui-workflow:7371a10e10eb020b6c4875333789dfccafccb69bc08cdce3ba60eb7b5feb5e38";
+const MODEL_VERSION = "10990543610c5a77a268f426adb817753842697fa0fa5819dc4a396b632a5c15";
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 
 export const handler: Handler = async (event) => {
