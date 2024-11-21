@@ -57,10 +57,11 @@ export const handler: Handler = async (event) => {
                     output_quality: 95,
                     randomise_seeds: false
                 },
-                webhook: `${process.env.URL}/.netlify/functions/preprocess-webhook`,
+                webhook: process.env.WEBHOOK_URL,
                 webhook_events_filter: ["completed"]
             })
         });
+
         const prediction = await replicateResponse.json();
 
         const { data: record, error: dbError } = await supabase
@@ -75,7 +76,6 @@ export const handler: Handler = async (event) => {
             })
             .select()
             .single();
-
         if (dbError) {
             console.error('Supabase insert error:', dbError);
             throw dbError;
