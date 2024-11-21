@@ -41,7 +41,7 @@ export const handler: Handler = async (event) => {
 
         // Add validation logging
         console.log('Validated payload:', { imageUrl, processType, shapeId });
-
+        // 1. Make the Replicate API call and get prediction ID
         const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
             headers: {
@@ -62,20 +62,28 @@ export const handler: Handler = async (event) => {
             })
         });
 
-        const prediction = await replicateResponse.json();
+        if (!replicateResponse.ok) {
+            const errorData = await replicateResponse.json();
+            throw new Error(errorData.detail || "Failed to start preprocessing");
+        }
 
+        const prediction = await replicateResponse.json();
+        console.log('Replicate prediction response:', prediction);
+
+        // 2. Now we have the prediction ID from Replicate, create the Supabase record
         const { data: record, error: dbError } = await supabase
             .from('preprocessed_images')
             .insert({
+                prediction_id: prediction.id,  // Use the ID from Replicate's response
                 shapeId,
                 originalUrl: imageUrl,
                 processType,
                 status: 'processing',
-                created_at: new Date().toISOString(),
-                prediction_id: prediction.id
+                created_at: new Date().toISOString()
             })
             .select()
             .single();
+
         if (dbError) {
             console.error('Supabase insert error:', dbError);
             throw dbError;
@@ -88,15 +96,6 @@ export const handler: Handler = async (event) => {
         baseWorkflow["33"].inputs.preprocessor = processType === 'depth' ? 'MiDaS' :
             processType === 'edge' ? 'Canny' :
                 processType === 'pose' ? 'OpenPose' : 'DWPreprocessor';
-
-
-        if (!replicateResponse.ok) {
-            const errorData = await replicateResponse.json();
-            throw new Error(errorData.detail || "Failed to start preprocessing");
-        }
-
-
-
 
         return {
             statusCode: 200,
