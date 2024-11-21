@@ -38,7 +38,7 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
 }) => {
   // Existing assets state
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addShape = useStore(state => state.addShape);
@@ -49,7 +49,7 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
   const [query, setQuery] = useState('');
   const [unsplashImages, setUnsplashImages] = useState<UnsplashImage[]>([]);
   const [unsplashLoading, setUnsplashLoading] = useState(false);
-  const [setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, asset: Asset) => {
     e.dataTransfer.setData('application/json', JSON.stringify({
@@ -156,7 +156,6 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
       color: 'transparent',
       imageUrl: asset.url,
       rotation: 0,
-      isUploading: false
     });
   };
 
@@ -263,7 +262,6 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
       color: 'transparent',
       imageUrl: image.urls.regular,
       rotation: 0,
-      isUploading: false
     });
   };
   return (
