@@ -94,16 +94,16 @@ export const handler: Handler = async (event) => {
             body: JSON.stringify({
                 version: MODEL_VERSION,
                 input: {
-                    workflow_json: JSON.stringify(workflow),
-                    input_file: imageUrl,
-                    output_format: "png",
-                    output_quality: 95,
-                    randomise_seeds: false
+                    image: imageUrl,  // Direct image input
+                    preprocessor: processType === 'depth' ? 'MiDaS' :
+                        processType === 'edge' ? 'Canny' :
+                            processType === 'pose' ? 'OpenPose' : 'DWPreprocessor'
                 },
                 webhook: process.env.WEBHOOK_URL,
                 webhook_events_filter: ["completed"]
             })
         });
+
 
         console.log('Replicate response status:', replicateResponse.status);
 
