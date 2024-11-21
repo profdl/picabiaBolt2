@@ -46,9 +46,13 @@ export const handler: Handler = async (event) => {
         const baseWorkflow = {
             "10": {
                 "inputs": {
-                    "image": ""  // Will be set with imageUrl
+                    "image": "",
+                    "upload": "image"
                 },
-                "class_type": "LoadImage"
+                "class_type": "LoadImage",
+                "_meta": {
+                    "title": "Load Image"
+                }
             },
             "33": {
                 "inputs": {
