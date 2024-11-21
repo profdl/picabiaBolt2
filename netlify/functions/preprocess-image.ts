@@ -1,11 +1,17 @@
 import { Handler } from '@netlify/functions';
 import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
+import baseWorkflow from '../../src/lib/preProcessWorkflow.json';
 
 const supabase = createClient(
     process.env.SUPABASE_URL || '',
     process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
+const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+};
 
 const MODEL_VERSION = "fofr/any-comfyui-workflow:7371a10e10eb020b6c4875333789dfccafccb69bc08cdce3ba60eb7b5feb5e38";
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
@@ -14,7 +20,7 @@ export const handler: Handler = async (event) => {
     console.log('Preprocess Image Function Details:', {
         timestamp: new Date().toISOString(),
         requestId: event?.requestContext?.requestId || event?.headers['x-request-id'],
-        webhookUrl: `${process.env.URL}/.netlify/functions/preprocess-webhook`,
+        webhook: process.env.WEBHOOK_URL,
         modelVersion: MODEL_VERSION,
         // Add payload logging
         payload: event.body ? JSON.parse(event.body) : null
