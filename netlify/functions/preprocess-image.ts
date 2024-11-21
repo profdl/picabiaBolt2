@@ -94,10 +94,11 @@ export const handler: Handler = async (event) => {
             body: JSON.stringify({
                 version: MODEL_VERSION,
                 input: {
-                    image: imageUrl,  // Direct image input
-                    preprocessor: processType === 'depth' ? 'MiDaS' :
-                        processType === 'edge' ? 'Canny' :
-                            processType === 'pose' ? 'OpenPose' : 'DWPreprocessor'
+                    workflow_json: JSON.stringify(workflow),
+                    input_file: imageUrl,
+                    output_format: "png",
+                    output_quality: 95,
+                    randomise_seeds: false
                 },
                 webhook: process.env.WEBHOOK_URL,
                 webhook_events_filter: ["completed"]
