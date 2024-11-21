@@ -42,32 +42,6 @@ export const handler: Handler = async (event) => {
         // Add validation logging
         console.log('Validated payload:', { imageUrl, processType, shapeId });
 
-        // Create Supabase record first
-        const { data: record, error: dbError } = await supabase
-            .from('preprocessed_images')
-            .insert({
-                shapeId,
-                originalUrl: imageUrl,
-                processType,
-                status: 'processing',
-                created_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-
-        if (dbError) {
-            console.error('Supabase insert error:', dbError);
-            throw dbError;
-        }
-
-        // Log successful database insertion
-        console.log('Created preprocessed_images record:', record);
-
-        baseWorkflow["10"].inputs.image = imageUrl;
-        baseWorkflow["33"].inputs.preprocessor = processType === 'depth' ? 'MiDaS' :
-            processType === 'edge' ? 'Canny' :
-                processType === 'pose' ? 'OpenPose' : 'DWPreprocessor';
-
         const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
             headers: {
@@ -87,25 +61,42 @@ export const handler: Handler = async (event) => {
                 webhook_events_filter: ["completed"]
             })
         });
+        const prediction = await replicateResponse.json();
+
+        const { data: record, error: dbError } = await supabase
+            .from('preprocessed_images')
+            .insert({
+                shapeId,
+                originalUrl: imageUrl,
+                processType,
+                status: 'processing',
+                created_at: new Date().toISOString(),
+                prediction_id: prediction.id
+            })
+            .select()
+            .single();
+
+        if (dbError) {
+            console.error('Supabase insert error:', dbError);
+            throw dbError;
+        }
+
+        // Log successful database insertion
+        console.log('Created preprocessed_images record:', record);
+
+        baseWorkflow["10"].inputs.image = imageUrl;
+        baseWorkflow["33"].inputs.preprocessor = processType === 'depth' ? 'MiDaS' :
+            processType === 'edge' ? 'Canny' :
+                processType === 'pose' ? 'OpenPose' : 'DWPreprocessor';
+
 
         if (!replicateResponse.ok) {
             const errorData = await replicateResponse.json();
             throw new Error(errorData.detail || "Failed to start preprocessing");
         }
 
-        const prediction = await replicateResponse.json();
 
-        await supabase
-            .from('preprocessed_images')
-            .insert({
-                prediction_id: prediction.id,
-                shapeId,
-                originalUrl: imageUrl,
-                processType,
-                status: 'processing',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            });
+
 
         return {
             statusCode: 200,
