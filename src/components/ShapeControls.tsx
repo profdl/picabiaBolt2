@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Eye, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useStore } from '../store';
 import { Shape } from '../types';
 import { supabase } from '../lib/supabase';

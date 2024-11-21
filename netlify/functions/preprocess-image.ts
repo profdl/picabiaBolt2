@@ -86,13 +86,22 @@ export const handler: Handler = async (event) => {
         // Create a copy of the workflow
         const workflow = JSON.parse(JSON.stringify(baseWorkflow));
 
+        // Log the workflow configuration
+        console.log('Workflow configuration:', {
+            workflow,
+            imageUrl,
+            processType,
+            MODEL_VERSION,
+            REPLICATE_API_TOKEN: !!REPLICATE_API_TOKEN // Log existence only, not the actual token
+        });
+
         // Modify the copy
         workflow["10"].inputs.image = imageUrl;
         workflow["33"].inputs.preprocessor = processType === 'depth' ? 'MiDaS' :
             processType === 'edge' ? 'Canny' :
                 processType === 'pose' ? 'OpenPose' : 'DWPreprocessor';
 
-        // Use the modified copy in the API call
+        // Make the Replicate API call
         const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
             headers: {
@@ -112,6 +121,8 @@ export const handler: Handler = async (event) => {
                 webhook_events_filter: ["completed"]
             })
         });
+
+        console.log('Replicate response status:', replicateResponse.status);
 
         if (!replicateResponse.ok) {
             const errorData = await replicateResponse.json();
