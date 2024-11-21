@@ -1,7 +1,8 @@
 import { Handler } from '@netlify/functions';
 import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
-import baseWorkflow from '../../src/lib/preProcessWorkflow.json';
+
+
 
 const supabase = createClient(
     process.env.SUPABASE_URL || '',
@@ -41,56 +42,46 @@ export const handler: Handler = async (event) => {
 
         // Add validation logging
         console.log('Validated payload:', { imageUrl, processType, shapeId });
-        // 1. Make the Replicate API call and get prediction ID
-        const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                version: MODEL_VERSION,
-                input: {
-                    workflow_json: JSON.stringify(baseWorkflow),
-                    input_file: imageUrl,
-                    output_format: "png",
-                    output_quality: 95,
-                    randomise_seeds: false
+
+        const baseWorkflow = {
+            "10": {
+                "inputs": {
+                    "image": "",
+                    "upload": "image"
                 },
-                webhook: process.env.WEBHOOK_URL,
-                webhook_events_filter: ["completed"]
-            })
-        });
-
-        if (!replicateResponse.ok) {
-            const errorData = await replicateResponse.json();
-            throw new Error(errorData.detail || "Failed to start preprocessing");
-        }
-
-        const prediction = await replicateResponse.json();
-        console.log('Replicate prediction response:', prediction);
-
-        // 2. Now we have the prediction ID from Replicate, create the Supabase record
-        const { data: record, error: dbError } = await supabase
-            .from('preprocessed_images')
-            .insert({
-                prediction_id: prediction.id,  // Use the ID from Replicate's response
-                shapeId,
-                originalUrl: imageUrl,
-                processType,
-                status: 'processing',
-                created_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-
-        if (dbError) {
-            console.error('Supabase insert error:', dbError);
-            throw dbError;
-        }
-
-        // Log successful database insertion
-        console.log('Created preprocessed_images record:', record);
+                "class_type": "LoadImage",
+                "_meta": {
+                    "title": "Load Image"
+                }
+            },
+            "15": {
+                "inputs": {
+                    "filename_prefix": "preprocessed",
+                    "images": [
+                        "33",
+                        0
+                    ]
+                },
+                "class_type": "SaveImage",
+                "_meta": {
+                    "title": "Save Image"
+                }
+            },
+            "33": {
+                "inputs": {
+                    "preprocessor": "",
+                    "resolution": 1024,
+                    "image": [
+                        "10",
+                        0
+                    ]
+                },
+                "class_type": "AIO_Preprocessor",
+                "_meta": {
+                    "title": "AIO Aux Preprocessor"
+                }
+            }
+        };
 
         // Create a copy of the workflow
         const workflow = JSON.parse(JSON.stringify(baseWorkflow));
@@ -121,6 +112,36 @@ export const handler: Handler = async (event) => {
                 webhook_events_filter: ["completed"]
             })
         });
+
+        if (!replicateResponse.ok) {
+            const errorData = await replicateResponse.json();
+            throw new Error(errorData.detail || "Failed to start preprocessing");
+        }
+
+        const prediction = await replicateResponse.json();
+        console.log('Replicate prediction response:', prediction);
+
+        // Now we have the prediction ID from Replicate, create the Supabase record
+        const { data: record, error: dbError } = await supabase
+            .from('preprocessed_images')
+            .insert({
+                prediction_id: prediction.id,  // Use the ID from Replicate's response
+                shapeId,
+                originalUrl: imageUrl,
+                processType,
+                status: 'processing',
+                created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (dbError) {
+            console.error('Supabase insert error:', dbError);
+            throw dbError;
+        }
+
+        // Log successful database insertion
+        console.log('Created preprocessed_images record:', record);
 
         return {
             statusCode: 200,
