@@ -13,8 +13,8 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 export const handler: Handler = async (event) => {
     console.log('Preprocess Image Function Details:', {
         timestamp: new Date().toISOString(),
-        requestId: event.requestContext?.requestId,
-        webhookUrl: process.env.WEBHOOK_URL,
+        requestId: event?.requestContext?.requestId || event?.headers['x-request-id'],
+        webhookUrl: `${process.env.URL}/.netlify/functions/preprocess-webhook`,
         modelVersion: MODEL_VERSION
     });
 
@@ -25,10 +25,27 @@ export const handler: Handler = async (event) => {
         "Content-Type": "application/json"
     };
 
+    if (!REPLICATE_API_TOKEN) {
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: "Replicate API token not configured" })
+        };
+    }
+
     try {
         const payload = JSON.parse(event.body || '{}');
         const { imageUrl, processType, shapeId } = payload;
-        const baseWorkflow = require('../lib/preProcessWorkflow.json');
+
+        if (!imageUrl || !processType || !shapeId) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: "Missing required parameters" })
+            };
+        }
+
+        // Rest of the implementation...
 
         baseWorkflow["10"].inputs.image = imageUrl;
         baseWorkflow["33"].inputs.preprocessor = processType === 'depth' ? 'MiDaS' :
