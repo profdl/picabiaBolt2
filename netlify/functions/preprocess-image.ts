@@ -85,31 +85,34 @@ export const handler: Handler = async (event) => {
                 processType === 'pose' ? 'OpenPose' : 'DWPreprocessor';
 
         // Make the Replicate API call
+        const requestBody = {
+            version: MODEL_VERSION,
+            input: {
+                workflow_json: JSON.stringify(workflow),
+                input_file: imageUrl,
+                output_format: "png",
+                output_quality: 95,
+                randomise_seeds: false
+            },
+            webhook: process.env.WEBHOOK_URL,
+            webhook_events_filter: ["completed"]
+        };
+
+        console.log('Replicate request body:', requestBody);
+
         const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                version: MODEL_VERSION,
-                input: {
-                    workflow_json: JSON.stringify(workflow),
-                    input_file: imageUrl,
-                    output_format: "png",
-                    output_quality: 95,
-                    randomise_seeds: false
-                },
-                webhook: process.env.WEBHOOK_URL,
-                webhook_events_filter: ["completed"]
-            })
+            body: JSON.stringify(requestBody)
         });
-
-
         console.log('Replicate response status:', replicateResponse.status);
 
         if (!replicateResponse.ok) {
             const errorData = await replicateResponse.json();
+            console.log('Replicate error response:', errorData);
             throw new Error(errorData.detail || "Failed to start preprocessing");
         }
 
