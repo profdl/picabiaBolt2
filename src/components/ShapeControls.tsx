@@ -37,7 +37,8 @@ export function ShapeControls({
             showKey: 'showDepth',
             strengthKey: 'depthStrength',
             isProcessing: depthProcessing,
-            processType: 'depth' as const,
+            processType: 'depth',
+            preprocessor: 'MiDaS'
         },
         {
             type: 'Edges',
@@ -45,7 +46,8 @@ export function ShapeControls({
             showKey: 'showEdges',
             strengthKey: 'edgesStrength',
             isProcessing: edgeProcessing,
-            processType: 'edge' as const,
+            processType: 'edge',
+            preprocessor: 'Canny'
         },
         {
             type: 'Pose',
@@ -53,7 +55,8 @@ export function ShapeControls({
             showKey: 'showPose',
             strengthKey: 'poseStrength',
             isProcessing: poseProcessing,
-            processType: 'pose' as const,
+            processType: 'pose',
+            preprocessor: 'OpenPose'
         }
     ];
 

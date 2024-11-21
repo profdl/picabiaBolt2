@@ -50,11 +50,9 @@ export const handler: Handler = async (event) => {
             };
         }
 
-        if (status === 'succeeded' && Array.isArray(output) && output.length > 0) {
-            // First upload image to Supabase storage
-            const response = await fetch(output[0]);
-            const imageBuffer = await response.arrayBuffer();
-            const imageData = new Uint8Array(imageBuffer);
+        if (status === 'succeeded' && output && output.length > 0) {
+            // The model returns an array of image URLs
+            const processedImageUrl = output[0];
 
             // Get the prediction record
             const { data: prediction, error: queryError } = await supabase
@@ -74,9 +72,14 @@ export const handler: Handler = async (event) => {
                 };
             }
 
+            // Download and upload to Supabase storage
+            const response = await fetch(processedImageUrl);
+            const imageBuffer = await response.arrayBuffer();
+            const imageData = new Uint8Array(imageBuffer);
+
             const filename = `${prediction.shapeId}-${prediction.processType}-${Date.now()}.png`;
 
-            const { data: uploadData, error: uploadError } = await supabase
+            const { error: uploadError } = await supabase
                 .storage
                 .from('preprocessed-images')
                 .upload(filename, imageData, {
@@ -92,7 +95,7 @@ export const handler: Handler = async (event) => {
                 .getPublicUrl(filename);
 
             // Update the database record
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('preprocessed_images')
                 .update({
                     [`${prediction.processType}Url`]: publicUrl,
