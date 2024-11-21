@@ -26,7 +26,7 @@ export const Navbar = () => {
     setIsSaving(true);
     try {
       const thumbnailBase64 = await generateThumbnail(shapes);
-      const fileName = `thumbnails/${boardId}-${Date.now()}.webp`;
+      const fileName = `${boardId}-${Date.now()}.webp`;
 
       // Extract just the binary data
       const base64Data = thumbnailBase64.replace(/^data:image\/\w+;base64,/, '');

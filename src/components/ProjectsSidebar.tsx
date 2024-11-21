@@ -9,7 +9,7 @@ interface ProjectsSidebarProps {
 }
 
 export function ProjectsSidebar({ isOpen, onClose }: ProjectsSidebarProps) {
-  const { projects, loading, fetchProjects, createProject} = useProjects();
+  const { projects, loading, fetchProjects, createProject } = useProjects();
   const navigate = useNavigate();
 
   // Refresh projects when sidebar is opened
@@ -26,20 +26,18 @@ export function ProjectsSidebar({ isOpen, onClose }: ProjectsSidebarProps) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-hidden transition-opacity duration-300 ${
-        isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      }`}
+      className={`fixed inset-0 z-50 overflow-hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
     >
-      <div 
-        className="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
-        onClick={onClose} 
+      <div
+        className="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        onClick={onClose}
       />
-      
+
       <div className="fixed inset-y-0 left-0 flex max-w-full pr-10">
-        <div 
-          className={`w-screen max-w-md transform transition-transform duration-300 ease-in-out ${
-            isOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+        <div
+          className={`w-screen max-w-md transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
         >
           <div className="flex h-full flex-col overflow-y-scroll bg-gray-50 shadow-xl">
             <div className="flex-1 overflow-y-auto py-6 px-4 sm:px-6">
@@ -84,9 +82,9 @@ export function ProjectsSidebar({ isOpen, onClose }: ProjectsSidebarProps) {
                       <div className="aspect-w-16 aspect-h-9 block w-full overflow-hidden rounded-t-xl bg-gray-100">
                         {project.thumbnail ? (
                           <img
-                            src={project.thumbnail.startsWith('data:') 
-                              ? project.thumbnail 
-                              : `data:image/jpeg;base64,${project.thumbnail}`}
+                            src={project.thumbnail.startsWith('data:')
+                              ? project.thumbnail
+                              : `${project.thumbnail}`}
                             alt={project.name}
                             className="object-cover"
                           />
