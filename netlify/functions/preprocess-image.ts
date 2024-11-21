@@ -50,21 +50,22 @@ export const handler: Handler = async (event) => {
                 },
                 "class_type": "LoadImage"
             },
-            "15": {
-                "inputs": {
-                    "images": ["10", 0],
-                    "filename_prefix": "preprocessed"  // Add this required field
-                },
-                "class_type": "SaveImage"
-            },
             "33": {
                 "inputs": {
                     "preprocessor": "",  // Will be set based on processType
                     "image": ["10", 0]
                 },
                 "class_type": "AIO_Preprocessor"
+            },
+            "15": {
+                "inputs": {
+                    "images": ["33", 0],  // Connect to AIO_Preprocessor output
+                    "filename_prefix": "preprocessed"
+                },
+                "class_type": "SaveImage"
             }
         };
+
 
 
         // Create a copy of the workflow
@@ -107,8 +108,20 @@ export const handler: Handler = async (event) => {
                 Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({
+                version: MODEL_VERSION,
+                input: {
+                    workflow_json: JSON.stringify(baseWorkflow),
+                    input_file: imageUrl,
+                    output_format: "png",
+                    output_quality: 95,
+                    randomise_seeds: false
+                },
+                webhook: `${process.env.URL}/.netlify/functions/preprocess-webhook`,
+                webhook_events_filter: ["completed"]
+            })
         });
+
         console.log('Replicate response status:', replicateResponse.status);
 
         if (!replicateResponse.ok) {
