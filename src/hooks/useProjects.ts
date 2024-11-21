@@ -51,7 +51,8 @@ export function useProjects() {
         .from('projects')
         .select('id, created_at, updated_at, name, user_id, shapes, thumbnail')
         .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+        .eq('id', id)
+        .single();
 
 
       if (error) {

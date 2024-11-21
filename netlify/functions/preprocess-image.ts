@@ -15,17 +15,13 @@ export const handler: Handler = async (event) => {
         timestamp: new Date().toISOString(),
         requestId: event?.requestContext?.requestId || event?.headers['x-request-id'],
         webhookUrl: `${process.env.URL}/.netlify/functions/preprocess-webhook`,
-        modelVersion: MODEL_VERSION
+        modelVersion: MODEL_VERSION,
+        // Add payload logging
+        payload: event.body ? JSON.parse(event.body) : null
     });
 
-    const headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Content-Type": "application/json"
-    };
-
     if (!REPLICATE_API_TOKEN) {
+        console.error('Missing REPLICATE_API_TOKEN');
         return {
             statusCode: 500,
             headers,
@@ -37,15 +33,29 @@ export const handler: Handler = async (event) => {
         const payload = JSON.parse(event.body || '{}');
         const { imageUrl, processType, shapeId } = payload;
 
-        if (!imageUrl || !processType || !shapeId) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: "Missing required parameters" })
-            };
+        // Add validation logging
+        console.log('Validated payload:', { imageUrl, processType, shapeId });
+
+        // Create Supabase record first
+        const { data: record, error: dbError } = await supabase
+            .from('preprocessed_images')
+            .insert({
+                shapeId,
+                originalUrl: imageUrl,
+                processType,
+                status: 'processing',
+                created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (dbError) {
+            console.error('Supabase insert error:', dbError);
+            throw dbError;
         }
 
-        // Rest of the implementation...
+        // Log successful database insertion
+        console.log('Created preprocessed_images record:', record);
 
         baseWorkflow["10"].inputs.image = imageUrl;
         baseWorkflow["33"].inputs.preprocessor = processType === 'depth' ? 'MiDaS' :
