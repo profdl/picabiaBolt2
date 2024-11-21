@@ -46,19 +46,20 @@ export const handler: Handler = async (event) => {
         const baseWorkflow = {
             "10": {
                 "inputs": {
-                    "image": ""
+                    "image": ""  // Will be set with imageUrl
                 },
                 "class_type": "LoadImage"
             },
             "15": {
                 "inputs": {
-                    "images": ["10", 0]
+                    "images": ["10", 0],
+                    "filename_prefix": "preprocessed"  // Add this required field
                 },
                 "class_type": "SaveImage"
             },
             "33": {
                 "inputs": {
-                    "preprocessor": "",
+                    "preprocessor": "",  // Will be set based on processType
                     "image": ["10", 0]
                 },
                 "class_type": "AIO_Preprocessor"
@@ -120,26 +121,20 @@ export const handler: Handler = async (event) => {
         console.log('Replicate prediction response:', prediction);
 
         // Now we have the prediction ID from Replicate, create the Supabase record
-        const { data: record, error: dbError } = await supabase
+        const now = new Date().toISOString();
+        await supabase
             .from('preprocessed_images')
             .insert({
-                prediction_id: prediction.id,  // Use the ID from Replicate's response
+                prediction_id: prediction.id,
                 shapeId,
                 originalUrl: imageUrl,
                 processType,
                 status: 'processing',
-                created_at: new Date().toISOString()
-            })
-            .select()
-            .single();
+                created_at: now,
+                updated_at: now  // Add this field
+            });
 
-        if (dbError) {
-            console.error('Supabase insert error:', dbError);
-            throw dbError;
-        }
 
-        // Log successful database insertion
-        console.log('Created preprocessed_images record:', record);
 
         return {
             statusCode: 200,
