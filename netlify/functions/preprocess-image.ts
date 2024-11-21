@@ -82,7 +82,7 @@ export const handler: Handler = async (event) => {
 
         // Modify the copy
         workflow["10"].inputs.image = imageUrl;
-        workflow["33"].inputs.preprocessor = processType === 'depth' ? 'MiDaS' :
+        baseWorkflow["33"].inputs.preprocessor = processType === 'depth' ? 'MiDaS' :
             processType === 'edge' ? 'Canny' :
                 processType === 'pose' ? 'OpenPose' : 'DWPreprocessor';
 
