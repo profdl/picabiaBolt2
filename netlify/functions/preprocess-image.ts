@@ -92,10 +92,35 @@ export const handler: Handler = async (event) => {
         // Log successful database insertion
         console.log('Created preprocessed_images record:', record);
 
-        baseWorkflow["10"].inputs.image = imageUrl;
-        baseWorkflow["33"].inputs.preprocessor = processType === 'depth' ? 'MiDaS' :
+        // Create a copy of the workflow
+        const workflow = JSON.parse(JSON.stringify(baseWorkflow));
+
+        // Modify the copy
+        workflow["10"].inputs.image = imageUrl;
+        workflow["33"].inputs.preprocessor = processType === 'depth' ? 'MiDaS' :
             processType === 'edge' ? 'Canny' :
                 processType === 'pose' ? 'OpenPose' : 'DWPreprocessor';
+
+        // Use the modified copy in the API call
+        const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                version: MODEL_VERSION,
+                input: {
+                    workflow_json: JSON.stringify(workflow),
+                    input_file: imageUrl,
+                    output_format: "png",
+                    output_quality: 95,
+                    randomise_seeds: false
+                },
+                webhook: process.env.WEBHOOK_URL,
+                webhook_events_filter: ["completed"]
+            })
+        });
 
         return {
             statusCode: 200,
