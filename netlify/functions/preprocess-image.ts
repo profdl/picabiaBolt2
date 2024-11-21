@@ -46,42 +46,25 @@ export const handler: Handler = async (event) => {
         const baseWorkflow = {
             "10": {
                 "inputs": {
-                    "image": "",
-                    "upload": "image"
+                    "image": ""
                 },
-                "class_type": "LoadImage",
-                "_meta": {
-                    "title": "Load Image"
-                }
+                "class_type": "LoadImage"
             },
             "15": {
                 "inputs": {
-                    "filename_prefix": "preprocessed",
-                    "images": [
-                        "33",
-                        0
-                    ]
+                    "images": ["10", 0]
                 },
-                "class_type": "SaveImage",
-                "_meta": {
-                    "title": "Save Image"
-                }
+                "class_type": "SaveImage"
             },
             "33": {
                 "inputs": {
                     "preprocessor": "",
-                    "resolution": 1024,
-                    "image": [
-                        "10",
-                        0
-                    ]
+                    "image": ["10", 0]
                 },
-                "class_type": "AIO_Preprocessor",
-                "_meta": {
-                    "title": "AIO Aux Preprocessor"
-                }
+                "class_type": "AIO_Preprocessor"
             }
         };
+
 
         // Create a copy of the workflow
         const workflow = JSON.parse(JSON.stringify(baseWorkflow));
