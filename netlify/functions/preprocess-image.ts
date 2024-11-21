@@ -46,7 +46,7 @@ export const handler: Handler = async (event) => {
         const baseWorkflow = {
             "10": {
                 "inputs": {
-                    "image": "",
+                    "image": imageUrl,
                     "upload": "image"
                 },
                 "class_type": "LoadImage",
@@ -56,14 +56,14 @@ export const handler: Handler = async (event) => {
             },
             "33": {
                 "inputs": {
-                    "preprocessor": "",  // Will be set based on processType
+                    "preprocessor": "",
                     "image": ["10", 0]
                 },
                 "class_type": "AIO_Preprocessor"
             },
             "15": {
                 "inputs": {
-                    "images": ["33", 0],  // Connect to AIO_Preprocessor output
+                    "images": ["33", 0],
                     "filename_prefix": "preprocessed"
                 },
                 "class_type": "SaveImage"
