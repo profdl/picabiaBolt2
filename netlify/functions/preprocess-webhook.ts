@@ -24,62 +24,21 @@ export const handler: Handler = async (event) => {
         const { output, status, id } = payload;
 
         console.log('Webhook data:', { status, hasOutput: !!output, id });
-        const { data: prediction, error: queryError } = await supabase
-            .from('preprocessed_images')
-            .select('*')
-            .eq('prediction_id', id)
-            .single();
 
-        if (queryError || !prediction) {
-            console.error('Failed to find prediction record:', { id, error: queryError });
-            return {
-                statusCode: 404,
-                body: JSON.stringify({
-                    success: false,
-                    error: 'Prediction record not found'
-                })
-            };
-        }
-        if (!id) {
-            return {
-                statusCode: 400,
-                body: JSON.stringify({
-                    success: false,
-                    error: 'No prediction ID provided'
-                })
-            };
-        }
+        if (status === 'succeeded' && Array.isArray(output) && output.length > 0) {
+            const response = await fetch(output[0]);
+            const imageBuffer = await response.arrayBuffer();
+            const imageData = new Uint8Array(imageBuffer);
 
-        if (status === 'succeeded' && output && output.length > 0) {
-            // The model returns an array of image URLs
-            const processedImageUrl = output[0];
-
-            // Get the prediction record
-            const { data: prediction, error: queryError } = await supabase
+            const { data: prediction } = await supabase
                 .from('preprocessed_images')
                 .select('*')
                 .eq('prediction_id', id)
                 .single();
 
-            if (queryError || !prediction) {
-                console.error('Failed to find prediction record:', { id, error: queryError });
-                return {
-                    statusCode: 404,
-                    body: JSON.stringify({
-                        success: false,
-                        error: 'Prediction record not found'
-                    })
-                };
-            }
-
-            // Download and upload to Supabase storage
-            const response = await fetch(processedImageUrl);
-            const imageBuffer = await response.arrayBuffer();
-            const imageData = new Uint8Array(imageBuffer);
-
             const filename = `${prediction.shapeId}-${prediction.processType}-${Date.now()}.png`;
 
-            const { error: uploadError } = await supabase
+            await supabase
                 .storage
                 .from('preprocessed-images')
                 .upload(filename, imageData, {
@@ -87,15 +46,12 @@ export const handler: Handler = async (event) => {
                     cacheControl: '3600'
                 });
 
-            if (uploadError) throw uploadError;
-
             const { data: { publicUrl } } = supabase
                 .storage
                 .from('preprocessed-images')
                 .getPublicUrl(filename);
 
-            // Update the database record
-            const { error } = await supabase
+            await supabase
                 .from('preprocessed_images')
                 .update({
                     [`${prediction.processType}Url`]: publicUrl,
@@ -104,17 +60,10 @@ export const handler: Handler = async (event) => {
                 })
                 .eq('prediction_id', id);
 
-            console.log('Update operation details:', {
-                prediction_id: id,
-                success: !error,
-                error: error?.message
-            });
-
             return {
                 statusCode: 200,
                 body: JSON.stringify({
                     success: true,
-                    message: 'Preprocessed image saved successfully',
                     data: { id, status: 'completed' }
                 })
             };
@@ -124,7 +73,6 @@ export const handler: Handler = async (event) => {
             statusCode: 200,
             body: JSON.stringify({
                 success: true,
-                message: 'Webhook received but no update required',
                 data: { id, status }
             })
         };
