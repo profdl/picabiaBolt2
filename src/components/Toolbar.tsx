@@ -255,7 +255,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
 
           <div className="w-px bg-gray-200 mx-2" />
-          {(tool === 'pen' || tool === 'brush') && (
+          {(tool === 'pen' || tool === 'brush' || tool === 'eraser') && (
             <div className="absolute bottom-full mb-4 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg px-4 py-2 flex items-center gap-4">
               {tool === 'pen' && (
                 <>
@@ -278,7 +278,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   </select>
                 </>
               )}
-              {tool === 'brush' && (
+              {(tool === 'brush' || tool === 'eraser') && (
                 <div className="flex items-center gap-4">
                   <input
                     type="color"
