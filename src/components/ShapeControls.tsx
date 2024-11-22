@@ -107,7 +107,7 @@ export function ShapeControls({
             )}
 
             {/* Side Controls Panel */}
-            {(shape.type === 'image' || shape.type === 'canvas') && showControlPanel && (
+            {(shape.type === 'image' || shape.type === 'sketchpad') && showControlPanel && (
                 <div
                     className="absolute left-full ml-2 top-0 bg-white rounded-md border border-gray-200 shadow-sm"
                     style={{ zIndex: 101, pointerEvents: 'all', width: '200px' }}
@@ -259,7 +259,7 @@ export function ShapeControls({
             )}
 
             {/* Color picker for non-image/canvas shapes */}
-            {shape.type !== 'image' && shape.type !== 'canvas' && shape.type !== 'group' && (
+            {shape.type !== 'image' && shape.type !== 'sketchpad' && shape.type !== 'group' && (
                 <input
                     type="color"
                     value={shape.color}
@@ -268,7 +268,16 @@ export function ShapeControls({
                     style={{ zIndex: 101, pointerEvents: 'all' }}
                 />
             )}
-
+            {/* Color picker for sketchpad shapes */}
+            {shape.type === 'sketchpad' && (
+                <input
+                    type="color"
+                    value={shape.color || '#000000'}
+                    onChange={(e) => updateShape(shape.id, { color: e.target.value })}
+                    className="absolute -left-6 top-1/2 w-4 h-4 cursor-pointer transform -translate-y-1/2"
+                    style={{ zIndex: 101, pointerEvents: 'all' }}
+                />
+            )}
             {/* Sticky note controls */}
             {shape.type === 'sticky' && (
                 <div className="absolute left-1/2 top-full mt-1 bg-white p-1.5 rounded border border-gray-200 transform -translate-x-1/2"

@@ -14,12 +14,13 @@ const supabase = createClient(
 
 
 interface BoardState extends CanvasState {
+  isEraser: boolean;
   shapes: Shape[];
   selectedShapes: string[];
   zoom: number;
   offset: Position;
   isDragging: boolean;
-  tool: 'select' | 'pan' | 'pen' | 'brush';
+  tool: 'select' | 'pan' | 'pen' | 'brush' | 'eraser';
   history: Shape[][];
   historyIndex: number;
   gridEnabled: boolean;
@@ -62,11 +63,11 @@ interface BoardState extends CanvasState {
     scheduler: string;
     seed: number;
     steps: number;
-
   };
 
 
   // Methods
+  setIsEraser: (isEraser: boolean) => void;
   resetState: () => void;
   setShapes: (shapes: Shape[]) => void;
   addShape: (shape: Shape) => void;
@@ -79,7 +80,7 @@ interface BoardState extends CanvasState {
   setZoom: (zoom: number) => void;
   setOffset: (offset: Position) => void;
   setIsDragging: (isDragging: boolean) => void;
-  setTool: (tool: 'select' | 'pan' | 'pen' | 'brush') => void;
+  setTool: (tool: 'select' | 'pan' | 'pen' | 'brush' | 'eraser') => void;
   setCurrentColor: (color: string) => void;
   setStrokeWidth: (width: number) => void;
   copyShapes: () => void;
@@ -381,7 +382,7 @@ export const useStore = create<BoardState>((set, get) => ({
 
   , setOffset: (offset: Position) => set({ offset }),
   setIsDragging: (isDragging: boolean) => set({ isDragging }),
-  setTool: (tool: 'select' | 'pan' | 'pen' | 'brush') => set({ tool }),
+  setTool: (tool: 'select' | 'pan' | 'pen' | 'brush' | 'eraser') => set({ tool }),
   setCurrentColor: (color: string) => set({ currentColor: color }),
   setStrokeWidth: (width: number) => set({ strokeWidth: width }),
   setBrushSize: (size: number) => set({ brushSize: size }),

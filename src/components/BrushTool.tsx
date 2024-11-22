@@ -85,7 +85,7 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
 
     const handlePointerDown = (e: React.PointerEvent) => {
         console.log('Pointer down, tool:', tool);
-        if (tool !== 'brush') return;
+        if (tool !== 'brush' && tool !== 'eraser') return;
         e.preventDefault();
 
         isDrawing.current = true;
@@ -100,6 +100,8 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
 
     const handlePointerMove = (e: React.PointerEvent) => {
         if (!isDrawing.current || !lastPoint.current) return;
+        if (tool !== 'brush' && tool !== 'eraser') return;
+
         console.log('Drawing from:', lastPoint.current, 'Current position:', {
             x: e.clientX,
             y: e.clientY

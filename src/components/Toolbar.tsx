@@ -1,10 +1,5 @@
 import React from 'react';
 import {
-  Square,
-  Circle,
-  Type,
-  ZoomIn,
-  ZoomOut,
   StickyNote,
   Hand,
   MousePointer,
@@ -12,16 +7,13 @@ import {
   Sparkles,
   Settings,
   Image as ImageIcon,
-  ImagePlus,
   Loader2,
-  Upload,
   Grid,
-  Plus,
   Brush,
-  Frame
+  Frame,
+  Eraser
 } from 'lucide-react';
 import { useStore } from '../store';
-import { Position } from '../types';
 import { useState, useRef } from 'react';
 import { ImageGeneratePanel } from './GenerateSettings';
 import { useEffect } from 'react';
@@ -48,68 +40,8 @@ const AssetsButton = () => {
 
 
 
-const UploadButton = ({ addShape, getViewportCenter }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imageUrl = event.target?.result as string;
-        const center = getViewportCenter();
 
-        addShape({
-          id: Math.random().toString(36).substr(2, 9),
-          type: 'image',
-          position: {
-            x: center.x - 150,
-            y: center.y - 100
-          },
-          width: 300,
-          height: 200,
-          color: 'transparent',
-          imageUrl,
-          rotation: 0,
-          aspectRatio: 1.5,
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  return (
-    <div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-      />
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
-        title="Upload Image"
-      >
-        <Upload className="w-5 h-5" />
-        <span className="text-sm font-medium"></span>
-      </button>
-    </div>
-  );
-};
-
-// const UnsplashIcon = () => (
-//   <svg 
-//     viewBox="0 0 32 32" 
-//     width="20" 
-//     height="20" 
-//     xmlns="http://www.w3.org/2000/svg"
-//     fill="currentColor"
-//   >
-//     <path d="M10 9V0h12v9H10zm12 5h10v18H0V14h10v9h12v-9z" />
-//   </svg>
-// );
 
 const SettingsButton = () => {
   const [showPanel, setShowPanel] = useState(false);
@@ -161,14 +93,11 @@ interface ToolbarProps {
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
-  onShowImageGenerate,
-  onShowUnsplash,
-  onShowGallery,
-  showImageGenerate,
-  showUnsplash,
+
   showGallery
 }) => {
   const [showAssets, setShowAssets] = useState(false);
+  const { setCurrentColor } = useStore();
 
   const {
     zoom,
@@ -178,11 +107,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setTool,
     offset,
     currentColor,
-    setCurrentColor,
+
     strokeWidth,
     setStrokeWidth,
-    toggleImageGenerate,
-    toggleUnsplash,
+
     toggleGallery,
     handleGenerate,
     isGenerating,
@@ -215,12 +143,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     console.log('Current tool:', tool);
   }, [tool]);
 
-  const handleAddShape = (type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'canvas') => {
-    if (type === 'canvas') {
+  const handleAddShape = (type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'sketchpad') => {
+    if (type === 'sketchpad') {
       const center = getViewportCenter();
       addShape({
         id: Math.random().toString(36).substr(2, 9),
-        type: 'canvas',
+        type: 'sketchpad',
         position: {
           x: center.x - 256,
           y: center.y - 256
@@ -255,6 +183,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         imageUrl: url,
         rotation: 0,
         aspectRatio: 1.5,
+        isUploading: false
       });
       setTool('select');
       return;
@@ -274,11 +203,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       content: type === 'text' || type === 'sticky' ? 'Double click to edit' : undefined,
       fontSize: 16,
       rotation: 0,
+      isUploading: false
     });
 
     const toggleAssets = () => setShowAssets(!showAssets);
 
   };
+
+
+  useEffect(() => {
+    if (tool === 'brush') {
+      setCurrentColor('#ffffff');
+    }
+  }, [setCurrentColor, tool]);
 
   return (
     <div className="absolute bottom-0 left-0 right-0 bg-white shadow-lg px-4 py-2 border-t border-gray-200">
@@ -350,6 +287,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     className="w-8 h-8 p-0 cursor-pointer"
                     title="Brush Color"
                   />
+
                   <BrushShapeSelector
                     currentTexture={brushTexture}
                     onTextureSelect={setBrushTexture}
@@ -384,17 +322,29 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             onClick={() => {
               setTool('brush');
+              setCurrentColor('#ffffff'); // White for brush
             }}
             className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'brush' ? 'bg-gray-100' : ''}`}
             title="Brush Tool (B)"
           >
             <Brush className="w-5 h-5" />
           </button>
+          <button
+            onClick={() => {
+              setTool('eraser');
+              setCurrentColor('#000000'); // Black for eraser
+            }}
+            className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'eraser' ? 'bg-gray-100' : ''}`}
+            title="Eraser Tool (E)"
+          >
+            <Eraser className="w-5 h-5" />
+          </button>
+
           {/* Canvas */}
           <button
-            onClick={() => handleAddShape('canvas')}
+            onClick={() => handleAddShape('sketchpad')}
             className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Add Canvas"
+            title="Add sketchpad"
           >
             <Frame className="w-5 h-5" />
           </button>

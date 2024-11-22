@@ -21,7 +21,7 @@ export interface Project {
 
 export interface Shape {
   id: string;
-  type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing' | 'canvas' | 'group';
+  type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing' | 'sketchpad' | 'group';
   position: Position;
   content?: string;
   width: number;
@@ -68,7 +68,8 @@ export interface CanvasState {
   zoom: number;
   offset: Position;
   isDragging: boolean;
-  tool: 'select' | 'pan' | 'pen' | 'brush';
+  tool: 'select' | 'pan' | 'pen' | 'brush' | 'eraser';
+
   history: Shape[][];
   historyIndex: number;
   gridEnabled: boolean;
@@ -76,6 +77,8 @@ export interface CanvasState {
   clipboard: Shape[];
   currentColor: string;
   strokeWidth: number;
+  isEraser: boolean;
+  setIsEraser: (isEraser: boolean) => void;
   setShapes: (shapes: Shape[]) => void;
   addShape: (shape: Shape) => void;
   addShapes: (shapes: Shape[]) => void;
@@ -90,7 +93,7 @@ export interface CanvasState {
   setZoom: (zoom: number, center?: Position) => void;
   setOffset: (offset: Position) => void;
   setIsDragging: (isDragging: boolean) => void;
-  setTool: (tool: 'select' | 'pan' | 'pen' | 'brush') => void;
+  setTool: (tool: 'select' | 'pan' | 'pen' | 'brush' | 'eraser') => void;
   setCurrentColor: (color: string) => void;
   setStrokeWidth: (width: number) => void;
   undo: () => void;

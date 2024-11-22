@@ -35,7 +35,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const [isEditing, setIsEditing] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sketchPadRef = useRef<HTMLCanvasElement>(null);
   const [dragStart, setDragStart] = useState<DragStart | null>(null);
   const handleMouseUp = () => {
     setResizeStart(null);
@@ -58,7 +58,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     height: number;
     aspectRatio: number;
   } | null>(null);
-  const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush(canvasRef);
+  const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush(sketchPadRef);
   const isSelected = selectedShapes.includes(shape.id);
   const handleMouseDown = (e: React.MouseEvent) => {
     if (tool === 'pan' || tool === 'pen') return;
@@ -247,7 +247,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
   }, [rotateStart, shape.id, updateShape]);
 
   useEffect(() => {
-    if (shape.type === 'canvas' && canvasRef.current) {
+    if (shape.type === 'sketchpad' && sketchPadRef.current) {
       updateShape(shape.id, {
         getCanvasImage: () => {
           // Create temp canvas for resizing
@@ -260,7 +260,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
           tempCanvas.height = 512;
 
           // Draw current canvas content scaled to 512x512
-          tempCtx.drawImage(canvasRef.current, 0, 0, 512, 512);
+          tempCtx.drawImage(sketchPadRef.current, 0, 0, 512, 512);
 
           return tempCanvas.toDataURL('image/png');
         }
@@ -469,7 +469,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     zIndex: shape.type === 'group' ? 1 : isSelected ? 100 : 10,
     pointerEvents: tool === 'select' ? 'all' : 'none',
     cursor: tool === 'select' ? 'move' : 'default',
-    border: shape.type === 'canvas'
+    border: shape.type === 'sketchpad'
       ? '2px dashed #e5e7eb'
       : shape.type === 'group'
         ? '2px dashed #9ca3af'  // Persistent group border
@@ -502,24 +502,23 @@ export function ShapeComponent({ shape }: ShapeProps) {
         className="group transition-shadow hover:shadow-xl relative"
       >
         {/* Image and content rendering */}
-        {shape.type === 'canvas' && (
+        {shape.type === 'sketchpad' && (
           <>
             <div className="absolute -top-6 left-0 text-sm text-gray-300 font-medium ">
-              Canvas
+              SketchPad
             </div>
             <canvas
-              ref={canvasRef}
+              ref={sketchPadRef}
               width={512}
               height={512}
               className="w-full h-full"
               onContextMenu={handleContextMenu}
-
               style={{
-                pointerEvents: (tool === 'select' || tool === 'brush') ? 'all' : 'none',
-                backgroundColor: '#e5e7eb',
+                pointerEvents: (tool === 'select' || tool === 'brush' || tool === 'eraser') ? 'all' : 'none',
+                backgroundColor: '#000000',
               }}
               onPointerDown={(e) => {
-                e.stopPropagation();
+                e.stopPropagation(); // Prevent select behavior
                 handlePointerDown(e);
               }}
               onPointerMove={(e) => {
