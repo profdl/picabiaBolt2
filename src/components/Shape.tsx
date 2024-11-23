@@ -248,23 +248,28 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
   useEffect(() => {
     if (shape.type === 'sketchpad' && sketchPadRef.current) {
-      updateShape(shape.id, {
-        getCanvasImage: () => {
-          // Create temp canvas for resizing
-          const tempCanvas = document.createElement('canvas');
-          const tempCtx = tempCanvas.getContext('2d');
-          if (!tempCtx) {
-            throw new Error('Failed to get 2D context');
-          }
-          tempCanvas.width = 512;
-          tempCanvas.height = 512;
-
-          // Draw current canvas content scaled to 512x512
-          tempCtx.drawImage(sketchPadRef.current, 0, 0, 512, 512);
-
-          return tempCanvas.toDataURL('image/png');
+      const updateCanvasImage = () => {
+        // Create temp canvas for resizing
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) {
+          console.error('Failed to get 2D context for tempCanvas');
+          return;
         }
-      });
+        tempCanvas.width = 512;
+        tempCanvas.height = 512;
+
+        // Debugging: Log current canvas content before scaling
+        console.log('Scaling canvas content for getCanvasImage');
+
+        // Draw current canvas content scaled to 512x512
+        tempCtx.drawImage(sketchPadRef.current, 0, 0, 512, 512);
+
+        return tempCanvas.toDataURL('image/png');
+      };
+
+      // Only update the shape when necessary
+      updateShape(shape.id, { getCanvasImage: updateCanvasImage });
     }
   }, [shape.id, shape.type, updateShape]);
 
@@ -504,33 +509,55 @@ export function ShapeComponent({ shape }: ShapeProps) {
         {/* Image and content rendering */}
         {shape.type === 'sketchpad' && (
           <>
-            <div className="absolute -top-6 left-0 text-sm text-gray-300 font-medium ">
+            <div className="absolute -top-6 left-0 text-sm text-gray-300 font-medium">
               SketchPad
             </div>
             <canvas
               ref={sketchPadRef}
               width={512}
               height={512}
-              className="w-full h-full"
+              className="w-full h-full touch-none"
               onContextMenu={handleContextMenu}
               style={{
                 pointerEvents: (tool === 'select' || tool === 'brush' || tool === 'eraser') ? 'all' : 'none',
                 backgroundColor: '#000000',
+                touchAction: 'none', // Prevent scrolling while drawing
               }}
               onPointerDown={(e) => {
-                e.stopPropagation(); // Prevent select behavior
+                e.stopPropagation();
+                e.preventDefault();
+                // Set pointer capture to ensure we get all pointer events
+                e.currentTarget.setPointerCapture(e.pointerId);
                 handlePointerDown(e);
               }}
               onPointerMove={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 handlePointerMove(e);
               }}
               onPointerUp={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
+                // Release pointer capture
+                e.currentTarget.releasePointerCapture(e.pointerId);
                 handlePointerUpOrLeave();
               }}
               onPointerLeave={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
+                // Release pointer capture
+                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                }
+                handlePointerUpOrLeave();
+              }}
+              onPointerCancel={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                // Release pointer capture
+                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                }
                 handlePointerUpOrLeave();
               }}
             />
