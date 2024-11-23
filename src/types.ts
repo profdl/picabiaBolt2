@@ -40,10 +40,12 @@ export interface Shape {
   showEdges?: boolean;
   showContent?: boolean;
   showPose?: boolean;
+  showScribble?: boolean;
   depthStrength?: number;
   edgesStrength?: number;
   contentStrength?: number;
   poseStrength?: number;
+  scribbleStrength?: number;
   groupId?: string;
   isGroup?: boolean;
   depthMapUrl?: string;
@@ -52,12 +54,15 @@ export interface Shape {
   depthPreviewUrl?: string;
   edgePreviewUrl?: string;
   posePreviewUrl?: string;
+  scribblePreviewUrl?: string;
   isDepthProcessing?: boolean;
   isEdgeProcessing?: boolean;
   isPoseProcessing?: boolean;
+  isScribbleProcessing?: boolean;
   hasDepthGenerated?: boolean;
   hasEdgeGenerated?: boolean;
   hasPoseGenerated?: boolean;
+  hasScribbleGenerated?: boolean;
   model?: string;
   steps?: number;
   guidanceScale?: number;

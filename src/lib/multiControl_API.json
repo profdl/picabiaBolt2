@@ -211,5 +211,47 @@
     "_meta": {
       "title": "PoseImage"
     }
+  },
+ 
+    "20": {
+      "inputs": {
+        "control_net_name": "controlnet-scribble-sdxl-1.0.safetensors"
+      },
+      "class_type": "ControlNetLoader",
+      "_meta": {
+        "title": "Load ControlNet Model"
+      }
+    },
+    "21": {
+      "inputs": {
+        "image": "https://picsum.photos/200",
+        "upload": "image"
+      },
+      "class_type": "LoadImage",
+      "_meta": {
+        "title": "ScribbleImage"
+      }
+    },
+    "22": {
+      "inputs": {
+        "strength": 1,
+        "conditioning": [
+          "17",
+          0
+        ],
+        "control_net": [
+          "20",
+          0
+        ],
+        "image": [
+          "21",
+          0
+        ]
+      },
+      "class_type": "ControlNetApply",
+      "_meta": {
+        "title": "Apply ControlNet"
+      }
+    }
   }
-}
+  

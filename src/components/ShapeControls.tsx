@@ -23,6 +23,7 @@ export function ShapeControls({
     const depthProcessing = useStore(state => state.preprocessingStates[shape.id]?.depth);
     const edgeProcessing = useStore(state => state.preprocessingStates[shape.id]?.edge);
     const poseProcessing = useStore(state => state.preprocessingStates[shape.id]?.pose);
+    const scribbleProcessing = useStore(state => state.preprocessingStates[shape.id]?.scribble);
 
     const controls = [
         {
@@ -57,6 +58,15 @@ export function ShapeControls({
             isProcessing: poseProcessing,
             processType: 'pose',
             preprocessor: 'OpenPose'
+        },
+        {
+            type: 'Scribble',
+            preview: shape.scribblePreviewUrl,
+            showKey: 'showScribble',
+            strengthKey: 'scribbleStrength',
+            isProcessing: scribbleProcessing,
+            processType: 'scribble',
+            preprocessor: 'Scribble'
         }
     ];
 
