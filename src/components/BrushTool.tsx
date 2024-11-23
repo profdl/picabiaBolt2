@@ -5,6 +5,8 @@ const brushTextures = new Map<string, HTMLImageElement>();
 interface Point {
     x: number;
     y: number;
+    angle?: number;
+
 }
 
 const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
@@ -86,6 +88,8 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
         updateMainCanvas();
     };
 
+    const accumulatedDistance = useRef(0); // Accumulates distance between points
+
     const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isDrawing.current || !lastPoint.current) return;
         if (tool !== 'brush' && tool !== 'eraser') return;
@@ -94,11 +98,23 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
         const point = getScaledPoint(e);
         if (!point) return;
 
-        // Draw the stroke segment directly onto the overlay canvas
-        const overlayCtx = overlayCanvasRef.current?.getContext('2d');
-        if (overlayCtx && lastPoint.current) {
-            // Don't clear the overlay - let the stroke accumulate
-            drawBrushStroke(overlayCtx, lastPoint.current, point);
+        const dx = point.x - lastPoint.current.x;
+        const dy = point.y - lastPoint.current.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        accumulatedDistance.current += distance;
+
+        // Determine the number of stamps needed based on accumulated distance and brush spacing
+        const spacing = Math.max(brushSize * brushSpacing, 1);
+        if (accumulatedDistance.current >= spacing) {
+            // Draw the stroke segment directly onto the overlay canvas
+            const overlayCtx = overlayCanvasRef.current?.getContext('2d');
+            if (overlayCtx && lastPoint.current) {
+                // Draw stamps along the accumulated distance path
+                drawBrushStroke(overlayCtx, lastPoint.current, point, accumulatedDistance.current, spacing);
+            }
+
+            // Reset accumulated distance after drawing
+            accumulatedDistance.current = 0;
         }
 
         // Update main canvas display
@@ -106,6 +122,7 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
 
         lastPoint.current = point;
     };
+
 
     const handlePointerUpOrLeave = (e: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isDrawing.current) return;
@@ -147,7 +164,7 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
         // Draw completed strokes
         ctx.drawImage(strokeCanvasRef.current, 0, 0);
 
-        // Draw current stroke with opacity
+        // Draw curre nt stroke with opacity
         ctx.save();
         ctx.globalAlpha = brushOpacity;
         ctx.drawImage(overlayCanvasRef.current, 0, 0);
@@ -184,8 +201,26 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
         }
         ctx.restore();
     };
+    const drawBrushStamp = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+        const textureImg = brushTextures.get(brushTexture);
+        if (!textureImg || !textureImg.complete) return;
 
+        // Create temporary canvas for colored texture
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = brushSize;
+        tempCanvas.height = brushSize;
+        const tempCtx = tempCanvas.getContext('2d');
 
+        if (tempCtx) {
+            tempCtx.fillStyle = currentColor;
+            tempCtx.fillRect(0, 0, brushSize, brushSize);
+            tempCtx.globalCompositeOperation = 'destination-in';
+            tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
+
+            // Draw the colored texture to main canvas
+            ctx.drawImage(tempCanvas, x, y);
+        }
+    };
     const drawBrushStroke = (
         ctx: CanvasRenderingContext2D,
         start: Point,
@@ -194,41 +229,30 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
         const textureImg = brushTextures.get(brushTexture);
         if (!textureImg || !textureImg.complete) return;
 
-        ctx.save();
-        if (tool === 'eraser') {
-            ctx.globalCompositeOperation = 'destination-out';
-        } else {
-            const dx = end.x - start.x;
-            const dy = end.y - start.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const spacing = Math.max(brushSize * brushSpacing, 1)
-            const steps = Math.ceil(distance / spacing);
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const spacing = Math.max(brushSize * brushSpacing, 1);
+        const angle = Math.atan2(dy, dx); // Ensure the angle aligns with movement direction
+        const steps = Math.ceil(distance / spacing);
 
-            // Create temporary canvas for colored texture
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = brushSize;
-            tempCanvas.height = brushSize;
-            const tempCtx = tempCanvas.getContext('2d');
+        // Draw stamps along the path with consistent spacing
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const x = start.x + dx * t;
+            const y = start.y + dy * t;
 
-            if (tempCtx) {
-                tempCtx.fillStyle = currentColor;
-                tempCtx.fillRect(0, 0, brushSize, brushSize);
-                tempCtx.translate(brushSize / 2, brushSize / 2);
-                tempCtx.rotate(brushRotation * Math.PI / 180);
-                tempCtx.translate(-brushSize / 2, -brushSize / 2);
-                tempCtx.globalCompositeOperation = 'destination-in';
-                tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
+            // Apply rotation to align with the movement direction
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle + (brushRotation * Math.PI / 180)); // Add any brush-specific rotation on top of path rotation
+            ctx.translate(-brushSize / 2, -brushSize / 2);
 
-                for (let i = 0; i <= steps; i++) {
-                    const t = i / steps;
-                    const x = start.x + dx * t - brushSize / 2;
-                    const y = start.y + dy * t - brushSize / 2;
-                    ctx.drawImage(tempCanvas, x, y);
-                }
-            }
+            drawBrushStamp(ctx, 0, 0);
+            ctx.restore();
         }
-        ctx.restore();
     };
+
 
 
     return {
