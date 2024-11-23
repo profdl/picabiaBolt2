@@ -51,6 +51,8 @@ interface BoardState extends CanvasState {
   };
   brushRotation: number;
   brushSpacing: number;
+  brushFollowPath: boolean,
+
   advancedSettings: {
     width: number;
     height: number;
@@ -70,6 +72,8 @@ interface BoardState extends CanvasState {
 
 
   // Methods
+
+  setBrushFollowPath: (value: boolean) => void,
   setIsEraser: (isEraser: boolean) => void;
   resetState: () => void;
   setShapes: (shapes: Shape[]) => void;
@@ -167,6 +171,8 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   preprocessingStates: {},
   brushRotation: 0,
   brushSpacing: 0.2,
+  brushFollowPath: false,
+
 };
 
 
@@ -174,9 +180,11 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
 export const useStore = create<BoardState>((set, get) => ({
   ...initialState,
   contextMenu: null,
+  brushFollowPath: false,
   setContextMenu: (menu) => set({ contextMenu: menu }),
   setBrushSpacing: (spacing: number) => set({ brushSpacing: spacing }),
   setBrushRotation: (rotation: number) => set({ brushRotation: rotation }),
+  setBrushFollowPath: (value: boolean) => set((state) => ({ ...state, brushFollowPath: value })),
   createGroup: (shapeIds: string[]) => {
     const { shapes } = get();
     const groupId = Math.random().toString(36).substr(2, 9);
@@ -467,7 +475,7 @@ export const useStore = create<BoardState>((set, get) => ({
   setAspectRatio: (ratio: string) => set({ aspectRatio: ratio }),
   setAdvancedSettings: (settings: Partial<BoardState['advancedSettings']>) =>
     set(state => ({
-      advancedSettings: { ...state.advancedSettings, ...settings }
+      advancedSettings: { ...state.advancedSettings, ...settings },
     })),
 
   setError: (error: string | null) => set({ error }),

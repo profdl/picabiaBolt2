@@ -11,7 +11,8 @@ import {
   Grid,
   Brush,
   Frame,
-  Eraser
+  Eraser,
+  ArrowUpRight
 } from 'lucide-react';
 import { useStore } from '../store';
 import { useState, useRef } from 'react';
@@ -121,7 +122,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     brushSpacing,
     setBrushSpacing,
     brushRotation,
-    setBrushRotation
+    setBrushRotation,
+    brushFollowPath,
   } = useStore();
 
   const hasActivePrompt = shapes.some(shape =>
@@ -215,6 +217,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       setCurrentColor('#ffffff');
     }
   }, [setCurrentColor, tool]);
+
+  function setBrushFollowPath(arg0: boolean): void {
+    throw new Error('Function not implemented.');
+  }
 
   return (
     <div className="absolute bottom-0 left-0 right-0 bg-white shadow-lg px-4 py-2 border-t border-gray-200">
@@ -314,17 +320,37 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                       title="Brush Opacity"
                     />
                   </div>
+
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-gray-500">Rotation</label>
-                    <input
-                      type="range"
-                      value={brushRotation}
-                      onChange={(e) => setBrushRotation(Number(e.target.value))}
-                      min="0"
-                      max="360"
-                      title="Brush Rotation"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        value={brushRotation}
+                        onChange={(e) => setBrushRotation(Number(e.target.value))}
+                        min="0"
+                        max="360"
+                        title="Brush Rotation"
+                      />
+
+                    </div>
                   </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="brushFollowPath"
+                        checked={brushFollowPath}
+                        onChange={(e) => useStore.getState().setBrushFollowPath(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      />
+                      <label htmlFor="brushFollowPath" className="text-xs text-gray-500">
+                        Follow
+                      </label>
+                    </div>
+                  </div>
+
+
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-gray-500">Spacing</label>
                     <input

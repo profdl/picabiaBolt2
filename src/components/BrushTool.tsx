@@ -14,8 +14,9 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     const lastPoint = useRef<Point | null>(null);
     const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const strokeCanvasRef = useRef<HTMLCanvasElement | null>(null);
-
-    const { currentColor, brushSize, brushOpacity, tool, brushTexture, brushSpacing, brushRotation } = useStore();
+    const accumulatedDistance = useRef(0); // Accumulates distance between points
+    const { brushFollowPath,
+        currentColor, brushSize, brushOpacity, tool, brushTexture, brushSpacing, brushRotation } = useStore();
 
     useEffect(() => {
         if (!canvasRef.current) return;
@@ -88,8 +89,9 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
         updateMainCanvas();
     };
 
-    const accumulatedDistance = useRef(0); // Accumulates distance between points
 
+
+    // Handle pointer move
     const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isDrawing.current || !lastPoint.current) return;
         if (tool !== 'brush' && tool !== 'eraser') return;
@@ -233,25 +235,30 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
         const dy = end.y - start.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         const spacing = Math.max(brushSize * brushSpacing, 1);
-        const angle = Math.atan2(dy, dx); // Ensure the angle aligns with movement direction
+        const pathAngle = Math.atan2(dy, dx);
         const steps = Math.ceil(distance / spacing);
 
-        // Draw stamps along the path with consistent spacing
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
             const x = start.x + dx * t;
             const y = start.y + dy * t;
 
-            // Apply rotation to align with the movement direction
             ctx.save();
             ctx.translate(x, y);
-            ctx.rotate(angle + (brushRotation * Math.PI / 180)); // Add any brush-specific rotation on top of path rotation
+
+            // Apply rotation based on mode
+            const rotation = brushFollowPath
+                ? pathAngle
+                : (brushRotation * Math.PI / 180);
+
+            ctx.rotate(rotation);
             ctx.translate(-brushSize / 2, -brushSize / 2);
 
             drawBrushStamp(ctx, 0, 0);
             ctx.restore();
         }
     };
+
 
 
 
