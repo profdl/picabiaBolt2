@@ -88,7 +88,7 @@ export const handler: Handler = async (event) => {
         workflow["10"].inputs.image = imageUrl;
         baseWorkflow["33"].inputs.preprocessor = processType === 'depth' ? 'Zoe-DepthMapPreprocessor' :
             processType === 'edge' ? 'CannyEdgePreprocessor' :
-                processType === 'pose' ? 'OpenPose' : 'OpenposePreprocessor';
+                processType === 'pose' ? 'DWPreprocessor' : 'DWPreprocessor';
 
         // Make the Replicate API call
         const requestBody = {
