@@ -225,7 +225,14 @@ export function ShapeControls({
                                                             }
                                                         });
                                                     }
-
+                                                    // For scribble, use original image directly
+                                                    if (control.processType === 'scribble') {
+                                                        updateShape(shape.id, {
+                                                            [control.showKey]: isChecked,
+                                                            scribblePreviewUrl: isChecked ? shape.imageUrl : null
+                                                        });
+                                                        return;
+                                                    }
                                                     // Force immediate state update
                                                     updateShape(shape.id, { [control.showKey]: isChecked });
 
