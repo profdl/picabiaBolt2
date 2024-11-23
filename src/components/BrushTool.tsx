@@ -165,15 +165,27 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
             ctx.globalCompositeOperation = 'destination-out';
         } else {
             ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = currentColor;
+            const x = point.x - brushSize / 2;
+            const y = point.y - brushSize / 2;
+
+            // Create temporary canvas for colored texture
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = brushSize;
+            tempCanvas.height = brushSize;
+            const tempCtx = tempCanvas.getContext('2d');
+            if (tempCtx) {
+                tempCtx.fillStyle = currentColor;
+                tempCtx.fillRect(0, 0, brushSize, brushSize);
+                tempCtx.globalCompositeOperation = 'destination-in';
+                tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
+
+                // Draw the colored texture to main canvas
+                ctx.drawImage(tempCanvas, x, y);
+            }
         }
-
-        const x = point.x - brushSize / 2;
-        const y = point.y - brushSize / 2;
-        ctx.drawImage(textureImg, x, y, brushSize, brushSize);
-
         ctx.restore();
     };
+
 
     const drawBrushStroke = (
         ctx: CanvasRenderingContext2D,
@@ -187,32 +199,35 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
         if (tool === 'eraser') {
             ctx.globalCompositeOperation = 'destination-out';
         } else {
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = currentColor;
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const spacing = Math.max(brushSize * 0.2, 1);
+            const steps = Math.ceil(distance / spacing);
+
+            // Create temporary canvas for colored texture
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = brushSize;
+            tempCanvas.height = brushSize;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            if (tempCtx) {
+                tempCtx.fillStyle = currentColor;
+                tempCtx.fillRect(0, 0, brushSize, brushSize);
+                tempCtx.globalCompositeOperation = 'destination-in';
+                tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
+
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const x = start.x + dx * t - brushSize / 2;
+                    const y = start.y + dy * t - brushSize / 2;
+                    ctx.drawImage(tempCanvas, x, y);
+                }
+            }
         }
-
-        const dx = end.x - start.x;
-        const dy = end.y - start.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const spacing = Math.max(brushSize * 0.2, 1); // Increased spacing for better performance
-        const steps = Math.ceil(distance / spacing);
-
-        for (let i = 0; i <= steps; i++) {
-            const t = i / steps;
-            const x = start.x + dx * t;
-            const y = start.y + dy * t;
-
-            ctx.drawImage(
-                textureImg,
-                x - brushSize / 2,
-                y - brushSize / 2,
-                brushSize,
-                brushSize
-            );
-        }
-
         ctx.restore();
     };
+
 
     return {
         handlePointerDown,
