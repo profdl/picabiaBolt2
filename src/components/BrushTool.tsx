@@ -173,6 +173,7 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
         ctx.restore();
     };
 
+    // Replace the drawBrushDot function with this updated version
     const drawBrushDot = (canvas: HTMLCanvasElement, point: Point) => {
         const ctx = canvas.getContext('2d');
         const textureImg = brushTextures.get(brushTexture);
@@ -183,8 +184,11 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
             ctx.globalCompositeOperation = 'destination-out';
         } else {
             ctx.globalCompositeOperation = 'source-over';
-            const x = point.x - brushSize / 2;
-            const y = point.y - brushSize / 2;
+
+            // Apply rotation transformation
+            ctx.translate(point.x, point.y);
+            ctx.rotate(brushRotation * Math.PI / 180);
+            ctx.translate(-brushSize / 2, -brushSize / 2);
 
             // Create temporary canvas for colored texture
             const tempCanvas = document.createElement('canvas');
@@ -198,11 +202,12 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
                 tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
 
                 // Draw the colored texture to main canvas
-                ctx.drawImage(tempCanvas, x, y);
+                ctx.drawImage(tempCanvas, 0, 0);
             }
         }
         ctx.restore();
     };
+
     const drawBrushStamp = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
         const textureImg = brushTextures.get(brushTexture);
         if (!textureImg || !textureImg.complete) return;
