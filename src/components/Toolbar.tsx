@@ -20,7 +20,6 @@ import { useEffect } from 'react';
 import { BrushShapeSelector } from './BrushShapeSelector';
 
 
-
 const AssetsButton = () => {
   const showAssets = useStore(state => state.showAssets);
   const toggleAssets = useStore(state => state.toggleAssets);
@@ -93,7 +92,6 @@ interface ToolbarProps {
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
-
   showGallery
 }) => {
   const [showAssets, setShowAssets] = useState(false);
@@ -107,10 +105,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setTool,
     offset,
     currentColor,
-
     strokeWidth,
     setStrokeWidth,
-
     toggleGallery,
     handleGenerate,
     isGenerating,
@@ -121,13 +117,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setBrushOpacity,
     brushTexture,
     setBrushTexture,
+
+    brushSpacing,
+    setBrushSpacing,
+    brushRotation,
+    setBrushRotation
   } = useStore();
 
   const hasActivePrompt = shapes.some(shape =>
     (shape.type === 'sticky' && shape.showPrompt && shape.content) ||
     (shape.type === 'image' && shape.showPrompt)
   );
-
 
   const getViewportCenter = () => {
     const rect = document.querySelector('#root')?.getBoundingClientRect();
@@ -206,7 +206,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       isUploading: false
     });
 
-    const toggleAssets = () => setShowAssets(!showAssets);
 
   };
 
@@ -315,6 +314,28 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                       title="Brush Opacity"
                     />
                   </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-500">Rotation</label>
+                    <input
+                      type="range"
+                      value={brushRotation}
+                      onChange={(e) => setBrushRotation(Number(e.target.value))}
+                      min="0"
+                      max="360"
+                      title="Brush Rotation"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-500">Spacing</label>
+                    <input
+                      type="range"
+                      value={brushSpacing * 100}
+                      onChange={(e) => setBrushSpacing(Number(e.target.value) / 100)}
+                      min="5"
+                      max="100"
+                      title="Brush Spacing"
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -377,7 +398,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           >
             <StickyNote className="w-5 h-5" />
           </button>
-
 
           <div className="w-px bg-gray-200 mx-2" />
           {/* Zoom Controls */}
@@ -455,11 +475,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
         </div>
       </div>
-
     </div>
   );
 };
-
 export default Toolbar;
 
 

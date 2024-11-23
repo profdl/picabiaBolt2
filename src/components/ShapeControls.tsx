@@ -278,6 +278,9 @@ export function ShapeControls({
                     style={{ zIndex: 101, pointerEvents: 'all' }}
                 />
             )}
+
+
+
             {/* Sticky note controls */}
             {shape.type === 'sticky' && (
                 <div className="absolute left-1/2 top-full mt-1 bg-white p-1.5 rounded border border-gray-200 transform -translate-x-1/2"
@@ -305,8 +308,7 @@ export function ShapeControls({
                     </div>
                 </div>
             )}
+
         </div>
     );
-}
-
-export default ShapeControls;
+} export default ShapeControls;

@@ -49,6 +49,8 @@ interface BoardState extends CanvasState {
       pose?: boolean;
     };
   };
+  brushRotation: number;
+  brushSpacing: number;
   advancedSettings: {
     width: number;
     height: number;
@@ -63,6 +65,7 @@ interface BoardState extends CanvasState {
     scheduler: string;
     seed: number;
     steps: number;
+
   };
 
 
@@ -117,7 +120,8 @@ interface BoardState extends CanvasState {
   createGroup: (shapeIds: string[]) => void;
   ungroup: (groupId: string) => void;
   generatePreprocessedImage: (shapeId: string, processType: 'depth' | 'edge' | 'pose') => Promise<void>;
-
+  setBrushSpacing: (spacing: number) => void;
+  setBrushRotation: (rotation: number) => void;
 }const MAX_HISTORY = 50;
 
 const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never }> = {
@@ -161,7 +165,8 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   brushTexture: 'basic',
   assetsRefreshTrigger: 0,
   preprocessingStates: {},
-
+  brushRotation: 0,
+  brushSpacing: 0.2,
 };
 
 
@@ -170,7 +175,8 @@ export const useStore = create<BoardState>((set, get) => ({
   ...initialState,
   contextMenu: null,
   setContextMenu: (menu) => set({ contextMenu: menu }),
-
+  setBrushSpacing: (spacing: number) => set({ brushSpacing: spacing }),
+  setBrushRotation: (rotation: number) => set({ brushRotation: rotation }),
   createGroup: (shapeIds: string[]) => {
     const { shapes } = get();
     const groupId = Math.random().toString(36).substr(2, 9);

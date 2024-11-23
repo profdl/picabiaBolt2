@@ -1,6 +1,5 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../store';
-
 const brushTextures = new Map<string, HTMLImageElement>();
 
 interface Point {
@@ -14,7 +13,7 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const strokeCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-    const { currentColor, brushSize, brushOpacity, tool, brushTexture } = useStore();
+    const { currentColor, brushSize, brushOpacity, tool, brushTexture, brushSpacing, brushRotation } = useStore();
 
     useEffect(() => {
         if (!canvasRef.current) return;
@@ -202,7 +201,7 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
             const dx = end.x - start.x;
             const dy = end.y - start.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            const spacing = Math.max(brushSize * 0.2, 1);
+            const spacing = Math.max(brushSize * brushSpacing, 1)
             const steps = Math.ceil(distance / spacing);
 
             // Create temporary canvas for colored texture
@@ -214,6 +213,9 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
             if (tempCtx) {
                 tempCtx.fillStyle = currentColor;
                 tempCtx.fillRect(0, 0, brushSize, brushSize);
+                tempCtx.translate(brushSize / 2, brushSize / 2);
+                tempCtx.rotate(brushRotation * Math.PI / 180);
+                tempCtx.translate(-brushSize / 2, -brushSize / 2);
                 tempCtx.globalCompositeOperation = 'destination-in';
                 tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
 

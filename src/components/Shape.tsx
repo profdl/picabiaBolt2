@@ -29,7 +29,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
     duplicate,
     createGroup,
     ungroup,
-    setContextMenu
+    setContextMenu,
+    addShape,
+    setTool
   } = useStore();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -521,12 +523,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
               style={{
                 pointerEvents: (tool === 'select' || tool === 'brush' || tool === 'eraser') ? 'all' : 'none',
                 backgroundColor: '#000000',
-                touchAction: 'none', // Prevent scrolling while drawing
+                touchAction: 'none',
               }}
               onPointerDown={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                // Set pointer capture to ensure we get all pointer events
                 e.currentTarget.setPointerCapture(e.pointerId);
                 handlePointerDown(e);
               }}
@@ -538,14 +539,12 @@ export function ShapeComponent({ shape }: ShapeProps) {
               onPointerUp={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                // Release pointer capture
                 e.currentTarget.releasePointerCapture(e.pointerId);
                 handlePointerUpOrLeave();
               }}
               onPointerLeave={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                // Release pointer capture
                 if (e.currentTarget.hasPointerCapture(e.pointerId)) {
                   e.currentTarget.releasePointerCapture(e.pointerId);
                 }
@@ -554,15 +553,44 @@ export function ShapeComponent({ shape }: ShapeProps) {
               onPointerCancel={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                // Release pointer capture
                 if (e.currentTarget.hasPointerCapture(e.pointerId)) {
                   e.currentTarget.releasePointerCapture(e.pointerId);
                 }
                 handlePointerUpOrLeave();
               }}
             />
+            {tool === 'brush' && (
+              <button
+                className="absolute -bottom-6 right-0 text-xs px-1.5 py-0.5 bg-gray-300 text-gray-800 rounded hover:bg-red-600 transition-colors"
+                style={{ pointerEvents: 'all' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const newId = Math.random().toString(36).substr(2, 9);
+                  addShape({
+                    id: newId,
+                    type: 'sketchpad',
+                    position: shape.position,
+                    width: shape.width,
+                    height: shape.height,
+                    color: '#ffffff',
+                    rotation: shape.rotation,
+                    locked: true
+                  });
+                  deleteShape(shape.id);
+                  setTool('brush');
+                }}
+              >
+                Clear
+              </button>
+            )}
+
+
+
           </>
         )}
+
+
+
         {shape.type === 'image' && (
           <>
             {shape.showDepth && shape.depthPreviewUrl ? (
