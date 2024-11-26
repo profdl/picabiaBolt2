@@ -63,7 +63,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush(sketchPadRef);
   const isSelected = selectedShapes.includes(shape.id);
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (tool === 'pan' || tool === 'pen') return;
+    if (tool === 'pan' || tool === 'pen' || isEditing) return;
     e.stopPropagation();
 
     // Store initial positions of all shapes at drag start
@@ -86,6 +86,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       setSelectedShapes([shape.id]);
     }
   };
+
 
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -150,7 +151,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
   };
 
   useEffect(() => {
-    if (!dragStart) return;
+    if (!dragStart || isEditing) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       const totalDx = (e.clientX - dragStart.x) / zoom;
@@ -643,9 +644,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
           value={shape.content || ''}
           onChange={(e) => updateShape(shape.id, { content: e.target.value })}
           onBlur={() => setIsEditing(false)}
-          className="w-full h-full bg-transparent resize-none outline-none text-center"
+          className={`w-full h-full bg-transparent resize-none outline-none text-left ${isEditing ? '' : 'pointer-events-none'
+            }`}
           style={{ fontSize: shape.fontSize || 16 }}
+          readOnly={!isEditing}
         />
+
+
 
         {/* Selection controls */}
         {tool === 'select' && (

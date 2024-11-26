@@ -51,6 +51,7 @@ export function Canvas() {
     setZoom,
     addShape,
     setSelectedShapes,
+    selectedShapes,
   } = useStore();
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
@@ -144,7 +145,13 @@ export function Canvas() {
     };
   };
 
+  const isEditingText = useStore(state => state.isEditingText);
+
   const handleMouseDown = (e: React.MouseEvent) => {
+    const isEditingSticky = shapes.some(shape =>
+      shape.type === 'sticky' && selectedShapes.includes(shape.id) && isEditingText
+    );
+
     if (e.button === 1 || tool === 'pan' || spacePressed) {
       e.preventDefault();
       setStartPan({ x: e.clientX - offset.x, y: e.clientY - offset.y });
@@ -167,10 +174,11 @@ export function Canvas() {
         isUploading: false
       };
       setDrawingShape(newShape);
-    } else if (!e.shiftKey) {
+    } else if (!e.shiftKey && !isEditingSticky) {
       setSelectedShapes([]);
     }
-    if (tool !== 'select') return;
+
+    if (tool !== 'select' || isEditingSticky) return;
 
     const point = getCanvasPoint(e);
     setSelectionBox({
@@ -181,7 +189,12 @@ export function Canvas() {
     });
   };
 
+
   const handleMouseMove = (e: React.MouseEvent) => {
+    const isEditingSticky = shapes.some(shape =>
+      shape.type === 'sticky' && selectedShapes.includes(shape.id) && isEditingText
+    );
+
     if (startPan) {
       setOffset({
         x: e.clientX - startPan.x,
@@ -215,7 +228,7 @@ export function Canvas() {
         points: normalizedPoints
       } : null);
     }
-    if (!selectionBox) return;
+    if (!selectionBox || isEditingSticky) return;
 
     const currentPoint = getCanvasPoint(e);
     const width = currentPoint.x - selectionBox.startX;
@@ -227,6 +240,7 @@ export function Canvas() {
       height
     }));
   };
+
 
   const handleMouseUp = () => {
     setStartPan(null);

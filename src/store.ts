@@ -13,6 +13,7 @@ const supabase = createClient(
 
 
 interface BoardState extends CanvasState {
+  isEditingText: boolean;
   isEraser: boolean;
   shapes: Shape[];
   selectedShapes: string[];
@@ -72,7 +73,7 @@ interface BoardState extends CanvasState {
 
 
   // Methods
-
+  setIsEditingText: (isEditing: boolean) => void;
   setBrushFollowPath: (value: boolean) => void,
   setIsEraser: (isEraser: boolean) => void;
   resetState: () => void;
@@ -153,16 +154,16 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   error: null,
   advancedSettings: {
     workflowJson: JSON.stringify(workflowJson),
-    steps: 35,
+    steps: 30,
     guidanceScale: 4.5,
     scheduler: 'dpmpp_2m_sde',
     seed: -1,
-    outputFormat: 'webp',
+    outputFormat: 'png',
     outputQuality: 95,
     randomiseSeeds: true,
     negativePrompt: '',
-    width: 832,
-    height: 1216
+    width: 1360,
+    height: 768,
   },
   brushSize: 30,
   brushOpacity: 1,
@@ -428,6 +429,19 @@ export const useStore = create<BoardState>((set, get) => ({
     const { clipboard, shapes, historyIndex, history } = get();
     if (clipboard.length === 0) return;
 
+    // First, uncheck prompts on original sticky notes
+    const updatedOriginalShapes = shapes.map(shape => {
+      if (shape.type === 'sticky' && (shape.showPrompt || shape.showNegativePrompt)) {
+        return {
+          ...shape,
+          showPrompt: false,
+          showNegativePrompt: false,
+          color: '#fff9c4' // Reset to default sticky color
+        };
+      }
+      return shape;
+    });
+
     const newShapes = clipboard.map((shape) => ({
       ...shape,
       id: Math.random().toString(36).substr(2, 9),
@@ -437,14 +451,15 @@ export const useStore = create<BoardState>((set, get) => ({
       },
     }));
 
-    const updatedShapes = [...shapes, ...newShapes];
+    const updatedShapes = [...updatedOriginalShapes, ...newShapes];
     set({
       shapes: updatedShapes,
       selectedShapes: newShapes.map((shape) => shape.id),
       history: [...history.slice(0, historyIndex + 1), updatedShapes].slice(-MAX_HISTORY),
       historyIndex: historyIndex + 1,
     });
-  },
+  }
+  ,
 
   undo: () => {
     const { historyIndex, history } = get();

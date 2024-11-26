@@ -4,20 +4,15 @@ import { useStore } from '../store';
 export const ImageGeneratePanel: React.FC = () => {
   const { advancedSettings, setAdvancedSettings } = useStore();
   const aspectRatios = {
-    'Portrait (2:3)': { width: 832, height: 1248 },
-    'Standard (3:4)': { width: 880, height: 1176 },
-    'Large Format (4:5)': { width: 912, height: 1144 },
-    'Selfie / Social Media Video (9:16)': { width: 1360, height: 768 },
+    'Landscape SD (4:3)': { width: 1176, height: 888 },
+    'Widescreen IMAX (1.43:1)': { width: 1224, height: 856 },
+    'Widescreen HD(16:9)': { width: 1360, height: 768 },
+    'Golden Ratio (1.618:1)': { width: 1296, height: 800 },
     'Square (1:1)': { width: 1024, height: 1024 },
-    'SD TV (4:3)': { width: 1176, height: 888 },
-    'IMAX (1.43:1)': { width: 1224, height: 856 },
-    'European Widescreen (1.66:1)': { width: 1312, height: 792 },
-    'Widescreen / HD TV (16:9)': { width: 1360, height: 768 },
-    'Standard Widescreen (1.85:1)': { width: 1392, height: 752 },
-    'Cinemascope / Panavision (2.35:1)': { width: 1568, height: 664 },
-    'Anamorphic Widescreen (2.39:1)': { width: 1576, height: 656 },
-    'Older TV and documentaries (4:3)': { width: 1176, height: 880 },
-    'Golden Ratio (1.618:1)': { width: 1296, height: 800 }
+    'Portrait (2:3)': { width: 832, height: 1248 },
+    'Portrait Standard (3:4)': { width: 880, height: 1176 },
+    'Portrait Large Format (4:5)': { width: 912, height: 1144 },
+    'Portrait Social Video (9:16)': { width: 1360, height: 768 },
   };
 
   return (
