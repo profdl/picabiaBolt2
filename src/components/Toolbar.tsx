@@ -1,24 +1,26 @@
-import React from 'react';
+
 import {
   StickyNote,
   Hand,
   MousePointer,
-  Pencil,
+  // Pencil,
   Sparkles,
   Settings,
   Image as ImageIcon,
+  Upload,
   Loader2,
   Grid,
-  Brush,
-  Frame,
-  Eraser,
-  ArrowUpRight
+  // Brush,
+  // Frame,
+  // Eraser,
+  // ArrowUpRight
 } from 'lucide-react';
 import { useStore } from '../store';
 import { useState, useRef } from 'react';
 import { ImageGeneratePanel } from './GenerateSettings';
 import { useEffect } from 'react';
-import { BrushShapeSelector } from './BrushShapeSelector';
+import { supabase } from '../lib/supabase';
+// import { BrushShapeSelector } from './BrushShapeSelector';
 
 
 const AssetsButton = () => {
@@ -38,6 +40,119 @@ const AssetsButton = () => {
   );
 };
 
+const UploadButton = () => {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const toggleAssets = useStore(state => state.toggleAssets);
+  const addShape = useStore(state => state.addShape);
+  const { zoom, offset } = useStore();
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    toggleAssets();
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Create placeholder immediately
+    const windowWidth = window.innerWidth * 0.4;
+    const windowHeight = window.innerHeight * 0.4;
+    const center = {
+      x: (window.innerWidth / 2 - offset.x) / zoom,
+      y: (window.innerHeight / 2 - offset.y) / zoom
+    };
+    const shapeId = Math.random().toString(36).substr(2, 9);
+    // Add loading placeholder
+    addShape({
+      id: shapeId,
+      type: 'image',
+      position: {
+        x: center.x - windowWidth / 2,
+        y: center.y - windowHeight / 2
+      },
+      width: windowWidth,
+      height: windowHeight,
+      color: 'transparent',
+      imageUrl: '',
+      rotation: 0,
+      isUploading: true
+    });
+
+
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+      const arrayBuffer = await file.arrayBuffer();
+      const fileData = new Uint8Array(arrayBuffer);
+
+      const { error: uploadError } = await supabase.storage
+        .from('assets')
+        .upload(fileName, fileData, {
+          contentType: file.type,
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('assets')
+        .getPublicUrl(fileName);
+
+      const { error: dbError } = await supabase
+        .from('assets')
+        .insert([{
+          url: publicUrl,
+          user_id: user.id
+        }]);
+
+      if (dbError) throw dbError;
+
+      useStore.getState().triggerAssetsRefresh();
+
+
+      // Update the shape with the final image URL
+      useStore.getState().updateShape(shapeId, {
+        imageUrl: publicUrl,
+        isUploading: false
+      });
+
+    } catch (err) {
+      console.error('Error uploading asset:', err);
+      // Remove the shape if upload fails
+      useStore.getState().deleteShape(shapeId);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1`}
+        title="Upload Image"
+      >
+        {uploading ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : (
+          <Upload className="w-5 h-5" />
+        )}
+        <span className="text-sm font-medium">Upload</span>
+      </button>
+    </>
+  );
+};
 
 
 
@@ -105,25 +220,25 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     tool,
     setTool,
     offset,
-    currentColor,
-    strokeWidth,
-    setStrokeWidth,
+
     toggleGallery,
     handleGenerate,
     isGenerating,
     shapes,
-    brushSize,
-    setBrushSize,
-    brushOpacity,
-    setBrushOpacity,
-    brushTexture,
-    setBrushTexture,
-
-    brushSpacing,
-    setBrushSpacing,
-    brushRotation,
-    setBrushRotation,
-    brushFollowPath,
+    // currentColor,
+    // strokeWidth,
+    // setStrokeWidth,
+    // brushSize,
+    // setBrushSize,
+    // brushOpacity,
+    // setBrushOpacity,
+    // brushTexture,
+    // setBrushTexture,
+    // brushSpacing,
+    // setBrushSpacing,
+    // brushRotation,
+    // setBrushRotation,
+    // brushFollowPath,
   } = useStore();
 
   const hasActivePrompt = shapes.some(shape =>
@@ -159,7 +274,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         height: 512,
         color: '#ffffff',
         rotation: 0,
-        locked: true // Prevents rotation/scaling
+        locked: true
       });
       setTool('select');
       return;
@@ -218,9 +333,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     }
   }, [setCurrentColor, tool]);
 
-  function setBrushFollowPath(arg0: boolean): void {
-    throw new Error('Function not implemented.');
-  }
+
 
   return (
     <div className="absolute bottom-0 left-0 right-0 bg-white shadow-lg px-4 py-2 border-t border-gray-200">
@@ -229,37 +342,34 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2">
             <AssetsButton />
+            <UploadButton />
             <div className="w-px bg-gray-200 mx-2" />
-            {/* <UploadButton addShape={addShape} getViewportCenter={getViewportCenter} /> */}
           </div>
         </div>
 
         {/* Center-aligned toolbar buttons */}
         <div className="flex items-center gap-2">
-          {/* Selection Tools */}
+          {/* Sticky Note Button */}
           <button
-            onClick={() => setTool('select')}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'select' ? 'bg-gray-100' : ''}`}
-            title="Select Tool (V)"
+            onClick={() => handleAddShape('sticky')}
+            className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
+            title="Add Sticky Note"
           >
-            <MousePointer className="w-5 h-5" />
+            <StickyNote className="w-5 h-5" />
+            <span className="text-sm font-medium">Text Prompt</span>
           </button>
-          <button
-            onClick={() => setTool('pan')}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'pan' ? 'bg-gray-100' : ''}`}
-            title="Pan Tool (Space)"
-          >
-            <Hand className="w-5 h-5" />
-          </button>
-          <button
+
+
+
+          {/* <button
             onClick={() => setTool('pen')}
             className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'pen' ? 'bg-gray-100' : ''}`}
             title="Pen Tool"
           >
             <Pencil className="w-5 h-5" />
-          </button>
+          </button> */}
 
-          <div className="w-px bg-gray-200 mx-2" />
+          {/* <div className="w-px bg-gray-200 mx-2" />
           {(tool === 'pen' || tool === 'brush' || tool === 'eraser') && (
             <div className="absolute bottom-full mb-4 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg px-4 py-2 flex items-center gap-4">
               {tool === 'pen' && (
@@ -365,8 +475,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 </div>
               )}
             </div>
-          )}
-          <button
+          )} */}
+          {/* <button
             onClick={() => {
               setTool('brush');
               setCurrentColor('#ffffff'); // White for brush
@@ -375,8 +485,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             title="Brush Tool (B)"
           >
             <Brush className="w-5 h-5" />
-          </button>
-          <button
+          </button> */}
+          {/* <button
             onClick={() => {
               setTool('eraser');
               setCurrentColor('#000000'); // Black for eraser
@@ -385,16 +495,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             title="Eraser Tool (E)"
           >
             <Eraser className="w-5 h-5" />
-          </button>
+          </button> */}
 
           {/* Canvas */}
-          <button
+          {/* <button
             onClick={() => handleAddShape('sketchpad')}
             className="p-2 hover:bg-gray-100 rounded-lg"
             title="Add sketchpad"
           >
             <Frame className="w-5 h-5" />
-          </button>
+          </button> */}
           {/* Shape Tools */}
           {/* <button
             onClick={() => handleAddShape('rectangle')}
@@ -417,41 +527,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           >
             <Type className="w-5 h-5" />
           </button> */}
-          <button
-            onClick={() => handleAddShape('sticky')}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Add Sticky Note"
-          >
-            <StickyNote className="w-5 h-5" />
-          </button>
 
-          <div className="w-px bg-gray-200 mx-2" />
-          {/* Zoom Controls */}
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              value={Math.round(zoom * 100)}
-              onChange={(e) => {
-                const newZoom = Math.max(0.1, Math.min(5, Number(e.target.value) / 100))
-                const rect = document.querySelector('.canvas-container')?.getBoundingClientRect()
-                if (!rect) return
 
-                const center = {
-                  x: rect.width / 2,
-                  y: rect.height / 2
-                }
 
-                setZoom(newZoom, center)
-              }}
-              className="w-16 px-2 py-1 text-sm border rounded"
-              min="10"
-              max="500"
-              step="10"
-            />
-            <span className="text-sm text-gray-600">%</span>
-          </div>
-          <div className="w-px bg-gray-200 mx-2" />
-          {/* Image Generation Tools (now without Gallery) */}
+          {/* Image Generation Tools */}
           <button
             onClick={async () => {
               // First ensure gallery is open
@@ -488,6 +567,49 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
 
           <SettingsButton />
+
+          {/* Select, Pan Zoom */}
+          <div className="w-px bg-gray-200 mx-4" />
+
+          <button
+            onClick={() => setTool('select')}
+            className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'select' ? 'bg-gray-100' : ''}`}
+            title="Select Tool (V)"
+          >
+
+            <MousePointer className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setTool('pan')}
+            className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'pan' ? 'bg-gray-100' : ''}`}
+            title="Pan Tool (Space)"
+          >
+            <Hand className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              value={Math.round(zoom * 100)}
+              onChange={(e) => {
+                const newZoom = Math.max(0.1, Math.min(5, Number(e.target.value) / 100))
+                const rect = document.querySelector('.canvas-container')?.getBoundingClientRect()
+                if (!rect) return
+
+                const center = {
+                  x: rect.width / 2,
+                  y: rect.height / 2
+                }
+
+                setZoom(newZoom, center)
+              }}
+              className="w-16 px-2 py-1 text-sm border rounded"
+              min="10"
+              max="500"
+              step="10"
+            />
+            <span className="text-sm text-gray-600">%</span>
+          </div>
+
         </div>
         {/* Right-aligned Gallery button */}
         <div>
@@ -504,6 +626,5 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     </div>
   );
 };
-export default Toolbar;
 
 

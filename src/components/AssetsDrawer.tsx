@@ -156,7 +156,9 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
       color: 'transparent',
       imageUrl: asset.url,
       rotation: 0,
+      isUploading: false
     });
+    onClose();
   };
 
   // Add Unsplash search functionality
@@ -262,7 +264,9 @@ export const AssetsDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = 
       color: 'transparent',
       imageUrl: image.urls.regular,
       rotation: 0,
+      isUploading: false
     });
+    onClose();
   };
   return (
     <Drawer

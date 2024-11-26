@@ -34,6 +34,7 @@ export interface Shape {
   points?: Position[];
   strokeWidth?: number;
   showPrompt?: boolean;
+  showNegativePrompt?: boolean;
   canvasData?: ImageData;
   isUploading: boolean;
   showDepth?: boolean;

@@ -4,9 +4,8 @@ import { CanvasState, Position, Shape } from './types';
 import workflowJson from './lib/workflow.json';
 import multiControlWorkflow from './lib/multiControl_API.json';
 import { ContextMenuState } from './types';
-import { savePreprocessedImage } from './lib/supabase';
 
-//test
+
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
