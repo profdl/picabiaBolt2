@@ -280,7 +280,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       return;
     }
 
-    const baseColor = type === 'sticky' ? '#fff9c4' : '#' + Math.floor(Math.random() * 16777215).toString(16);
     const center = getViewportCenter();
 
     if (type === 'image') {
@@ -307,23 +306,58 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     }
 
     const size = type === 'sticky' ? 200 : 100;
-    addShape({
-      id: Math.random().toString(36).substr(2, 9),
-      type,
-      position: {
-        x: center.x - size / 2,
-        y: center.y - size / 2
-      },
-      width: size,
-      height: size,
-      color: baseColor,
-      content: type === 'text' || type === 'sticky' ? 'Double click to edit' : undefined,
-      fontSize: 16,
-      rotation: 0,
-      isUploading: false
-    });
 
+    // For sticky notes specifically
+    if (type === 'sticky') {
+      // Get existing shapes and updateShape from the store
+      const existingShapes = useStore.getState().shapes;
+      const storeUpdateShape = useStore.getState().updateShape;
 
+      // First, uncheck any existing sticky notes with showPrompt
+      existingShapes.forEach(shape => {
+        if (shape.type === 'sticky' && shape.showPrompt) {
+          storeUpdateShape(shape.id, {
+            showPrompt: false,
+            color: shape.showNegativePrompt ? '#ffcccb' : '#fff9c4'
+          });
+        }
+      });
+
+      // Then add the new sticky note with showPrompt enabled
+      addShape({
+        id: Math.random().toString(36).substr(2, 9),
+        type,
+        position: {
+          x: center.x - size / 2,
+          y: center.y - size / 2
+        },
+        width: size,
+        height: size,
+        color: '#90EE90', // Green color
+        content: 'Double click to edit',
+        fontSize: 16,
+        rotation: 0,
+        showPrompt: true, // Automatically enable text prompt
+        isUploading: false
+      });
+    } else {
+      // Handle other shape types as before
+      addShape({
+        id: Math.random().toString(36).substr(2, 9),
+        type,
+        position: {
+          x: center.x - size / 2,
+          y: center.y - size / 2
+        },
+        width: size,
+        height: size,
+        color: '#' + Math.floor(Math.random() * 16777215).toString(16),
+        content: type === 'text' ? 'Double click to edit' : undefined,
+        fontSize: 16,
+        rotation: 0,
+        isUploading: false
+      });
+    }
   };
 
 

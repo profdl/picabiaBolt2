@@ -94,10 +94,16 @@ export function ShapeControls({
             supabase.removeChannel(channel);
         };
     }, [updateShape]);
-    if (isEditing || tool !== 'select') return null;
 
+    if (isEditing || tool !== 'select') return null;
     const showManipulationControls = isSelected;
-    const anyCheckboxChecked = shape.showDepth || shape.showEdges || shape.showContent || shape.showPose || shape.showPrompt;
+    const anyCheckboxChecked = shape.showDepth ||
+        shape.showEdges ||
+        shape.showContent ||
+        shape.showPose ||
+        shape.showPrompt ||
+        shape.showNegativePrompt || // Added this check
+        shape.showScribble;
     const showControlPanel = isSelected || anyCheckboxChecked;
 
     if (!showControlPanel) return null;
@@ -275,16 +281,20 @@ export function ShapeControls({
                 </div>
             )}
 
-            {/* Color picker for non-image/canvas shapes */}
-            {shape.type !== 'image' && shape.type !== 'sketchpad' && shape.type !== 'group' && (
-                <input
-                    type="color"
-                    value={shape.color}
-                    onChange={(e) => updateShape(shape.id, { color: e.target.value })}
-                    className="absolute -left-6 top-1/2 w-4 h-4 cursor-pointer transform -translate-y-1/2"
-                    style={{ zIndex: 101, pointerEvents: 'all' }}
-                />
-            )}
+            {/* Color picker for non-image/canvas/sticky shapes */}
+            {shape.type !== 'image' &&
+                shape.type !== 'sketchpad' &&
+                shape.type !== 'group' &&
+                shape.type !== 'sticky' && (
+                    <input
+                        type="color"
+                        value={shape.color}
+                        onChange={(e) => updateShape(shape.id, { color: e.target.value })}
+                        className="absolute -left-6 top-1/2 w-4 h-4 cursor-pointer transform -translate-y-1/2"
+                        style={{ zIndex: 101, pointerEvents: 'all' }}
+                    />
+                )}
+
             {/* Color picker for sketchpad shapes */}
             {shape.type === 'sketchpad' && (
                 <input
@@ -301,27 +311,84 @@ export function ShapeControls({
             {/* Sticky note controls */}
             {shape.type === 'sticky' && (
                 <div className="absolute left-1/2 top-full mt-1 bg-white p-1.5 rounded border border-gray-200 transform -translate-x-1/2"
-                    style={{ zIndex: 101, pointerEvents: 'all', width: '140px' }}>
-                    <div className="flex items-center gap-1.5">
-                        <input
-                            type="checkbox"
-                            id={`prompt-${shape.id}`}
-                            checked={shape.showPrompt || false}
-                            onChange={(e) => {
-                                if (e.target.checked) {
-                                    shapes.forEach(otherShape => {
-                                        if (otherShape.type === 'sticky' && otherShape.showPrompt) {
-                                            updateShape(otherShape.id, { showPrompt: false });
+                    style={{ zIndex: 101, pointerEvents: 'all', width: '160px' }}>
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1.5">
+                            <input
+                                type="checkbox"
+                                id={`prompt-${shape.id}`}
+                                checked={shape.showPrompt || false}
+                                onChange={(e) => {
+                                    if (e.target.checked) {
+                                        // Uncheck negative prompt if checking text prompt
+                                        if (shape.showNegativePrompt) {
+                                            updateShape(shape.id, { showNegativePrompt: false });
                                         }
-                                    });
-                                }
-                                updateShape(shape.id, { showPrompt: e.target.checked });
-                            }}
-                            className="w-3 h-3 cursor-pointer"
-                        />
-                        <label htmlFor={`prompt-${shape.id}`} className="text-xs text-gray-700 cursor-pointer whitespace-nowrap">
-                            Text Prompt
-                        </label>
+                                        // Uncheck other sticky notes' text prompts and revert their colors
+                                        shapes.forEach(otherShape => {
+                                            if (otherShape.type === 'sticky' && otherShape.showPrompt) {
+                                                updateShape(otherShape.id, {
+                                                    showPrompt: false,
+                                                    color: otherShape.showNegativePrompt ? '#ffcccb' : '#fff9c4'
+                                                });
+                                            }
+                                        });
+                                        updateShape(shape.id, {
+                                            showPrompt: true,
+                                            color: '#90EE90'
+                                        });
+                                    } else {
+                                        updateShape(shape.id, {
+                                            showPrompt: false,
+                                            color: shape.showNegativePrompt ? '#ffcccb' : '#fff9c4'
+                                        });
+                                    }
+                                }}
+
+                                className="w-3 h-3 cursor-pointer"
+                            />
+                            <label htmlFor={`prompt-${shape.id}`} className="text-xs text-gray-700 cursor-pointer whitespace-nowrap">
+                                Text Prompt
+                            </label>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <input
+                                type="checkbox"
+                                id={`negative-${shape.id}`}
+                                checked={shape.showNegativePrompt || false}
+                                onChange={(e) => {
+                                    if (e.target.checked) {
+                                        // Uncheck text prompt if checking negative prompt
+                                        if (shape.showPrompt) {
+                                            updateShape(shape.id, { showPrompt: false });
+                                        }
+                                        // Uncheck other sticky notes' negative prompts and revert their colors
+                                        shapes.forEach(otherShape => {
+                                            if (otherShape.type === 'sticky' && otherShape.showNegativePrompt) {
+                                                updateShape(otherShape.id, {
+                                                    showNegativePrompt: false,
+                                                    color: otherShape.showPrompt ? '#90EE90' : '#fff9c4'
+                                                });
+                                            }
+                                        });
+                                        updateShape(shape.id, {
+                                            showNegativePrompt: true,
+                                            color: '#ffcccb'
+                                        });
+                                    } else {
+                                        updateShape(shape.id, {
+                                            showNegativePrompt: false,
+                                            color: shape.showPrompt ? '#90EE90' : '#fff9c4'
+                                        });
+                                    }
+                                }}
+
+                                className="w-3 h-3 cursor-pointer"
+                            />
+                            <label htmlFor={`negative-${shape.id}`} className="text-xs text-gray-700 cursor-pointer whitespace-nowrap">
+                                Negative Prompt
+                            </label>
+                        </div>
                     </div>
                 </div>
             )}
