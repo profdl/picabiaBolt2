@@ -254,7 +254,7 @@ export const useStore = create<BoardState>((set, get) => ({
 
   addShape: (shape: Shape) => {
     set(state => {
-      const newShapes = [...state.shapes, shape];
+      const newShapes = [...state.shapes];
 
       // If adding a diffusionSettings shape, uncheck all other diffusionSettings shapes
       if (shape.type === 'diffusionSettings') {
@@ -267,7 +267,9 @@ export const useStore = create<BoardState>((set, get) => ({
         shape.useSettings = true;
       }
 
+      // Add the shape only once
       newShapes.push(shape);
+
       return {
         shapes: newShapes,
         tool: shape.type === 'drawing' ? state.tool : 'select',
@@ -368,24 +370,62 @@ export const useStore = create<BoardState>((set, get) => ({
   ,
 
   deleteShape: (id: string) => {
-    const { shapes, historyIndex, history, selectedShapes } = get();
-    const newShapes = shapes.filter((shape) => shape.id !== id);
-    set({
-      shapes: newShapes,
-      selectedShapes: selectedShapes.filter((shapeId) => shapeId !== id),
-      history: [...history.slice(0, historyIndex + 1), newShapes].slice(-MAX_HISTORY),
-      historyIndex: historyIndex + 1,
-    });
-  },
+    set(state => {
+      const shapeIndex = state.shapes.findIndex(shape => shape.id === id);
+      if (shapeIndex === -1) return state; // Shape not found, return current state
 
-  deleteShapes: (ids: string[]) => {
-    const { shapes, historyIndex, history } = get();
-    const newShapes = shapes.filter((shape) => !ids.includes(shape.id));
-    set({
-      shapes: newShapes,
-      selectedShapes: [],
-      history: [...history.slice(0, historyIndex + 1), newShapes].slice(-MAX_HISTORY),
-      historyIndex: historyIndex + 1,
+      const shapeToDelete = state.shapes[shapeIndex];
+      const newShapes = [...state.shapes];
+      newShapes.splice(shapeIndex, 1); // Remove the shape at the found index
+
+      // Handle cleanup of control states and related shape properties
+      if (shapeToDelete.type === 'sticky') {
+        if (shapeToDelete.showPrompt || shapeToDelete.showNegativePrompt) {
+          newShapes.forEach(shape => {
+            if (shape.type === 'sticky') {
+              if (shape.showPrompt && shapeToDelete.showPrompt) {
+                shape.showPrompt = false;
+                shape.color = shape.showNegativePrompt ? '#ffcccb' : '#fff9c4';
+              }
+              if (shape.showNegativePrompt && shapeToDelete.showNegativePrompt) {
+                shape.showNegativePrompt = false;
+                shape.color = shape.showPrompt ? '#90EE90' : '#fff9c4';
+              }
+            }
+          });
+        }
+      } else if (shapeToDelete.type === 'image') {
+        if (shapeToDelete.showDepth || shapeToDelete.showEdges ||
+          shapeToDelete.showPose || shapeToDelete.showScribble) {
+          newShapes.forEach(shape => {
+            if (shape.type === 'image') {
+              if (shapeToDelete.showDepth) shape.showDepth = false;
+              if (shapeToDelete.showEdges) shape.showEdges = false;
+              if (shapeToDelete.showPose) shape.showPose = false;
+              if (shapeToDelete.showScribble) shape.showScribble = false;
+            }
+          });
+        }
+      } else if (shapeToDelete.type === 'diffusionSettings') {
+        if (shapeToDelete.useSettings) {
+          newShapes.forEach(shape => {
+            if (shape.type === 'diffusionSettings') {
+              shape.useSettings = false;
+            }
+          });
+        }
+      }
+
+      return {
+        shapes: newShapes,
+        selectedShapes: state.selectedShapes.filter(shapeId => shapeId !== id),
+        history: [...state.history.slice(0, state.historyIndex + 1), newShapes],
+        historyIndex: state.historyIndex + 1,
+        preprocessingStates: {
+          ...state.preprocessingStates,
+          [id]: undefined
+        }
+      };
     });
   },
 
