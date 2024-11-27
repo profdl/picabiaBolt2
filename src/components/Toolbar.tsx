@@ -158,44 +158,44 @@ const UploadButton = () => {
 
 
 
-const SettingsButton = () => {
-  const [showPanel, setShowPanel] = useState(false);
-  const buttonRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+// const SettingsButton = () => {
+//   const [showPanel, setShowPanel] = useState(false);
+//   const buttonRef = useRef<HTMLDivElement>(null);
+//   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  const handleMouseEnter = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    setShowPanel(true);
-  };
+//   const handleMouseEnter = () => {
+//     if (timeoutRef.current) {
+//       clearTimeout(timeoutRef.current);
+//     }
+//     setShowPanel(true);
+//   };
 
-  const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => {
-      setShowPanel(false);
-    }, 300); // Small delay to allow moving to panel
-  };
+//   const handleMouseLeave = () => {
+//     timeoutRef.current = setTimeout(() => {
+//       setShowPanel(false);
+//     }, 300); // Small delay to allow moving to panel
+//   };
 
-  return (
-    <div
-      ref={buttonRef}
-      className="relative"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      <button
-        className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${showPanel ? 'bg-gray-100' : ''
-          }`}
-        title="Image Generator Settings"
-      >
-        <Settings className="w-5 h-5" />
-        <span className="text-sm font-medium">Settings</span>
-      </button>
+//   return (
+//     <div
+//       ref={buttonRef}
+//       className="relative"
+//       onMouseEnter={handleMouseEnter}
+//       onMouseLeave={handleMouseLeave}
+//     >
+//       <button
+//         className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${showPanel ? 'bg-gray-100' : ''
+//           }`}
+//         title="Image Generator Settings"
+//       >
+//         <Settings className="w-5 h-5" />
+//         <span className="text-sm font-medium">Settings</span>
+//       </button>
 
-      {showPanel && <ImageGeneratePanel />}
-    </div>
-  );
-};
+//       {showPanel && <ImageGeneratePanel />}
+//     </div>
+//   );
+// };
 
 
 interface ToolbarProps {
@@ -666,7 +666,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <span className="text-sm font-medium">Generate</span>
           </button>
 
-          <SettingsButton />
+          {/* <SettingsButton /> */}
 
           {/* Select, Pan Zoom */}
           <div className="w-px bg-gray-200 mx-4" />

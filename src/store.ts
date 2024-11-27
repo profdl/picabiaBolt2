@@ -517,6 +517,15 @@ export const useStore = create<BoardState>((set, get) => ({
     const state = get();
     const { shapes } = state;
 
+    // Get settings from active diffusionSettings shape
+    const activeSettings = shapes.find(
+      shape => shape.type === 'diffusionSettings' && shape.useSettings
+    );
+
+    if (!activeSettings) {
+      set({ error: 'No settings selected. Please select a settings shape.' });
+      return;
+    }
     // 1. Authentication check
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User must be authenticated');
@@ -536,13 +545,12 @@ export const useStore = create<BoardState>((set, get) => ({
 
     try {
       // 4. Update all workflow settings
-      workflow["3"].inputs.steps = state.advancedSettings.steps || 20;
-      workflow["3"].inputs.cfg = state.advancedSettings.guidanceScale || 7.5;
-      workflow["3"].inputs.sampler_name = state.advancedSettings.scheduler || 'karras';
-      workflow["3"].inputs.seed = state.advancedSettings.seed || Math.floor(Math.random() * 32767);
-      workflow["3"].inputs.model = ["4", 0];
-      workflow["5"].inputs.width = state.advancedSettings.width || 832;
-      workflow["5"].inputs.height = state.advancedSettings.height || 1216;
+      workflow["3"].inputs.steps = activeSettings.steps || 20;
+      workflow["3"].inputs.cfg = activeSettings.guidanceScale || 7.5;
+      workflow["3"].inputs.sampler_name = activeSettings.scheduler || 'karras';
+      workflow["3"].inputs.seed = activeSettings.seed || Math.floor(Math.random() * 32767);
+      workflow["5"].inputs.width = activeSettings.outputWidth || 832;
+      workflow["5"].inputs.height = activeSettings.outputHeight || 1216;
       workflow["6"].inputs.text = stickyWithPrompt.content;
 
       // 5. Set model checkpoint
