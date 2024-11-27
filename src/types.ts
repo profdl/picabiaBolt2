@@ -20,6 +20,7 @@ export interface Project {
 }
 
 export interface Shape {
+  model: string;
   useSettings: boolean;
   id: string;
   type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing' | 'sketchpad' | 'group' | 'diffusionSettings';

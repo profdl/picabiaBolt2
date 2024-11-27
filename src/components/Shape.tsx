@@ -13,6 +13,7 @@ interface ShapeProps {
 }
 
 
+
 export function ShapeComponent({ shape }: ShapeProps) {
   const {
     selectedShapes,
@@ -536,10 +537,15 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
 
   return (
-    <>
+    <div style={{ position: 'absolute', width: 0, height: 0 }}>
       <div
         id={shape.id}
-        style={shapeStyles}
+        style={{
+          ...shapeStyles,
+          overflow: 'hidden',
+          zIndex: isSelected ? 100 : 1,
+          pointerEvents: tool === 'select' ? 'all' : 'none',
+        }}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
@@ -547,13 +553,81 @@ export function ShapeComponent({ shape }: ShapeProps) {
         tabIndex={0}
         className="group transition-shadow hover:shadow-xl relative"
       >
-        {/* Image and content rendering - keeping original layout */}
         {shape.type === 'sketchpad' && (
           <>
             <div className="absolute -top-6 left-0 text-sm text-gray-300 font-medium">
               SketchPad
             </div>
-            {/* ... rest of sketchpad content */}
+            <canvas
+              ref={sketchPadRef}
+              width={512}
+              height={512}
+              className="w-full h-full touch-none"
+              onContextMenu={handleContextMenu}
+              style={{
+                pointerEvents: (tool === 'select' || tool === 'brush' || tool === 'eraser') ? 'all' : 'none',
+                backgroundColor: '#000000',
+                touchAction: 'none',
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                handlePointerDown(e);
+              }}
+              onPointerMove={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handlePointerMove(e);
+              }}
+              onPointerUp={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                e.currentTarget.releasePointerCapture(e.pointerId);
+                handlePointerUpOrLeave();
+              }}
+              onPointerLeave={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                }
+                handlePointerUpOrLeave();
+              }}
+              onPointerCancel={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                }
+                handlePointerUpOrLeave();
+              }}
+            />
+            {tool === 'brush' && (
+              <button
+                className="absolute -bottom-6 right-0 text-xs px-1.5 py-0.5 bg-gray-300 text-gray-800 rounded hover:bg-red-600 transition-colors"
+                style={{ pointerEvents: 'all' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const newId = Math.random().toString(36).substr(2, 9);
+                  addShape({
+                    id: newId,
+                    type: 'sketchpad',
+                    position: shape.position,
+                    width: shape.width,
+                    height: shape.height,
+                    color: '#ffffff',
+                    rotation: shape.rotation,
+                    locked: true,
+                    isUploading: false
+                  });
+                  deleteShape(shape.id);
+                  setTool('brush');
+                }}
+              >
+                Clear
+              </button>
+            )}
           </>
         )}
 
@@ -578,6 +652,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
                       <option value="dreamshaper">Dreamshaper</option>
                     </select>
                   </div>
+
                   <div>
                     <label className="text-xs text-gray-600">Image Dimensions</label>
                     <select
@@ -641,6 +716,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
                       className="w-full py-1 px-2 text-xs border rounded bg-white block"
                     />
                   </div>
+
                   <div className="flex items-center gap-1">
                     <input
                       type="checkbox"
@@ -653,6 +729,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
                       Randomize Seeds
                     </label>
                   </div>
+
                   <div>
                     <label className="text-xs text-gray-600">Output Format</label>
                     <select
@@ -676,7 +753,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
                       className="w-full py-1 px-2 text-xs border rounded bg-white block"
                     />
                   </div>
-
                 </div>
               </div>
             </div>
@@ -712,6 +788,18 @@ export function ShapeComponent({ shape }: ShapeProps) {
                 src={shape.imageUrl}
                 alt="User uploaded content"
                 className="w-full h-full object-cover"
+                onLoad={() => {
+                  if (imageRef.current && !shape.aspectRatio) {
+                    const ratio = imageRef.current.naturalWidth / imageRef.current.naturalHeight;
+                    const newWidth = shape.width;
+                    const newHeight = newWidth / ratio;
+                    updateShape(shape.id, {
+                      aspectRatio: ratio,
+                      width: newWidth,
+                      height: newHeight
+                    });
+                  }
+                }}
                 draggable={false}
               />
             ) : null}
@@ -728,27 +816,31 @@ export function ShapeComponent({ shape }: ShapeProps) {
           style={{ fontSize: shape.fontSize || 16 }}
           readOnly={!isEditing}
         />
-
-        {/* Controls with selection handling but preserving original layout */}
-        {tool === 'select' && (
-          <div
-            data-controls-panel={shape.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!selectedShapes.includes(shape.id)) {
-                setSelectedShapes([shape.id]);
-              }
-            }}
-          >
-            <ShapeControls
-              shape={shape}
-              isSelected={isSelected}
-              isEditing={isEditing}
-              handleResizeStart={handleResizeStart}
-            />
-          </div>
-        )}
       </div>
-    </>
+
+      {/* Controls layer */}
+      {tool === 'select' && (
+        <div
+          data-controls-panel={shape.id}
+          style={{
+            position: 'absolute',
+            left: shape.position.x,
+            top: shape.position.y,
+            width: shape.width,
+            height: shape.height,
+            transform: `rotate(${shape.rotation || 0}deg)`,
+            zIndex: isSelected ? 101 : 2,
+            pointerEvents: 'none',
+          }}
+        >
+          <ShapeControls
+            shape={shape}
+            isSelected={isSelected}
+            isEditing={isEditing}
+            handleResizeStart={handleResizeStart}
+          />
+        </div>
+      )}
+    </div>
   );
 }

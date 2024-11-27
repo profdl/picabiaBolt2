@@ -153,6 +153,11 @@ export function Canvas() {
   const isEditingText = useStore(state => state.isEditingText);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Check if clicking on shape controls
+    const controlsPanel = (e.target as Element)?.closest('[data-controls-panel]');
+    if (controlsPanel) {
+      return;
+    }
     const isEditingSticky = shapes.some(shape =>
       shape.type === 'sticky' && selectedShapes.includes(shape.id) && isEditingText
     );
@@ -196,6 +201,11 @@ export function Canvas() {
 
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    // Don't handle mouse move if we're over controls
+    const controlsPanel = (e.target as Element)?.closest('[data-controls-panel]');
+    if (controlsPanel) {
+      return;
+    }
     const isEditingSticky = shapes.some(shape =>
       shape.type === 'sticky' && selectedShapes.includes(shape.id) && isEditingText
     );
@@ -248,8 +258,16 @@ export function Canvas() {
 
 
   const handleMouseUp = () => {
+    // Clean up all drag states unconditionally
     setStartPan(null);
     setIsDragging(false);
+
+    // Only handle shape-related operations if not on controls
+    const activeElement = document.activeElement;
+    const controlsPanel = activeElement?.closest('[data-controls-panel]');
+    if (controlsPanel) {
+      return;
+    }
 
     if (isDrawing && drawingShape && currentPath.length > 1) {
       addShape(drawingShape);
@@ -258,6 +276,7 @@ export function Canvas() {
     setIsDrawing(false);
     setCurrentPath([]);
     setDrawingShape(null);
+
     if (!selectionBox) return;
 
     const selectedShapeIds = shapes.filter(shape => {
