@@ -65,6 +65,19 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const isSelected = selectedShapes.includes(shape.id);
   const handleMouseDown = (e: React.MouseEvent) => {
     if (tool === 'pan' || tool === 'pen' || isEditing) return;
+
+    // Check if the click originated from the controls panel or its children
+    const controlsPanel = document.querySelector(`[data-controls-panel="${shape.id}"]`);
+    if (controlsPanel?.contains(e.target as Node)) {
+      return; // Don't initiate drag if clicking within controls
+    }
+
+    // Check if the click is on the actual content area
+    const contentArea = document.querySelector(`[data-content-area="${shape.id}"]`);
+    if (!contentArea?.contains(e.target as Node)) {
+      return; // Don't initiate drag if clicking outside content area
+    }
+
     e.stopPropagation();
 
     // Store initial positions of all shapes at drag start
@@ -520,290 +533,294 @@ export function ShapeComponent({ shape }: ShapeProps) {
         tabIndex={0}
         className="group transition-shadow hover:shadow-xl relative"
       >
-        {/* Image and content rendering */}
-        {shape.type === 'sketchpad' && (
-          <>
-            <div className="absolute -top-6 left-0 text-sm text-gray-300 font-medium">
-              SketchPad
-            </div>
-            <canvas
-              ref={sketchPadRef}
-              width={512}
-              height={512}
-              className="w-full h-full touch-none"
-              onContextMenu={handleContextMenu}
-              style={{
-                pointerEvents: (tool === 'select' || tool === 'brush' || tool === 'eraser') ? 'all' : 'none',
-                backgroundColor: '#000000',
-                touchAction: 'none',
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                e.currentTarget.setPointerCapture(e.pointerId);
-                handlePointerDown(e);
-              }}
-              onPointerMove={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                handlePointerMove(e);
-              }}
-              onPointerUp={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                e.currentTarget.releasePointerCapture(e.pointerId);
-                handlePointerUpOrLeave();
-              }}
-              onPointerLeave={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-                  e.currentTarget.releasePointerCapture(e.pointerId);
-                }
-                handlePointerUpOrLeave();
-              }}
-              onPointerCancel={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-                  e.currentTarget.releasePointerCapture(e.pointerId);
-                }
-                handlePointerUpOrLeave();
-              }}
-            />
-            {tool === 'brush' && (
-              <button
-                className="absolute -bottom-6 right-0 text-xs px-1.5 py-0.5 bg-gray-300 text-gray-800 rounded hover:bg-red-600 transition-colors"
-                style={{ pointerEvents: 'all' }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const newId = Math.random().toString(36).substr(2, 9);
-                  addShape({
-                    id: newId,
-                    type: 'sketchpad',
-                    position: shape.position,
-                    width: shape.width,
-                    height: shape.height,
-                    color: '#ffffff',
-                    rotation: shape.rotation,
-                    locked: true
-                  });
-                  deleteShape(shape.id);
-                  setTool('brush');
-                }}
-              >
-                Clear
-              </button>
-            )}
+        <div data-content-area={shape.id} className="w-full h-full">
 
-
-
-          </>
-        )}
-
-        {shape.type === 'diffusionSettings' && (
-          <div className="relative w-full h-full">
-            <div
-              className="absolute inset-0 overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="h-full overflow-y-auto">
-                <h3 className="font-medium text-gray-700 text-xs">Generation Settings</h3>
-                <div className="space-y-1">
-                  <div>
-                    <label className="text-xs text-gray-600">Model</label>
-                    <select
-                      value={shape.model || 'juggernautXL_v9'}
-                      onChange={(e) => updateShape(shape.id, { model: e.target.value })}
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    >
-                      <option value="juggernautXL_v9">Juggernaut XL v9</option>
-                      <option value="juggernautXL">Juggernaut XL</option>
-                      <option value="dreamshaper">Dreamshaper</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-600">Image Dimensions</label>
-                    <select
-                      value={`${shape.outputWidth}x${shape.outputHeight}`}
-                      onChange={(e) => {
-                        const [width, height] = e.target.value.split('x').map(Number);
-                        updateShape(shape.id, { outputWidth: width, outputHeight: height });
-                      }}
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    >
-                      {Object.entries(aspectRatios).map(([label, dims]) => (
-                        <option key={label} value={`${dims.width}x${dims.height}`}>
-                          {label} ({dims.width}x{dims.height})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-600">Steps</label>
-                    <input
-                      type="number"
-                      value={shape.steps?.toString() || '20'}
-                      onChange={(e) => updateShape(shape.id, { steps: Number(e.target.value) })}
-                      min="1"
-                      max="100"
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-600">Guidance Scale</label>
-                    <input
-                      type="number"
-                      value={shape.guidanceScale?.toString() || '7.5'}
-                      onChange={(e) => updateShape(shape.id, { guidanceScale: Number(e.target.value) })}
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-600">Scheduler</label>
-                    <select
-                      value={shape.scheduler || 'dpmpp_2m_sde'}
-                      onChange={(e) => updateShape(shape.id, { scheduler: e.target.value })}
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    >
-                      <option value="dpmpp_2m_sde">DPM++ 2M SDE</option>
-                      <option value="dpmpp_2m">DPM++ 2M</option>
-                      <option value="euler">Euler</option>
-                      <option value="euler_ancestral">Euler Ancestral</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-600">Seed</label>
-                    <input
-                      type="number"
-                      value={shape.seed?.toString() || '-1'}
-                      onChange={(e) => updateShape(shape.id, { seed: Number(e.target.value) })}
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="checkbox"
-                      id={`randomize-${shape.id}`}
-                      checked={shape.randomiseSeeds || false}
-                      onChange={(e) => updateShape(shape.id, { randomiseSeeds: e.target.checked })}
-                      className="w-3 h-3 text-blue-600 rounded border-gray-300"
-                    />
-                    <label htmlFor={`randomize-${shape.id}`} className="text-xs text-gray-600">
-                      Randomize Seeds
-                    </label>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-600">Output Format</label>
-                    <select
-                      value={shape.outputFormat || 'png'}
-                      onChange={(e) => updateShape(shape.id, { outputFormat: e.target.value })}
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    >
-                      <option value="png">PNG</option>
-                      <option value="jpg">JPG</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-600">Output Quality</label>
-                    <input
-                      type="number"
-                      value={shape.outputQuality?.toString() || '100'}
-                      onChange={(e) => updateShape(shape.id, { outputQuality: Number(e.target.value) })}
-                      min="1"
-                      max="100"
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    />
-                  </div>
-
-
-                </div>
+          {/* Image and content rendering */}
+          {shape.type === 'sketchpad' && (
+            <>
+              <div className="absolute -top-6 left-0 text-sm text-gray-300 font-medium">
+                SketchPad
               </div>
-            </div>            </div>
-
-        )}
-
-
-
-
-
-        {shape.type === 'image' && (
-          <>
-            {shape.showDepth && shape.depthPreviewUrl ? (
-              <img
-                src={shape.depthPreviewUrl}
-                alt="Depth map"
-                className="w-full h-full object-cover"
-                draggable={false}
-              />
-            ) : shape.showEdges && shape.edgePreviewUrl ? (
-              <img
-                src={shape.edgePreviewUrl}
-                alt="Edge detection"
-                className="w-full h-full object-cover"
-                draggable={false}
-              />
-            ) : shape.showPose && shape.posePreviewUrl ? (
-              <img
-                src={shape.posePreviewUrl}
-                alt="Pose detection"
-                className="w-full h-full object-cover"
-                draggable={false}
-              />
-            ) : shape.imageUrl ? (
-              <img
-                ref={imageRef}
-                src={shape.imageUrl}
-                alt="User uploaded content"
-                className="w-full h-full object-cover"
-                onLoad={() => {
-                  if (imageRef.current && !shape.aspectRatio) {
-                    const ratio = imageRef.current.naturalWidth / imageRef.current.naturalHeight;
-                    const newWidth = shape.width;
-                    const newHeight = newWidth / ratio;
-                    updateShape(shape.id, {
-                      aspectRatio: ratio,
-                      width: newWidth,
-                      height: newHeight
-                    });
-                  }
+              <canvas
+                ref={sketchPadRef}
+                width={512}
+                height={512}
+                className="w-full h-full touch-none"
+                onContextMenu={handleContextMenu}
+                style={{
+                  pointerEvents: (tool === 'select' || tool === 'brush' || tool === 'eraser') ? 'all' : 'none',
+                  backgroundColor: '#000000',
+                  touchAction: 'none',
                 }}
-
-                draggable={false}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  handlePointerDown(e);
+                }}
+                onPointerMove={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handlePointerMove(e);
+                }}
+                onPointerUp={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                  handlePointerUpOrLeave();
+                }}
+                onPointerLeave={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                  }
+                  handlePointerUpOrLeave();
+                }}
+                onPointerCancel={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                  }
+                  handlePointerUpOrLeave();
+                }}
               />
-            ) : null}
-          </>
-        )}
-        <textarea
-          ref={textRef}
-          value={shape.content || ''}
-          onChange={(e) => updateShape(shape.id, { content: e.target.value })}
-          onBlur={() => setIsEditing(false)}
-          className={`w-full h-full bg-transparent resize-none outline-none text-left ${isEditing ? '' : 'pointer-events-none'
-            }`}
-          style={{ fontSize: shape.fontSize || 16 }}
-          readOnly={!isEditing}
-        />
+              {tool === 'brush' && (
+                <button
+                  className="absolute -bottom-6 right-0 text-xs px-1.5 py-0.5 bg-gray-300 text-gray-800 rounded hover:bg-red-600 transition-colors"
+                  style={{ pointerEvents: 'all' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newId = Math.random().toString(36).substr(2, 9);
+                    addShape({
+                      id: newId,
+                      type: 'sketchpad',
+                      position: shape.position,
+                      width: shape.width,
+                      height: shape.height,
+                      color: '#ffffff',
+                      rotation: shape.rotation,
+                      locked: true
+                    });
+                    deleteShape(shape.id);
+                    setTool('brush');
+                  }}
+                >
+                  Clear
+                </button>
+              )}
 
 
 
-        {/* Selection controls */}
-        {tool === 'select' && (
-          <ShapeControls
-            shape={shape}
-            isSelected={isSelected}
-            isEditing={isEditing}
-            handleResizeStart={handleResizeStart}
+            </>
+          )}
 
+          {shape.type === 'diffusionSettings' && (
+            <div className="relative w-full h-full">
+              <div
+                className="absolute inset-0 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="h-full overflow-y-auto">
+                  <h3 className="font-medium text-gray-700 text-xs">Generation Settings</h3>
+                  <div className="space-y-1">
+                    <div>
+                      <label className="text-xs text-gray-600">Model</label>
+                      <select
+                        value={shape.model || 'juggernautXL_v9'}
+                        onChange={(e) => updateShape(shape.id, { model: e.target.value })}
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      >
+                        <option value="juggernautXL_v9">Juggernaut XL v9</option>
+                        <option value="juggernautXL">Juggernaut XL</option>
+                        <option value="dreamshaper">Dreamshaper</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">Image Dimensions</label>
+                      <select
+                        value={`${shape.outputWidth}x${shape.outputHeight}`}
+                        onChange={(e) => {
+                          const [width, height] = e.target.value.split('x').map(Number);
+                          updateShape(shape.id, { outputWidth: width, outputHeight: height });
+                        }}
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      >
+                        {Object.entries(aspectRatios).map(([label, dims]) => (
+                          <option key={label} value={`${dims.width}x${dims.height}`}>
+                            {label} ({dims.width}x{dims.height})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-600">Steps</label>
+                      <input
+                        type="number"
+                        value={shape.steps?.toString() || '20'}
+                        onChange={(e) => updateShape(shape.id, { steps: Number(e.target.value) })}
+                        min="1"
+                        max="100"
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-600">Guidance Scale</label>
+                      <input
+                        type="number"
+                        value={shape.guidanceScale?.toString() || '7.5'}
+                        onChange={(e) => updateShape(shape.id, { guidanceScale: Number(e.target.value) })}
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-600">Scheduler</label>
+                      <select
+                        value={shape.scheduler || 'dpmpp_2m_sde'}
+                        onChange={(e) => updateShape(shape.id, { scheduler: e.target.value })}
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      >
+                        <option value="dpmpp_2m_sde">DPM++ 2M SDE</option>
+                        <option value="dpmpp_2m">DPM++ 2M</option>
+                        <option value="euler">Euler</option>
+                        <option value="euler_ancestral">Euler Ancestral</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-600">Seed</label>
+                      <input
+                        type="number"
+                        value={shape.seed?.toString() || '-1'}
+                        onChange={(e) => updateShape(shape.id, { seed: Number(e.target.value) })}
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        id={`randomize-${shape.id}`}
+                        checked={shape.randomiseSeeds || false}
+                        onChange={(e) => updateShape(shape.id, { randomiseSeeds: e.target.checked })}
+                        className="w-3 h-3 text-blue-600 rounded border-gray-300"
+                      />
+                      <label htmlFor={`randomize-${shape.id}`} className="text-xs text-gray-600">
+                        Randomize Seeds
+                      </label>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">Output Format</label>
+                      <select
+                        value={shape.outputFormat || 'png'}
+                        onChange={(e) => updateShape(shape.id, { outputFormat: e.target.value })}
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      >
+                        <option value="png">PNG</option>
+                        <option value="jpg">JPG</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-600">Output Quality</label>
+                      <input
+                        type="number"
+                        value={shape.outputQuality?.toString() || '100'}
+                        onChange={(e) => updateShape(shape.id, { outputQuality: Number(e.target.value) })}
+                        min="1"
+                        max="100"
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      />
+                    </div>
+
+
+                  </div>
+                </div>
+              </div>            </div>
+
+          )}
+
+
+
+
+
+          {shape.type === 'image' && (
+            <>
+              {shape.showDepth && shape.depthPreviewUrl ? (
+                <img
+                  src={shape.depthPreviewUrl}
+                  alt="Depth map"
+                  className="w-full h-full object-cover"
+                  draggable={false}
+                />
+              ) : shape.showEdges && shape.edgePreviewUrl ? (
+                <img
+                  src={shape.edgePreviewUrl}
+                  alt="Edge detection"
+                  className="w-full h-full object-cover"
+                  draggable={false}
+                />
+              ) : shape.showPose && shape.posePreviewUrl ? (
+                <img
+                  src={shape.posePreviewUrl}
+                  alt="Pose detection"
+                  className="w-full h-full object-cover"
+                  draggable={false}
+                />
+              ) : shape.imageUrl ? (
+                <img
+                  ref={imageRef}
+                  src={shape.imageUrl}
+                  alt="User uploaded content"
+                  className="w-full h-full object-cover"
+                  onLoad={() => {
+                    if (imageRef.current && !shape.aspectRatio) {
+                      const ratio = imageRef.current.naturalWidth / imageRef.current.naturalHeight;
+                      const newWidth = shape.width;
+                      const newHeight = newWidth / ratio;
+                      updateShape(shape.id, {
+                        aspectRatio: ratio,
+                        width: newWidth,
+                        height: newHeight
+                      });
+                    }
+                  }}
+
+                  draggable={false}
+                />
+              ) : null}
+            </>
+          )}
+          <textarea
+            ref={textRef}
+            value={shape.content || ''}
+            onChange={(e) => updateShape(shape.id, { content: e.target.value })}
+            onBlur={() => setIsEditing(false)}
+            className={`w-full h-full bg-transparent resize-none outline-none text-left ${isEditing ? '' : 'pointer-events-none'
+              }`}
+            style={{ fontSize: shape.fontSize || 16 }}
+            readOnly={!isEditing}
           />
+        </div>
+
+
+
+
+        {/* Selection controls with data attribute */}
+        {tool === 'select' && (
+          <div data-controls-panel={shape.id} style={{ pointerEvents: 'all' }}>
+            <ShapeControls
+              shape={shape}
+              isSelected={isSelected}
+              isEditing={isEditing}
+              handleResizeStart={handleResizeStart}
+            />
+          </div>
         )}
       </div>
-
     </>
   );
 }

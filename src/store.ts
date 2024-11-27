@@ -552,7 +552,7 @@ export const useStore = create<BoardState>((set, get) => ({
 
   setError: (error: string | null) => set({ error }),
 
-  handleGenerate: async () => {
+  const handleGenerate = async () => {
     const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
     const { shapes } = state;
@@ -566,6 +566,7 @@ export const useStore = create<BoardState>((set, get) => ({
       set({ error: 'No settings selected. Please select a settings shape.' });
       return;
     }
+
     // 1. Authentication check
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User must be authenticated');
@@ -584,59 +585,70 @@ export const useStore = create<BoardState>((set, get) => ({
     set({ showGallery: true });
 
     try {
-      // 4. Update all workflow settings
+      // 4. Update base workflow settings
       workflow["3"].inputs.steps = activeSettings.steps || 20;
       workflow["3"].inputs.cfg = activeSettings.guidanceScale || 7.5;
-      workflow["3"].inputs.sampler_name = activeSettings.scheduler || 'karras';
+      workflow["3"].inputs.sampler_name = activeSettings.scheduler || 'dpmpp_2m_sde';
       workflow["3"].inputs.seed = activeSettings.seed || Math.floor(Math.random() * 32767);
       workflow["5"].inputs.width = activeSettings.outputWidth || 832;
       workflow["5"].inputs.height = activeSettings.outputHeight || 1216;
       workflow["6"].inputs.text = stickyWithPrompt.content;
 
-      // 5. Set model checkpoint
-      const modelCheckpoints = {
-        juggernautXL: "juggernautXL_juggernautX.safetensors",
-        dreamshaper: "dreamshaper_8.safetensors",
-        juggernautXL_v9: "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
-      };
-      const selectedModel = state.advancedSettings.model || 'juggernautXL_v9';
-      workflow["4"].inputs.ckpt_name = modelCheckpoints[selectedModel as keyof typeof modelCheckpoints];
-
-      // Find shape with control maps enabled
+      // 5. Find shape with control maps enabled
       const controlShape = shapes.find(shape =>
         shape.type === 'image' &&
         (shape.showDepth || shape.showEdges || shape.showPose || shape.showScribble)
       );
 
-      let currentConditioningNode = "6";
+      // 6. Handle controlnet chain
+      let currentConditioningNode = "6"; // Start with base text prompt
 
       if (controlShape) {
+        // Handle Depth control
         if (controlShape.showDepth && controlShape.depthPreviewUrl) {
           workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["11"].inputs.strength = controlShape.depthStrength || 1;
           workflow["13"].inputs.image = controlShape.depthPreviewUrl;
           currentConditioningNode = "11";
+        } else {
+          // Bypass depth control by connecting to next active control
+          workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
         }
 
+        // Handle Edge control
         if (controlShape.showEdges && controlShape.edgePreviewUrl) {
           workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["14"].inputs.strength = controlShape.edgesStrength || 1;
           workflow["16"].inputs.image = controlShape.edgePreviewUrl;
           currentConditioningNode = "14";
+        } else {
+          // Bypass edge control by connecting to next active control
+          workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
         }
 
+        // Handle Pose control
         if (controlShape.showPose && controlShape.posePreviewUrl) {
           workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["17"].inputs.strength = controlShape.poseStrength || 1;
           workflow["19"].inputs.image = controlShape.posePreviewUrl;
           currentConditioningNode = "17";
+        } else {
+          // Bypass pose control by connecting to next active control
+          workflow["22"].inputs.conditioning = [currentConditioningNode, 0];
         }
 
+        // Handle Scribble control
         if (controlShape.showScribble && controlShape.scribblePreviewUrl) {
           workflow["22"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["22"].inputs.strength = controlShape.scribbleStrength || 1;
           workflow["21"].inputs.image = controlShape.scribblePreviewUrl;
           currentConditioningNode = "22";
         }
       }
 
+      // 7. Connect final conditioning to KSampler
       workflow["3"].inputs.positive = [currentConditioningNode, 0];
+
 
       const requestPayload = {
         workflow_json: workflow,

@@ -7,22 +7,10 @@
       "sampler_name": "dpmpp_2m_sde",
       "scheduler": "karras",
       "denoise": 1,
-      "model": [
-        "6",
-        0
-      ],
-      "positive": [
-        "12",
-        0
-      ],
-      "negative": [
-        "7",
-        0
-      ],
-      "latent_image": [
-        "5",
-        0
-      ]
+      "model": ["4", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["5", 0]
     },
     "class_type": "KSampler",
     "_meta": {
@@ -51,11 +39,8 @@
   },
   "6": {
     "inputs": {
-      "text": "beautiful scenery nature glass bottle landscape, , purple galaxy bottle,",
-      "clip": [
-        "4",
-        1
-      ]
+      "text": "",
+      "clip": ["4", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
@@ -65,26 +50,17 @@
   "7": {
     "inputs": {
       "text": "text, watermark",
-      "clip": [
-        "4",
-        1
-      ]
+      "clip": ["4", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
+      "title": "CLIP Text Encode (Negative Prompt)"
     }
   },
   "8": {
     "inputs": {
-      "samples": [
-        "3",
-        0
-      ],
-      "vae": [
-        "4",
-        2
-      ]
+      "samples": ["3", 0],
+      "vae": ["4", 2]
     },
     "class_type": "VAEDecode",
     "_meta": {
@@ -94,10 +70,7 @@
   "9": {
     "inputs": {
       "filename_prefix": "ComfyUI",
-      "images": [
-        "8",
-        0
-      ]
+      "images": ["8", 0]
     },
     "class_type": "SaveImage",
     "_meta": {
@@ -107,22 +80,13 @@
   "11": {
     "inputs": {
       "strength": 1,
-      "conditioning": [
-        "6",
-        0
-      ],
-      "control_net": [
-        "12",
-        0
-      ],
-      "image": [
-        "13",
-        0
-      ]
+      "conditioning": ["6", 0],
+      "control_net": ["12", 0],
+      "image": ["13", 0]
     },
     "class_type": "ControlNetApply",
     "_meta": {
-      "title": "Apply ControlNet"
+      "title": "Apply ControlNet (Depth)"
     }
   },
   "12": {
@@ -131,38 +95,29 @@
     },
     "class_type": "ControlNetLoader",
     "_meta": {
-      "title": "Load ControlNet Model"
+      "title": "Load ControlNet Model (Depth)"
     }
   },
   "13": {
     "inputs": {
-      "image": "https://picsum.photos/200",
+      "image": "",
       "upload": "image"
     },
     "class_type": "LoadImage",
     "_meta": {
-      "title": "DepthImage"
+      "title": "Load Depth Image"
     }
   },
   "14": {
     "inputs": {
       "strength": 1,
-      "conditioning": [
-        "11",
-        0
-      ],
-      "control_net": [
-        "15",
-        0
-      ],
-      "image": [
-        "16",
-        0
-      ]
+      "conditioning": ["11", 0],
+      "control_net": ["15", 0],
+      "image": ["16", 0]
     },
     "class_type": "ControlNetApply",
     "_meta": {
-      "title": "Apply ControlNet"
+      "title": "Apply ControlNet (Edge)"
     }
   },
   "15": {
@@ -171,87 +126,79 @@
     },
     "class_type": "ControlNetLoader",
     "_meta": {
-      "title": "Load ControlNet Model"
+      "title": "Load ControlNet Model (Edge)"
     }
   },
   "16": {
     "inputs": {
-      "image": "https://picsum.photos/200",
+      "image": "",
       "upload": "image"
     },
     "class_type": "LoadImage",
     "_meta": {
-      "title": "EdgeImage"
+      "title": "Load Edge Image"
     }
   },
   "17": {
-  "inputs": {
-    "strength": 1,
-    "conditioning": ["14", 0],
-    "control_net": ["18", 0],
-    "image": ["19", 0]
+    "inputs": {
+      "strength": 1,
+      "conditioning": ["14", 0],
+      "control_net": ["18", 0],
+      "image": ["19", 0]
+    },
+    "class_type": "ControlNetApply",
+    "_meta": {
+      "title": "Apply ControlNet (Pose)"
+    }
   },
-  "class_type": "ControlNetApply"
-},
   "18": {
     "inputs": {
       "control_net_name": "controlnet-openpose-sdxl-1.0.safetensors"
     },
     "class_type": "ControlNetLoader",
     "_meta": {
-      "title": "Load ControlNet Model"
+      "title": "Load ControlNet Model (Pose)"
     }
   },
   "19": {
     "inputs": {
-      "image": "https://picsum.photos/200",
+      "image": "",
       "upload": "image"
     },
     "class_type": "LoadImage",
     "_meta": {
-      "title": "PoseImage"
+      "title": "Load Pose Image"
     }
   },
- 
-    "20": {
-      "inputs": {
-        "control_net_name": "controlnet-scribble-sdxl-1.0.safetensors"
-      },
-      "class_type": "ControlNetLoader",
-      "_meta": {
-        "title": "Load ControlNet Model"
-      }
+  "20": {
+    "inputs": {
+      "control_net_name": "controlnet-scribble-sdxl-1.0.safetensors"
     },
-    "21": {
-      "inputs": {
-        "image": "https://picsum.photos/200",
-        "upload": "image"
-      },
-      "class_type": "LoadImage",
-      "_meta": {
-        "title": "ScribbleImage"
-      }
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Load ControlNet Model (Scribble)"
+    }
+  },
+  "21": {
+    "inputs": {
+      "image": "",
+      "upload": "image"
     },
-    "22": {
-      "inputs": {
-        "strength": 1,
-        "conditioning": [
-          "17",
-          0
-        ],
-        "control_net": [
-          "20",
-          0
-        ],
-        "image": [
-          "21",
-          0
-        ]
-      },
-      "class_type": "ControlNetApply",
-      "_meta": {
-        "title": "Apply ControlNet"
-      }
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Scribble Image"
+    }
+  },
+  "22": {
+    "inputs": {
+      "strength": 1,
+      "conditioning": ["17", 0],
+      "control_net": ["20", 0],
+      "image": ["21", 0]
+    },
+    "class_type": "ControlNetApply",
+    "_meta": {
+      "title": "Apply ControlNet (Scribble)"
     }
   }
-  
+}
