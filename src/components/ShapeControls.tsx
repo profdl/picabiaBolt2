@@ -25,6 +25,30 @@ export function ShapeControls({
     const poseProcessing = useStore(state => state.preprocessingStates[shape.id]?.pose);
     const scribbleProcessing = useStore(state => state.preprocessingStates[shape.id]?.scribble);
 
+    useEffect(() => {
+        const channel = supabase
+            .channel('preprocessed_images_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'preprocessed_images'
+                },
+                (payload) => {
+                    if (payload.new.shapeId === shape.id) {
+                        updateShape(shape.id, {
+                            [`${payload.new.processType}PreviewUrl`]: payload.new[`${payload.new.processType}Url`]
+                        });
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            channel.unsubscribe();
+        };
+    }, [shape.id, updateShape]);
     // Define controls array
     const controls = [
         {

@@ -73,7 +73,9 @@ const UploadButton = () => {
       color: 'transparent',
       imageUrl: '',
       rotation: 0,
-      isUploading: true
+      isUploading: true,
+      model: '',
+      useSettings: false
     });
 
 
@@ -210,6 +212,7 @@ interface ToolbarProps {
 export const Toolbar: React.FC<ToolbarProps> = ({
   showGallery
 }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showAssets, setShowAssets] = useState(false);
   const { setCurrentColor } = useStore();
 
@@ -300,7 +303,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         rotation: 0,
         aspectRatio: 1.5,
         isUploading: false,
-        useSettings: false
+        useSettings: false,
+        model: ''
       });
       setTool('select');
       return;
@@ -352,23 +356,23 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
       // Array of prompts
       const prompts = [
-        "A monumental brutalist building, its raw concrete surface weathered and textured, illuminated by dramatic golden-hour sunlight casting deep shadows. The scene is captured from a low-angle wide shot, highlighting the sharp geometric forms and towering structure. Moody clouds drift in the sky, adding an atmospheric backdrop. High cinematic realism, shot on 35mm film, with soft lens flares and a shallow depth of field.",
-        "An extreme close-up of a vibrant orchid flower, capturing the intricate details of its petals, veins, and textures. Tiny droplets of water glisten on the surface, refracting soft natural light. The background is softly blurred with creamy bokeh, isolating the flower's delicate stamen and pistil in exquisite detail. High macro photography realism with a 1:1 magnification, vibrant color palette, and razor-sharp focus.",
-        "A sleek concept sketch of a futuristic handheld device, featuring bold angular lines, intricate patterns, and innovative mechanisms. The design is presented in a dynamic 3/4 view, with clean white background and annotations detailing materials like mesh, leather, and reflective fabric. Rendered in a modern design style, with a combination of hand-drawn and digital techniques, vibrant accent colors, and textured shading for depth.",
-        "An avant-garde costume design inspired by the Bauhaus and early 20th-century theater. The outfit features geometric shapes and asymmetrical patterns in bold colors like red, black, and white, combined with metallic accents. The fabric blends unconventional textures such as stiff plastic, woven mesh, and polished leather. The design is illustrated on a tall mannequin with dramatic lighting, showcasing a high-concept theatrical look with exaggerated proportions and angular forms.",
-        "A finely detailed ancient marble sculpture displayed on a polished pedestal in a museum setting. The object, a Greek classical figure of a warrior, features a mix of smooth and weathered textures, with intricate carvings depicting muscles, flowing drapery, and decorative motifs. Spotlights highlight the form, casting soft shadows onto the dark gallery wall. The setting is serene, with a muted color palette and reflective marble flooring.",
-        "A post-apocalyptic scene of a flooded Los Angeles, with iconic landmarks like the Hollywood sign partially submerged under water. Skyscrapers rise above the flood, their reflections shimmering in the murky surface. Small boats and floating debris drift through the streets, while dark storm clouds loom overhead. The atmosphere is eerie and cinematic, with high-contrast lighting, dramatic shadows, and fine detail in the water's textures and reflections.",
-        "A colossal brutalist library, its tiered concrete facade punctuated by narrow vertical windows, shrouded in early morning fog. The surrounding plaza is empty, with faint reflections of the structure visible in rain-soaked pavement. Cinematic atmosphere, soft diffused lighting, and high architectural detail.",
-        "A macro close-up of a dew-covered sunflower, its intricate patterns of seeds spiraling outward in perfect symmetry. The petals radiate a vibrant golden hue, illuminated by soft natural light against a dark, blurred background with bokeh highlights.",
-        "A futuristic sneaker concept with modular components, showcasing interchangeable parts in vibrant neon colors and sleek matte textures. The design is rendered with exploded views and cross-sectional diagrams on a clean, white background, blending minimalism with cutting-edge technology.",
-        "An avant-garde theatrical costume inspired by Cubism, featuring angular panels of reflective metal and translucent fabric. The asymmetrical design incorporates bold primary colors and fragmented shapes, illuminated dramatically under stage spotlights, creating a surreal and sculptural appearance.",
-        "An ancient terracotta statue of a mythical creature, displayed in a museum under a glass case. The figure’s surface is weathered with fine cracks, revealing intricate carvings and decorative motifs. Spotlights highlight the earthy tones, while the darkened background adds a sense of reverence.",
-        "An opulent Art Nouveau theater set, featuring sweeping organic lines, intricate floral motifs, and rich jewel tones. The stage is dominated by a grand staircase with golden railings, all illuminated by an ornate chandelier casting intricate patterns of light and shadow.",
-        "A dystopian vision of a partially submerged Venice Beach, with abandoned storefronts and lifeguard towers poking out of the water. Bright graffiti decorates the walls above the floodline, while sunlight filters through a haze, creating a cinematic post-apocalyptic mood.",
-        "A brutalist concert hall interior, its vast concrete walls intersecting at sharp angles, creating dramatic lines and shadows. The space is bathed in warm spotlight beams, contrasting with the cool gray tones of the material, and empty chairs are neatly arranged in rows.",
-        "A close-up of a rare desert flower in full bloom, its delicate petals stretching outward in vibrant shades of pink and orange. Fine grains of sand cling to its surface, while soft golden sunlight highlights the intricate textures and gradients of color.",
-        "A sprawling brutalist sports complex at night, illuminated by harsh floodlights that cast long, dramatic shadows across the stark concrete forms. The empty grounds are slick with recent rain, and the reflections create a surreal, cinematic aesthetic."
+        "A monumental brutalist building with weathered concrete, illuminated by golden-hour sunlight. A low-angle wide shot emphasizes its geometric forms, with moody clouds in the background. High cinematic realism, 35mm film look, with lens flares and shallow depth of field.",
+        "An extreme close-up of a vibrant orchid, showing intricate petal details with water droplets glistening in soft light. The creamy blurred background isolates the flower's delicate stamen. High macro realism, vivid colors, and sharp focus.",
+        "A sleek concept sketch of a futuristic handheld device with bold lines, intricate patterns, and dynamic 3/4 view. Annotated details include mesh, leather, and reflective materials. Modern design style with vibrant accents and textured shading.",
+        "An avant-garde costume inspired by Bauhaus and 20th-century theater. Geometric shapes and bold colors mix with textures like plastic, mesh, and leather. Illustrated on a mannequin with dramatic lighting, showcasing exaggerated, angular forms.",
+        "An ancient marble sculpture of a Greek warrior on a polished pedestal in a museum. Smooth and weathered textures depict muscles and drapery. Spotlights cast soft shadows, enhancing the serene, muted setting with reflective floors.",
+        "A flooded Los Angeles with landmarks like the Hollywood sign submerged. Skyscrapers reflect in the murky water as boats and debris drift. Dark storm clouds create an eerie, cinematic atmosphere with detailed water textures.",
+        "A colossal brutalist library with tiered concrete and narrow windows, surrounded by early morning fog. Reflections shimmer in rain-soaked pavement. Cinematic atmosphere with diffused light and high architectural detail.",
+        "A macro close-up of a dew-covered sunflower, its seed patterns spiraling symmetrically. Vibrant golden petals glow in soft light against a dark, blurred background with bokeh highlights.",
+        "An avant-garde costume inspired by Cubism, with angular metal panels and translucent fabric. Bold primary colors and fragmented shapes are illuminated dramatically, creating a surreal sculptural effect under stage lights.",
+        "An ancient terracotta statue of a mythical creature in a museum glass case. Weathered with fine cracks, it features intricate carvings. Spotlights highlight earthy tones against a darkened, reverent background.",
+        "An opulent Art Nouveau theater set with organic lines, floral motifs, and rich jewel tones. A grand staircase with golden railings dominates the stage, lit by a chandelier casting intricate light patterns.",
+        "A dystopian Venice Beach, partially submerged with graffiti above floodlines. Abandoned storefronts and lifeguard towers rise above the water. Hazy sunlight creates a cinematic, post-apocalyptic mood.",
+        "A brutalist concert hall interior with sharp-angled concrete walls and dramatic shadows. Warm spotlight beams contrast with the cool gray material, while rows of empty chairs complete the scene.",
+        "A close-up of a rare desert flower in bloom, its vibrant pink and orange petals stretching outward. Fine sand grains cling to its surface, highlighted by soft golden sunlight.",
+        "A sprawling brutalist sports complex at night, illuminated by harsh floodlights. Dramatic shadows fall across the rain-slick concrete, with reflections creating a surreal, cinematic effect."
       ];
+
 
 
       // Randomly select a prompt from the array
@@ -393,7 +397,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         rotation: 0,
         showPrompt: true, // Automatically enable text prompt
         isUploading: false,
-        useSettings: false
+        useSettings: false,
+        model: ''
       });
 
     } else {

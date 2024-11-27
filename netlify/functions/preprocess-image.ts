@@ -38,10 +38,10 @@ export const handler: Handler = async (event) => {
 
     try {
         const payload = JSON.parse(event.body || '{}');
-        const { imageUrl, processType, shapeId } = payload;
+        const { imageUrl, processType, shapeId, userId } = payload;
 
         // Add validation logging
-        console.log('Validated payload:', { imageUrl, processType, shapeId });
+        console.log('Validated payload:', { imageUrl, processType, shapeId, userId });
 
         const baseWorkflow = {
             "10": {
@@ -69,8 +69,6 @@ export const handler: Handler = async (event) => {
                 "class_type": "SaveImage"
             }
         };
-
-
 
         // Create a copy of the workflow
         const workflow = JSON.parse(JSON.stringify(baseWorkflow));
@@ -143,6 +141,7 @@ export const handler: Handler = async (event) => {
             .from('preprocessed_images')
             .insert({
                 prediction_id: prediction.id,
+                user_id: userId,
                 shapeId,
                 originalUrl: imageUrl,
                 processType,
@@ -150,8 +149,6 @@ export const handler: Handler = async (event) => {
                 created_at: now,
                 updated_at: now  // Add this field
             });
-
-
 
         return {
             statusCode: 200,
