@@ -502,7 +502,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
         : shape.color,
     overflow: 'visible',
     transition: 'box-shadow 0.2s ease-in-out',
-    zIndex: shape.type === 'group' ? 1 : isSelected ? 100 : 10,
+    zIndex: shape.groupId
+      ? 200  // Grouped objects always stay higher
+      : shape.type === 'group'
+        ? 0  // Groups stay below their contents
+        : isSelected
+          ? 100  // Selected non-grouped objects go to top
+          : 15,  // Default z-index for ungrouped objects
     pointerEvents: tool === 'select' ? 'all' : 'none',
     cursor: tool === 'select' ? 'move' : 'default',
     border: shape.type === 'sketchpad'
@@ -543,7 +549,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
         style={{
           ...shapeStyles,
           overflow: 'hidden',
-          zIndex: isSelected ? 100 : 1,
           pointerEvents: tool === 'select' ? 'all' : 'none',
         }}
         onMouseDown={handleMouseDown}

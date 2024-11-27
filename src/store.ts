@@ -209,16 +209,17 @@ export const useStore = create<BoardState>((set, get) => ({
       isUploading: false
     };
 
-    // Update shapes with group info
+    // Update shapes with group info and insert group at beginning
     const updatedShapes = shapes.map(shape =>
       shapeIds.includes(shape.id) ? { ...shape, groupId } : shape
     );
 
     set({
-      shapes: [...updatedShapes, groupShape],
+      shapes: [groupShape, ...updatedShapes],
       selectedShapes: [groupId]
     });
-  },
+  }
+  ,
 
   ungroup: (groupId: string) => {
     const { shapes } = get();

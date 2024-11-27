@@ -456,14 +456,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <StickyNote className="w-5 h-5" />
             <span className="text-sm font-medium">Text Prompt</span>
           </button>
-          <button
-            onClick={() => handleAddShape('diffusionSettings')}
-            className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
-            title="Add Diffusion Settings"
-          >
-            {/* <Settings className="w-5 h-5" /> */}
-            <span className="text-sm font-medium">Add Settings</span>
-          </button>
+
 
 
           {/* <button
@@ -672,7 +665,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
 
           {/* <SettingsButton /> */}
-
+          <button
+            onClick={() => handleAddShape('diffusionSettings')}
+            className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
+            title="Add Diffusion Settings"
+          >
+            {/* <Settings className="w-5 h-5" /> */}
+            <span className="text-sm font-medium"> Settings</span>
+          </button>
           {/* Select, Pan Zoom */}
           <div className="w-px bg-gray-200 mx-4" />
 
