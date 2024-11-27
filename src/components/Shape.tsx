@@ -7,6 +7,7 @@ import { useStore } from '../store';
 import { Shape, DragStart } from '../types';
 import { useBrush } from './BrushTool';
 import { ShapeControls } from './ShapeControls';
+import { tr } from 'date-fns/locale';
 interface ShapeProps {
   shape: Shape;
 }
@@ -472,7 +473,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
         ? 'transparent'
         : shape.color,
     overflow: 'visible',
-    transformOrigin: 'center center',
     transition: 'box-shadow 0.2s ease-in-out',
     zIndex: shape.type === 'group' ? 1 : isSelected ? 100 : 10,
     pointerEvents: tool === 'select' ? 'all' : 'none',
@@ -484,8 +484,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
         : isSelected
           ? '2px solid #2196f3'
           : 'none',
-    borderRadius: shape.type === 'circle' ? '50%' : shape.type === 'sticky' ? '8px' : '4px',
-    display: 'flex',
+    borderRadius: shape.type === 'sticky' ? '8px' : '4px',
+    display: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
     userSelect: 'none',
@@ -495,6 +495,17 @@ export function ShapeComponent({ shape }: ShapeProps) {
     transform: `rotate(${shape.rotation || 0}deg)`
   };
 
+  const aspectRatios = {
+    'Landscape SD (4:3)': { width: 1176, height: 888 },
+    'Widescreen IMAX (1.43:1)': { width: 1224, height: 856 },
+    'Widescreen HD(16:9)': { width: 1360, height: 768 },
+    'Golden Ratio (1.618:1)': { width: 1296, height: 800 },
+    'Square (1:1)': { width: 1024, height: 1024 },
+    'Portrait (2:3)': { width: 832, height: 1248 },
+    'Portrait Standard (3:4)': { width: 880, height: 1176 },
+    'Portrait Large Format (4:5)': { width: 912, height: 1144 },
+    'Portrait Social Video (9:16)': { width: 1360, height: 768 },
+  };
 
 
   return (
@@ -589,6 +600,135 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
           </>
         )}
+
+        {shape.type === 'diffusionSettings' && (
+          <div className="relative w-full h-full">
+            <div
+              className="absolute inset-0 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="h-full overflow-y-auto">
+                <h3 className="font-medium text-gray-700 text-xs">Generation Settings</h3>
+                <div className="space-y-1">
+                  <div>
+                    <label className="text-xs text-gray-600">Model</label>
+                    <select
+                      value={shape.model || 'juggernautXL_v9'}
+                      onChange={(e) => updateShape(shape.id, { model: e.target.value })}
+                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                    >
+                      <option value="juggernautXL_v9">Juggernaut XL v9</option>
+                      <option value="juggernautXL">Juggernaut XL</option>
+                      <option value="dreamshaper">Dreamshaper</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600">Image Dimensions</label>
+                    <select
+                      value={`${shape.outputWidth}x${shape.outputHeight}`}
+                      onChange={(e) => {
+                        const [width, height] = e.target.value.split('x').map(Number);
+                        updateShape(shape.id, { outputWidth: width, outputHeight: height });
+                      }}
+                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                    >
+                      {Object.entries(aspectRatios).map(([label, dims]) => (
+                        <option key={label} value={`${dims.width}x${dims.height}`}>
+                          {label} ({dims.width}x{dims.height})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-600">Steps</label>
+                    <input
+                      type="number"
+                      value={shape.steps?.toString() || '20'}
+                      onChange={(e) => updateShape(shape.id, { steps: Number(e.target.value) })}
+                      min="1"
+                      max="100"
+                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-600">Guidance Scale</label>
+                    <input
+                      type="number"
+                      value={shape.guidanceScale?.toString() || '7.5'}
+                      onChange={(e) => updateShape(shape.id, { guidanceScale: Number(e.target.value) })}
+                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-600">Scheduler</label>
+                    <select
+                      value={shape.scheduler || 'dpmpp_2m_sde'}
+                      onChange={(e) => updateShape(shape.id, { scheduler: e.target.value })}
+                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                    >
+                      <option value="dpmpp_2m_sde">DPM++ 2M SDE</option>
+                      <option value="dpmpp_2m">DPM++ 2M</option>
+                      <option value="euler">Euler</option>
+                      <option value="euler_ancestral">Euler Ancestral</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-600">Seed</label>
+                    <input
+                      type="number"
+                      value={shape.seed?.toString() || '-1'}
+                      onChange={(e) => updateShape(shape.id, { seed: Number(e.target.value) })}
+                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      id={`randomize-${shape.id}`}
+                      checked={shape.randomiseSeeds || false}
+                      onChange={(e) => updateShape(shape.id, { randomiseSeeds: e.target.checked })}
+                      className="w-3 h-3 text-blue-600 rounded border-gray-300"
+                    />
+                    <label htmlFor={`randomize-${shape.id}`} className="text-xs text-gray-600">
+                      Randomize Seeds
+                    </label>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600">Output Format</label>
+                    <select
+                      value={shape.outputFormat || 'png'}
+                      onChange={(e) => updateShape(shape.id, { outputFormat: e.target.value })}
+                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                    >
+                      <option value="png">PNG</option>
+                      <option value="jpg">JPG</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-600">Output Quality</label>
+                    <input
+                      type="number"
+                      value={shape.outputQuality?.toString() || '100'}
+                      onChange={(e) => updateShape(shape.id, { outputQuality: Number(e.target.value) })}
+                      min="1"
+                      max="100"
+                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                    />
+                  </div>
+
+
+                </div>
+              </div>
+            </div>            </div>
+
+        )}
+
+
 
 
 

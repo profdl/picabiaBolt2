@@ -104,7 +104,7 @@ export function ShapeControls({
         shape.showPrompt ||
         shape.showNegativePrompt || // Added this check
         shape.showScribble;
-    const showControlPanel = isSelected || anyCheckboxChecked;
+    const showControlPanel = isSelected || anyCheckboxChecked || shape.useSettings;
 
     if (!showControlPanel) return null;
 
@@ -304,6 +304,35 @@ export function ShapeControls({
                     className="absolute -left-6 top-1/2 w-4 h-4 cursor-pointer transform -translate-y-1/2"
                     style={{ zIndex: 101, pointerEvents: 'all' }}
                 />
+            )}
+
+            {/* Add this inside the ShapeControls component, alongside other shape-specific controls */}
+            {shape.type === 'diffusionSettings' && (
+                <div className="absolute left-1/2 top-full mt-1 bg-white p-1.5 rounded border border-gray-200 transform -translate-x-1/2"
+                    style={{ zIndex: 101, pointerEvents: 'all', width: '160px' }}>
+                    <div className="flex items-center gap-1.5">
+                        <input
+                            type="checkbox"
+                            id={`use-settings-${shape.id}`}
+                            checked={shape.useSettings || false}
+                            onChange={(e) => {
+                                if (e.target.checked) {
+                                    // Uncheck other diffusionSettings shapes
+                                    shapes.forEach(otherShape => {
+                                        if (otherShape.type === 'diffusionSettings' && otherShape.id !== shape.id) {
+                                            updateShape(otherShape.id, { useSettings: false });
+                                        }
+                                    });
+                                }
+                                updateShape(shape.id, { useSettings: e.target.checked });
+                            }}
+                            className="w-3 h-3 cursor-pointer"
+                        />
+                        <label htmlFor={`use-settings-${shape.id}`} className="text-xs text-gray-700 cursor-pointer whitespace-nowrap">
+                            Use Settings
+                        </label>
+                    </div>
+                </div>
             )}
 
 

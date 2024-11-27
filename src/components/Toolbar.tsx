@@ -260,7 +260,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     console.log('Current tool:', tool);
   }, [tool]);
 
-  const handleAddShape = (type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'sketchpad') => {
+  const handleAddShape = (type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'sketchpad' | 'diffusionSettings') => {
     if (type === 'sketchpad') {
       const center = getViewportCenter();
       addShape({
@@ -299,15 +299,42 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         imageUrl: url,
         rotation: 0,
         aspectRatio: 1.5,
-        isUploading: false
+        isUploading: false,
+        useSettings: false
       });
       setTool('select');
       return;
     }
+    if (type === 'diffusionSettings') {
+      addShape({
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'diffusionSettings',
+        position: {
+          x: center.x - 150,
+          y: center.y - 300
+        },
+        width: 250,
+        height: 520,
+        color: '#f3f4f6',
+        rotation: 0,
+        isUploading: false,
+        useSettings: true,
+        // Initialize all numeric values
+        steps: 30,
+        outputQuality: 100,
+        guidanceScale: 4.5,
+        outputWidth: 1360,
+        outputHeight: 768,
+        model: 'juggernautXL_v9',
+        scheduler: 'dpmpp_2m_sde',
+        outputFormat: 'png',
+        randomiseSeeds: true,
+      });
 
+
+      return;
+    }
     const size = type === 'sticky' ? 260 : 50;
-
-    // For sticky notes specifically
     if (type === 'sticky') {
       // Get existing shapes and updateShape from the store
       const existingShapes = useStore.getState().shapes;
@@ -365,7 +392,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         fontSize: 16,
         rotation: 0,
         showPrompt: true, // Automatically enable text prompt
-        isUploading: false
+        isUploading: false,
+        useSettings: false
       });
 
     } else {
@@ -386,6 +414,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         isUploading: false
       });
     }
+
+
+
   };
 
 
@@ -420,7 +451,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <StickyNote className="w-5 h-5" />
             <span className="text-sm font-medium">Text Prompt</span>
           </button>
-
+          <button
+            onClick={() => handleAddShape('diffusionSettings')}
+            className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
+            title="Add Diffusion Settings"
+          >
+            {/* <Settings className="w-5 h-5" /> */}
+            <span className="text-sm font-medium">Add Settings</span>
+          </button>
 
 
           {/* <button
@@ -689,4 +727,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   );
 };
 
+
+function setSelectedShapes(arg0: string[]) {
+  throw new Error('Function not implemented.');
+}
 

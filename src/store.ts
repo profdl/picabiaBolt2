@@ -255,6 +255,19 @@ export const useStore = create<BoardState>((set, get) => ({
   addShape: (shape: Shape) => {
     set(state => {
       const newShapes = [...state.shapes, shape];
+
+      // If adding a diffusionSettings shape, uncheck all other diffusionSettings shapes
+      if (shape.type === 'diffusionSettings') {
+        newShapes.forEach(existingShape => {
+          if (existingShape.type === 'diffusionSettings') {
+            existingShape.useSettings = false;
+          }
+        });
+        // Set the new shape's useSettings to true
+        shape.useSettings = true;
+      }
+
+      newShapes.push(shape);
       return {
         shapes: newShapes,
         tool: shape.type === 'drawing' ? state.tool : 'select',

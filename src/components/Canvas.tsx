@@ -93,6 +93,11 @@ export function Canvas() {
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
+      const isDiffusionSettings = (e.target as Element)?.closest('[data-shape-type="diffusionSettings"]');
+      if (isDiffusionSettings) {
+        return; // Let the native scroll behavior handle it
+      }
+
       if (e.ctrlKey) {
         e.preventDefault();
         const rect = canvasRef.current?.getBoundingClientRect();

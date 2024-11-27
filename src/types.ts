@@ -20,8 +20,9 @@ export interface Project {
 }
 
 export interface Shape {
+  useSettings: boolean;
   id: string;
-  type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing' | 'sketchpad' | 'group';
+  type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing' | 'sketchpad' | 'group' | 'diffusionSettings';
   position: Position;
   content?: string;
   width: number;
@@ -64,9 +65,16 @@ export interface Shape {
   hasEdgeGenerated?: boolean;
   hasPoseGenerated?: boolean;
   hasScribbleGenerated?: boolean;
-  model?: string;
+  scheduler?: string;
+  seed?: number;
   steps?: number;
   guidanceScale?: number;
+  outputFormat?: string;
+  outputQuality?: number;
+  randomiseSeeds?: boolean;
+  negativePrompt?: string;
+  outputWidth?: number;
+  outputHeight?: number;
 }
 export interface CanvasState {
   shapes: Shape[];
