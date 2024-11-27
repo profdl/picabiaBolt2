@@ -552,7 +552,7 @@ export const useStore = create<BoardState>((set, get) => ({
 
   setError: (error: string | null) => set({ error }),
 
-  const handleGenerate = async () => {
+  handleGenerate: async () => {
     const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
     const { shapes } = state;
