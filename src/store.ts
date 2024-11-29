@@ -561,7 +561,19 @@ export const useStore = create<BoardState>((set, get) => ({
     // Get settings from active diffusionSettings shape
     const activeSettings = shapes.find(
       shape => shape.type === 'diffusionSettings' && shape.useSettings
-    );
+    ) || {
+      // Default settings
+      steps: 30,
+      guidanceScale: 4.5,
+      scheduler: 'dpmpp_2m_sde',
+      seed: Math.floor(Math.random() * 32767),
+      outputWidth: 1360,
+      outputHeight: 768,
+      model: 'juggernautXL_v9',
+      outputFormat: 'png',
+      outputQuality: 100,
+      randomiseSeeds: true
+    };
 
     if (!activeSettings) {
       set({ error: 'No settings selected. Please select a settings shape.' });

@@ -98,7 +98,7 @@ export const handler: Handler = async (event) => {
                 output_quality: 95,
                 randomise_seeds: false
             },
-            webhook: process.env.WEBHOOK_URL,
+            webhook: process.env.PREPROCESS_WEBHOOK, // Use environment variable
             webhook_events_filter: ["completed"]
         };
 
@@ -119,7 +119,7 @@ export const handler: Handler = async (event) => {
                     output_quality: 95,
                     randomise_seeds: false
                 },
-                webhook: `${process.env.URL}/.netlify/functions/preprocess-webhook`,
+                webhook: process.env.PREPROCESS_WEBHOOK,
                 webhook_events_filter: ["completed"]
             })
         });

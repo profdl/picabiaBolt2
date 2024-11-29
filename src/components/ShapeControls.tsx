@@ -37,8 +37,10 @@ export function ShapeControls({
                 },
                 (payload) => {
                     if (payload.new.shapeId === shape.id) {
+                        // Update the specific preview URL based on process type
+                        const previewUrlKey = `${payload.new.processType}PreviewUrl`;
                         updateShape(shape.id, {
-                            [`${payload.new.processType}PreviewUrl`]: payload.new[`${payload.new.processType}Url`]
+                            [previewUrlKey]: payload.new[`${payload.new.processType}Url`]
                         });
                     }
                 }
@@ -48,8 +50,7 @@ export function ShapeControls({
         return () => {
             channel.unsubscribe();
         };
-    }, [shape.id, updateShape]);
-    // Define controls array
+    }, [shape.id, updateShape]);    // Define controls array
     const controls = [
         {
             type: 'Original',
