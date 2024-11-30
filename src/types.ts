@@ -20,6 +20,7 @@ export interface Project {
 }
 
 export interface Shape {
+  isNew?: boolean;
   model: string;
   useSettings: boolean;
   id: string;

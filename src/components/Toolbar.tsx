@@ -399,7 +399,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         showPrompt: true, // Automatically enable text prompt
         isUploading: false,
         useSettings: false,
-        model: ''
+        model: '',
+        isNew: true // Add this flag
       });
 
     } else {

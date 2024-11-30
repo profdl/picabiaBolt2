@@ -44,7 +44,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const handleMouseUp = () => {
     setResizeStart(null);
   };
-
+  const handleStickyInteraction = () => {
+    if (shape.type === 'sticky' && shape.isNew) {
+      updateShape(shape.id, { isNew: false });
+    }
+  };
 
   const [rotateStart, setRotateStart] = useState<{
     angle: number;
@@ -79,6 +83,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     }
 
     e.stopPropagation();
+    handleStickyInteraction();
 
     // Store initial positions of all shapes at drag start
     const initialPositions = new Map(
@@ -407,6 +412,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
     if (shape.type === 'text' || shape.type === 'sticky') {
       e.stopPropagation();
       setIsEditing(true);
+      handleStickyInteraction();
+
     } else if (shape.type === 'image') {
       e.stopPropagation();
       const newUrl = window.prompt('Enter image URL:', shape.imageUrl);
