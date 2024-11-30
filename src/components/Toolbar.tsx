@@ -228,6 +228,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     handleGenerate,
     isGenerating,
     shapes,
+    generatingPredictions,
     // currentColor,
     // strokeWidth,
     // setStrokeWidth,
@@ -638,12 +639,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
               // Generate the image
               await handleGenerate();
-
-              // Wait for Supabase insert to complete
-              setTimeout(() => {
-                toggleGallery();
-                setTimeout(() => toggleGallery(), 0);
-              }, 2000);
             }}
             disabled={!hasActivePrompt || isGenerating}
             className={`p-2 rounded-lg flex items-center gap-1 ${hasActivePrompt && !isGenerating
@@ -656,12 +651,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 : 'Generate Image'
             }
           >
-            {isGenerating ? (
+            {generatingPredictions.size > 0 ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <Sparkles className="w-5 h-5" />
             )}
-            <span className="text-sm font-medium">Generate</span>
+            <span className="text-sm font-medium">
+              {generatingPredictions.size > 0 ? 'Generating...' : 'Generate'}
+            </span>
           </button>
 
           {/* <SettingsButton /> */}
@@ -670,7 +667,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
             title="Add Diffusion Settings"
           >
-            {/* <Settings className="w-5 h-5" /> */}
+
+            <Settings className="w-5 h-5" />
             <span className="text-sm font-medium"> Settings</span>
           </button>
           {/* Select, Pan Zoom */}

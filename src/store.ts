@@ -13,6 +13,7 @@ const supabase = createClient(
 
 
 interface BoardState extends CanvasState {
+  generatingPredictions: Set<string>;
   isEditingText: boolean;
   isEraser: boolean;
   shapes: Shape[];
@@ -42,6 +43,8 @@ interface BoardState extends CanvasState {
   galleryRefreshCounter: number;
   uploadingAssets: string[];
   assetsRefreshTrigger: number;
+
+
   preprocessingStates: {
     [shapeId: string]: {
       depth?: boolean;
@@ -73,6 +76,8 @@ interface BoardState extends CanvasState {
 
 
   // Methods
+  addGeneratingPrediction: (id: string) => void;
+  removeGeneratingPrediction: (id: string) => void;
   setIsEditingText: (isEditing: boolean) => void;
   setBrushFollowPath: (value: boolean) => void,
   setIsEraser: (isEraser: boolean) => void;
@@ -218,8 +223,16 @@ export const useStore = create<BoardState>((set, get) => ({
       shapes: [groupShape, ...updatedShapes],
       selectedShapes: [groupId]
     });
-  }
-  ,
+  },
+  generatingPredictions: new Set<string>(),
+  addGeneratingPrediction: (id: string) => set(state => ({
+    generatingPredictions: new Set([...state.generatingPredictions, id])
+  })),
+  removeGeneratingPrediction: (id: string) => set(state => {
+    const newPredictions = new Set(state.generatingPredictions);
+    newPredictions.delete(id);
+    return { generatingPredictions: newPredictions };
+  }),
 
   ungroup: (groupId: string) => {
     const { shapes } = get();
@@ -682,6 +695,29 @@ export const useStore = create<BoardState>((set, get) => ({
       const prediction_id = responseData.prediction.id;
       console.log('Extracted prediction_id:', prediction_id);
 
+      get().addGeneratingPrediction(prediction_id);
+
+      const subscription = supabase
+        .channel(`generation_${prediction_id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'generated_images',
+            filter: `prediction_id=eq.${prediction_id}`,
+          },
+          (payload) => {
+            if (payload.new.status === 'completed') {
+              // Remove from tracking set when complete
+              get().removeGeneratingPrediction(prediction_id);
+              subscription.unsubscribe();
+            }
+          }
+        )
+        .subscribe();
+
+
       const insertData = {
         id: crypto.randomUUID(),
         user_id: user.id,
@@ -818,11 +854,15 @@ export const useStore = create<BoardState>((set, get) => ({
         })
       });
     } catch (error) {
-      console.error('Error preprocessing image:', error);
+      console.error('Error generating image:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to generate image' });
+    } finally {
+      // 4. Only set isGenerating to false if there are no active predictions
+      if (get().generatingPredictions.size === 0) {
+        set({ isGenerating: false });
+      }
     }
-  },
-
+  }
 }));
-
 
 
