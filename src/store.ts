@@ -51,6 +51,7 @@ interface BoardState extends CanvasState {
       edge?: boolean;
       pose?: boolean;
       scribble?: boolean;
+      remix?: boolean;
     };
   };
   brushRotation: number;
@@ -129,7 +130,7 @@ interface BoardState extends CanvasState {
   duplicate: () => void;
   createGroup: (shapeIds: string[]) => void;
   ungroup: (groupId: string) => void;
-  generatePreprocessedImage: (shapeId: string, processType: 'depth' | 'edge' | 'pose' | 'scribble') => Promise<void>;
+  generatePreprocessedImage: (shapeId: string, processType: 'depth' | 'edge' | 'pose' | 'scribble' | 'remix') => Promise<void>;
   setBrushSpacing: (spacing: number) => void;
   setBrushRotation: (rotation: number) => void;
 }const MAX_HISTORY = 50;
@@ -319,6 +320,9 @@ export const useStore = create<BoardState>((set, get) => ({
       if (updatedProps.scribblePreviewUrl) {
         state.preprocessingStates[id] = { ...state.preprocessingStates[id], scribble: false };
       }
+      if (updatedProps.remixPreviewUrl) {
+        state.preprocessingStates[id] = { ...state.preprocessingStates[id], remix: false };
+      }
 
 
       const newShapes = state.shapes.map((shape) =>
@@ -417,6 +421,7 @@ export const useStore = create<BoardState>((set, get) => ({
               if (shapeToDelete.showEdges) shape.showEdges = false;
               if (shapeToDelete.showPose) shape.showPose = false;
               if (shapeToDelete.showScribble) shape.showScribble = false;
+              if (shapeToDelete.showRemix) shape.showRemix = false;
             }
           });
         }
@@ -670,9 +675,16 @@ export const useStore = create<BoardState>((set, get) => ({
           workflow["21"].inputs.image = controlShape.scribblePreviewUrl;
           currentConditioningNode = "22";
         }
+        // Add Remix control after other controls
+        if (controlShape.showRemix && controlShape.imageUrl) {
+          workflow["25"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["25"].inputs.strength = controlShape.remixStrength || 1;
+          workflow["24"].inputs.image = controlShape.imageUrl;
+          currentConditioningNode = "25";
+        }
       }
 
-      // 7. Connect final conditioning to KSampler
+      // Connect final conditioning to KSampler
       workflow["3"].inputs.positive = [currentConditioningNode, 0];
 
 
@@ -733,6 +745,7 @@ export const useStore = create<BoardState>((set, get) => ({
         edgeMapUrl: controlShape?.showEdges ? controlShape.edgePreviewUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
         poseMapUrl: controlShape?.showPose ? controlShape.posePreviewUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
         scribbleMapUrl: controlShape?.showScribble ? controlShape.scribblePreviewUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
+        remixMapUrl: controlShape?.showRemix ? controlShape.imageUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
 
         generated_01: '',
         generated_02: '',
@@ -755,6 +768,7 @@ export const useStore = create<BoardState>((set, get) => ({
         edge_scale: parseFloat(controlShape?.edgesStrength?.toString() || '1.0'),
         pose_scale: parseFloat(controlShape?.poseStrength?.toString() || '1.0'),
         scribble_scale: parseFloat(controlShape?.scribbleStrength?.toString() || '1.0'),
+        remix_scale: parseFloat(controlShape?.remixStrength?.toString() || '1.0'),
       };
 
       console.log('Data being inserted into Supabase:', insertData);
@@ -827,7 +841,7 @@ export const useStore = create<BoardState>((set, get) => ({
       }));
     addShapes(shapesToDuplicate);
   },
-  generatePreprocessedImage: async (shapeId: string, processType: 'depth' | 'edge' | 'pose' | 'scribble') => {
+  generatePreprocessedImage: async (shapeId: string, processType: 'depth' | 'edge' | 'pose' | 'scribble' | 'remix') => {
     const { shapes } = get();
     const shape = shapes.find(s => s.id === shapeId);
     if (!shape || !shape.imageUrl) return;

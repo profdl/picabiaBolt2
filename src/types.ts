@@ -45,28 +45,35 @@ export interface Shape {
   showContent?: boolean;
   showPose?: boolean;
   showScribble?: boolean;
+  showRemix?: boolean;
   depthStrength?: number;
   edgesStrength?: number;
   contentStrength?: number;
   poseStrength?: number;
   scribbleStrength?: number;
+  remixStrength?: number;
   groupId?: string;
   isGroup?: boolean;
   depthMapUrl?: string;
   edgeMapUrl?: string;
   poseMapUrl?: string;
+  scribbleMapUrl?: string;
+  remixMapUrl?: string;
   depthPreviewUrl?: string;
   edgePreviewUrl?: string;
   posePreviewUrl?: string;
   scribblePreviewUrl?: string;
+  remixPreviewUrl?: string;
   isDepthProcessing?: boolean;
   isEdgeProcessing?: boolean;
   isPoseProcessing?: boolean;
   isScribbleProcessing?: boolean;
+  isRemixProcessing?: boolean;
   hasDepthGenerated?: boolean;
   hasEdgeGenerated?: boolean;
   hasPoseGenerated?: boolean;
   hasScribbleGenerated?: boolean;
+  hasRemixGenerated?: boolean;
   scheduler?: string;
   seed?: number;
   steps?: number;
@@ -77,8 +84,7 @@ export interface Shape {
   negativePrompt?: string;
   outputWidth?: number;
   outputHeight?: number;
-}
-export interface CanvasState {
+}export interface CanvasState {
   shapes: Shape[];
   selectedShapes: string[];
   zoom: number;

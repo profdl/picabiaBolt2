@@ -17,15 +17,14 @@ export function ShapeControls({
     isEditing,
     handleResizeStart,
 }: ShapeControlsProps) {
-    const { updateShape, shapes } = useStore();
+    const { updateShape, shapes, setSelectedShapes } = useStore();
     const tool = useStore(state => state.tool);
     const generatePreprocessedImage = useStore(state => state.generatePreprocessedImage);
     const depthProcessing = useStore(state => state.preprocessingStates[shape.id]?.depth);
     const edgeProcessing = useStore(state => state.preprocessingStates[shape.id]?.edge);
     const poseProcessing = useStore(state => state.preprocessingStates[shape.id]?.pose);
     const scribbleProcessing = useStore(state => state.preprocessingStates[shape.id]?.scribble);
-
-
+    const remixProcessing = useStore(state => state.preprocessingStates[shape.id]?.remix);
 
     useEffect(() => {
         const channel = supabase
@@ -38,21 +37,27 @@ export function ShapeControls({
                     table: 'preprocessed_images'
                 },
                 (payload) => {
+                    console.log('Received preprocessed image update:', payload);
                     if (payload.new.shapeId === shape.id) {
-                        // Update the specific preview URL based on process type
                         const previewUrlKey = `${payload.new.processType}PreviewUrl`;
+                        const imageUrl = payload.new[`${payload.new.processType}Url`];
+                        console.log('Updating shape with new preview:', { previewUrlKey, imageUrl });
                         updateShape(shape.id, {
-                            [previewUrlKey]: payload.new[`${payload.new.processType}Url`]
+                            [previewUrlKey]: imageUrl,
+                            [`is${payload.new.processType}Processing`]: false
                         });
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log('Subscription status:', status);
+            });
 
         return () => {
             channel.unsubscribe();
         };
-    }, [shape.id, updateShape]);    // Define controls array
+    }, [shape.id, updateShape]);
+
     const controls = [
         {
             type: 'Original',
@@ -95,9 +100,18 @@ export function ShapeControls({
             isProcessing: scribbleProcessing,
             processType: 'scribble',
             preprocessor: 'Scribble'
+        },
+        {
+            type: 'Remix',
+            preview: shape.imageUrl,
+            showKey: 'showRemix',
+            strengthKey: 'remixStrength',
+            isProcessing: remixProcessing,
+            processType: 'remix',
+            preprocessor: 'Remix'
         }
-    ];
 
+    ];
     const showManipulationControls = isSelected;
     const anyCheckboxChecked = shape.showDepth ||
         shape.showEdges ||
@@ -105,7 +119,8 @@ export function ShapeControls({
         shape.showPose ||
         shape.showPrompt ||
         shape.showNegativePrompt ||
-        shape.showScribble;
+        shape.showScribble ||
+        shape.showRemix;
     const showControlPanel = isSelected || anyCheckboxChecked || shape.useSettings;
 
     if (!showControlPanel) return null;
@@ -114,26 +129,17 @@ export function ShapeControls({
         e.stopPropagation();
         if (!control.showKey || !control.processType) return;
 
-        const previewUrl = shape[`${control.processType}PreviewUrl`];
+        const previewUrl = shape[`${control.processType}PreviewUrl` as keyof Shape];
         const isChecked = e.target.checked;
 
+        // Select this shape and deselect all others when checking a control
         if (isChecked) {
-            // Uncheck other images' same control
-            shapes.forEach(otherShape => {
-                if (otherShape.id !== shape.id && (otherShape.type === 'image' || otherShape.type === 'canvas')) {
-                    const showKey = control.showKey as keyof Shape;
-                    if (otherShape[showKey]) {
-                        updateShape(otherShape.id, { [control.showKey]: false });
-                    }
-                }
-            });
+            setSelectedShapes([shape.id]);
         }
-
-        // Handle scribble specially
-        if (control.processType === 'scribble') {
+        // Skip preprocessing for remix and scribble controls
+        if (control.processType === 'remix' || control.processType === 'scribble') {
             updateShape(shape.id, {
-                [control.showKey]: isChecked,
-                scribblePreviewUrl: isChecked ? shape.imageUrl : null
+                [control.showKey]: isChecked
             });
             return;
         }
@@ -141,16 +147,27 @@ export function ShapeControls({
         // Update the checkbox state immediately
         updateShape(shape.id, { [control.showKey]: isChecked });
 
+        // Uncheck other images' same control
+        shapes.forEach(otherShape => {
+            if (otherShape.id !== shape.id && (otherShape.type === 'image')) {
+                const showKey = control.showKey as keyof Shape;
+                if (otherShape[showKey]) {
+                    updateShape(otherShape.id, { [control.showKey]: false });
+                }
+            }
+        });
+
         // Generate preview if needed
         if (isChecked && !previewUrl) {
             try {
-                await generatePreprocessedImage(shape.id, control.processType);
+                await generatePreprocessedImage(shape.id, control.processType as "depth" | "edge" | "pose" | "scribble" | "remix");
             } catch (error) {
                 console.error('Failed to generate preprocessed image:', error);
                 updateShape(shape.id, { [control.showKey]: false });
             }
         }
     };
+
 
     if (!showControlPanel && !shape.isNew) return null;
 
@@ -208,7 +225,7 @@ export function ShapeControls({
                                                 >
                                                     <input
                                                         type="checkbox"
-                                                        checked={shape[control.showKey] || false}
+                                                        checked={control.showKey in shape ? shape[control.showKey as keyof Shape] as boolean : false}
                                                         onChange={(e) => handleCheckboxChange(control, e)}
                                                         className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
                                                         style={{ pointerEvents: 'all' }}
@@ -224,7 +241,7 @@ export function ShapeControls({
                                                     min="0"
                                                     max="1"
                                                     step="0.05"
-                                                    value={shape[control.strengthKey] ?? 0.5}
+                                                    value={control.strengthKey in shape ? (shape[control.strengthKey as keyof Shape] as number) ?? 0.5 : 0.5}
                                                     onChange={(e) => updateShape(shape.id, {
                                                         [control.strengthKey]: parseFloat(e.target.value)
                                                     })}
@@ -399,3 +416,4 @@ export function ShapeControls({
         </div >
     );
 }
+
