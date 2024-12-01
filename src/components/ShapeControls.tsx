@@ -129,20 +129,23 @@ export function ShapeControls({
         e.stopPropagation();
         if (!control.showKey || !control.processType) return;
 
-        const previewUrl = shape[`${control.processType}PreviewUrl` as keyof Shape];
         const isChecked = e.target.checked;
 
-        // Select this shape and deselect all others when checking a control
         if (isChecked) {
             setSelectedShapes([shape.id]);
         }
-        // Skip preprocessing for remix and scribble controls
-        if (control.processType === 'remix' || control.processType === 'scribble') {
+
+        // For scribble control, use the original image as preview
+        if (control.processType === 'scribble') {
             updateShape(shape.id, {
-                [control.showKey]: isChecked
+                [control.showKey]: isChecked,
+                scribblePreviewUrl: isChecked ? shape.imageUrl : undefined
             });
             return;
         }
+
+        // Rest of the existing handleCheckboxChange logic...
+        const previewUrl = shape[`${control.processType}PreviewUrl` as keyof Shape];
 
         // Update the checkbox state immediately
         updateShape(shape.id, { [control.showKey]: isChecked });
