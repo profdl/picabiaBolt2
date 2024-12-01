@@ -8,7 +8,7 @@
       "scheduler": "karras",
       "denoise": 1,
       "model": ["4", 0],
-      "positive": ["27", 0],
+      "positive": ["6", 0],
       "negative": ["7", 0],
       "latent_image": ["5", 0]
     },
@@ -199,41 +199,6 @@
     "class_type": "ControlNetApply",
     "_meta": {
       "title": "Apply ControlNet (Scribble)"
-    }
-  },
-  "25": {
-    "inputs": {
-      "image": "",
-      "upload": "image"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "Load Reference Image"
-    }
-  },
-  "26": {
-    "inputs": {
-      "model": "PLUS (high strength)"
-    },
-    "class_type": "IPAdapterUnifiedLoader",
-    "_meta": {
-      "title": "IPAdapter Unified Loader"
-    }
-  },
-  "27": {
-    "inputs": {
-      "model": ["4", 0],
-      "ipadapter": ["26", 0],
-      "clip_vision": ["26", 1],
-      "weight": 0.8,
-      "weight_type": "linear",
-      "start_at": 0.0,
-      "end_at": 1.0,
-      "image": ["25", 0]
-    },
-    "class_type": "IPAdapterApply",
-    "_meta": {
-      "title": "Apply IPAdapter"
     }
   }
 }
