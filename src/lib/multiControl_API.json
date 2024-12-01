@@ -201,39 +201,36 @@
       "title": "Apply ControlNet (Scribble)"
     }
   },
-  "25": {
-    "inputs": {
-      "image": "",
-      "upload": "image"
+  "24": {
+      "inputs": {
+        "image": "",
+        "upload": "image"
+      },
+      "class_type": "LoadImage",
+      "_meta": {
+        "title": "Load Reference Image"
+      }
     },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "Load Reference Image"
-    }
-  },
-  "26": {
-    "inputs": {
-      "model": "PLUS (high strength)"
+    "25": {
+      "inputs": {
+        "model": "ip-adapter-plus-sdxl_v4.bin"
+      },
+      "class_type": "IPAdapterModelLoader",
+      "_meta": {
+        "title": "Load IPAdapter Model"
+      }
     },
-    "class_type": "IPAdapterUnifiedLoader",
-    "_meta": {
-      "title": "IPAdapter Unified Loader"
-    }
-  },
-  "27": {
-    "inputs": {
-      "model": ["4", 0],
-      "ipadapter": ["26", 0],
-      "clip_vision": ["26", 1],
-      "weight": 0.8,
-      "weight_type": "linear",
-      "start_at": 0.0,
-      "end_at": 1.0,
-      "image": ["25", 0]
-    },
-    "class_type": "IPAdapterApply",
-    "_meta": {
-      "title": "Apply IPAdapter"
+    "26": {
+      "inputs": {
+        "conditioning": ["22", 0],
+        "clip": ["4", 1],
+        "ipadapter": ["25", 0],
+        "strength": 1,
+        "image": ["24", 0]
+      },
+      "class_type": "IPAdapterCombine",
+      "_meta": {
+        "title": "Combine IPAdapter"
+      }
     }
   }
-}

@@ -144,6 +144,15 @@ export function ShapeControls({
             return;
         }
 
+        // For remix control, set remixPreviewUrl
+        if (control.processType === 'remix') {
+            updateShape(shape.id, {
+                [control.showKey]: isChecked,
+                remixPreviewUrl: isChecked ? shape.imageUrl : undefined
+            });
+            return;
+        }
+
         // Rest of the existing handleCheckboxChange logic...
         const previewUrl = shape[`${control.processType}PreviewUrl` as keyof Shape];
 

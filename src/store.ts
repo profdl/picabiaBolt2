@@ -628,7 +628,7 @@ export const useStore = create<BoardState>((set, get) => ({
       // 5. Find shape with control maps enabled
       const controlShape = shapes.find(shape =>
         shape.type === 'image' &&
-        (shape.showDepth || shape.showEdges || shape.showPose || shape.showScribble)
+        (shape.showDepth || shape.showEdges || shape.showPose || shape.showScribble || shape.showRemix)
       );
 
       // 6. Handle controlnet chain
@@ -641,9 +641,6 @@ export const useStore = create<BoardState>((set, get) => ({
           workflow["11"].inputs.strength = controlShape.depthStrength || 1;
           workflow["13"].inputs.image = controlShape.depthPreviewUrl;
           currentConditioningNode = "11";
-        } else {
-          // Bypass depth control by connecting to next active control
-          workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
         }
 
         // Handle Edge control
@@ -652,9 +649,6 @@ export const useStore = create<BoardState>((set, get) => ({
           workflow["14"].inputs.strength = controlShape.edgesStrength || 1;
           workflow["16"].inputs.image = controlShape.edgePreviewUrl;
           currentConditioningNode = "14";
-        } else {
-          // Bypass edge control by connecting to next active control
-          workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
         }
 
         // Handle Pose control
@@ -663,9 +657,6 @@ export const useStore = create<BoardState>((set, get) => ({
           workflow["17"].inputs.strength = controlShape.poseStrength || 1;
           workflow["19"].inputs.image = controlShape.posePreviewUrl;
           currentConditioningNode = "17";
-        } else {
-          // Bypass pose control by connecting to next active control
-          workflow["22"].inputs.conditioning = [currentConditioningNode, 0];
         }
 
         // Handle Scribble control
@@ -675,17 +666,23 @@ export const useStore = create<BoardState>((set, get) => ({
           workflow["21"].inputs.image = controlShape.scribblePreviewUrl;
           currentConditioningNode = "22";
         }
-        // Add Remix control after other controls
+
+        // Handle Remix control (IP-Adapter)
         if (controlShape.showRemix && controlShape.imageUrl) {
-          workflow["25"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["25"].inputs.strength = controlShape.remixStrength || 1;
           workflow["24"].inputs.image = controlShape.imageUrl;
-          currentConditioningNode = "25";
+
+          // Connect IP-Adapter into the conditioning chain
+          workflow["26"].inputs.conditioning = [currentConditioningNode, 0];
+          workflow["26"].inputs.strength = controlShape.remixStrength || 0.8;
+          workflow["26"].inputs.clip = ["4", 1];
+
+          currentConditioningNode = "26";
         }
       }
-
-      // Connect final conditioning to KSampler
+      // Connect final conditioning to KSampler positive input
       workflow["3"].inputs.positive = [currentConditioningNode, 0];
+      // Connect model to KSampler model input
+      workflow["3"].inputs.model = ["4", 0];
 
 
       const requestPayload = {
