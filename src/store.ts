@@ -639,6 +639,11 @@ export const useStore = create<BoardState>((set, get) => ({
       workflow["7"].inputs.text = negativePrompt;
       workflow["7"].inputs.clip = ["4", 1];
 
+      // After setting up the base prompts but before the control shape loop
+      // Set default connections if no controls are active
+      workflow["3"].inputs.model = ["4", 0];  // Connect to base model
+      workflow["3"].inputs.positive = ["6", 0];  // Connect to positive prompt
+      workflow["3"].inputs.negative = ["7", 0];  // Connect to negative prompt
 
       // Find image with active controls
       const controlShapes = shapes.filter(shape =>
