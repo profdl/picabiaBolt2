@@ -139,7 +139,7 @@ export function ShapeControls({
         },
         {
             type: 'Remix',
-            preview: shape.imageUrl,
+            preview: shape.remixPreviewUrl,
             showKey: 'showRemix',
             strengthKey: 'remixStrength',
             isProcessing: remixProcessing,
@@ -176,9 +176,11 @@ export function ShapeControls({
             updateShape(shape.id, {
                 [control.showKey]: isChecked,
                 scribblePreviewUrl: isChecked ? shape.imageUrl : undefined
+
             });
             return;
         }
+
 
         // For remix control, set remixPreviewUrl
         if (control.processType === 'remix') {
@@ -286,8 +288,8 @@ export function ShapeControls({
                                             <div onClick={(e) => e.stopPropagation()}>
                                                 <input
                                                     type="range"
-                                                    min="0"
-                                                    max="1"
+                                                    min={control.type === 'Remix' ? "0.1" : "0"}
+                                                    max={control.type === 'Remix' ? "2.0" : "1"}
                                                     step="0.05"
                                                     value={control.strengthKey in shape ? (shape[control.strengthKey as keyof Shape] as number) ?? 0.5 : 0.5}
                                                     onChange={(e) => updateShape(shape.id, {
@@ -298,6 +300,7 @@ export function ShapeControls({
                                                 />
                                             </div>
                                         )}
+
                                     </div>
                                 </div>
                             </div>

@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import { CanvasState, Position, Shape } from './types';
 import multiControlWorkflow from './lib/generateWorkflow.json';
 import { ContextMenuState } from './types';
-import { getPublicImageUrl } from './lib/supabase';
 
 
 const supabase = createClient(
@@ -644,16 +643,17 @@ export const useStore = create<BoardState>((set, get) => ({
 
 
       // Find image with active controls
-      const controlShape = shapes.find(shape =>
+      const controlShapes = shapes.filter(shape =>
         shape.type === 'image' &&
         (shape.showDepth || shape.showEdges || shape.showPose || shape.showScribble || shape.showRemix)
       );
+
 
       // Initialize paths - start with prompt node
       let currentPositiveNode = "6";
       let modelNode = "4";
 
-      if (controlShape) {
+      for (const controlShape of controlShapes) {
         // Edge (Canny) control chain
         if (controlShape.showEdges && controlShape.edgePreviewUrl) {
           workflow["12"].inputs.image = controlShape.edgePreviewUrl;
@@ -716,14 +716,6 @@ export const useStore = create<BoardState>((set, get) => ({
         randomiseSeeds: activeSettings.randomiseSeeds
       };
 
-      // Check slider values:
-      console.log('Control strengths:', {
-        depth: controlShape?.depthStrength,
-        edge: controlShape?.edgesStrength,
-        pose: controlShape?.poseStrength,
-        scribble: controlShape?.scribbleStrength,
-        remix: controlShape?.remixStrength
-      });
 
       // Add response validation
       const response = await fetch('/.netlify/functions/generate-image', {
@@ -776,13 +768,17 @@ export const useStore = create<BoardState>((set, get) => ({
         status: 'generating',
         updated_at: new Date().toISOString(),
         image_index: 0,
-        originalUrl: controlShape?.imageUrl || '',
-        depthMapUrl: controlShape?.showDepth ? controlShape.depthPreviewUrl : '',
-        edgeMapUrl: controlShape?.showEdges ? controlShape.edgePreviewUrl : '',
-        poseMapUrl: controlShape?.showPose ? controlShape.posePreviewUrl : '',
-        scribbleMapUrl: controlShape?.showScribble ? controlShape.imageUrl : '',
-        remixMapUrl: controlShape?.showRemix ? controlShape.imageUrl : '',
-
+        originalUrl: controlShapes.map(shape => shape.imageUrl).filter(Boolean).join(','),
+        depthMapUrl: controlShapes.filter(shape => shape.showDepth).map(shape => shape.depthPreviewUrl).filter(Boolean).join(','),
+        edgeMapUrl: controlShapes.filter(shape => shape.showEdges).map(shape => shape.edgePreviewUrl).filter(Boolean).join(','),
+        poseMapUrl: controlShapes.filter(shape => shape.showPose).map(shape => shape.posePreviewUrl).filter(Boolean).join(','),
+        scribbleMapUrl: controlShapes.filter(shape => shape.showScribble).map(shape => shape.imageUrl).filter(Boolean).join(','),
+        remixMapUrl: controlShapes.filter(shape => shape.showRemix).map(shape => shape.imageUrl).filter(Boolean).join(','),
+        depth_scale: Math.max(...controlShapes.filter(shape => shape.showDepth).map(shape => shape.depthStrength || 0.5)),
+        edge_scale: Math.max(...controlShapes.filter(shape => shape.showEdges).map(shape => shape.edgesStrength || 0.5)),
+        pose_scale: Math.max(...controlShapes.filter(shape => shape.showPose).map(shape => shape.poseStrength || 0.5)),
+        scribble_scale: Math.max(...controlShapes.filter(shape => shape.showScribble).map(shape => shape.scribbleStrength || 0.5)),
+        remix_scale: Math.max(...controlShapes.filter(shape => shape.showRemix).map(shape => shape.remixStrength || 0.5)),
         generated_01: '',
         generated_02: '',
         generated_03: '',
@@ -800,11 +796,6 @@ export const useStore = create<BoardState>((set, get) => ({
         refine_steps: 0,
         lora_scale: 1.0,
         lora_weights: '',
-        depth_scale: controlShape?.depthStrength || 1.0,
-        edge_scale: controlShape?.edgesStrength || 1.0,
-        pose_scale: controlShape?.poseStrength || 1.0,
-        scribble_scale: controlShape?.scribbleStrength || 1.0,
-        remix_scale: controlShape?.remixStrength || 1.0,
       };
 
       const { data: pendingImage, error: dbError } = await supabase
@@ -880,7 +871,6 @@ export const useStore = create<BoardState>((set, get) => ({
     const shape = shapes.find(s => s.id === shapeId);
     if (!shape || !shape.imageUrl) return;
 
-    const imageUrl = getPublicImageUrl(shape.imageUrl);
 
     // Set loading state
     set(state => ({
