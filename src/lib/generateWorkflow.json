@@ -7,22 +7,10 @@
       "sampler_name": "dpmpp_2m",
       "scheduler": "karras",
       "denoise": 1,
-      "model": [
-        "14",
-        0
-      ],
-      "positive": [
-        "31",
-        0
-      ],
-      "negative": [
-        "31",
-        1
-      ],
-      "latent_image": [
-        "34",
-        0
-      ]
+      "model": ["14", 0],
+      "positive": ["43", 0],
+      "negative": ["43", 1],
+      "latent_image": ["34", 0]
     },
     "class_type": "KSampler",
     "_meta": {
@@ -41,10 +29,7 @@
   "6": {
     "inputs": {
       "text": "A building",
-      "clip": [
-        "4",
-        1
-      ]
+      "clip": ["4", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
@@ -54,10 +39,7 @@
   "7": {
     "inputs": {
       "text": "",
-      "clip": [
-        "4",
-        1
-      ]
+      "clip": ["4", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
@@ -66,14 +48,8 @@
   },
   "8": {
     "inputs": {
-      "samples": [
-        "3",
-        0
-      ],
-      "vae": [
-        "4",
-        2
-      ]
+      "samples": ["3", 0],
+      "vae": ["4", 2]
     },
     "class_type": "VAEDecode",
     "_meta": {
@@ -83,10 +59,7 @@
   "9": {
     "inputs": {
       "filename_prefix": "1087",
-      "images": [
-        "8",
-        0
-      ]
+      "images": ["8", 0]
     },
     "class_type": "SaveImage",
     "_meta": {
@@ -96,10 +69,7 @@
   "11": {
     "inputs": {
       "preset": "PLUS (high strength)",
-      "model": [
-        "4",
-        0
-      ]
+      "model": ["4", 0]
     },
     "class_type": "IPAdapterUnifiedLoader",
     "_meta": {
@@ -124,18 +94,9 @@
       "start_at": 0,
       "end_at": 1,
       "embeds_scaling": "V only",
-      "model": [
-        "11",
-        0
-      ],
-      "ipadapter": [
-        "11",
-        1
-      ],
-      "image": [
-        "17",
-        0
-      ]
+      "model": ["11", 0],
+      "ipadapter": ["11", 1],
+      "image": ["17", 0]
     },
     "class_type": "IPAdapterAdvanced",
     "_meta": {
@@ -166,22 +127,10 @@
       "strength": 0.5,
       "start_percent": 0,
       "end_percent": 1,
-      "positive": [
-        "41",
-        0
-      ],
-      "negative": [
-        "41",
-        1
-      ],
-      "control_net": [
-        "32",
-        0
-      ],
-      "image": [
-        "33",
-        0
-      ]
+      "positive": ["41", 0],
+      "negative": ["41", 1],
+      "control_net": ["32", 0],
+      "image": ["33", 0]
     },
     "class_type": "ControlNetApplyAdvanced",
     "_meta": {
@@ -261,22 +210,40 @@
       "strength": 1,
       "start_percent": 0,
       "end_percent": 1,
-      "positive": [
-        "6",
-        0
-      ],
-      "negative": [
-        "7",
-        0
-      ],
-      "control_net": [
-        "18",
-        0
-      ],
-      "image": [
-        "12",
-        0
-      ]
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "control_net": ["18", 0],
+      "image": ["12", 0]
+    },
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {
+      "title": "Apply ControlNet (Advanced)"
+    }
+  },
+  "42": {
+    "inputs": {
+      "strength": 0.5,
+      "start_percent": 0,
+      "end_percent": 1,
+      "positive": ["31", 0],
+      "negative": ["31", 1],
+      "control_net": ["36", 0],
+      "image": ["37", 0]
+    },
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {
+      "title": "Apply ControlNet (Advanced)"
+    }
+  },
+  "43": {
+    "inputs": {
+      "strength": 0.5,
+      "start_percent": 0,
+      "end_percent": 1,
+      "positive": ["42", 0],
+      "negative": ["42", 1],
+      "control_net": ["39", 0],
+      "image": ["40", 0]
     },
     "class_type": "ControlNetApplyAdvanced",
     "_meta": {

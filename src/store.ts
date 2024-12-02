@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { createClient } from '@supabase/supabase-js';
 import { CanvasState, Position, Shape } from './types';
-import workflowJson from './lib/workflow.json';
-import multiControlWorkflow from './lib/multiControl_API.json';
+import multiControlWorkflow from './lib/generateWorkflow.json';
 import { ContextMenuState } from './types';
 import { getPublicImageUrl } from './lib/supabase';
 
@@ -650,50 +649,52 @@ export const useStore = create<BoardState>((set, get) => ({
         (shape.showDepth || shape.showEdges || shape.showPose || shape.showScribble || shape.showRemix)
       );
 
-      // Initialize paths
+      // Initialize paths - start with prompt node
+      let currentPositiveNode = "6";
       let modelNode = "4";
-      let currentNode = "6";
 
       if (controlShape) {
-        // Edge control chain
+        // Edge (Canny) control chain
         if (controlShape.showEdges && controlShape.edgePreviewUrl) {
           workflow["12"].inputs.image = controlShape.edgePreviewUrl;
-          workflow["41"].inputs.positive = [currentNode, 0];
+          workflow["41"].inputs.positive = ["6", 0];
           workflow["41"].inputs.negative = ["7", 0];
           workflow["41"].inputs.control_net = ["18", 0];
           workflow["41"].inputs.strength = controlShape.edgesStrength || 0.5;
-          currentNode = "41";
+          currentPositiveNode = "41";
         }
 
         // Depth control chain
         if (controlShape.showDepth && controlShape.depthPreviewUrl) {
           workflow["33"].inputs.image = controlShape.depthPreviewUrl;
-          workflow["31"].inputs.positive = [currentNode, 0];
+          workflow["31"].inputs.positive = [currentPositiveNode, 0];
           workflow["31"].inputs.negative = ["7", 0];
           workflow["31"].inputs.control_net = ["32", 0];
           workflow["31"].inputs.strength = controlShape.depthStrength || 0.5;
-          currentNode = "31";
+          currentPositiveNode = "31";
         }
 
         // Pose control chain
         if (controlShape.showPose && controlShape.posePreviewUrl) {
           workflow["37"].inputs.image = controlShape.posePreviewUrl;
-          workflow["36"].inputs.positive = [currentNode, 0];
-          workflow["36"].inputs.negative = ["7", 0];
-          workflow["36"].inputs.strength = controlShape.poseStrength || 0.5;
-          currentNode = "36";
+          workflow["42"].inputs.positive = [currentPositiveNode, 0];
+          workflow["42"].inputs.negative = ["7", 0];
+          workflow["42"].inputs.control_net = ["36", 0];
+          workflow["42"].inputs.strength = controlShape.poseStrength || 0.5;
+          currentPositiveNode = "42";
         }
 
         // Scribble control chain
         if (controlShape.showScribble && controlShape.imageUrl) {
           workflow["40"].inputs.image = controlShape.imageUrl;
-          workflow["39"].inputs.positive = [currentNode, 0];
-          workflow["39"].inputs.negative = ["7", 0];
-          workflow["39"].inputs.strength = controlShape.scribbleStrength || 0.5;
-          currentNode = "39";
+          workflow["43"].inputs.positive = [currentPositiveNode, 0];
+          workflow["43"].inputs.negative = ["7", 0];
+          workflow["43"].inputs.control_net = ["39", 0];
+          workflow["43"].inputs.strength = controlShape.scribbleStrength || 0.5;
+          currentPositiveNode = "43";
         }
 
-        // Remix control chain
+        // Remix control chain (IPAdapter)
         if (controlShape.showRemix && controlShape.imageUrl) {
           workflow["17"].inputs.image = controlShape.imageUrl;
           workflow["14"].inputs.model = ["11", 0];
@@ -701,13 +702,11 @@ export const useStore = create<BoardState>((set, get) => ({
           workflow["14"].inputs.weight = controlShape.remixStrength || 1;
           modelNode = "14";
         }
-
-
       }
 
       // Connect final nodes to KSampler
       workflow["3"].inputs.model = [modelNode, 0];
-      workflow["3"].inputs.positive = [currentNode, 0];
+      workflow["3"].inputs.positive = [currentPositiveNode, 0];
       workflow["3"].inputs.negative = ["7", 0];
 
       const requestPayload = {

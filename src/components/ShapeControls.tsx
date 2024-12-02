@@ -15,11 +15,9 @@ interface ShapeControlsProps {
 export function ShapeControls({
     shape,
     isSelected,
-    isEditing,
     handleResizeStart,
 }: ShapeControlsProps) {
     const { updateShape, shapes, setSelectedShapes } = useStore();
-    const tool = useStore(state => state.tool);
     const generatePreprocessedImage = useStore(state => state.generatePreprocessedImage);
     const depthProcessing = useStore(state => state.preprocessingStates[shape.id]?.depth);
     const edgeProcessing = useStore(state => state.preprocessingStates[shape.id]?.edge);
@@ -55,10 +53,9 @@ export function ShapeControls({
                 console.log('Subscription status:', status);
                 if (status !== 'SUBSCRIBED') {
                     // Start polling if subscription fails
-                    pollInterval.current = setInterval(checkProcessedImage, 2000);
+                    pollInterval.current = setInterval(() => checkProcessedImage('Depth'), 2000) as unknown as NodeJS.Timeout;
                 }
             });
-
         const checkProcessedImage = async (processType: string) => {
             // Stop polling if control is no longer active
             if (!shape[`show${processType}` as keyof Shape]) {
@@ -96,7 +93,7 @@ export function ShapeControls({
                 clearInterval(pollInterval.current);
             }
         };
-    }, [shape.id, updateShape]);
+    }, [shape, shape.id, updateShape]);
     const controls = [
         {
             type: 'Original',
