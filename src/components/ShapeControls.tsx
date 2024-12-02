@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useStore } from '../store';
 import { Shape } from '../types';
 import { supabase } from '../lib/supabase';
+
 
 interface ShapeControlsProps {
     shape: Shape;
@@ -25,6 +26,7 @@ export function ShapeControls({
     const poseProcessing = useStore(state => state.preprocessingStates[shape.id]?.pose);
     const scribbleProcessing = useStore(state => state.preprocessingStates[shape.id]?.scribble);
     const remixProcessing = useStore(state => state.preprocessingStates[shape.id]?.remix);
+    const pollInterval = useRef<NodeJS.Timeout>();
 
     useEffect(() => {
         const channel = supabase
@@ -51,13 +53,50 @@ export function ShapeControls({
             )
             .subscribe((status) => {
                 console.log('Subscription status:', status);
+                if (status !== 'SUBSCRIBED') {
+                    // Start polling if subscription fails
+                    pollInterval.current = setInterval(checkProcessedImage, 2000);
+                }
             });
+
+        const checkProcessedImage = async (processType: string) => {
+            // Stop polling if control is no longer active
+            if (!shape[`show${processType}` as keyof Shape]) {
+                if (pollInterval.current) {
+                    clearInterval(pollInterval.current);
+                }
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('preprocessed_images')
+                .select('*')
+                .eq('shapeId', shape.id)
+                .single();
+
+            if (data && !error) {
+                const { processType: dataProcessType, [`${dataProcessType}Url`]: imageUrl } = data;
+                if (imageUrl) {
+                    updateShape(shape.id, {
+                        [`${dataProcessType}PreviewUrl`]: imageUrl,
+                        [`is${dataProcessType}Processing`]: false
+                    });
+                    // Clear polling once we get the result
+                    if (pollInterval.current) {
+                        clearInterval(pollInterval.current);
+                    }
+                }
+            }
+        };
+
 
         return () => {
             channel.unsubscribe();
+            if (pollInterval.current) {
+                clearInterval(pollInterval.current);
+            }
         };
     }, [shape.id, updateShape]);
-
     const controls = [
         {
             type: 'Original',

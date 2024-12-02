@@ -641,11 +641,6 @@ export const useStore = create<BoardState>((set, get) => ({
       workflow["7"].inputs.text = negativePrompt;
       workflow["7"].inputs.clip = ["4", 1];
 
-      // Initialize paths
-      let modelNode = "4";
-      let currentNode = "6";
-      let finalPositiveNode = "6";
-      let finalNegativeNode = "7";
 
       // Find image with active controls
       const controlShape = shapes.find(shape =>
@@ -653,10 +648,11 @@ export const useStore = create<BoardState>((set, get) => ({
         (shape.showDepth || shape.showEdges || shape.showPose || shape.showScribble || shape.showRemix)
       );
 
+      // Initialize paths
+      let modelNode = "4";
+      let currentNode = "6";
 
       if (controlShape) {
-
-
         // Edge control chain
         if (controlShape.showEdges && controlShape.edgePreviewUrl) {
           workflow["12"].inputs.image = controlShape.edgePreviewUrl;
@@ -665,35 +661,34 @@ export const useStore = create<BoardState>((set, get) => ({
           workflow["41"].inputs.control_net = ["18", 0];
           workflow["41"].inputs.strength = controlShape.edgesStrength || 0.5;
           currentNode = "41";
-          finalPositiveNode = "41";
-          finalNegativeNode = "41";
         }
 
         // Depth control chain
         if (controlShape.showDepth && controlShape.depthPreviewUrl) {
           workflow["33"].inputs.image = controlShape.depthPreviewUrl;
-          workflow["31"].inputs.positive = [finalPositiveNode, 0];
-          workflow["31"].inputs.negative = [finalNegativeNode, 0];
+          workflow["31"].inputs.positive = [currentNode, 0];
+          workflow["31"].inputs.negative = ["7", 0];
           workflow["31"].inputs.control_net = ["32", 0];
           workflow["31"].inputs.strength = controlShape.depthStrength || 0.5;
-          finalPositiveNode = "31";
-          finalNegativeNode = "31";
+          currentNode = "31";
         }
 
         // Pose control chain
         if (controlShape.showPose && controlShape.posePreviewUrl) {
           workflow["37"].inputs.image = controlShape.posePreviewUrl;
-          workflow["36"].inputs.positive = [finalPositiveNode, 0];
+          workflow["36"].inputs.positive = [currentNode, 0];
+          workflow["36"].inputs.negative = ["7", 0];
           workflow["36"].inputs.strength = controlShape.poseStrength || 0.5;
-          finalPositiveNode = "36";
+          currentNode = "36";
         }
 
         // Scribble control chain
         if (controlShape.showScribble && controlShape.imageUrl) {
           workflow["40"].inputs.image = controlShape.imageUrl;
-          workflow["39"].inputs.positive = [finalPositiveNode, 0];
+          workflow["39"].inputs.positive = [currentNode, 0];
+          workflow["39"].inputs.negative = ["7", 0];
           workflow["39"].inputs.strength = controlShape.scribbleStrength || 0.5;
-          finalPositiveNode = "39";
+          currentNode = "39";
         }
 
         // Remix control chain
@@ -707,11 +702,11 @@ export const useStore = create<BoardState>((set, get) => ({
 
 
       }
+
       // Connect final nodes to KSampler
       workflow["3"].inputs.model = [modelNode, 0];
-      workflow["3"].inputs.positive = [finalPositiveNode, 0];
+      workflow["3"].inputs.positive = [currentNode, 0];
       workflow["3"].inputs.negative = ["7", 0];
-
 
       const requestPayload = {
         workflow_json: workflow,
@@ -719,6 +714,15 @@ export const useStore = create<BoardState>((set, get) => ({
         outputQuality: activeSettings.outputQuality,
         randomiseSeeds: activeSettings.randomiseSeeds
       };
+
+      // Check slider values:
+      console.log('Control strengths:', {
+        depth: controlShape?.depthStrength,
+        edge: controlShape?.edgesStrength,
+        pose: controlShape?.poseStrength,
+        scribble: controlShape?.scribbleStrength,
+        remix: controlShape?.remixStrength
+      });
 
       // Add response validation
       const response = await fetch('/.netlify/functions/generate-image', {
