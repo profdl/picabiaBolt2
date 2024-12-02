@@ -160,7 +160,6 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
   aspectRatio: '1:1',
   error: null,
   advancedSettings: {
-    workflowJson: JSON.stringify(workflowJson),
     steps: 30,
     guidanceScale: 4.5,
     scheduler: 'dpmpp_2m_sde',
@@ -171,6 +170,9 @@ const initialState: Omit<BoardState, keyof { resetState: never, setShapes: never
     negativePrompt: '',
     width: 1360,
     height: 768,
+    isHorizontal: false,
+    model: '',
+    numInferenceSteps: 0
   },
   brushSize: 30,
   brushOpacity: 1,
@@ -213,7 +215,9 @@ export const useStore = create<BoardState>((set, get) => ({
       height: maxY - minY,
       color: 'transparent',
       rotation: 0,
-      isUploading: false
+      isUploading: false,
+      model: '',
+      useSettings: false
     };
 
     // Update shapes with group info and insert group at beginning
@@ -389,7 +393,7 @@ export const useStore = create<BoardState>((set, get) => ({
   ,
 
   deleteShape: (id: string) => {
-    set(state => {
+    set((state) => {
       const shapeIndex = state.shapes.findIndex(shape => shape.id === id);
       if (shapeIndex === -1) return state; // Shape not found, return current state
 
@@ -436,15 +440,15 @@ export const useStore = create<BoardState>((set, get) => ({
         }
       }
 
+      const newPreprocessingStates = { ...state.preprocessingStates };
+      delete newPreprocessingStates[id];
+
       return {
         shapes: newShapes,
         selectedShapes: state.selectedShapes.filter(shapeId => shapeId !== id),
         history: [...state.history.slice(0, state.historyIndex + 1), newShapes],
         historyIndex: state.historyIndex + 1,
-        preprocessingStates: {
-          ...state.preprocessingStates,
-          [id]: undefined
-        }
+        preprocessingStates: newPreprocessingStates
       };
     });
   },
@@ -576,9 +580,7 @@ export const useStore = create<BoardState>((set, get) => ({
     const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
     const { shapes } = state;
-    const prepareControlImage = (url: string | undefined): string => {
-      return getPublicImageUrl(url);
-    };
+
     // Get settings from active diffusionSettings shape
     const activeSettings = shapes.find(
       shape => shape.type === 'diffusionSettings' && shape.useSettings
