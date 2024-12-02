@@ -310,27 +310,24 @@ export const useStore = create<BoardState>((set, get) => ({
   // In the updateShape function within useStore
   updateShape: (id: string, updatedProps: Partial<Shape>) => {
     set(state => {
-      // If we're updating a preview URL, clear its processing state
-      if (updatedProps.depthPreviewUrl) {
-        state.preprocessingStates[id] = { ...state.preprocessingStates[id], depth: false };
+      // Update preprocessing states first
+      if (updatedProps.depthPreviewUrl || updatedProps.edgePreviewUrl ||
+        updatedProps.posePreviewUrl || updatedProps.scribblePreviewUrl ||
+        updatedProps.remixPreviewUrl) {
+        state.preprocessingStates[id] = {
+          ...state.preprocessingStates[id],
+          depth: !updatedProps.depthPreviewUrl && state.preprocessingStates[id]?.depth,
+          edge: !updatedProps.edgePreviewUrl && state.preprocessingStates[id]?.edge,
+          pose: !updatedProps.posePreviewUrl && state.preprocessingStates[id]?.pose,
+          scribble: !updatedProps.scribblePreviewUrl && state.preprocessingStates[id]?.scribble,
+          remix: !updatedProps.remixPreviewUrl && state.preprocessingStates[id]?.remix
+        };
       }
-      if (updatedProps.edgePreviewUrl) {
-        state.preprocessingStates[id] = { ...state.preprocessingStates[id], edge: false };
-      }
-      if (updatedProps.posePreviewUrl) {
-        state.preprocessingStates[id] = { ...state.preprocessingStates[id], pose: false };
-      }
-      if (updatedProps.scribblePreviewUrl) {
-        state.preprocessingStates[id] = { ...state.preprocessingStates[id], scribble: false };
-      }
-      if (updatedProps.remixPreviewUrl) {
-        state.preprocessingStates[id] = { ...state.preprocessingStates[id], remix: false };
-      }
-
 
       const newShapes = state.shapes.map((shape) =>
         shape.id === id ? { ...shape, ...updatedProps } : shape
       );
+
       return {
         shapes: newShapes,
         preprocessingStates: state.preprocessingStates,
@@ -339,6 +336,7 @@ export const useStore = create<BoardState>((set, get) => ({
       };
     });
   }
+
   ,
   updateShapes: (updates: { id: string; shape: Partial<Shape> }[]) => {
     const { shapes, historyIndex, history } = get();
