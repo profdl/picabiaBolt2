@@ -651,9 +651,9 @@ export const useStore = create<BoardState>((set, get) => ({
 
       // Initialize paths - start with prompt node
       let currentPositiveNode = "6";
-      let modelNode = "4";
 
       for (const controlShape of controlShapes) {
+
         // Edge (Canny) control chain
         if (controlShape.showEdges && controlShape.edgePreviewUrl) {
           workflow["12"].inputs.image = controlShape.edgePreviewUrl;
@@ -695,19 +695,60 @@ export const useStore = create<BoardState>((set, get) => ({
         }
 
         // Remix control chain (IPAdapter)
-        if (controlShape.showRemix && controlShape.imageUrl) {
-          workflow["17"].inputs.image = controlShape.imageUrl;
-          workflow["14"].inputs.model = ["11", 0];
-          workflow["14"].inputs.ipadapter = ["11", 1];
-          workflow["14"].inputs.weight = controlShape.remixStrength || 1;
-          modelNode = "14";
-        }
-      }
+        // Find all shapes with remix enabled
+        const remixShapes = controlShapes.filter(shape => shape.showRemix && shape.imageUrl);
+        let nextIPAdapterNodeId: number = 50;
+        let currentModelNode: string = "4";
 
-      // Connect final nodes to KSampler
-      workflow["3"].inputs.model = [modelNode, 0];
-      workflow["3"].inputs.positive = [currentPositiveNode, 0];
-      workflow["3"].inputs.negative = ["7", 0];
+        remixShapes.forEach((remixShape) => {
+          // Create new nodes for each IP-Adapter chain
+          const loaderNodeId = `${nextIPAdapterNodeId}`;
+          const adapterNodeId = `${nextIPAdapterNodeId + 1}`;
+          const imageNodeId = `${nextIPAdapterNodeId + 2}`;
+
+          // Add IP-Adapter loader node
+          workflow[loaderNodeId] = {
+            "inputs": {
+              "preset": "PLUS (high strength)",
+              "model": [currentModelNode, 0]
+            },
+            "class_type": "IPAdapterUnifiedLoader"
+          };
+
+          // Add image loader node
+          workflow[imageNodeId] = {
+            "inputs": {
+              "image": remixShape.imageUrl,
+              "upload": "image"
+            },
+            "class_type": "LoadImage"
+          };
+
+          // Add IP-Adapter node
+          workflow[adapterNodeId] = {
+            "inputs": {
+              "weight": remixShape.remixStrength || 1,
+              "weight_type": "linear",
+              "combine_embeds": "concat",
+              "start_at": 0,
+              "end_at": 1,
+              "embeds_scaling": "V only",
+              "model": [currentModelNode, 0],
+              "ipadapter": [loaderNodeId, 1],
+              "image": [imageNodeId, 0]
+            },
+            "class_type": "IPAdapterAdvanced"
+          };
+
+          currentModelNode = adapterNodeId;
+          nextIPAdapterNodeId += 3;
+        });
+
+        // Connect final nodes to KSampler
+        workflow["3"].inputs.model = [currentModelNode, 0];
+        workflow["3"].inputs.positive = [currentPositiveNode, 0];
+        workflow["3"].inputs.negative = ["7", 0];
+      };
 
       const requestPayload = {
         workflow_json: workflow,

@@ -134,3 +134,16 @@ export interface ContextMenuState {
   y: number;
   items: ContextMenuItem[];
 }
+
+
+export interface WorkflowNode {
+  inputs: Record<string, unknown>;
+  class_type: string;
+  _meta?: {
+    title: string;
+  };
+}
+
+export interface Workflow {
+  [key: string]: WorkflowNode;
+}
