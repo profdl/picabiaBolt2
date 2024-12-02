@@ -108,7 +108,7 @@
   },
   "12": {
     "inputs": {
-      "image": "",
+      "image": "input.jpg",
       "upload": "image"
     },
     "class_type": "LoadImage",
@@ -144,7 +144,7 @@
   },
   "17": {
     "inputs": {
-      "image": "",
+      "image": "input.jpg",
       "upload": "image"
     },
     "class_type": "LoadImage",
@@ -199,7 +199,7 @@
   },
   "33": {
     "inputs": {
-      "image": "",
+      "image": "input.jpg",
       "upload": "image"
     },
     "class_type": "LoadImage",
@@ -229,7 +229,7 @@
   },
   "37": {
     "inputs": {
-      "image": "",
+      "image": "input.jpg",
       "upload": "image"
     },
     "class_type": "LoadImage",
@@ -248,7 +248,7 @@
   },
   "40": {
     "inputs": {
-      "image": "",
+      "image": "input.jpg",
       "upload": "image"
     },
     "class_type": "LoadImage",

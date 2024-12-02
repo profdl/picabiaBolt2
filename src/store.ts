@@ -4,6 +4,7 @@ import { CanvasState, Position, Shape } from './types';
 import workflowJson from './lib/workflow.json';
 import multiControlWorkflow from './lib/multiControl_API.json';
 import { ContextMenuState } from './types';
+import { getPublicImageUrl } from './lib/supabase';
 
 
 const supabase = createClient(
@@ -575,12 +576,13 @@ export const useStore = create<BoardState>((set, get) => ({
     const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
     const { shapes } = state;
-
+    const prepareControlImage = (url: string | undefined): string => {
+      return getPublicImageUrl(url);
+    };
     // Get settings from active diffusionSettings shape
     const activeSettings = shapes.find(
       shape => shape.type === 'diffusionSettings' && shape.useSettings
     ) || {
-      // Default settings
       steps: 30,
       guidanceScale: 4.5,
       scheduler: 'dpmpp_2m_sde',
@@ -593,16 +595,15 @@ export const useStore = create<BoardState>((set, get) => ({
       randomiseSeeds: true
     };
 
+    // Validation checks
     if (!activeSettings) {
       set({ error: 'No settings selected. Please select a settings shape.' });
       return;
     }
 
-    // 1. Authentication check
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User must be authenticated');
 
-    // 2. Prompt validation
     const stickyWithPrompt = shapes.find(
       shape => shape.type === 'sticky' && shape.showPrompt && shape.content
     );
@@ -611,99 +612,134 @@ export const useStore = create<BoardState>((set, get) => ({
       return;
     }
 
-    // 3. Set UI states
+
+    // Set UI states
     set({ isGenerating: true, error: null });
     set({ showGallery: true });
 
     try {
-      // 4. Update base workflow settings
+      // Base workflow settings - Node 3 (KSampler)
       workflow["3"].inputs.steps = activeSettings.steps || 20;
       workflow["3"].inputs.cfg = activeSettings.guidanceScale || 7.5;
       workflow["3"].inputs.sampler_name = activeSettings.scheduler || 'dpmpp_2m_sde';
-      workflow["3"].inputs.seed = activeSettings.seed || Math.floor(Math.random() * 32767);
-      workflow["5"].inputs.width = activeSettings.outputWidth || 832;
-      workflow["5"].inputs.height = activeSettings.outputHeight || 1216;
-      workflow["6"].inputs.text = stickyWithPrompt.content;
+      workflow["3"].inputs.seed = activeSettings.randomiseSeeds ?
+        Math.floor(Math.random() * 32767) :
+        (activeSettings.seed || Math.floor(Math.random() * 32767));
 
-      // 5. Find shape with control maps enabled
+      // Set dimensions - Node 34 (EmptyLatentImage)
+      workflow["34"].inputs.width = activeSettings.outputWidth || 1344;
+      workflow["34"].inputs.height = activeSettings.outputHeight || 768;
+
+      // Set prompts - Nodes 6 & 7 (CLIPTextEncode)
+      workflow["6"].inputs.text = stickyWithPrompt.content;
+      workflow["6"].inputs.clip = ["4", 1];
+
+
+      const negativePrompt = shapes.find(
+        shape => shape.type === 'sticky' && shape.showNegativePrompt && shape.content
+      )?.content || "text, watermark";
+      workflow["7"].inputs.text = negativePrompt;
+      workflow["7"].inputs.clip = ["4", 1];
+
+      // Initialize paths
+      let modelNode = "4";
+      let currentNode = "6";
+      let finalPositiveNode = "6";
+      let finalNegativeNode = "7";
+
+      // Find image with active controls
       const controlShape = shapes.find(shape =>
         shape.type === 'image' &&
         (shape.showDepth || shape.showEdges || shape.showPose || shape.showScribble || shape.showRemix)
       );
 
-      // 6. Handle controlnet chain
-      let currentConditioningNode = "6"; // Start with base text prompt
 
       if (controlShape) {
-        // Handle Depth control
-        if (controlShape.showDepth && controlShape.depthPreviewUrl) {
-          workflow["11"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["11"].inputs.strength = controlShape.depthStrength || 1;
-          workflow["13"].inputs.image = controlShape.depthPreviewUrl;
-          currentConditioningNode = "11";
-        }
 
-        // Handle Edge control
+
+        // Edge control chain
         if (controlShape.showEdges && controlShape.edgePreviewUrl) {
-          workflow["14"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["14"].inputs.strength = controlShape.edgesStrength || 1;
-          workflow["16"].inputs.image = controlShape.edgePreviewUrl;
-          currentConditioningNode = "14";
+          workflow["12"].inputs.image = controlShape.edgePreviewUrl;
+          workflow["41"].inputs.positive = [currentNode, 0];
+          workflow["41"].inputs.negative = ["7", 0];
+          workflow["41"].inputs.control_net = ["18", 0];
+          workflow["41"].inputs.strength = controlShape.edgesStrength || 0.5;
+          currentNode = "41";
+          finalPositiveNode = "41";
+          finalNegativeNode = "41";
         }
 
-        // Handle Pose control
+        // Depth control chain
+        if (controlShape.showDepth && controlShape.depthPreviewUrl) {
+          workflow["33"].inputs.image = controlShape.depthPreviewUrl;
+          workflow["31"].inputs.positive = [finalPositiveNode, 0];
+          workflow["31"].inputs.negative = [finalNegativeNode, 0];
+          workflow["31"].inputs.control_net = ["32", 0];
+          workflow["31"].inputs.strength = controlShape.depthStrength || 0.5;
+          finalPositiveNode = "31";
+          finalNegativeNode = "31";
+        }
+
+        // Pose control chain
         if (controlShape.showPose && controlShape.posePreviewUrl) {
-          workflow["17"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["17"].inputs.strength = controlShape.poseStrength || 1;
-          workflow["19"].inputs.image = controlShape.posePreviewUrl;
-          currentConditioningNode = "17";
+          workflow["37"].inputs.image = controlShape.posePreviewUrl;
+          workflow["36"].inputs.positive = [finalPositiveNode, 0];
+          workflow["36"].inputs.strength = controlShape.poseStrength || 0.5;
+          finalPositiveNode = "36";
         }
 
-        // Handle Scribble control
-        if (controlShape.showScribble && controlShape.scribblePreviewUrl) {
-          workflow["22"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["22"].inputs.strength = controlShape.scribbleStrength || 1;
-          workflow["21"].inputs.image = controlShape.scribblePreviewUrl;
-          currentConditioningNode = "22";
+        // Scribble control chain
+        if (controlShape.showScribble && controlShape.imageUrl) {
+          workflow["40"].inputs.image = controlShape.imageUrl;
+          workflow["39"].inputs.positive = [finalPositiveNode, 0];
+          workflow["39"].inputs.strength = controlShape.scribbleStrength || 0.5;
+          finalPositiveNode = "39";
         }
 
-        // Handle Remix control (IP-Adapter)
+        // Remix control chain
         if (controlShape.showRemix && controlShape.imageUrl) {
-          workflow["24"].inputs.image = controlShape.imageUrl;
-
-          // Connect IP-Adapter into the conditioning chain
-          workflow["26"].inputs.conditioning = [currentConditioningNode, 0];
-          workflow["26"].inputs.strength = controlShape.remixStrength || 0.8;
-          workflow["26"].inputs.clip = ["4", 1];
-
-          currentConditioningNode = "26";
+          workflow["17"].inputs.image = controlShape.imageUrl;
+          workflow["14"].inputs.model = ["11", 0];
+          workflow["14"].inputs.ipadapter = ["11", 1];
+          workflow["14"].inputs.weight = controlShape.remixStrength || 1;
+          modelNode = "14";
         }
+
+
       }
-      // Connect final conditioning to KSampler positive input
-      workflow["3"].inputs.positive = [currentConditioningNode, 0];
-      // Connect model to KSampler model input
-      workflow["3"].inputs.model = ["4", 0];
+      // Connect final nodes to KSampler
+      workflow["3"].inputs.model = [modelNode, 0];
+      workflow["3"].inputs.positive = [finalPositiveNode, 0];
+      workflow["3"].inputs.negative = ["7", 0];
 
 
       const requestPayload = {
         workflow_json: workflow,
-        outputFormat: state.advancedSettings.outputFormat,
-        outputQuality: state.advancedSettings.outputQuality,
-        randomiseSeeds: state.advancedSettings.randomiseSeeds
+        outputFormat: activeSettings.outputFormat,
+        outputQuality: activeSettings.outputQuality,
+        randomiseSeeds: activeSettings.randomiseSeeds
       };
 
+      // Add response validation
       const response = await fetch('/.netlify/functions/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestPayload)
       });
 
-      const responseData = await response.json();
-      console.log('Response from generate-image:', responseData);
+      // Check if response is ok before parsing
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      if (!responseText) {
+        throw new Error('Empty response received from server');
+      }
+
+      const responseData = JSON.parse(responseText);
 
       const prediction_id = responseData.prediction.id;
-      console.log('Extracted prediction_id:', prediction_id);
-
       get().addGeneratingPrediction(prediction_id);
 
       const subscription = supabase
@@ -718,7 +754,6 @@ export const useStore = create<BoardState>((set, get) => ({
           },
           (payload) => {
             if (payload.new.status === 'completed') {
-              // Remove from tracking set when complete
               get().removeGeneratingPrediction(prediction_id);
               subscription.unsubscribe();
             }
@@ -726,49 +761,46 @@ export const useStore = create<BoardState>((set, get) => ({
         )
         .subscribe();
 
-
       const insertData = {
         id: crypto.randomUUID(),
         user_id: user.id,
         prompt: stickyWithPrompt.content,
         aspect_ratio: state.aspectRatio,
         created_at: new Date().toISOString(),
-        prediction_id: responseData.prediction.id,
+        prediction_id: prediction_id,
         status: 'generating',
         updated_at: new Date().toISOString(),
         image_index: 0,
-        originalUrl: controlShape?.imageUrl?.replace(/^data:image\/[^;]+;base64,/, '') || '',
-        depthMapUrl: controlShape?.showDepth ? controlShape.depthPreviewUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
-        edgeMapUrl: controlShape?.showEdges ? controlShape.edgePreviewUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
-        poseMapUrl: controlShape?.showPose ? controlShape.posePreviewUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
-        scribbleMapUrl: controlShape?.showScribble ? controlShape.scribblePreviewUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
-        remixMapUrl: controlShape?.showRemix ? controlShape.imageUrl?.replace(/^data:image\/[^;]+;base64,/, '') : '',
+        originalUrl: controlShape?.imageUrl || '',
+        depthMapUrl: controlShape?.showDepth ? controlShape.depthPreviewUrl : '',
+        edgeMapUrl: controlShape?.showEdges ? controlShape.edgePreviewUrl : '',
+        poseMapUrl: controlShape?.showPose ? controlShape.posePreviewUrl : '',
+        scribbleMapUrl: controlShape?.showScribble ? controlShape.imageUrl : '',
+        remixMapUrl: controlShape?.showRemix ? controlShape.imageUrl : '',
 
         generated_01: '',
         generated_02: '',
         generated_03: '',
         generated_04: '',
-        num_inference_steps: parseInt(state.advancedSettings.numInferenceSteps?.toString() || '35'),
-        prompt_negative: state.advancedSettings.negativePrompt || '',
-        width: parseInt('832'),
-        height: parseInt('1216'),
-        num_outputs: parseInt('1'),
-        scheduler: state.advancedSettings.scheduler || 'dpmpp_2m_sde',
-        guidance_scale: parseFloat(state.advancedSettings.guidanceScale?.toString() || '4.5'),
-        prompt_strength: parseFloat('1.0'),
-        seed: parseInt(state.advancedSettings.seed?.toString() || Math.floor(Math.random() * 32767).toString()),
+        num_inference_steps: activeSettings.steps,
+        prompt_negative: negativePrompt,
+        width: activeSettings.outputWidth,
+        height: activeSettings.outputHeight,
+        num_outputs: 1,
+        scheduler: activeSettings.scheduler,
+        guidance_scale: activeSettings.guidanceScale,
+        prompt_strength: 1.0,
+        seed: activeSettings.seed,
         refine: '',
-        refine_steps: parseInt('0'),
-        lora_scale: parseFloat('1.0'),
+        refine_steps: 0,
+        lora_scale: 1.0,
         lora_weights: '',
-        depth_scale: parseFloat(controlShape?.depthStrength?.toString() || '1.0'),
-        edge_scale: parseFloat(controlShape?.edgesStrength?.toString() || '1.0'),
-        pose_scale: parseFloat(controlShape?.poseStrength?.toString() || '1.0'),
-        scribble_scale: parseFloat(controlShape?.scribbleStrength?.toString() || '1.0'),
-        remix_scale: parseFloat(controlShape?.remixStrength?.toString() || '1.0'),
+        depth_scale: controlShape?.depthStrength || 1.0,
+        edge_scale: controlShape?.edgesStrength || 1.0,
+        pose_scale: controlShape?.poseStrength || 1.0,
+        scribble_scale: controlShape?.scribbleStrength || 1.0,
+        remix_scale: controlShape?.remixStrength || 1.0,
       };
-
-      console.log('Data being inserted into Supabase:', insertData);
 
       const { data: pendingImage, error: dbError } = await supabase
         .from('generated_images')
@@ -776,7 +808,6 @@ export const useStore = create<BoardState>((set, get) => ({
         .select()
         .single();
 
-      console.log('Supabase insert result:', { data: pendingImage, error: dbError });
     } catch (error) {
       console.error('Error generating image:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to generate image' });
@@ -784,6 +815,7 @@ export const useStore = create<BoardState>((set, get) => ({
       set({ isGenerating: false });
     }
   }
+
 
   ,
   sendBackward: () => {
@@ -842,6 +874,8 @@ export const useStore = create<BoardState>((set, get) => ({
     const { shapes } = get();
     const shape = shapes.find(s => s.id === shapeId);
     if (!shape || !shape.imageUrl) return;
+
+    const imageUrl = getPublicImageUrl(shape.imageUrl);
 
     // Set loading state
     set(state => ({

@@ -217,3 +217,24 @@ export async function savePreprocessedImage(
 
 
 
+
+export const getPublicImageUrl = (imageUrl: string | undefined): string => {
+  if (!imageUrl) return '';
+
+  // If already a full URL, return as is
+  if (imageUrl.startsWith('http')) {
+    return imageUrl;
+  }
+
+  // If base64, return as is
+  if (imageUrl.startsWith('data:image')) {
+    return imageUrl;
+  }
+
+  // Get public URL from Supabase storage
+  const { data: { publicUrl } } = supabase.storage
+    .from('preprocessed-images')
+    .getPublicUrl(imageUrl);
+
+  return publicUrl;
+};
