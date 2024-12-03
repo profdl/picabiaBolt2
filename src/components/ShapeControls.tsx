@@ -176,6 +176,26 @@ export function ShapeControls({
             }
         }
     };
+    // Add this function inside ShapeControls component
+    const handlePreviewClick = async (control: typeof controls[0]) => {
+        if (!control.processType || !control.preview) return;
+
+        // Fetch latest data from preprocessed_images table
+        const { data } = await supabase
+            .from('preprocessed_images')
+            .select('*')
+            .eq('shapeId', shape.id)
+            .eq('processType', control.processType)
+            .single();
+
+        if (data && data[`${control.processType}Url`]) {
+            // Force refresh the preview URL by adding a timestamp
+            const refreshedUrl = `${data[`${control.processType}Url`]}?t=${Date.now()}`;
+            updateShape(shape.id, {
+                [`${control.processType}PreviewUrl`]: refreshedUrl
+            });
+        }
+    };
 
 
     if (!showControlPanel && !shape.isNew) return null;
@@ -215,6 +235,8 @@ export function ShapeControls({
                                                 src={control.preview}
                                                 alt={`${control.type} preview`}
                                                 className="w-full h-full object-cover"
+                                                onClick={() => handlePreviewClick(control)}
+
                                             />
                                         ) : null}
                                     </div>
