@@ -32,3 +32,8 @@
     @apply w-2.5 h-2.5 rounded-full bg-blue-500 border-none cursor-pointer;
   }
 }
+  .slider-tooltip {
+    @apply fixed bg-gray-800 text-white px-2 py-1 rounded text-xs pointer-events-none;
+    transform: translate(-50%, -100%);
+    margin-top: -8px;
+  }

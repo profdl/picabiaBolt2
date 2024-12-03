@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useStore } from '../store';
 import { Shape } from '../types';
@@ -24,6 +24,10 @@ export function ShapeControls({
     const poseProcessing = useStore(state => state.preprocessingStates[shape.id]?.pose);
     const scribbleProcessing = useStore(state => state.preprocessingStates[shape.id]?.scribble);
     const remixProcessing = useStore(state => state.preprocessingStates[shape.id]?.remix);
+
+    const [isHovering, setIsHovering] = useState(false);
+    const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+    const sliderRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const channel = supabase
@@ -250,31 +254,45 @@ export function ShapeControls({
                     <span className="text-xs text-gray-700 whitespace-nowrap">
                         {control.type}
                     </span>
-                </div>
-            )}
-                              {control.strengthKey && 
-                             control.showKey && 
-                             shape[control.showKey as keyof Shape] && (
-                                  <div 
-                                      className={`mt-0.5 pl-1 pr-2 ${
-                                          shape[control.showKey as keyof Shape] ? 'block' : 'hidden'
-                                      }`}
-                                      onClick={(e) => e.stopPropagation()}
-                                  >
-                                      <input
-                                          type="range"
-                                          min={control.type === 'Remix' ? "0.1" : "0"}
-                                          max={control.type === 'Remix' ? "2.0" : "1"}
-                                          step="0.05"
-                                          value={control.strengthKey in shape ? (shape[control.strengthKey as keyof Shape] as number) ?? 0.5 : 0.5}
-                                          onChange={(e) => updateShape(shape.id, {
-                                              [control.strengthKey]: parseFloat(e.target.value)
-                                          })}
-                                          className="mini-slider w-24"
-                                          style={{ pointerEvents: 'all' }}
-                                      />
-                                  </div>
-                              )}
+                  </div>
+              )}
+                                {control.strengthKey && 
+                               control.showKey && 
+                               shape[control.showKey as keyof Shape] && (
+<div 
+  className={`mt-0.5 pl-1 pr-2 relative ${
+    shape[control.showKey as keyof Shape] ? 'block' : 'hidden'
+  }`}
+  onClick={(e) => e.stopPropagation()}
+>
+  <div className="relative">
+    {isHovering && (
+      <div 
+        className="absolute left-3/4 -top-6   bg-gray-500 text-white px-2 py-1 rounded text-xs"
+      >
+        {(shape[control.strengthKey as keyof Shape] as number)?.toFixed(2) ?? "0.50"}
+      </div>
+    )}
+    <input
+      type="range"
+      min={control.type === 'Remix' ? "0.1" : "0"}
+      max={control.type === 'Remix' ? "2.0" : "1"}
+      step="0.05"
+      value={control.strengthKey in shape ? (shape[control.strengthKey as keyof Shape] as number) ?? 0.5 : 0.5}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      onChange={(e) => {
+        updateShape(shape.id, {
+          [control.strengthKey]: parseFloat(e.target.value)
+        })
+      }}
+      className="mini-slider w-24"
+      style={{ pointerEvents: 'all' }}
+    />
+  </div>
+</div>
+
+)}
                           </div>
                           </div>
 
