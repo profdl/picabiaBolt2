@@ -16,6 +16,8 @@ const headers = {
 
 const MODEL_VERSION = "10990543610c5a77a268f426adb817753842697fa0fa5819dc4a396b632a5c15";
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
+const WEBHOOK_URL = process.env.PREPROCESS_WEBHOOK || process.env.WEBHOOK_URL;
+
 
 export const handler: Handler = async (event) => {
     console.log('Preprocess Image Function Details:', {
@@ -98,8 +100,10 @@ export const handler: Handler = async (event) => {
                 output_quality: 95,
                 randomise_seeds: false
             },
-            webhook: process.env.PREPROCESS_WEBHOOK, // Use environment variable
-            webhook_events_filter: ["completed"]
+            ...(WEBHOOK_URL && {
+                webhook: WEBHOOK_URL,
+                webhook_events_filter: ["completed"]
+            })
         };
 
         console.log('Replicate request body:', requestBody);
