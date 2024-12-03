@@ -214,81 +214,69 @@ export function ShapeControls({
                 </div>
             )}
 
-            {/* Side Controls Panel */}
-            {
-                (shape.type === 'image' || shape.type === 'sketchpad') && showControlPanel && (
-                    <div
-                        className="absolute left-full ml-2 top-0 bg-white rounded-md border border-gray-200 shadow-sm"
-                        style={{ zIndex: 101, pointerEvents: 'all', width: '200px' }}
-                    >
-                        {controls.map((control) => (
-                            <div key={control.type} className="p-1.5 border-b border-gray-100 last:border-b-0">
-                                <div className="flex items-center gap-2">
-                                    {/* Preview Image */}
-                                    <div className="w-8 h-8 bg-gray-50 rounded overflow-hidden flex-shrink-0">
-                                        {control.isProcessing ? (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                                            </div>
-                                        ) : control.preview ? (
-                                            <img
-                                                src={control.preview}
-                                                alt={`${control.type} preview`}
-                                                className="w-full h-full object-cover"
-                                                onClick={() => handlePreviewClick(control)}
-
-                                            />
-                                        ) : null}
-                                    </div>
-
-                                    <div className="flex-grow min-w-0">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <div className="flex items-center gap-1">
-                                                <span className="text-xs font-medium text-gray-700 truncate">
-                                                    {control.type}
-                                                </span>
-                                            </div>
-
-                                            {control.showKey && (
-                                                <div
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    style={{ pointerEvents: 'all' }}
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={control.showKey in shape ? shape[control.showKey as keyof Shape] as boolean : false}
-                                                        onChange={(e) => handleCheckboxChange(control, e)}
-                                                        className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
-                                                        style={{ pointerEvents: 'all' }}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {control.strengthKey && (
-                                            <div onClick={(e) => e.stopPropagation()}>
-                                                <input
-                                                    type="range"
-                                                    min={control.type === 'Remix' ? "0.1" : "0"}
-                                                    max={control.type === 'Remix' ? "2.0" : "1"}
-                                                    step="0.05"
-                                                    value={control.strengthKey in shape ? (shape[control.strengthKey as keyof Shape] as number) ?? 0.5 : 0.5}
-                                                    onChange={(e) => updateShape(shape.id, {
-                                                        [control.strengthKey]: parseFloat(e.target.value)
-                                                    })}
-                                                    className="mini-slider"
-                                                    style={{ pointerEvents: 'all' }}
-                                                />
-                                            </div>
-                                        )}
-
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+{/* Side Controls Panel */}
+{(shape.type === 'image' || shape.type === 'sketchpad') && showControlPanel && (
+    <div
+        className="absolute left-full ml-2 top-0 bg-white rounded-md border border-gray-200 shadow-sm p-1"
+        style={{ 
+            zIndex: 101, 
+            pointerEvents: 'all',
+            width: 'max-content'  // This will make it exactly fit the content
+        }}
+    >
+        {controls.map((control) => (
+            <div 
+                key={control.type} 
+                className={`group relative py-0.5 ${
+                    control.showKey && shape[control.showKey as keyof Shape] 
+                    ? 'w-[160px]' // Width expands only when checked
+                    : 'w-max' // Natural width when unchecked
+                }`}
+            >
+                {control.showKey && (
+                    <div className="flex items-center gap-1.5">
+                        <input
+                            type="checkbox"
+                            checked={control.showKey in shape ? shape[control.showKey as keyof Shape] as boolean : false}
+                            onChange={(e) => handleCheckboxChange(control, e)}
+                            className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-0"
+                            style={{ pointerEvents: 'all' }}
+                        />
+                        <span className="text-xs text-gray-700 whitespace-nowrap">
+                            {control.type}
+                        </span>
                     </div>
-                )
-            }
+                )}
+                              {control.strengthKey && 
+                             control.showKey && 
+                             shape[control.showKey as keyof Shape] && (
+                                  <div 
+                                      className={`mt-0.5 pl-4 pr-2 ${
+                                          shape[control.showKey as keyof Shape] ? 'block' : 'hidden'
+                                      }`}
+                                      onClick={(e) => e.stopPropagation()}
+                                  >
+                                      <input
+                                          type="range"
+                                          min={control.type === 'Remix' ? "0.1" : "0"}
+                                          max={control.type === 'Remix' ? "2.0" : "1"}
+                                          step="0.05"
+                                          value={control.strengthKey in shape ? (shape[control.strengthKey as keyof Shape] as number) ?? 0.5 : 0.5}
+                                          onChange={(e) => updateShape(shape.id, {
+                                              [control.strengthKey]: parseFloat(e.target.value)
+                                          })}
+                                          className="mini-slider w-24"
+                                          style={{ pointerEvents: 'all' }}
+                                      />
+                                  </div>
+                              )}
+                          </div>
+        ))}
+    </div>
+)}
+
+
+
 
             {/* Resize handle */}
             {
