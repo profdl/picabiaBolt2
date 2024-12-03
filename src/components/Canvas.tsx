@@ -94,12 +94,10 @@ export function Canvas() {
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       const isDiffusionSettings = (e.target as Element)?.closest('[data-shape-type="diffusionSettings"]');
-      if (isDiffusionSettings) {
-        return; // Let the native scroll behavior handle it
-      }
+      if (isDiffusionSettings) return;
 
       if (e.ctrlKey) {
-        e.preventDefault();
+        // Instead of preventDefault, we'll handle the zoom directly
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect) return;
 
@@ -109,6 +107,7 @@ export function Canvas() {
         const mouseCanvasX = (mouseX - offset.x) / zoom;
         const mouseCanvasY = (mouseY - offset.y) / zoom;
 
+        // Use deltaY directly without preventing default
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
         const newZoom = Math.min(Math.max(zoom * delta, 0.1), 5);
 
@@ -127,10 +126,10 @@ export function Canvas() {
     [zoom, offset, setZoom, setOffset]
   );
 
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     canvas.addEventListener('wheel', handleWheel, { passive: false });
     return () => canvas.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
@@ -386,7 +385,6 @@ export function Canvas() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onContextMenu={handleContextMenu}
-      onWheel={handleWheel}
     >
       {contextMenu && (
         <ContextMenu
