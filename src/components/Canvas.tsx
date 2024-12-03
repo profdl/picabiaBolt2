@@ -116,6 +116,17 @@ export function Canvas() {
 
 
   useEffect(() => {
+    const preventDefaultZoom = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    };
+    
+    window.addEventListener('wheel', preventDefaultZoom, { passive: false });
+    return () => window.removeEventListener('wheel', preventDefaultZoom);
+  }, []);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.addEventListener('wheel', handleWheel, { passive: false });
