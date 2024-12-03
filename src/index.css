@@ -18,3 +18,17 @@
   height: 100vh;
   width: 100vw;
 }
+
+@layer components {
+  .mini-slider {
+    @apply h-1.5 rounded-full appearance-none bg-gray-200;
+  }
+
+  .mini-slider::-webkit-slider-thumb {
+    @apply w-2.5 h-2.5 rounded-full bg-blue-500 appearance-none cursor-pointer;
+  }
+
+  .mini-slider::-moz-range-thumb {
+    @apply w-2.5 h-2.5 rounded-full bg-blue-500 border-none cursor-pointer;
+  }
+}

@@ -217,41 +217,46 @@ export function ShapeControls({
 {/* Side Controls Panel */}
 {(shape.type === 'image' || shape.type === 'sketchpad') && showControlPanel && (
     <div
-        className="absolute left-full ml-2 top-0 bg-white rounded-md border border-gray-200 shadow-sm p-1"
+        className="absolute left-full ml-2 top-0"
         style={{ 
             zIndex: 101, 
             pointerEvents: 'all',
-            width: 'max-content'  // This will make it exactly fit the content
+            width: 'max-content'
         }}
     >
-        {controls.map((control) => (
-            <div 
-                key={control.type} 
-                className={`group relative py-0.5 ${
-                    control.showKey && shape[control.showKey as keyof Shape] 
-                    ? 'w-[160px]' // Width expands only when checked
-                    : 'w-max' // Natural width when unchecked
-                }`}
-            >
-                {control.showKey && (
-                    <div className="flex items-center gap-1.5">
-                        <input
-                            type="checkbox"
-                            checked={control.showKey in shape ? shape[control.showKey as keyof Shape] as boolean : false}
-                            onChange={(e) => handleCheckboxChange(control, e)}
-                            className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-0"
-                            style={{ pointerEvents: 'all' }}
-                        />
-                        <span className="text-xs text-gray-700 whitespace-nowrap">
-                            {control.type}
-                        </span>
-                    </div>
-                )}
+        {controls
+            .filter(control => control.processType)
+            .map((control) => (
+                <div 
+                    key={control.type} 
+                    className="bg-gray-50 rounded-md mb-1 p-1 border border-gray-200 shadow-sm"
+                >
+  <div 
+      className={`group relative py-0.5 ${
+          control.showKey && shape[control.showKey as keyof Shape] 
+          ? 'w-max'
+          : 'w-max'
+      }`}
+  >
+                 {control.showKey && (
+                <div className="flex items-center gap-1.5">
+                    <input
+                        type="checkbox"
+                        checked={control.showKey in shape ? shape[control.showKey as keyof Shape] as boolean : false}
+                        onChange={(e) => handleCheckboxChange(control, e)}
+                        className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-0"
+                        style={{ pointerEvents: 'all' }}
+                    />
+                    <span className="text-xs text-gray-700 whitespace-nowrap">
+                        {control.type}
+                    </span>
+                </div>
+            )}
                               {control.strengthKey && 
                              control.showKey && 
                              shape[control.showKey as keyof Shape] && (
                                   <div 
-                                      className={`mt-0.5 pl-4 pr-2 ${
+                                      className={`mt-0.5 pl-1 pr-2 ${
                                           shape[control.showKey as keyof Shape] ? 'block' : 'hidden'
                                       }`}
                                       onClick={(e) => e.stopPropagation()}
@@ -271,6 +276,8 @@ export function ShapeControls({
                                   </div>
                               )}
                           </div>
+                          </div>
+
         ))}
     </div>
 )}

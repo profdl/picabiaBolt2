@@ -795,51 +795,70 @@ export function ShapeComponent({ shape }: ShapeProps) {
         )}
 
 
-        {shape.type === 'image' && (
-          <>
-            {shape.showDepth && shape.depthPreviewUrl ? (
-              <img
-                src={shape.depthPreviewUrl}
-                alt="Depth map"
-                className="w-full h-full object-cover"
-                draggable={false}
-              />
-            ) : shape.showEdges && shape.edgePreviewUrl ? (
-              <img
-                src={shape.edgePreviewUrl}
-                alt="Edge detection"
-                className="w-full h-full object-cover"
-                draggable={false}
-              />
-            ) : shape.showPose && shape.posePreviewUrl ? (
-              <img
-                src={shape.posePreviewUrl}
-                alt="Pose detection"
-                className="w-full h-full object-cover"
-                draggable={false}
-              />
-            ) : shape.imageUrl ? (
-              <img
-                ref={imageRef}
-                src={shape.imageUrl}
-                alt="User uploaded content"
-                className="w-full h-full object-cover"
-                onLoad={() => {
-                  if (imageRef.current && !shape.aspectRatio) {
-                    const ratio = imageRef.current.naturalWidth / imageRef.current.naturalHeight;
-                    const newWidth = shape.width;
-                    const newHeight = newWidth / ratio;
-                    updateShape(shape.id, {
-                      aspectRatio: ratio,
-                      width: newWidth,
-                      height: newHeight
-                    });
-                  }
-                }}
-                draggable={false}
-              />
-            ) : null}
-          </>
+       {shape.type === 'image' && (
+  <div className="relative w-full h-full">
+    {/* Base image always at bottom */}
+    <img
+      src={shape.imageUrl}
+      alt="Original image"
+      className="absolute w-full h-full object-cover"
+      draggable={false}
+    />
+    
+    {/* Stack of preview layers */}
+    {shape.showDepth && shape.depthPreviewUrl && (
+      <img
+        src={shape.depthPreviewUrl}
+        alt="Depth map"
+        className="absolute w-full h-full object-cover"
+        style={{ opacity: shape.depthStrength || 0.5 }}
+        draggable={false}
+      />
+    )}
+    
+    {shape.showEdges && shape.edgePreviewUrl && (
+      <img
+        src={shape.edgePreviewUrl}
+        alt="Edge detection"
+        className="absolute w-full h-full object-cover"
+        style={{ opacity: shape.edgesStrength || 0.5 }}
+        draggable={false}
+      />
+    )}
+    
+    {shape.showPose && shape.posePreviewUrl && (
+      <img
+        src={shape.posePreviewUrl}
+        alt="Pose detection"
+        className="absolute w-full h-full object-cover"
+        style={{ opacity: shape.poseStrength || 0.5 }}
+        draggable={false}
+      />
+    )}
+
+    {shape.showScribble && shape.scribblePreviewUrl && (
+      <img
+        src={shape.scribblePreviewUrl}
+        alt="Scribble"
+        className="absolute w-full h-full object-cover"
+        style={{ opacity: shape.scribbleStrength || 0.5 }}
+        draggable={false}
+      />
+    )}
+
+    {shape.showRemix && shape.remixPreviewUrl && (
+      <img
+        src={shape.remixPreviewUrl}
+        alt="Remix"
+        className="absolute w-full h-full object-cover"
+        style={{ opacity: shape.remixStrength || 0.5 }}
+        draggable={false}
+      />
+    )}
+  </div>
+
+
+        
         )}
 
         <textarea
