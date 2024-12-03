@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store';
 import { useState, useRef } from 'react';
-import { ImageGeneratePanel } from './GenerateSettings';
 import { useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 // import { BrushShapeSelector } from './BrushShapeSelector';
@@ -247,8 +246,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   const hasActivePrompt = shapes.some(shape =>
     (shape.type === 'sticky' && shape.showPrompt && shape.content) ||
-    (shape.type === 'image' && shape.showPrompt)
+    (shape.type === 'image' && (
+      shape.showDepth ||
+      shape.showEdges ||
+      shape.showPose ||
+      shape.showScribble ||
+      shape.showRemix
+    ))
   );
+
 
   const getViewportCenter = () => {
     const rect = document.querySelector('#root')?.getBoundingClientRect();
@@ -278,7 +284,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         height: 512,
         color: '#ffffff',
         rotation: 0,
-        locked: true
+        model: '',
+        useSettings: false,
+        isUploading: false
       });
       setTool('select');
       return;
@@ -418,7 +426,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         content: type === 'text' ? 'Double click to edit' : undefined,
         fontSize: 16,
         rotation: 0,
-        isUploading: false
+        isUploading: false,
+        model: '',
+        useSettings: false
       });
     }
 
@@ -699,15 +709,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 const rect = document.querySelector('.canvas-container')?.getBoundingClientRect()
                 if (!rect) return
 
-                const center = {
-                  x: rect.width / 2,
-                  y: rect.height / 2
-                }
-
-                setZoom(newZoom, center)
-              }}
-              className="w-16 px-2 py-1 text-sm border rounded"
-              min="10"
+                setZoom(newZoom)
+              }} className="w-16 px-2 py-1 text-sm border rounded" min="10"
               max="500"
               step="10"
             />
@@ -730,9 +733,4 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     </div>
   );
 };
-
-
-function setSelectedShapes(arg0: string[]) {
-  throw new Error('Function not implemented.');
-}
 

@@ -602,14 +602,28 @@ export const useStore = create<BoardState>((set, get) => ({
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User must be authenticated');
 
+    const hasActiveControls = shapes.some(shape =>
+      shape.type === 'image' && (
+        shape.showDepth ||
+        shape.showEdges ||
+        shape.showPose ||
+        shape.showScribble ||
+        shape.showRemix
+      )
+    );
+
     const stickyWithPrompt = shapes.find(
       shape => shape.type === 'sticky' && shape.showPrompt && shape.content
     );
-    if (!stickyWithPrompt?.content) {
-      set({ error: 'No prompt selected. Please select a sticky note with a prompt.' });
+
+    if (!stickyWithPrompt?.content && !hasActiveControls) {
+      set({ error: 'Please select either a text prompt or image controls.' });
       return;
     }
 
+    // If no text prompt, use empty string
+    const promptText = stickyWithPrompt?.content || '';
+    workflow["6"].inputs.text = promptText;
 
     // Set UI states
     set({ isGenerating: true, error: null });
@@ -629,9 +643,8 @@ export const useStore = create<BoardState>((set, get) => ({
       workflow["34"].inputs.height = activeSettings.outputHeight || 768;
 
       // Set prompts - Nodes 6 & 7 (CLIPTextEncode)
-      workflow["6"].inputs.text = stickyWithPrompt.content;
+      workflow["6"].inputs.text = promptText;
       workflow["6"].inputs.clip = ["4", 1];
-
 
       const negativePrompt = shapes.find(
         shape => shape.type === 'sticky' && shape.showNegativePrompt && shape.content
@@ -650,7 +663,6 @@ export const useStore = create<BoardState>((set, get) => ({
         shape.type === 'image' &&
         (shape.showDepth || shape.showEdges || shape.showPose || shape.showScribble || shape.showRemix)
       );
-
 
       // Initialize paths - start with prompt node
       let currentPositiveNode = "6";
@@ -760,7 +772,6 @@ export const useStore = create<BoardState>((set, get) => ({
         randomiseSeeds: activeSettings.randomiseSeeds
       };
 
-
       // Add response validation
       const response = await fetch('/.netlify/functions/generate-image', {
         method: 'POST',
@@ -805,7 +816,7 @@ export const useStore = create<BoardState>((set, get) => ({
       const insertData = {
         id: crypto.randomUUID(),
         user_id: user.id,
-        prompt: stickyWithPrompt.content,
+        prompt: promptText,
         aspect_ratio: state.aspectRatio,
         created_at: new Date().toISOString(),
         prediction_id: prediction_id,
@@ -855,7 +866,6 @@ export const useStore = create<BoardState>((set, get) => ({
       set({ isGenerating: false });
     }
   }
-
 
   ,
   sendBackward: () => {

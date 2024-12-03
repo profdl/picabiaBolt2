@@ -91,7 +91,7 @@ export interface Shape {
   offset: Position;
   isDragging: boolean;
   tool: 'select' | 'pan' | 'pen' | 'brush' | 'eraser';
-
+  locked: boolean;
   history: Shape[][];
   historyIndex: number;
   gridEnabled: boolean;
