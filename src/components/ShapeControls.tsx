@@ -24,7 +24,6 @@ export function ShapeControls({
     const poseProcessing = useStore(state => state.preprocessingStates[shape.id]?.pose);
     const scribbleProcessing = useStore(state => state.preprocessingStates[shape.id]?.scribble);
     const remixProcessing = useStore(state => state.preprocessingStates[shape.id]?.remix);
-    const pollInterval = useRef<NodeJS.Timeout>();
 
     useEffect(() => {
         const channel = supabase
@@ -37,11 +36,9 @@ export function ShapeControls({
                     table: 'preprocessed_images'
                 },
                 (payload) => {
-                    console.log('Received preprocessed image update:', payload);
                     if (payload.new.shapeId === shape.id) {
                         const previewUrlKey = `${payload.new.processType}PreviewUrl`;
                         const imageUrl = payload.new[`${payload.new.processType}Url`];
-                        console.log('Updating shape with new preview:', { previewUrlKey, imageUrl });
                         updateShape(shape.id, {
                             [previewUrlKey]: imageUrl,
                             [`is${payload.new.processType}Processing`]: false
@@ -49,51 +46,13 @@ export function ShapeControls({
                     }
                 }
             )
-            .subscribe((status) => {
-                console.log('Subscription status:', status);
-                if (status !== 'SUBSCRIBED') {
-                    // Start polling if subscription fails
-                    pollInterval.current = setInterval(() => checkProcessedImage('Depth'), 2000) as unknown as NodeJS.Timeout;
-                }
-            });
-        const checkProcessedImage = async (processType: string) => {
-            // Stop polling if control is no longer active
-            if (!shape[`show${processType}` as keyof Shape]) {
-                if (pollInterval.current) {
-                    clearInterval(pollInterval.current);
-                }
-                return;
-            }
-
-            const { data, error } = await supabase
-                .from('preprocessed_images')
-                .select('*')
-                .eq('shapeId', shape.id)
-                .single();
-
-            if (data && !error) {
-                const { processType: dataProcessType, [`${dataProcessType}Url`]: imageUrl } = data;
-                if (imageUrl) {
-                    updateShape(shape.id, {
-                        [`${dataProcessType}PreviewUrl`]: imageUrl,
-                        [`is${dataProcessType}Processing`]: false
-                    });
-                    // Clear polling once we get the result
-                    if (pollInterval.current) {
-                        clearInterval(pollInterval.current);
-                    }
-                }
-            }
-        };
-
+            .subscribe();
 
         return () => {
             channel.unsubscribe();
-            if (pollInterval.current) {
-                clearInterval(pollInterval.current);
-            }
         };
-    }, [shape, shape.id, updateShape]);
+    }, [shape.id, updateShape]);
+
     const controls = [
         {
             type: 'Original',
