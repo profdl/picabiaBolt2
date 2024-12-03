@@ -593,11 +593,15 @@ export const useStore = create<BoardState>((set, get) => ({
       randomiseSeeds: true
     };
 
+
     // Validation checks
     if (!activeSettings) {
       set({ error: 'No settings selected. Please select a settings shape.' });
       return;
     }
+
+
+
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User must be authenticated');
@@ -792,6 +796,42 @@ export const useStore = create<BoardState>((set, get) => ({
       const responseData = JSON.parse(responseText);
 
       const prediction_id = responseData.prediction.id;
+
+      // Add placeholder shape
+      // Add placeholder shape
+      const { addShape } = get();
+
+      const { zoom, offset } = get();
+
+      const center = {
+        x: (window.innerWidth / 2 - offset.x) / zoom,
+        y: (window.innerHeight / 2 - offset.y) / zoom
+      };
+
+      const baseWidth = 300;
+      const aspectRatio = (activeSettings.outputWidth || 1360) / (activeSettings.outputHeight || 768);
+      const placeholderShape = {
+        id: prediction_id,
+        type: 'image' as const,
+        position: {
+          x: center.x - baseWidth / 2,
+          y: center.y - (baseWidth / aspectRatio) / 2
+        },
+        width: baseWidth,
+        height: baseWidth / aspectRatio,
+        isUploading: true,
+        imageUrl: '',
+        color: 'transparent',
+        rotation: 0,
+        model: '',
+        useSettings: false
+      };
+
+      addShape(placeholderShape);
+
+
+
+
       get().addGeneratingPrediction(prediction_id);
 
       const subscription = supabase
@@ -806,6 +846,14 @@ export const useStore = create<BoardState>((set, get) => ({
           },
           (payload) => {
             if (payload.new.status === 'completed') {
+              const { updateShape } = get();
+              updateShape(prediction_id, {
+                isUploading: false,
+                imageUrl: payload.new.generated_01,
+                aspectRatio: payload.new.width / payload.new.height,
+                width: payload.new.width,
+                height: payload.new.height
+              });
               get().removeGeneratingPrediction(prediction_id);
               subscription.unsubscribe();
             }
@@ -840,8 +888,8 @@ export const useStore = create<BoardState>((set, get) => ({
         generated_04: '',
         num_inference_steps: activeSettings.steps,
         prompt_negative: negativePrompt,
-        width: activeSettings.outputWidth,
-        height: activeSettings.outputHeight,
+        width: activeSettings.outputWidth || 1360,
+        height: activeSettings.outputHeight || 768,
         num_outputs: 1,
         scheduler: activeSettings.scheduler,
         guidance_scale: activeSettings.guidanceScale,
@@ -852,6 +900,8 @@ export const useStore = create<BoardState>((set, get) => ({
         lora_scale: 1.0,
         lora_weights: '',
       };
+
+
 
       const { data: pendingImage, error: dbError } = await supabase
         .from('generated_images')
@@ -866,7 +916,6 @@ export const useStore = create<BoardState>((set, get) => ({
       set({ isGenerating: false });
     }
   }
-
   ,
   sendBackward: () => {
     const { shapes, selectedShapes } = get();

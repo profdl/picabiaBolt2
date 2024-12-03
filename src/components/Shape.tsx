@@ -372,8 +372,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     );
-
   }
+
 
 
 

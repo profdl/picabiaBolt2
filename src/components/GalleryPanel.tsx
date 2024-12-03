@@ -82,7 +82,9 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
       color: 'transparent',
       imageUrl: image.generated_01,
       rotation: 0,
-      isUploading: false
+      isUploading: false,
+      model: '',
+      useSettings: false
     });
   }, [addShape]);
 
@@ -102,29 +104,30 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
           fetchImages();
 
           if (payload.new.status === 'completed') {
-            // Get current zoom and offset values when needed
-            const currentZoom = useStore.getState().zoom;
-            const currentOffset = useStore.getState().offset;
+            // const currentZoom = useStore.getState().zoom;
+            // const currentOffset = useStore.getState().offset;
 
-            const center = {
-              x: (window.innerWidth / 2 - currentOffset.x) / currentZoom,
-              y: (window.innerHeight / 2 - currentOffset.y) / currentZoom
-            };
+            // const center = {
+            //   x: (window.innerWidth / 2 - currentOffset.x) / currentZoom,
+            //   y: (window.innerHeight / 2 - currentOffset.y) / currentZoom
+            // };
 
-            addShape({
-              id: Math.random().toString(36).substr(2, 9),
-              type: 'image',
-              position: {
-                x: center.x - 256,
-                y: center.y - 256
-              },
-              width: 512,
-              height: 512,
-              color: 'transparent',
-              imageUrl: payload.new.generated_01,
-              rotation: 0,
-              isUploading: false
-            });
+            // addShape({
+            //   id: Math.random().toString(36).substr(2, 9),
+            //   type: 'image',
+            //   position: {
+            //     x: center.x - 256,
+            //     y: center.y - 256
+            //   },
+            //   width: 512,
+            //   height: 512,
+            //   color: 'transparent',
+            //   imageUrl: payload.new.generated_01,
+            //   rotation: 0,
+            //   isUploading: false,
+            //   model: '',
+            //   useSettings: false
+            // });
           }
         }
       ).subscribe();
