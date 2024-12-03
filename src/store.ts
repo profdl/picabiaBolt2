@@ -632,7 +632,6 @@ export const useStore = create<BoardState>((set, get) => ({
 
     // Set UI states
     set({ isGenerating: true, error: null });
-    set({ showGallery: true });
 
     try {
       // Base workflow settings - Node 3 (KSampler)

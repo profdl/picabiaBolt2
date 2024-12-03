@@ -347,7 +347,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
       return;
     }
-    const size = type === 'sticky' ? 260 : 50;
+    const size = type === 'sticky' ? 180 : 40;
     if (type === 'sticky') {
       // Get existing shapes and updateShape from the store
       const existingShapes = useStore.getState().shapes;
@@ -365,22 +365,32 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
       // Array of prompts
       const prompts = [
-        "A monumental brutalist building with weathered concrete, illuminated by golden-hour sunlight. A low-angle wide shot emphasizes its geometric forms, with moody clouds in the background. High cinematic realism, 35mm film look, with lens flares and shallow depth of field.",
-        "An extreme close-up of a vibrant orchid, showing intricate petal details with water droplets glistening in soft light. The creamy blurred background isolates the flower's delicate stamen. High macro realism, vivid colors, and sharp focus.",
-        "A sleek concept sketch of a futuristic handheld device with bold lines, intricate patterns, and dynamic 3/4 view. Annotated details include mesh, leather, and reflective materials. Modern design style with vibrant accents and textured shading.",
-        "An avant-garde costume inspired by Bauhaus and 20th-century theater. Geometric shapes and bold colors mix with textures like plastic, mesh, and leather. Illustrated on a mannequin with dramatic lighting, showcasing exaggerated, angular forms.",
-        "An ancient marble sculpture of a Greek warrior on a polished pedestal in a museum. Smooth and weathered textures depict muscles and drapery. Spotlights cast soft shadows, enhancing the serene, muted setting with reflective floors.",
-        "A flooded Los Angeles with landmarks like the Hollywood sign submerged. Skyscrapers reflect in the murky water as boats and debris drift. Dark storm clouds create an eerie, cinematic atmosphere with detailed water textures.",
-        "A colossal brutalist library with tiered concrete and narrow windows, surrounded by early morning fog. Reflections shimmer in rain-soaked pavement. Cinematic atmosphere with diffused light and high architectural detail.",
-        "A macro close-up of a dew-covered sunflower, its seed patterns spiraling symmetrically. Vibrant golden petals glow in soft light against a dark, blurred background with bokeh highlights.",
-        "An avant-garde costume inspired by Cubism, with angular metal panels and translucent fabric. Bold primary colors and fragmented shapes are illuminated dramatically, creating a surreal sculptural effect under stage lights.",
-        "An ancient terracotta statue of a mythical creature in a museum glass case. Weathered with fine cracks, it features intricate carvings. Spotlights highlight earthy tones against a darkened, reverent background.",
-        "An opulent Art Nouveau theater set with organic lines, floral motifs, and rich jewel tones. A grand staircase with golden railings dominates the stage, lit by a chandelier casting intricate light patterns.",
-        "A dystopian Venice Beach, partially submerged with graffiti above floodlines. Abandoned storefronts and lifeguard towers rise above the water. Hazy sunlight creates a cinematic, post-apocalyptic mood.",
-        "A brutalist concert hall interior with sharp-angled concrete walls and dramatic shadows. Warm spotlight beams contrast with the cool gray material, while rows of empty chairs complete the scene.",
-        "A close-up of a rare desert flower in bloom, its vibrant pink and orange petals stretching outward. Fine sand grains cling to its surface, highlighted by soft golden sunlight.",
-        "A sprawling brutalist sports complex at night, illuminated by harsh floodlights. Dramatic shadows fall across the rain-slick concrete, with reflections creating a surreal, cinematic effect."
+        "A wilted rose droops beside an antique cracked porcelain teacup and weathered book, chiaroscuro lighting casting long shadows against gradient background.",
+        "Chaotic sculptural installation featuring intricately knotted silk cords and suspended translucent resin forms casting delicate web-like shadows across dimly lit gallery walls and floor.",
+        "Surreal organic wall relief sculpture showcasing deep crater-like voids and roughly welded metallic surfaces, softly illuminated by angled lights in raw industrial studio space.",
+        "Minimalist wooden bench crafted with sharp geometric lines and exposed joinery, positioned under single bright spotlight in pristine white gallery space, emphasizing natural wood grain.",
+        "Large abstract painting rendered in cool blues and misty greys suggesting layers of mountain fog, displayed on stark gallery wall above polished concrete floor catching subtle reflections.",
+        "Vibrant swimming pool scene captured from above, featuring crystal turquoise water rippling around hot pink pool floats, surrounded by pristine white tiles under bright summer sunlight.",
+        "Surreal dark kitchen scene where animated silver cutlery dances around grotesque food sculptures, creating eerie movements in deep shadows beneath dim vintage lighting fixtures.",
+        "Dynamic kaleidoscopic photomontage combining fragmented human faces, classical architectural details, and mechanical parts arranged in spiraling patterns across experimental gallery installation.",
+        "Striking black and white photograph capturing mysterious overlap of classical mannequin head, elongated chess piece shadow, and spiral staircase under harsh directional studio lighting.",
+        "Bold geometric photography composition featuring angular metallic surfaces intersecting with deep shadows, arranged within clean lines of modernist concrete and glass architectural setting.",
+        "Immersive installation of chaotic cardboard sculptures and crumpled metallic shapes, interspersed with urgent handwritten text fragments creating sense of disorder.",
+        "Meticulously detailed gallery wall covered in precise rows of handwritten graphite patterns creating overwhelming sense of academic intensity.",
+        "Sleek modern record player featuring minimalist aluminum body and warm wooden accents, photographed on clean desk surface in softly lit contemporary living space.",
+        "Inviting lounge chair showcasing gently curved wooden shell and rich leather upholstery, positioned near floor-to-ceiling window overlooking lush garden landscape in afternoon light.",
+        "Ultramodern chrome citrus juicer with striking design and elegant mechanical details, centered on expansive pristine white marble kitchen counter under subtle spotlighting.",
+        "Bold sculptural coffee table featuring fluid pink-and-orange curves and high-gloss surfaces, glowing dramatically in vibrantly decorated modern living space with ambient lighting.",
+        "Nature-inspired modern house design showcasing strong horizontal lines and dramatic cantilevered roofs, photographed during golden hour as it blends seamlessly into wooded landscape.",
+        "Spacious open-plan studio apartment featuring modular grid-based furniture and primary-colored storage shelving, naturally lit through towering industrial windows with city views.",
+        "Elegant modernist glass pavilion surrounded by serene reflecting pool capturing sky reflections, sparsely furnished with classic pieces amongst mature trees and landscaping.",
+        "Contemporary museum building showcasing transparent glass facade supported by intricate steel framework, photographed overlooking bustling urban plaza filled with visitors.",
+        "Artfully curved wooden dining chair with smooth lacquer finish positioned at round marble table, surrounded by refined Scandinavian-inspired decor in elegant dining space.",
+        "Dramatic interior featuring sweeping sculptural staircase inspired by seashell spirals, enhanced by cleverly hidden lighting elements reflecting off polished stone floors.",
+        "Industrial-style desk lamp combining matte black steel framework with natural wood base elements, positioned on raw metal workbench in minimalist creative studio setting."
       ];
+
+
 
 
 
@@ -643,12 +653,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {/* Image Generation Tools */}
           <button
             onClick={async () => {
-              // First ensure gallery is open
-              // if (!showGallery) {
-              //   toggleGallery();
-              // }
-
-              // Generate the image
               await handleGenerate();
             }}
             disabled={!hasActivePrompt || isGenerating}
@@ -662,6 +666,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 : 'Generate Image'
             }
           >
+
             {generatingPredictions.size > 0 ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (

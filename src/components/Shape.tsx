@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   RotateCw, Loader2, Copy, Trash2, ArrowDown, ArrowUp, MoveDown, MoveUp, Group,
-  Ungroup
+  Ungroup, ChevronRight,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { Shape, DragStart } from '../types';
@@ -55,6 +55,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     startRotation: number;
   } | null>(null);
 
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
 
 
@@ -246,7 +247,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragStart, selectedShapes, updateShape, zoom, shapes, shape.type, shape.id, shape.groupId]);
+  }, [dragStart, selectedShapes, updateShape, zoom, shapes, shape.type, shape.id, shape.groupId, isEditing]);
 
   useEffect(() => {
     if (isEditing && textRef.current) {
@@ -355,6 +356,14 @@ export function ShapeComponent({ shape }: ShapeProps) {
     };
   }, [resizeStart, shape, shapes, updateShape, updateShapes, zoom]);
 
+  useEffect(() => {
+    if (shape.type === 'diffusionSettings') {
+      updateShape(shape.id, {
+        height: showAdvanced ? 550 : 170
+      });
+    }
+  }, [shape.id, shape.type, showAdvanced, updateShape]);
+
 
   const handleResizeStart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -399,13 +408,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     );
   }
 
-
-
-
-
-
-
-
   const handleRotateStart = (e: React.MouseEvent) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -418,12 +420,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
       startRotation: shape.rotation || 0
     });
   };
-
-
-
-
-
-
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (shape.type === 'text' || shape.type === 'sticky') {
@@ -445,10 +441,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
       deleteShape(shape.id);
     }
   };
-
-
-
-
 
 
   if (shape.type === 'drawing') {
@@ -664,13 +656,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
         {shape.type === 'diffusionSettings' && (
           <div className="relative w-full h-full">
-            <div
-              className="absolute inset-0 overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="absolute inset-0 overflow-hidden">
               <div className="h-full overflow-y-auto">
-                <h3 className="font-medium text-gray-700 text-xs">Generation Settings</h3>
-                <div className="space-y-1">
+
+                {/* Basic Settings */}
+                <div className="space-y-2 mb-3">
                   <div>
                     <label className="text-xs text-gray-600">Model</label>
                     <select
@@ -701,94 +691,109 @@ export function ShapeComponent({ shape }: ShapeProps) {
                       ))}
                     </select>
                   </div>
-
-                  <div>
-                    <label className="text-xs text-gray-600">Steps</label>
-                    <input
-                      type="number"
-                      value={shape.steps?.toString() || '20'}
-                      onChange={(e) => updateShape(shape.id, { steps: Number(e.target.value) })}
-                      min="1"
-                      max="100"
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-600">Guidance Scale</label>
-                    <input
-                      type="number"
-                      value={shape.guidanceScale?.toString() || '7.5'}
-                      onChange={(e) => updateShape(shape.id, { guidanceScale: Number(e.target.value) })}
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-600">Scheduler</label>
-                    <select
-                      value={shape.scheduler || 'dpmpp_2m_sde'}
-                      onChange={(e) => updateShape(shape.id, { scheduler: e.target.value })}
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    >
-                      <option value="dpmpp_2m_sde">DPM++ 2M SDE</option>
-                      <option value="dpmpp_2m">DPM++ 2M</option>
-                      <option value="euler">Euler</option>
-                      <option value="euler_ancestral">Euler Ancestral</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-600">Seed</label>
-                    <input
-                      type="number"
-                      value={shape.seed?.toString() || '-1'}
-                      onChange={(e) => updateShape(shape.id, { seed: Number(e.target.value) })}
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="checkbox"
-                      id={`randomize-${shape.id}`}
-                      checked={shape.randomiseSeeds || false}
-                      onChange={(e) => updateShape(shape.id, { randomiseSeeds: e.target.checked })}
-                      className="w-3 h-3 text-blue-600 rounded border-gray-300"
-                    />
-                    <label htmlFor={`randomize-${shape.id}`} className="text-xs text-gray-600">
-                      Randomize Seeds
-                    </label>
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-600">Output Format</label>
-                    <select
-                      value={shape.outputFormat || 'png'}
-                      onChange={(e) => updateShape(shape.id, { outputFormat: e.target.value })}
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    >
-                      <option value="png">PNG</option>
-                      <option value="jpg">JPG</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-600">Output Quality</label>
-                    <input
-                      type="number"
-                      value={shape.outputQuality?.toString() || '100'}
-                      onChange={(e) => updateShape(shape.id, { outputQuality: Number(e.target.value) })}
-                      min="1"
-                      max="100"
-                      className="w-full py-1 px-2 text-xs border rounded bg-white block"
-                    />
-                  </div>
                 </div>
+
+                {/* Advanced Settings Toggle */}
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800 mb-2"
+                >
+                  <ChevronRight className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} />
+                  Advanced Settings
+                </button>
+
+                {/* Advanced Settings Content */}
+                {showAdvanced && (
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-xs text-gray-600">Steps</label>
+                      <input
+                        type="number"
+                        value={shape.steps?.toString() || '20'}
+                        onChange={(e) => updateShape(shape.id, { steps: Number(e.target.value) })}
+                        min="1"
+                        max="100"
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-600">Guidance Scale</label>
+                      <input
+                        type="number"
+                        value={shape.guidanceScale?.toString() || '7.5'}
+                        onChange={(e) => updateShape(shape.id, { guidanceScale: Number(e.target.value) })}
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-600">Scheduler</label>
+                      <select
+                        value={shape.scheduler || 'dpmpp_2m_sde'}
+                        onChange={(e) => updateShape(shape.id, { scheduler: e.target.value })}
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      >
+                        <option value="dpmpp_2m_sde">DPM++ 2M SDE</option>
+                        <option value="dpmpp_2m">DPM++ 2M</option>
+                        <option value="euler">Euler</option>
+                        <option value="euler_ancestral">Euler Ancestral</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-600">Seed</label>
+                      <input
+                        type="number"
+                        value={shape.seed?.toString() || '-1'}
+                        onChange={(e) => updateShape(shape.id, { seed: Number(e.target.value) })}
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        id={`randomize-${shape.id}`}
+                        checked={shape.randomiseSeeds || false}
+                        onChange={(e) => updateShape(shape.id, { randomiseSeeds: e.target.checked })}
+                        className="w-3 h-3 text-blue-600 rounded border-gray-300"
+                      />
+                      <label htmlFor={`randomize-${shape.id}`} className="text-xs text-gray-600">
+                        Randomize Seeds
+                      </label>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-600">Output Format</label>
+                      <select
+                        value={shape.outputFormat || 'png'}
+                        onChange={(e) => updateShape(shape.id, { outputFormat: e.target.value })}
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      >
+                        <option value="png">PNG</option>
+                        <option value="jpg">JPG</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-600">Output Quality</label>
+                      <input
+                        type="number"
+                        value={shape.outputQuality?.toString() || '100'}
+                        onChange={(e) => updateShape(shape.id, { outputQuality: Number(e.target.value) })}
+                        min="1"
+                        max="100"
+                        className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
+
 
         {shape.type === 'image' && (
           <>
