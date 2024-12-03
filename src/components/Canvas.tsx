@@ -180,7 +180,9 @@ export function Canvas() {
         points: [{ x: 0, y: 0 }],
         strokeWidth,
         rotation: 0,
-        isUploading: false
+        isUploading: false,
+        model: '',
+        useSettings: false
       };
       setDrawingShape(newShape);
     } else if (!e.shiftKey && !isEditingSticky) {
