@@ -17,8 +17,8 @@ export function useKeyboardShortcuts() {
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Ignore shortcuts when typing in input fields
-    const isInput = e.target instanceof HTMLInputElement || 
-                   e.target instanceof HTMLTextAreaElement;
+    const isInput = e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement;
     if (isInput) return;
 
     // Space for pan tool
@@ -67,14 +67,14 @@ export function useKeyboardShortcuts() {
           pasteShapes();
           break;
 
-        case 'z': // Undo/Redo
-          e.preventDefault();
-          if (e.shiftKey) {
-            redo();
-          } else {
-            undo();
-          }
-          break;
+        // case 'z': // Undo/Redo
+        //   e.preventDefault();
+        //   if (e.shiftKey) {
+        //     redo();
+        //   } else {
+        //     undo();
+        //   }
+        //   break;
 
         case 'a': // Select all
           e.preventDefault();

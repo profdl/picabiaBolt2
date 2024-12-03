@@ -356,6 +356,17 @@ export function ShapeComponent({ shape }: ShapeProps) {
   }, [resizeStart, shape, shapes, updateShape, updateShapes, zoom]);
 
 
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: shape.width,
+      height: shape.height,
+      aspectRatio: shape.width / shape.height
+    });
+  };
+
   if (shape.type === 'image' && shape.isUploading) {
     return (
       <div
@@ -366,13 +377,28 @@ export function ShapeComponent({ shape }: ShapeProps) {
           width: shape.width,
           height: shape.height,
           transform: `rotate(${shape.rotation}deg)`,
+          cursor: tool === 'select' ? 'move' : 'default',
+          pointerEvents: tool === 'select' ? 'all' : 'none',
+          zIndex: shapes.length - shapes.findIndex(s => s.id === shape.id), // Add this line
         }}
         className="animate-pulse bg-gray-200 rounded-lg flex items-center justify-center"
+        onMouseDown={handleMouseDown}
+        onContextMenu={handleContextMenu}
       >
+
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        {isSelected && tool === 'select' && (
+          <ShapeControls
+            shape={shape}
+            isSelected={isSelected}
+            isEditing={isEditing}
+            handleResizeStart={handleResizeStart}
+          />
+        )}
       </div>
     );
   }
+
 
 
 
@@ -394,16 +420,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
   };
 
 
-  const handleResizeStart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setResizeStart({
-      x: e.clientX,
-      y: e.clientY,
-      width: shape.width,
-      height: shape.height,
-      aspectRatio: shape.width / shape.height
-    });
-  };
+
 
 
 
@@ -514,8 +531,10 @@ export function ShapeComponent({ shape }: ShapeProps) {
       : shape.type === 'group'
         ? 0  // Groups stay below their contents
         : isSelected
-          ? 100  // Selected non-grouped objects go to top
-          : 15,  // Default z-index for ungrouped objects
+          ? 1000  // Selected non-grouped objects go to top
+          : shapes.length - shapes.findIndex(s => s.id === shape.id), // Higher index = newer shape = higher z-index
+
+
     pointerEvents: tool === 'select' ? 'all' : 'none',
     cursor: tool === 'select' ? 'move' : 'default',
     border: shape.type === 'sketchpad'

@@ -644,9 +644,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             onClick={async () => {
               // First ensure gallery is open
-              if (!showGallery) {
-                toggleGallery();
-              }
+              // if (!showGallery) {
+              //   toggleGallery();
+              // }
 
               // Generate the image
               await handleGenerate();

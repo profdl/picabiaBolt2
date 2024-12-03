@@ -285,8 +285,8 @@ export const useStore = create<BoardState>((set, get) => ({
         shape.useSettings = true;
       }
 
-      // Add the shape only once
-      newShapes.push(shape);
+      // Add the shape to the beginning of the array
+      newShapes.unshift(shape);
 
       return {
         shapes: newShapes,
@@ -295,7 +295,8 @@ export const useStore = create<BoardState>((set, get) => ({
         historyIndex: state.historyIndex + 1
       };
     });
-  },
+  }
+  ,
 
   addShapes: (newShapes: Shape[]) => {
     const { shapes, historyIndex, history } = get();
@@ -808,27 +809,48 @@ export const useStore = create<BoardState>((set, get) => ({
         y: (window.innerHeight / 2 - offset.y) / zoom
       };
 
-      const baseWidth = 300;
+      const maxDimension = 400;
       const aspectRatio = (activeSettings.outputWidth || 1360) / (activeSettings.outputHeight || 768);
+      let scaledWidth, scaledHeight;
+
+      if (aspectRatio > 1) {
+        scaledWidth = maxDimension;
+        scaledHeight = maxDimension / aspectRatio;
+      } else {
+        scaledHeight = maxDimension;
+        scaledWidth = maxDimension * aspectRatio;
+      }
+
       const placeholderShape = {
         id: prediction_id,
         type: 'image' as const,
         position: {
-          x: center.x - baseWidth / 2,
-          y: center.y - (baseWidth / aspectRatio) / 2
+          x: center.x - scaledWidth / 2 / zoom,
+          y: center.y - scaledHeight / 2 / zoom
         },
-        width: baseWidth,
-        height: baseWidth / aspectRatio,
+        width: scaledWidth,
+        height: scaledHeight,
         isUploading: true,
         imageUrl: '',
         color: 'transparent',
         rotation: 0,
         model: '',
-        useSettings: false
+        useSettings: false,
+        showDepth: false,
+        showEdges: false,
+        showPose: false,
+        showScribble: false,
+        showRemix: false,
+        depthStrength: 0.5,
+        edgesStrength: 0.5,
+        poseStrength: 0.5,
+        scribbleStrength: 0.5,
+        remixStrength: 0.5
       };
 
-      addShape(placeholderShape);
 
+      addShape(placeholderShape);
+      set({ selectedShapes: [prediction_id] });
 
 
 
@@ -850,9 +872,6 @@ export const useStore = create<BoardState>((set, get) => ({
               updateShape(prediction_id, {
                 isUploading: false,
                 imageUrl: payload.new.generated_01,
-                aspectRatio: payload.new.width / payload.new.height,
-                width: payload.new.width,
-                height: payload.new.height
               });
               get().removeGeneratingPrediction(prediction_id);
               subscription.unsubscribe();
@@ -915,8 +934,7 @@ export const useStore = create<BoardState>((set, get) => ({
     } finally {
       set({ isGenerating: false });
     }
-  }
-  ,
+  },
   sendBackward: () => {
     const { shapes, selectedShapes } = get();
     const newShapes = [...shapes];
