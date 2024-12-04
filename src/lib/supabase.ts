@@ -246,3 +246,28 @@ export const handleAuthError = (error: unknown): string => {
 
   return 'An unexpected error occurred';
 };
+
+
+export async function createWelcomeProject(userId: string) {
+  const { data: template, error: templateError } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('id', 'start-here-template')
+    .single();
+
+  if (templateError) throw templateError;
+
+  const { data, error } = await supabase
+    .from('projects')
+    .insert({
+      ...template,
+      id: undefined, // Let Supabase generate a new ID
+      user_id: userId,
+      is_template: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+
+  if (error) throw error;
+  return data;
+}
