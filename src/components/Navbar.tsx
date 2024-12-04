@@ -176,14 +176,24 @@ Tips for Effective Use
   const handleDuplicateProject = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (boardId) {
+      // Save current project first
+      await handleSave();
+
+      // Create new project with current shapes
       const newProject = await createProject({
-        shapes: shapes,
-        name: 'Untitled',
+        shapes: [],
+        name: `Copy of ${boardId}`
       });
+
+      // Update the new project with current shapes
+      await updateProject(newProject.id, {
+        shapes,
+        name: `Copy of ${boardId}`
+      });
+
       navigate(`/board/${newProject.id}`);
     }
   };
-
   return (
     <>
       <nav className="bg-white dark:bg-gray-900 shadow-sm">

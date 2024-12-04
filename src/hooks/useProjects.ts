@@ -73,7 +73,7 @@ export function useProjects() {
   }, [user]);
 
 
-  const createProject = async () => {
+  const createProject = async (p0: { shapes: never[]; name: string; }) => {
     if (!user) {
       throw new Error('User not authenticated');
     }
