@@ -15,20 +15,24 @@ export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as LocationState;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setError('');
       setLoading(true);
-      await login(email, password);
+      const { error: loginError } = await login(email, password);
+
+      if (loginError) {
+        setError('Invalid credentials. Please try again or register for a new account.');
+        return;
+      }
+
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Failed to login. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
