@@ -166,8 +166,22 @@ Tips for Effective Use
     if (isBoard && boardId) {
       await handleSave();
     }
-    const newProject = await createProject();
+    const newProject = await createProject({
+      shapes: [],
+      name: 'Untitled'
+    });
     navigate(`/board/${newProject.id}`);
+  };
+
+  const handleDuplicateProject = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (boardId) {
+      const newProject = await createProject({
+        shapes: shapes,
+        name: 'Untitled',
+      });
+      navigate(`/board/${newProject.id}`);
+    }
   };
 
   return (
@@ -208,6 +222,14 @@ Tips for Effective Use
                           onClick={handleNewProjectClick}
                         >
                           New Project
+                        </Link>
+
+                        <Link
+                          to="#"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={handleDuplicateProject}
+                        >
+                          Duplicate Project
                         </Link>
 
                         <Link
