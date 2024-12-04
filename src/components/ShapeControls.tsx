@@ -30,7 +30,7 @@ export function ShapeControls({
         const channel = supabase
             .channel('preprocessed_images_changes')
             .on(
-                'postgres_changes',
+                'postgres_changes' as const,
                 {
                     event: 'UPDATE',
                     schema: 'public',
