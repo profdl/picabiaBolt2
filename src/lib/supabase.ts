@@ -248,26 +248,29 @@ export const handleAuthError = (error: unknown): string => {
 };
 
 
-export async function createWelcomeProject(userId: string) {
-  const { data: template, error: templateError } = await supabase
+export async function createWelcomeProjects(userId: string) {
+  // Fetch all template projects
+  const { data: templates, error: templatesError } = await supabase
     .from('projects')
     .select('*')
-    .eq('id', '1e0920c8-dd32-48d6-b33d-d8f2c747224c')
-    .single();
+    .eq('is_template', true);
 
-  if (templateError) throw templateError;
+  if (templatesError) throw templatesError;
 
-  const { data, error } = await supabase
-    .from('projects')
-    .insert({
-      ...template,
-      id: undefined, // Let Supabase generate a new ID
-      user_id: userId,
-      is_template: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
+  // Create each template project for the new user
+  const projectPromises = templates.map(template =>
+    supabase
+      .from('projects')
+      .insert({
+        ...template,
+        id: undefined, // Let Supabase generate a new ID
+        user_id: userId,
+        is_template: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+  );
 
-  if (error) throw error;
-  return data;
+  const results = await Promise.all(projectPromises);
+  return results;
 }
