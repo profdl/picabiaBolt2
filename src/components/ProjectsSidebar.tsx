@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { X, Plus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Plus, Edit2, Trash2, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProjects } from '../hooks/useProjects';
 
@@ -9,8 +9,10 @@ interface ProjectsSidebarProps {
 }
 
 export function ProjectsSidebar({ isOpen, onClose }: ProjectsSidebarProps) {
-  const { projects, loading, fetchProjects, createProject } = useProjects();
+  const { projects, loading, fetchProjects, createProject, deleteProject, updateProject } = useProjects();
   const navigate = useNavigate();
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [newName, setNewName] = useState('');
 
   // Refresh projects when sidebar is opened
   useEffect(() => {
@@ -95,9 +97,71 @@ export function ProjectsSidebar({ isOpen, onClose }: ProjectsSidebarProps) {
                         )}
                       </div>
                       <div className="p-3">
-                        <h3 className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600">
-                          {project.name}
-                        </h3>
+                        <div className="flex items-center justify-between">
+                          {renamingId === project.id ? (
+                            <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
+                              <input
+                                type="text"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                className="flex-1 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 truncate max-w-[150px]"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    updateProject(project.id, { name: newName, thumbnail: project.thumbnail });
+                                    setRenamingId(null);
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setRenamingId(null);
+                                  }
+                                }}
+                              />
+
+                              <button
+                                onClick={() => {
+                                  updateProject(project.id, { name: newName, thumbnail: project.thumbnail });
+                                  setRenamingId(null);
+                                }}
+                                className="p-1 text-green-600 hover:bg-green-50 rounded"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setRenamingId(null)}
+                                className="p-1 text-gray-600 hover:bg-gray-50 rounded"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <h3 className="text-sm font-medium text-gray-900 truncate">
+                              {project.name}
+                            </h3>
+                          )}
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRenamingId(project.id);
+                                setNewName(project.name);
+                              }}
+                              className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (window.confirm('Are you sure you want to delete this board?')) {
+                                  deleteProject(project.id)
+                                }
+                              }}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
                         <p className="text-xs text-gray-500 mt-1">
                           {new Date(project.updated_at).toLocaleDateString()}
                         </p>

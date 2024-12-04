@@ -14,7 +14,7 @@ export function Canvas() {
   const [currentPath, setCurrentPath] = useState<Position[]>([]);
   const [drawingShape, setDrawingShape] = useState<Shape | null>(null);
   const { handleImageUpload } = useImageUpload();
-
+  const isEditingText = useStore(state => state.isEditingText);
 
 
   const [selectionBox, setSelectionBox] = useState<{
@@ -81,11 +81,17 @@ export function Canvas() {
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
+      // First check if we're editing a sticky note
+      const isEditingSticky = shapes.some(shape =>
+        shape.type === 'sticky' && selectedShapes.includes(shape.id) && isEditingText
+      );
+      if (isEditingSticky) return;
+
+      // Existing diffusion settings check
       const isDiffusionSettings = (e.target as Element)?.closest('[data-shape-type="diffusionSettings"]');
       if (isDiffusionSettings) return;
 
       if (e.ctrlKey) {
-        // Instead of preventDefault, we'll handle the zoom directly
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect) return;
 
@@ -95,7 +101,6 @@ export function Canvas() {
         const mouseCanvasX = (mouseX - offset.x) / zoom;
         const mouseCanvasY = (mouseY - offset.y) / zoom;
 
-        // Use deltaY directly without preventing default
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
         const newZoom = Math.min(Math.max(zoom * delta, 0.1), 5);
 
@@ -111,8 +116,9 @@ export function Canvas() {
         });
       }
     },
-    [zoom, offset, setZoom, setOffset]
+    [zoom, offset, setZoom, setOffset, shapes, selectedShapes, isEditingText]
   );
+
 
 
   useEffect(() => {
@@ -121,7 +127,7 @@ export function Canvas() {
         e.preventDefault();
       }
     };
-    
+
     window.addEventListener('wheel', preventDefaultZoom, { passive: false });
     return () => window.removeEventListener('wheel', preventDefaultZoom);
   }, []);
@@ -148,7 +154,6 @@ export function Canvas() {
     };
   };
 
-  const isEditingText = useStore(state => state.isEditingText);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     // Check if clicking on shape controls
@@ -428,4 +433,3 @@ export function Canvas() {
     </div>
   );
 }
-
