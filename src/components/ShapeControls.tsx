@@ -30,29 +30,34 @@ export function ShapeControls({
         const channel = supabase
             .channel('preprocessed_images_changes')
             .on(
-                'postgres_changes' as const,
+                'postgres_changes',
                 {
                     event: 'UPDATE',
                     schema: 'public',
                     table: 'preprocessed_images'
                 },
-                (payload: {
-                    new: {
-                        shapeId: string;
-                        processType: 'depth' | 'edge' | 'pose' | 'scribble' | 'remix';
-                        [key: string]: unknown;
-                    }
-                }) => {
+                (payload) => {
                     if (payload.new.shapeId === shape.id) {
-                        const previewUrlKey = `${payload.new.processType}PreviewUrl`;
-                        const imageUrl = payload.new[`${payload.new.processType}Url`];
+                        const processType = payload.new.processType;
+                        // Update both the URL and the processing state
+                        useStore.setState(state => ({
+                            ...state,
+                            preprocessingStates: {
+                                ...state.preprocessingStates,
+                                [shape.id]: {
+                                    ...state.preprocessingStates[shape.id],
+                                    [processType]: false
+                                }
+                            }
+                        }));
+
                         updateShape(shape.id, {
-                            [previewUrlKey]: imageUrl,
-                            [`is${payload.new.processType}Processing`]: false
+                            [`${processType}PreviewUrl`]: payload.new[`${processType}Url`]
                         });
                     }
                 }
             )
+
             .subscribe();
 
         return () => {
