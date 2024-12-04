@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, createWelcomeProject } from '../lib/supabase';
+import { supabase, createWelcomeProjects } from '../lib/supabase';
 
 export function Register() {
   const [email, setEmail] = useState('');
@@ -28,7 +28,7 @@ export function Register() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await createWelcomeProject(user.id);
+        await createWelcomeProjects(user.id);
       }
     } catch (error) {
       console.error('Error creating welcome project:', error);
