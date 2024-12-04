@@ -1,5 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { Shape } from '../types';
 import { supabase } from '../lib/supabase';
@@ -26,8 +25,6 @@ export function ShapeControls({
     const remixProcessing = useStore(state => state.preprocessingStates[shape.id]?.remix);
 
     const [isHovering, setIsHovering] = useState(false);
-    const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-    const sliderRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const channel = supabase
@@ -39,7 +36,13 @@ export function ShapeControls({
                     schema: 'public',
                     table: 'preprocessed_images'
                 },
-                (payload) => {
+                (payload: {
+                    new: {
+                        shapeId: string;
+                        processType: 'depth' | 'edge' | 'pose' | 'scribble' | 'remix';
+                        [key: string]: unknown;
+                    }
+                }) => {
                     if (payload.new.shapeId === shape.id) {
                         const previewUrlKey = `${payload.new.processType}PreviewUrl`;
                         const imageUrl = payload.new[`${payload.new.processType}Url`];
@@ -56,6 +59,40 @@ export function ShapeControls({
             channel.unsubscribe();
         };
     }, [shape.id, updateShape]);
+
+
+
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                // Refresh state when tab becomes visible
+                supabase
+                    .from('preprocessed_images')
+                    .select('*')
+                    .eq('shapeId', shape.id)
+                    .single()
+                    .then(({ data, error }) => {
+                        if (error) {
+                            console.error('Error fetching preprocessed image:', error);
+                            return;
+                        }
+                        if (data) {
+                            const previewUrlKey = `${data.processType}PreviewUrl`;
+                            updateShape(shape.id, {
+                                [previewUrlKey]: data[`${data.processType}Url`],
+                                [`is${data.processType}Processing`]: false
+                            });
+                        }
+                    });
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [shape.id, updateShape]);
+
+
 
     const controls = [
         {
@@ -178,26 +215,6 @@ export function ShapeControls({
                 console.error('Failed to generate preprocessed image:', error);
                 updateShape(shape.id, { [control.showKey]: false });
             }
-        }
-    };
-    // Add this function inside ShapeControls component
-    const handlePreviewClick = async (control: typeof controls[0]) => {
-        if (!control.processType || !control.preview) return;
-
-        // Fetch latest data from preprocessed_images table
-        const { data } = await supabase
-            .from('preprocessed_images')
-            .select('*')
-            .eq('shapeId', shape.id)
-            .eq('processType', control.processType)
-            .single();
-
-        if (data && data[`${control.processType}Url`]) {
-            // Force refresh the preview URL by adding a timestamp
-            const refreshedUrl = `${data[`${control.processType}Url`]}?t=${Date.now()}`;
-            updateShape(shape.id, {
-                [`${control.processType}PreviewUrl`]: refreshedUrl
-            });
         }
     };
 
