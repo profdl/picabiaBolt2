@@ -22,9 +22,7 @@ export function RegisterForm() {
       if (error) throw error;
 
       if (data.user) {
-        navigate('/');  // Redirect to dashboard
-      } else {
-        alert('Please check your email to confirm your account');
+        navigate('/');
       }
 
     } catch (err) {
