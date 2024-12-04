@@ -23,7 +23,7 @@ export function Register() {
       return;
     }
 
-    navigate('/dashboard');
+    navigate('/');
   };
 
 
