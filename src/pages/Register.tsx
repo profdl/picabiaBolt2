@@ -7,7 +7,6 @@ export function Register() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -24,32 +23,9 @@ export function Register() {
       return;
     }
 
-    setSuccess(true);
-    setLoading(false);
-    // Don't navigate immediately - show success message first
+    navigate('/dashboard');
   };
 
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="bg-green-50 border border-green-400 text-green-700 px-4 py-3 rounded relative">
-            <p className="text-center">
-              Registration successful! Please check your email to verify your account.
-            </p>
-            <div className="mt-4 text-center">
-              <Link
-                to="/login"
-                className="font-medium text-green-600 hover:text-green-500"
-              >
-                Return to login
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
