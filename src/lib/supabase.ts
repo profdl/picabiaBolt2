@@ -252,7 +252,7 @@ export async function createWelcomeProject(userId: string) {
   const { data: template, error: templateError } = await supabase
     .from('projects')
     .select('*')
-    .eq('id', 'start-here-template')
+    .eq('id', '1e0920c8-dd32-48d6-b33d-d8f2c747224c')
     .single();
 
   if (templateError) throw templateError;
