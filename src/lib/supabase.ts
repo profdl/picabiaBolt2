@@ -238,3 +238,11 @@ export const getPublicImageUrl = (imageUrl: string | undefined): string => {
 
   return publicUrl;
 };
+
+export const handleAuthError = (error: unknown): string => {
+  if (typeof error === 'string') return error;
+
+  if (error?.message) return error.message;
+
+  return 'An unexpected error occurred';
+};

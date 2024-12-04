@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { supabase, handleAuthError } from '../../lib/supabase';
-
+import { useNavigate } from 'react-router-dom';
 export function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,9 +19,9 @@ export function RegisterForm() {
           email,
           password,
         });
-        
+
         if (error) throw error;
-        return data;
+        return { data, error: null };
       };
 
       const { error: signUpError } = await signUp(email, password);
@@ -32,6 +33,7 @@ export function RegisterForm() {
 
       // Show success message
       alert('Please check your email to confirm your account');
+      navigate('/');
     } catch (err) {
       setError(handleAuthError(err));
     } finally {

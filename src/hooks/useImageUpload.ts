@@ -19,7 +19,9 @@ export const useImageUpload = () => {
             color: 'transparent',
             imageUrl: URL.createObjectURL(file),
             rotation: 0,
-            isUploading: true
+            isUploading: true,
+            model: "",
+            useSettings: false
         });
 
         try {
@@ -38,7 +40,9 @@ export const useImageUpload = () => {
                 color: 'transparent',
                 imageUrl: publicUrl,
                 rotation: 0,
-                isUploading: false
+                isUploading: false,
+                model: "",
+                useSettings: false
             });
 
             deleteShape(tempId);
