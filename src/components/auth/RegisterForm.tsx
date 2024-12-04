@@ -14,26 +14,19 @@ export function RegisterForm() {
     setLoading(true);
 
     try {
-      const signUp = async (email: string, password: string) => {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-        if (error) throw error;
-        return { data, error: null };
-      };
+      if (error) throw error;
 
-      const { error: signUpError } = await signUp(email, password);
-
-      if (signUpError) {
-        setError(handleAuthError(signUpError));
-        return;
+      if (data.user) {
+        navigate('/');  // Redirect to dashboard
+      } else {
+        alert('Please check your email to confirm your account');
       }
 
-      // Show success message
-      alert('Please check your email to confirm your account');
-      navigate('/');
     } catch (err) {
       setError(handleAuthError(err));
     } finally {
