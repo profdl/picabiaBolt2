@@ -573,6 +573,43 @@ export const useStore = create<BoardState>((set, get) => ({
 
   setError: (error: string | null) => set({ error }),
 
+
+  centerOnShape: (shapeId: string) => {
+    const shape = get().shapes.find(s => s.id === shapeId);
+    if (!shape) return;
+
+    const targetX = -(shape.position.x + shape.width / 2) * get().zoom + window.innerWidth / 2;
+    const targetY = -(shape.position.y + shape.height / 2) * get().zoom + window.innerHeight / 2;
+
+    const startX = get().offset.x;
+    const startY = get().offset.y;
+
+    const animate = (progress: number) => {
+      get().setOffset({
+        x: startX + (targetX - startX) * progress,
+        y: startY + (targetY - startY) * progress
+      });
+    };
+
+    const duration = 500; // Animation duration in ms
+    const start = performance.now();
+
+    const step = (currentTime: number) => {
+      const elapsed = currentTime - start;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Ease out cubic function
+      const eased = 1 - Math.pow(1 - progress, 3);
+
+      animate(eased);
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    };
+
+    requestAnimationFrame(step);
+  },
   handleGenerate: async () => {
     const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
@@ -798,7 +835,6 @@ export const useStore = create<BoardState>((set, get) => ({
       const prediction_id = responseData.prediction.id;
 
       // Add placeholder shape
-      // Add placeholder shape
       const { addShape } = get();
 
       const { zoom, offset } = get();
@@ -807,10 +843,13 @@ export const useStore = create<BoardState>((set, get) => ({
         x: (window.innerWidth / 2 - offset.x) / zoom,
         y: (window.innerHeight / 2 - offset.y) / zoom
       };
+      let scaledWidth = 100;
+      let scaledHeight = 100;
+
+      const openPosition = findOpenSpace(shapes, scaledWidth, scaledHeight, center);
 
       const maxDimension = 400;
       const aspectRatio = (activeSettings.outputWidth || 1360) / (activeSettings.outputHeight || 768);
-      let scaledWidth, scaledHeight;
 
       if (aspectRatio > 1) {
         scaledWidth = maxDimension;
@@ -823,10 +862,7 @@ export const useStore = create<BoardState>((set, get) => ({
       const placeholderShape = {
         id: prediction_id,
         type: 'image' as const,
-        position: {
-          x: center.x - scaledWidth / 2 / zoom,
-          y: center.y - scaledHeight / 2 / zoom
-        },
+        position: openPosition,
         width: scaledWidth,
         height: scaledHeight,
         isUploading: true,
@@ -850,6 +886,8 @@ export const useStore = create<BoardState>((set, get) => ({
 
       addShape(placeholderShape);
       set({ selectedShapes: [prediction_id] });
+      get().centerOnShape(prediction_id);
+
 
 
 
@@ -1023,6 +1061,46 @@ export const useStore = create<BoardState>((set, get) => ({
       }
     }
   }
+
+
+
+
 }));
 
 
+
+const findOpenSpace = (
+  shapes: Shape[],
+  width: number,
+  height: number,
+  center: Position
+): Position => {
+  const GRID_SIZE = 50;
+  const MAX_RADIUS = 1000;
+
+  const isPositionClear = (x: number, y: number): boolean => {
+    return !shapes.some(shape => {
+      const shapeRight = shape.position.x + shape.width;
+      const shapeBottom = shape.position.y + shape.height;
+      return !(x + width < shape.position.x ||
+        x > shapeRight ||
+        y + height < shape.position.y ||
+        y > shapeBottom);
+    });
+  };
+
+  let radius = 0;
+  while (radius < MAX_RADIUS) {
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+      const x = center.x + Math.cos(angle) * radius;
+      const y = center.y + Math.sin(angle) * radius;
+
+      if (isPositionClear(x, y)) {
+        return { x, y };
+      }
+    }
+    radius += GRID_SIZE;
+  }
+
+  return center;
+};
