@@ -10,8 +10,20 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
+interface WorkflowNode {
+  inputs: Record<string, any>;
+  class_type: string;
+  _meta?: {
+    title: string;
+  };
+}
+
+interface Workflow {
+  [key: string]: WorkflowNode;
+}
 
 interface BoardState extends CanvasState {
+  centerOnShape(prediction_id: any): unknown;
   generatingPredictions: Set<string>;
   isEditingText: boolean;
   isEraser: boolean;
@@ -611,7 +623,7 @@ export const useStore = create<BoardState>((set, get) => ({
     requestAnimationFrame(step);
   },
   handleGenerate: async () => {
-    const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
+    let workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
     const { shapes } = state;
 
@@ -699,115 +711,140 @@ export const useStore = create<BoardState>((set, get) => ({
       workflow["3"].inputs.positive = ["6", 0];  // Connect to positive prompt
       workflow["3"].inputs.negative = ["7", 0];  // Connect to negative prompt
 
-      // Find image with active controls
+      // Start with base nodes that are always needed
+      const baseWorkflow: Workflow = {
+        "3": workflow["3"],
+        "4": workflow["4"],
+        "6": workflow["6"],
+        "7": workflow["7"],
+        "8": workflow["8"],   // VAE Decode
+        "9": workflow["9"],   // Save Image
+        "34": workflow["34"],
+      };
+
+      const currentWorkflow: Workflow = { ...baseWorkflow };
+      let currentPositiveNode = "6";
+
       const controlShapes = shapes.filter(shape =>
         shape.type === 'image' &&
         (shape.showDepth || shape.showEdges || shape.showPose || shape.showScribble || shape.showRemix)
       );
 
-      // Initialize paths - start with prompt node
-      let currentPositiveNode = "6";
-
       for (const controlShape of controlShapes) {
-
-        // Edge (Canny) control chain
         if (controlShape.showEdges && controlShape.edgePreviewUrl) {
-          workflow["12"].inputs.image = controlShape.edgePreviewUrl;
-          workflow["41"].inputs.positive = ["6", 0];
-          workflow["41"].inputs.negative = ["7", 0];
-          workflow["41"].inputs.control_net = ["18", 0];
-          workflow["41"].inputs.strength = controlShape.edgesStrength || 0.5;
+          currentWorkflow["12"] = { ...workflow["12"], inputs: { ...workflow["12"].inputs, image: controlShape.edgePreviewUrl } };
+          currentWorkflow["18"] = workflow["18"];
+          currentWorkflow["41"] = {
+            ...workflow["41"],
+            inputs: {
+              ...workflow["41"].inputs,
+              positive: [currentPositiveNode, 0],
+              negative: ["7", 0],
+              control_net: ["18", 0],
+              strength: controlShape.edgesStrength || 0.5
+            }
+          };
           currentPositiveNode = "41";
         }
 
-        // Depth control chain
         if (controlShape.showDepth && controlShape.depthPreviewUrl) {
-          workflow["33"].inputs.image = controlShape.depthPreviewUrl;
-          workflow["31"].inputs.positive = [currentPositiveNode, 0];
-          workflow["31"].inputs.negative = ["7", 0];
-          workflow["31"].inputs.control_net = ["32", 0];
-          workflow["31"].inputs.strength = controlShape.depthStrength || 0.5;
+          currentWorkflow["33"] = { ...workflow["33"], inputs: { ...workflow["33"].inputs, image: controlShape.depthPreviewUrl } };
+          currentWorkflow["32"] = workflow["32"];
+          currentWorkflow["31"] = {
+            ...workflow["31"],
+            inputs: {
+              ...workflow["31"].inputs,
+              positive: [currentPositiveNode, 0],
+              negative: ["7", 0],
+              control_net: ["32", 0],
+              strength: controlShape.depthStrength || 0.5
+            }
+          };
           currentPositiveNode = "31";
         }
 
-        // Pose control chain
         if (controlShape.showPose && controlShape.posePreviewUrl) {
-          workflow["37"].inputs.image = controlShape.posePreviewUrl;
-          workflow["42"].inputs.positive = [currentPositiveNode, 0];
-          workflow["42"].inputs.negative = ["7", 0];
-          workflow["42"].inputs.control_net = ["36", 0];
-          workflow["42"].inputs.strength = controlShape.poseStrength || 0.5;
+          currentWorkflow["37"] = { ...workflow["37"], inputs: { ...workflow["37"].inputs, image: controlShape.posePreviewUrl } };
+          currentWorkflow["36"] = workflow["36"];
+          currentWorkflow["42"] = {
+            ...workflow["42"],
+            inputs: {
+              ...workflow["42"].inputs,
+              positive: [currentPositiveNode, 0],
+              negative: ["7", 0],
+              control_net: ["36", 0],
+              strength: controlShape.poseStrength || 0.5
+            }
+          };
           currentPositiveNode = "42";
         }
 
-        // Scribble control chain
         if (controlShape.showScribble && controlShape.imageUrl) {
-          workflow["40"].inputs.image = controlShape.imageUrl;
-          workflow["43"].inputs.positive = [currentPositiveNode, 0];
-          workflow["43"].inputs.negative = ["7", 0];
-          workflow["43"].inputs.control_net = ["39", 0];
-          workflow["43"].inputs.strength = controlShape.scribbleStrength || 0.5;
+          currentWorkflow["40"] = { ...workflow["40"], inputs: { ...workflow["40"].inputs, image: controlShape.imageUrl } };
+          currentWorkflow["39"] = workflow["39"];
+          currentWorkflow["43"] = {
+            ...workflow["43"],
+            inputs: {
+              ...workflow["43"].inputs,
+              positive: [currentPositiveNode, 0],
+              negative: ["7", 0],
+              control_net: ["39", 0],
+              strength: controlShape.scribbleStrength || 0.5
+            }
+          };
           currentPositiveNode = "43";
         }
 
-        // Remix control chain (IPAdapter)
-        // Find all shapes with remix enabled
-        const remixShapes = controlShapes.filter(shape => shape.showRemix && shape.imageUrl);
-        let nextIPAdapterNodeId: number = 50;
-        let currentModelNode: string = "4";
-
-        remixShapes.forEach((remixShape) => {
-          // Create new nodes for each IP-Adapter chain
+        // Handle Remix (IPAdapter) chain
+        if (controlShape.showRemix && controlShape.imageUrl) {
+          const nextIPAdapterNodeId = Object.keys(currentWorkflow).length + 1;
           const loaderNodeId = `${nextIPAdapterNodeId}`;
           const adapterNodeId = `${nextIPAdapterNodeId + 1}`;
           const imageNodeId = `${nextIPAdapterNodeId + 2}`;
 
-          // Add IP-Adapter loader node
-          workflow[loaderNodeId] = {
-            "inputs": {
-              "preset": "PLUS (high strength)",
-              "model": [currentModelNode, 0]
+          // Add nodes to currentWorkflow
+          currentWorkflow[loaderNodeId] = {
+            inputs: {
+              preset: "PLUS (high strength)",
+              model: ["4", 0]
             },
-            "class_type": "IPAdapterUnifiedLoader"
+            class_type: "IPAdapterUnifiedLoader"
           };
 
-          // Add image loader node
-          workflow[imageNodeId] = {
-            "inputs": {
-              "image": remixShape.imageUrl,
-              "upload": "image"
+          currentWorkflow[imageNodeId] = {
+            inputs: {
+              image: controlShape.imageUrl,
+              upload: "image"
             },
-            "class_type": "LoadImage"
+            class_type: "LoadImage"
           };
 
-          // Add IP-Adapter node
-          workflow[adapterNodeId] = {
-            "inputs": {
-              "weight": remixShape.remixStrength || 1,
-              "weight_type": "linear",
-              "combine_embeds": "concat",
-              "start_at": 0,
-              "end_at": 1,
-              "embeds_scaling": "V only",
-              "model": [currentModelNode, 0],
-              "ipadapter": [loaderNodeId, 1],
-              "image": [imageNodeId, 0]
+          currentWorkflow[adapterNodeId] = {
+            inputs: {
+              weight: controlShape.remixStrength || 1,
+              weight_type: "linear",
+              combine_embeds: "concat",
+              start_at: 0,
+              end_at: 1,
+              embeds_scaling: "V only",
+              model: ["4", 0],
+              ipadapter: [loaderNodeId, 1],
+              image: [imageNodeId, 0]
             },
-            "class_type": "IPAdapterAdvanced"
+            class_type: "IPAdapterAdvanced"
           };
 
-          currentModelNode = adapterNodeId;
-          nextIPAdapterNodeId += 3;
-        });
+          currentWorkflow["3"].inputs.model = [adapterNodeId, 0];
+        }
+      }
 
-        // Connect final nodes to KSampler
-        workflow["3"].inputs.model = [currentModelNode, 0];
-        workflow["3"].inputs.positive = [currentPositiveNode, 0];
-        workflow["3"].inputs.negative = ["7", 0];
-      };
+      // Connect final nodes to KSampler
+      workflow["3"].inputs.positive = [currentPositiveNode, 0];
+      workflow["3"].inputs.negative = ["7", 0];
+
 
       const requestPayload = {
-        workflow_json: workflow,
+        workflow_json: currentWorkflow,
         outputFormat: activeSettings.outputFormat,
         outputQuality: activeSettings.outputQuality,
         randomiseSeeds: activeSettings.randomiseSeeds
