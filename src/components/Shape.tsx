@@ -559,7 +559,63 @@ export function ShapeComponent({ shape }: ShapeProps) {
     'Portrait (2:3)': { width: 832, height: 1248 },
     'Portrait Standard (3:4)': { width: 880, height: 1176 },
     'Portrait Large Format (4:5)': { width: 912, height: 1144 },
-    'Portrait Social Video (9:16)': { width: 1360, height: 768 },
+    'Portrait Social Video (9:16)': { width: 768, height: 1360 },
+  };
+  type ModelName =
+    | 'juggernautXL_v9'
+    | 'RealVisXL_V4_0'
+    | 'epicrealismXL_v10'
+    | 'albedobaseXL_v21'
+    | 'proteusV0_5'
+    | 'sd_xl_base_1_0'
+    | 'realismEngineSDXL_v30VAE'
+    | 'copaxTimelessxlSDXL1_v122';
+
+  const modelDefaults: Record<ModelName, {
+    steps: number;
+    guidanceScale: number;
+    scheduler: string;
+  }> = {
+    juggernautXL_v9: {
+      steps: 30,
+      guidanceScale: 6.5,
+      scheduler: 'dpmpp_2m'
+    },
+    RealVisXL_V4_0: {
+      steps: 35,
+      guidanceScale: 7.0,
+      scheduler: 'dpmpp_2m_sde'
+    },
+    epicrealismXL_v10: {
+      steps: 25,
+      guidanceScale: 5.5,
+      scheduler: 'euler'
+    },
+    albedobaseXL_v21: {
+      steps: 28,
+      guidanceScale: 7.5,
+      scheduler: 'dpmpp_2m'
+    },
+    proteusV0_5: {
+      steps: 32,
+      guidanceScale: 8.0,
+      scheduler: 'euler_ancestral'
+    },
+    sd_xl_base_1_0: {
+      steps: 25,
+      guidanceScale: 7.0,
+      scheduler: 'dpmpp_2m_sde'
+    },
+    realismEngineSDXL_v30VAE: {
+      steps: 30,
+      guidanceScale: 6.0,
+      scheduler: 'dpmpp_2m'
+    },
+    copaxTimelessxlSDXL1_v122: {
+      steps: 28,
+      guidanceScale: 7.0,
+      scheduler: 'euler'
+    }
   };
 
 
@@ -668,12 +724,27 @@ export function ShapeComponent({ shape }: ShapeProps) {
                     <label className="text-xs text-gray-600">Model</label>
                     <select
                       value={shape.model || 'juggernautXL_v9'}
-                      onChange={(e) => updateShape(shape.id, { model: e.target.value })}
+                      onChange={(e) => {
+                        const selectedModel = e.target.value as ModelName;
+                        const defaults = modelDefaults[selectedModel];
+                        updateShape(shape.id, {
+                          model: selectedModel,
+                          steps: defaults.steps,
+                          guidanceScale: defaults.guidanceScale,
+                          scheduler: defaults.scheduler
+                        });
+                      }}
                       className="w-full py-1 px-2 text-xs border rounded bg-white block"
                     >
+
                       <option value="juggernautXL_v9">Juggernaut XL v9</option>
-                      <option value="juggernautXL">Juggernaut XL</option>
-                      <option value="dreamshaper">Dreamshaper</option>
+                      <option value="RealVisXL_V4.0">RealVis XL V4.0</option>
+                      <option value="epicrealismXL_v10">EpicRealism XL v10</option>
+                      <option value="albedobaseXL_v21">AlbedobaseXL v21</option>
+                      <option value="proteusV0.5">Proteus V0.5</option>
+                      <option value="sd_xl_base_1.0">SDXL Base 1.0</option>
+                      <option value="realismEngineSDXL_v30VAE">Realism Engine SDXL v3.0</option>
+                      <option value="copaxTimelessxlSDXL1_v122">Copax Timeless XL v1.22</option>
                     </select>
                   </div>
 
