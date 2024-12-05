@@ -797,13 +797,7 @@ export const useStore = create<BoardState>((set, get) => ({
 
         // Handle Remix (IPAdapter) chain
         if (controlShape.showRemix && controlShape.imageUrl) {
-          const nextIPAdapterNodeId = Object.keys(currentWorkflow).length + 1;
-          const loaderNodeId = `${nextIPAdapterNodeId}`;
-          const adapterNodeId = `${nextIPAdapterNodeId + 1}`;
-          const imageNodeId = `${nextIPAdapterNodeId + 2}`;
-
-          // Add nodes to currentWorkflow
-          currentWorkflow[loaderNodeId] = {
+          currentWorkflow["11"] = {
             inputs: {
               preset: "PLUS (high strength)",
               model: ["4", 0]
@@ -811,7 +805,7 @@ export const useStore = create<BoardState>((set, get) => ({
             class_type: "IPAdapterUnifiedLoader"
           };
 
-          currentWorkflow[imageNodeId] = {
+          currentWorkflow["17"] = {
             inputs: {
               image: controlShape.imageUrl,
               upload: "image"
@@ -819,7 +813,7 @@ export const useStore = create<BoardState>((set, get) => ({
             class_type: "LoadImage"
           };
 
-          currentWorkflow[adapterNodeId] = {
+          currentWorkflow["14"] = {
             inputs: {
               weight: controlShape.remixStrength || 1,
               weight_type: "linear",
@@ -827,15 +821,18 @@ export const useStore = create<BoardState>((set, get) => ({
               start_at: 0,
               end_at: 1,
               embeds_scaling: "V only",
-              model: ["4", 0],
-              ipadapter: [loaderNodeId, 1],
-              image: [imageNodeId, 0]
+              model: ["11", 0],
+              ipadapter: ["11", 1],
+              image: ["17", 0]
             },
             class_type: "IPAdapterAdvanced"
           };
 
-          currentWorkflow["3"].inputs.model = [adapterNodeId, 0];
+          // Connect KSampler to the IP-Adapter model chain
+          workflow["3"].inputs.model = ["14", 0];
         }
+
+
       }
 
       // Connect final nodes to KSampler
