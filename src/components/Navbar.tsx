@@ -173,6 +173,9 @@ Tips for Effective Use
     navigate(`/board/${newProject.id}`);
   };
 
+  const { projects } = useProjects();
+  const currentProject = projects.find(p => p.id === boardId);
+
   const handleDuplicateProject = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (boardId) {
@@ -182,7 +185,7 @@ Tips for Effective Use
       // Create new project with current shapes
       const newProject = await createProject({
         shapes: [],
-        name: `Copy of ${boardId}`
+        name: `Copy of ${currentProject?.name || 'Untitled Project'}`
       });
 
       // Update the new project with current shapes
