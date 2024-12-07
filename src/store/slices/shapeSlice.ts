@@ -60,22 +60,20 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (set, ge
         selectedShapes: []
     })),
 
-    addShape: (shape) => set(state => {
-        const newShapes = [...state.shapes];
-        if (shape.type === 'diffusionSettings') {
-            newShapes.forEach(existingShape => {
-                if (existingShape.type === 'diffusionSettings') existingShape.useSettings = false;
-            });
-            shape.useSettings = true;
-        }
-        newShapes.unshift(shape);
-        return {
-            shapes: newShapes,
-            history: [...state.history.slice(0, state.historyIndex + 1), newShapes],
-            historyIndex: state.historyIndex + 1,
-            selectedShapes: [shape.id]
-        };
-    }),
+    addShape: (shape: Shape) => set(state => ({
+        shapes: [{
+            ...shape,
+            depthStrength: shape.depthStrength ?? 0.5,
+            edgesStrength: shape.edgesStrength ?? 0.5,
+            contentStrength: shape.contentStrength ?? 0.5,
+            poseStrength: shape.poseStrength ?? 0.5,
+            scribbleStrength: shape.scribbleStrength ?? 0.5,
+            remixStrength: shape.remixStrength ?? 0.5,
+        }, ...state.shapes],
+        history: [...state.history.slice(0, state.historyIndex + 1), [...state.shapes, shape]],
+        historyIndex: state.historyIndex + 1,
+        selectedShapes: [shape.id]
+    })),
 
     addShapes: (newShapes) => set(state => {
         const updatedShapes = [...state.shapes, ...newShapes];

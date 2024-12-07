@@ -48,12 +48,12 @@ export interface Shape {
   showPose?: boolean;
   showScribble?: boolean;
   showRemix?: boolean;
-  depthStrength?: number;
-  edgesStrength?: number;
-  contentStrength?: number;
-  poseStrength?: number;
-  scribbleStrength?: number;
-  remixStrength?: number;
+  depthStrength: number;
+  edgesStrength: number;
+  contentStrength: number;
+  poseStrength: number;
+  scribbleStrength: number;
+  remixStrength: number;
   groupId?: string;
   isGroup?: boolean;
   depthMapUrl?: string;
@@ -87,6 +87,7 @@ export interface Shape {
   outputWidth?: number;
   outputHeight?: number;
 }
+
 export interface CanvasState {
   shapes: Shape[];
   selectedShapes: string[];

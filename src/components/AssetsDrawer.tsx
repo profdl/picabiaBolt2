@@ -14,7 +14,13 @@ interface Asset {
   user_id: string;
   width?: number;
   height?: number;
+  depthStrength?: number;
+  edgesStrength?: number;
+  poseStrength?: number;
+  scribbleStrength?: number;
+  remixStrength?: number;
 }
+
 
 interface AssetsDrawerProps {
   isOpen: boolean;
@@ -95,7 +101,11 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({ isOpen, onClose }) =
   };
 
   const handleAssetClick = async (asset: Asset) => {
-    const success = await addImageToCanvas(asset);
+    const success = await addImageToCanvas({
+      url: asset.url,
+      width: asset.width,
+      height: asset.height
+    });
     if (success) {
       onClose();
     }

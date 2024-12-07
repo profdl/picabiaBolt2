@@ -298,7 +298,9 @@ export function ShapeControls({
                                                         min={control.type === 'Remix' ? "0.1" : "0"}
                                                         max={control.type === 'Remix' ? "2.0" : "1"}
                                                         step="0.05"
-                                                        value={control.strengthKey in shape ? (shape[control.strengthKey as keyof Shape] as number) ?? 0.5 : 0.5}
+                                                        value={control.strengthKey in shape ?
+                                                            (shape[control.strengthKey as keyof Shape] as number) ?? 0.5
+                                                            : 0.5}
                                                         onMouseEnter={() => setIsHovering(true)}
                                                         onMouseLeave={() => setIsHovering(false)}
                                                         onChange={(e) => {
@@ -311,7 +313,6 @@ export function ShapeControls({
                                                     />
                                                 </div>
                                             </div>
-
                                         )}
                                 </div>
                             </div>
