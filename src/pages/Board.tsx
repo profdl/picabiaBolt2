@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AlertCircle, Image } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Canvas } from '../components/Canvas';
 import { Toolbar } from '../components/Toolbar';
 import { ImageGeneratePanel } from '../components/GenerateSettings';
-import { UnsplashPanel } from '../components/UnsplashPanel';
-import { GalleryPanel } from '../components/GalleryPanel';
+import { GalleryDrawer } from '../components/GalleryDrawer';
 import { useStore } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../hooks/useProjects';
@@ -26,15 +25,15 @@ export const Board = () => {
   const [isSaving, setIsSaving] = useState(false);
   const {
     showImageGenerate,
-    showUnsplash,
     showGallery,
-    toggleImageGenerate,  // This was missing
+    toggleImageGenerate,
     toggleUnsplash,
     toggleGallery
-  } =
-    useStore();
-  const showAssets = useStore(state => state.showAssets);
-  const toggleAssets = useStore(state => state.toggleAssets);
+  } = useStore();
+  const { showAssets, toggleAssets } = useStore(state => ({
+    showAssets: state.showAssets,
+    toggleAssets: state.toggleAssets
+  }));
   const addShape = useStore(state => state.addShape);
   const zoom = useStore(state => state.zoom);
   const offset = useStore(state => state.offset);
@@ -57,15 +56,15 @@ export const Board = () => {
   const lastSavedRef = useRef<string>('');
 
   const shapes = useStore(state => state.shapes);
-  const setShapes = useStore(state => state.setShapes);
+  const { setShapes } = useStore(state => ({
+    setShapes: state.setShapes
+  }));
   const setZoom = useStore(state => state.setZoom);
   const setOffset = useStore(state => state.setOffset);
   const resetState = useStore(state => state.resetState);
 
   const maxRetries = 3;
   const [viewingImage, setViewingImage] = useState<SavedImage | null>(null);
-
-
 
   // Memoize the auto-save debounce function
   const debouncedSave = useMemo(() => {
@@ -133,7 +132,7 @@ export const Board = () => {
       }
     } catch (err: unknown) {
       console.error('Error fetching project:', err);
-      setError(err.message || 'Failed to load project. Please try again.');
+      setError((err as Error).message || 'Failed to load project. Please try again.');
 
       if (retryCount < maxRetries) {
         setTimeout(() => {
@@ -222,33 +221,32 @@ export const Board = () => {
       <div
         ref={containerRef}
         className="w-screen h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 dark:bg-gray-800 relative canvas-container"
-      >        <Canvas />
-        <Toolbar onShowImageGenerate={function (): void {
-          throw new Error('Function not implemented.');
-        }} onShowUnsplash={function (): void {
-          throw new Error('Function not implemented.');
-        }} onShowGallery={function (): void {
-          throw new Error('Function not implemented.');
-        }} />
+      >
+        <Canvas />
+        <Toolbar
+          onShowImageGenerate={toggleImageGenerate}
+          onShowUnsplash={toggleUnsplash}
+          onShowGallery={toggleGallery}
+        />
         <AssetsDrawer
           isOpen={showAssets}
           onClose={toggleAssets}
-          addShape={addShape}
+          onAddShape={addShape}
           getViewportCenter={getViewportCenter}
         />
-        {showUnsplash && <UnsplashPanel onClose={toggleUnsplash} />}
         {showImageGenerate && <ImageGeneratePanel onClose={toggleImageGenerate} />}
         {showGallery && (
-          <GalleryPanel
+          <GalleryDrawer
             isOpen={showGallery}
             onClose={toggleGallery}
             viewingImage={viewingImage}
             setViewingImage={setViewingImage}
           />
-
-        )}        {isSaving && (<div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
-          Saving...
-        </div>
+        )}
+        {isSaving && (
+          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
+            Saving...
+          </div>
         )}
       </div>
       <ShortcutsPanel />

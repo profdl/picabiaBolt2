@@ -388,7 +388,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
           transform: `rotate(${shape.rotation}deg)`,
           cursor: tool === 'select' ? 'move' : 'default',
           pointerEvents: tool === 'select' ? 'all' : 'none',
-          zIndex: shapes.length - shapes.findIndex(s => s.id === shape.id), // Add this line
+          zIndex: isSelected ? 1000 : shapes.findIndex(s => s.id === shape.id),
         }}
         className="animate-pulse bg-gray-200 rounded-lg flex items-center justify-center"
         onMouseDown={handleMouseDown}
@@ -527,8 +527,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         ? 0  // Groups stay below their contents
         : isSelected
           ? 1000  // Selected non-grouped objects go to top
-          : shapes.length - shapes.findIndex(s => s.id === shape.id), // Higher index = newer shape = higher z-index
-
+          : shapes.findIndex(s => s.id === shape.id),
 
     pointerEvents: tool === 'select' ? 'all' : 'none',
     cursor: tool === 'select' ? 'move' : 'default',

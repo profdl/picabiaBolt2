@@ -16,15 +16,15 @@ import {
   // ArrowUpRight
 } from 'lucide-react';
 import { useStore } from '../store';
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 // import { BrushShapeSelector } from './BrushShapeSelector';
 
 
 const AssetsButton = () => {
-  const showAssets = useStore(state => state.showAssets);
   const toggleAssets = useStore(state => state.toggleAssets);
+  const showAssets = useStore(state => state.showAssets);
 
   return (
     <button
@@ -38,7 +38,6 @@ const AssetsButton = () => {
     </button>
   );
 };
-
 const UploadButton = () => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -211,8 +210,10 @@ interface ToolbarProps {
 export const Toolbar: React.FC<ToolbarProps> = ({
   showGallery
 }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [showAssets, setShowAssets] = useState(false);
+  useStore(state => ({
+    showAssets: state.showAssets,
+    toggleAssets: state.toggleAssets
+  }));
   const { setCurrentColor } = useStore();
 
   const {
@@ -225,7 +226,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
     toggleGallery,
     handleGenerate,
-    isGenerating,
     shapes,
     generatingPredictions,
     // currentColor,
@@ -244,16 +244,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     // brushFollowPath,
   } = useStore();
 
-  const hasActivePrompt = shapes.some(shape =>
-    (shape.type === 'sticky' && shape.showPrompt && shape.content) ||
-    (shape.type === 'image' && (
-      shape.showDepth ||
-      shape.showEdges ||
-      shape.showPose ||
-      shape.showScribble ||
-      shape.showRemix
-    ))
-  );
+  const hasActivePrompt = useMemo(() =>
+    shapes.some(shape =>
+      (shape.type === 'sticky' && shape.showPrompt && shape.content) ||
+      (shape.type === 'image' && (
+        shape.showDepth ||
+        shape.showEdges ||
+        shape.showPose ||
+        shape.showScribble ||
+        shape.showRemix
+      ))
+    )
+    , [shapes]);
 
 
   const getViewportCenter = () => {
@@ -655,8 +657,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             onClick={async () => {
               await handleGenerate();
             }}
-            disabled={!hasActivePrompt || isGenerating}
-            className={`p-2 rounded-lg flex items-center gap-1 ${hasActivePrompt && !isGenerating
+            disabled={!hasActivePrompt || generatingPredictions.size > 0}
+            className={`p-2 rounded-lg flex items-center gap-1 ${hasActivePrompt && generatingPredictions.size === 0
               ? 'bg-blue-600 hover:bg-blue-700 text-white'
               : 'opacity-50 cursor-not-allowed text-gray-400'
               }`}
@@ -666,7 +668,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 : 'Generate Image'
             }
           >
-
             {generatingPredictions.size > 0 ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (

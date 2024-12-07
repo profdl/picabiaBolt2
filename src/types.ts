@@ -18,7 +18,6 @@ export interface Project {
   shapes: Shape[];
   thumbnail: string | null;
 }
-
 export interface Shape {
   isNew?: boolean;
   model: string;
@@ -33,6 +32,9 @@ export interface Shape {
   fontSize?: number;
   imageUrl?: string;
   aspectRatio?: number;
+  originalWidth?: number;
+  originalHeight?: number;
+  thumbnailUrl?: string;
   rotation: number;
   points?: Position[];
   strokeWidth?: number;
@@ -84,7 +86,8 @@ export interface Shape {
   negativePrompt?: string;
   outputWidth?: number;
   outputHeight?: number;
-}export interface CanvasState {
+}
+export interface CanvasState {
   shapes: Shape[];
   selectedShapes: string[];
   zoom: number;
@@ -146,4 +149,22 @@ export interface WorkflowNode {
 
 export interface Workflow {
   [key: string]: WorkflowNode;
+}
+
+export interface UnsplashImage {
+  id: string;
+  urls: {
+    regular: string;
+    thumb: string;
+  };
+  alt_description: string;
+  width: number;
+  height: number;
+}
+
+export interface DrawerState {
+  showAssets: boolean;
+  unsplashQuery: string;
+  unsplashImages: UnsplashImage[];
+  unsplashLoading: boolean;
 }
