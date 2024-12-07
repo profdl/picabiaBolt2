@@ -19,6 +19,7 @@ export interface Project {
   thumbnail: string | null;
 }
 export interface Shape {
+  isEditing: boolean;
   isNew?: boolean;
   model: string;
   useSettings: boolean;
