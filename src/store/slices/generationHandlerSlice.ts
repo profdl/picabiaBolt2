@@ -39,42 +39,25 @@ interface GenerationHandlerSlice {
     handleGenerate: () => Promise<void>;
 }
 
+const findRightmostBoundary = (shapes: Shape[]): number => {
+    if (shapes.length === 0) return 0;
+    return Math.max(...shapes.map(shape => shape.position.x + shape.width));
+};
+
 const findOpenSpace = (
     shapes: Shape[],
     width: number,
     height: number,
     center: Position
 ): Position => {
-    const GRID_SIZE = 50;
-    const MAX_RADIUS = 1000;
+    const PADDING = 20; // Space between shapes
+    const rightBoundary = findRightmostBoundary(shapes);
 
-    const isPositionClear = (x: number, y: number): boolean => {
-        return !shapes.some(shape => {
-            const shapeRight = shape.position.x + shape.width;
-            const shapeBottom = shape.position.y + shape.height;
-            return !(x + width < shape.position.x ||
-                x > shapeRight ||
-                y + height < shape.position.y ||
-                y > shapeBottom);
-        });
+    return {
+        x: rightBoundary + PADDING,
+        y: center.y - (height / 2) // Vertically center the new shape
     };
-
-    let radius = 0;
-    while (radius < MAX_RADIUS) {
-        for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
-            const x = center.x + Math.cos(angle) * radius;
-            const y = center.y + Math.sin(angle) * radius;
-
-            if (isPositionClear(x, y)) {
-                return { x, y };
-            }
-        }
-        radius += GRID_SIZE;
-    }
-
-    return center;
 };
-
 export const generationHandlerSlice: StateCreator<
     StoreState & GenerationHandlerSlice,
     [],

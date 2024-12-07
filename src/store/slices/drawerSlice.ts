@@ -2,14 +2,10 @@ import { StateCreator } from 'zustand';
 import { getImageDimensions } from '../../utils/image';
 import { supabase } from '../../lib/supabase/client';
 import { CanvasState } from './canvasSlice';
-
 interface Position {
     x: number;
     y: number;
 }
-
-
-
 interface SavedImage {
     id: string;
     generated_01: string;
@@ -18,7 +14,6 @@ interface SavedImage {
     status: 'generating' | 'completed' | 'failed';
     aspect_ratio: string;
 }
-
 interface UnsplashImage {
     id: string;
     urls: {
@@ -33,8 +28,6 @@ interface UnsplashImage {
     width: number;
     height: number;
 }
-
-
 export interface DrawerState {
     // Drawer visibility states
     activeDrawer: 'none' | 'assets' | 'gallery' | 'imageGenerate' | 'unsplash';
@@ -57,7 +50,6 @@ export interface DrawerState {
     zoom: number;
     offset: Position;
 }
-
 interface DrawerSlice {
     activeDrawer: 'none' | 'assets' | 'gallery' | 'imageGenerate' | 'unsplash';
     galleryRefreshCounter: number;
@@ -98,6 +90,24 @@ interface DrawerSlice {
     ) => Promise<boolean>;
 
 }
+const findRightmostBoundary = (shapes: Shape[]): number => {
+    if (shapes.length === 0) return 0;
+    return Math.max(...shapes.map(shape => shape.position.x + shape.width));
+};
+const findOpenSpace = (
+    shapes: Shape[],
+    width: number,
+    height: number,
+    center: Position
+): Position => {
+    const PADDING = 20;
+    const rightBoundary = findRightmostBoundary(shapes);
+
+    return {
+        x: rightBoundary + PADDING,
+        y: center.y - (height / 2)
+    };
+};
 
 export const drawerSlice: StateCreator<
     DrawerState & DrawerSlice & CanvasState,
@@ -286,10 +296,8 @@ export const drawerSlice: StateCreator<
         }
     },
 
-    // Canvas operations
     addImageToCanvas: async (imageSource, options = {}) => {
-        // Implementation from your existing code
-        const { zoom, offset, addShape } = get() as DrawerState & DrawerSlice & CanvasState;
+        const { zoom, offset, addShape, shapes, centerOnShape } = get();
         const defaultWidth = options.defaultWidth || 300;
 
         try {
@@ -307,18 +315,18 @@ export const drawerSlice: StateCreator<
             const width = defaultWidth;
             const height = width / aspectRatio;
 
-            const position = options.position || {
+            const center = options.position || {
                 x: (window.innerWidth / 2 - offset.x) / zoom,
                 y: (window.innerHeight / 2 - offset.y) / zoom
             };
 
+            const position = findOpenSpace(shapes, width, height, center);
+
+            const shapeId = Math.random().toString(36).substr(2, 9);
             addShape({
-                id: Math.random().toString(36).substr(2, 9),
+                id: shapeId,
                 type: 'image',
-                position: {
-                    x: position.x - width / 2,
-                    y: position.y - height / 2
-                },
+                position,
                 width,
                 height,
                 color: 'transparent',
@@ -332,10 +340,13 @@ export const drawerSlice: StateCreator<
                 useSettings: false
             });
 
+            centerOnShape(shapeId);
             return true;
         } catch (err) {
             console.error('Error adding image:', err);
             return false;
         }
+
     }
 });
+
