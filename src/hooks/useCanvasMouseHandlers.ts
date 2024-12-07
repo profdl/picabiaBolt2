@@ -49,8 +49,12 @@ export function useCanvasMouseHandlers() {
             return;
         }
         const isEditingSticky = shapes.some(shape =>
-            shape.type === 'sticky' && selectedShapes.includes(shape.id)
+            shape.type === 'sticky' &&
+            selectedShapes.includes(shape.id) &&
+            shape.isEditing
         );
+
+
 
         if (e.button === 1 || tool === 'pan' || spacePressed) {
             e.preventDefault();
