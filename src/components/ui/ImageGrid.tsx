@@ -1,15 +1,17 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 
-interface ImageItem {
+export interface ImageItem {
     id: string;
     url: string;
     prompt?: string;
     status?: 'generating' | 'completed' | 'failed';
     alt?: string;
     thumbnailUrl?: string;
-}
-interface ImageGridProps {
+    generated_01?: string;
+    created_at?: string;
+    aspect_ratio?: string;
+}interface ImageGridProps {
     images: ImageItem[];
     loading?: boolean;
     emptyMessage?: string;
