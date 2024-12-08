@@ -1,13 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  RotateCw, Loader2, Copy, Trash2, ArrowDown, ArrowUp, MoveDown, MoveUp, Group,
-  Ungroup, ChevronRight,
-} from 'lucide-react';
+import { RotateCw, Loader2, ChevronRight } from 'lucide-react';
+import { createShapeContextMenu } from '../utils/shapeContextMenu';
 import { useStore } from '../store';
 import { Shape, DragStart } from '../types';
 import { useBrush } from './BrushTool';
 import { ShapeControls } from './ShapeControls';
-import { tr } from 'date-fns/locale';
+import { getShapeStyles } from '../utils/shapeStyles';
 interface ShapeProps {
   shape: Shape;
 }
@@ -112,55 +110,16 @@ export function ShapeComponent({ shape }: ShapeProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    const menuItems = [
-      {
-        label: 'Send Backward',
-        action: sendBackward,
-        icon: <ArrowDown className="w-4 h-4" />
-      },
-      {
-        label: 'Send Forward',
-        action: sendForward,
-        icon: <ArrowUp className="w-4 h-4" />
-      },
-      {
-        label: 'Send to Back',
-        action: sendToBack,
-        icon: <MoveDown className="w-4 h-4" />
-      },
-      {
-        label: 'Send to Front',
-        action: sendToFront,
-        icon: <MoveUp className="w-4 h-4" />
-      },
-      {
-        label: 'Duplicate',
-        action: duplicate,
-        icon: <Copy className="w-4 h-4" />
-      },
-      {
-        label: 'Delete',
-        action: () => deleteShape(shape.id),
-        icon: <Trash2 className="w-4 h-4" />
-      }
-    ];
-
-    if (selectedShapes.length > 1) {
-      menuItems.unshift({
-        label: 'Group',
-        action: () => createGroup(selectedShapes),
-        icon: <Group className="w-4 h-4" />
-      });
-    }
-
-    // Add ungroup option if this is a group
-    if (shape.type === 'group') {
-      menuItems.unshift({
-        label: 'Ungroup',
-        action: () => ungroup(shape.id),
-        icon: <Ungroup className="w-4 h-4" />
-      });
-    }
+    const menuItems = createShapeContextMenu(shape, selectedShapes, {
+      sendBackward,
+      sendForward,
+      sendToBack,
+      sendToFront,
+      duplicate,
+      deleteShape,
+      createGroup,
+      ungroup
+    });
 
     setContextMenu({
       x: e.clientX,
@@ -491,47 +450,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       </div>
     );
   }
-  const shapeStyles: React.CSSProperties = {
-    position: 'absolute',
-    left: shape.position.x,
-    top: shape.position.y,
-    width: shape.width,
-    height: shape.height,
-    backgroundColor: shape.type === 'group'
-      ? 'white'
-      : shape.type === 'image' || shape.color === 'transparent'
-        ? 'transparent'
-        : shape.color,
-    overflow: 'visible',
-    transition: 'box-shadow 0.2s ease-in-out',
-    zIndex: shape.groupId
-      ? 200  // Grouped objects always stay higher
-      : shape.type === 'group'
-        ? 0  // Groups stay below their contents
-        : isSelected
-          ? 1000  // Selected non-grouped objects go to top
-          : shapes.findIndex(s => s.id === shape.id),
-
-    pointerEvents: tool === 'select' ? 'all' : 'none',
-    cursor: tool === 'select' ? 'move' : 'default',
-    border: shape.type === 'sketchpad'
-      ? '2px dashed #e5e7eb'
-      : shape.type === 'group'
-        ? '2px dashed #9ca3af'  // Persistent group border
-        : isSelected
-          ? '2px solid #2196f3'
-          : 'none',
-    borderRadius: shape.type === 'sticky' ? '8px' : '4px',
-    display: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-    userSelect: 'none',
-    fontSize: shape.fontSize || 16,
-    padding: '8px',
-    boxShadow: shape.type === 'sticky' ? '0 4px 6px rgba(0, 0, 0, 0.1)' : undefined,
-    transform: `rotate(${shape.rotation || 0}deg)`
-  };
-
+  const shapeStyles = getShapeStyles(shape, isSelected, shapes, tool);
   const aspectRatios = {
     'Landscape SD (4:3)': { width: 1176, height: 888 },
     'Widescreen IMAX (1.43:1)': { width: 1224, height: 856 },
