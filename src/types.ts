@@ -19,6 +19,7 @@ export interface Project {
   thumbnail: string | null;
 }
 export interface Shape {
+  locked?: boolean;
   isEditing: boolean;
   isNew?: boolean;
   model: string;
@@ -105,6 +106,8 @@ export interface CanvasState {
   currentColor: string;
   strokeWidth: number;
   isEraser: boolean;
+  isEditingText: boolean;
+  setIsEditingText: (isEditing: boolean) => void;
   setIsEraser: (isEraser: boolean) => void;
   setShapes: (shapes: Shape[]) => void;
   addShape: (shape: Shape) => void;

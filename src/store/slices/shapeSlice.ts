@@ -18,6 +18,7 @@ interface ShapeState {
             remix?: boolean;
         };
     };
+    isEditingText: boolean;
 }
 
 interface ShapeSlice extends ShapeState {
@@ -42,6 +43,7 @@ interface ShapeSlice extends ShapeState {
     resetState: () => void;
     undo: () => void;
     redo: () => void;
+    setIsEditingText: (isEditing: boolean) => void;
 
 }
 
@@ -52,6 +54,9 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (set, ge
     history: [[]],
     historyIndex: 0,
     preprocessingStates: {},
+    isEditingText: false,
+    setIsEditingText: (isEditingText: boolean) => set({ isEditingText }),
+
 
     setShapes: (shapes) => set(state => ({
         shapes,
@@ -332,7 +337,14 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (set, ge
             rotation: 0,
             isUploading: false,
             model: '',
-            useSettings: false
+            useSettings: false,
+            isEditing: false,
+            depthStrength: 0,
+            edgesStrength: 0,
+            contentStrength: 0,
+            poseStrength: 0,
+            scribbleStrength: 0,
+            remixStrength: 0
         };
 
         const updatedShapes = state.shapes.map(shape =>

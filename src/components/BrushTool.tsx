@@ -126,7 +126,7 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     };
 
 
-    const handlePointerUpOrLeave = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const handlePointerUpOrLeave = (e?: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isDrawing.current) return;
 
         // Merge the complete stroke from overlay to stroke canvas

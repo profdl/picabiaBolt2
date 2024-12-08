@@ -6,9 +6,9 @@ import { Shape, DragStart } from '../types';
 import { useBrush } from './BrushTool';
 import { ShapeControls } from './ShapeControls';
 import { getShapeStyles } from '../utils/shapeStyles';
-import { ModelName, modelDefaults, SCHEDULER_OPTIONS } from '../constants/diffusionModels';
 import { DiffusionSettingsPanel } from './DiffusionSettingsPanel';
 import { ImageShape } from './ImageShape';
+import { useShapeResize } from '../hooks/useShapeResize';
 
 
 interface ShapeProps {
@@ -42,35 +42,36 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
   const [isEditing, setIsEditing] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
   const sketchPadRef = useRef<HTMLCanvasElement>(null);
   const [dragStart, setDragStart] = useState<DragStart | null>(null);
-  const handleMouseUp = () => {
-    setResizeStart(null);
-  };
+  const { handleResizeStart, setResizeStart } = useShapeResize(
+    shape,
+    zoom,
+    updateShape,
+    updateShapes
+  );
+
+
   const handleStickyInteraction = () => {
     if (shape.type === 'sticky' && shape.isNew) {
       updateShape(shape.id, { isNew: false });
     }
   };
 
+
+
+
   const [rotateStart, setRotateStart] = useState<{
     angle: number;
     startRotation: number;
   } | null>(null);
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced] = useState(false);
 
 
 
 
-  const [resizeStart, setResizeStart] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    aspectRatio: number;
-  } | null>(null);
+
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush(sketchPadRef);
   const isSelected = selectedShapes.includes(shape.id);
 
@@ -195,7 +196,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragStart, selectedShapes, updateShape, zoom, shapes, shape.type, shape.id, shape.groupId, isEditing]);
+  }, [dragStart, selectedShapes, updateShape, zoom, shapes, shape.type, shape.id, shape.groupId, isEditing, setResizeStart]);
 
   useEffect(() => {
     if (isEditing && textRef.current) {
@@ -258,50 +259,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     }
   }, [shape.id, shape.type, updateShape]);
 
-  useEffect(() => {
-    if (!resizeStart) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const dx = (e.clientX - resizeStart.x) / zoom;
-      const dy = (e.clientY - resizeStart.y) / zoom;
-
-      // Calculate new dimensions while respecting minimum size
-      let newWidth = Math.max(50, resizeStart.width + dx);
-      let newHeight = Math.max(50, resizeStart.height + dy);
-
-      // Maintain aspect ratio if shift is held
-      if (e.shiftKey && resizeStart.aspectRatio) {
-        if (Math.abs(dx) > Math.abs(dy)) {
-          newHeight = newWidth / resizeStart.aspectRatio;
-        } else {
-          newWidth = newHeight * resizeStart.aspectRatio;
-        }
-      }
-
-      if (shape.type === 'group') {
-        updateShapes([{
-          id: shape.id,
-          shape: {
-            width: newWidth,
-            height: newHeight
-          }
-        }]);
-      } else {
-        updateShape(shape.id, {
-          width: newWidth,
-          height: newHeight
-        });
-      }
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [resizeStart, shape, shapes, updateShape, updateShapes, zoom]);
 
   useEffect(() => {
     if (shape.type === 'diffusionSettings') {
@@ -312,16 +269,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
   }, [shape.id, shape.type, showAdvanced, updateShape]);
 
 
-  const handleResizeStart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setResizeStart({
-      x: e.clientX,
-      y: e.clientY,
-      width: shape.width,
-      height: shape.height,
-      aspectRatio: shape.width / shape.height
-    });
-  };
+
 
   if (shape.type === 'image' && shape.isUploading) {
     return (
@@ -456,17 +404,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     );
   }
   const shapeStyles = getShapeStyles(shape, isSelected, shapes, tool);
-  const aspectRatios = {
-    'Landscape SD (4:3)': { width: 1176, height: 888 },
-    'Widescreen IMAX (1.43:1)': { width: 1224, height: 856 },
-    'Widescreen HD(16:9)': { width: 1360, height: 768 },
-    'Golden Ratio (1.618:1)': { width: 1296, height: 800 },
-    'Square (1:1)': { width: 1024, height: 1024 },
-    'Portrait (2:3)': { width: 832, height: 1248 },
-    'Portrait Standard (3:4)': { width: 880, height: 1176 },
-    'Portrait Large Format (4:5)': { width: 912, height: 1144 },
-    'Portrait Social Video (9:16)': { width: 768, height: 1360 },
-  };
+
 
 
 
@@ -517,7 +455,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
                 e.stopPropagation();
                 e.preventDefault();
                 e.currentTarget.releasePointerCapture(e.pointerId);
-                handlePointerUpOrLeave();
+                handlePointerUpOrLeave(e);  // Pass the event
               }}
               onPointerLeave={(e) => {
                 e.stopPropagation();
@@ -525,7 +463,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
                 if (e.currentTarget.hasPointerCapture(e.pointerId)) {
                   e.currentTarget.releasePointerCapture(e.pointerId);
                 }
-                handlePointerUpOrLeave();
+                handlePointerUpOrLeave(e);  // Pass the event
               }}
               onPointerCancel={(e) => {
                 e.stopPropagation();
@@ -533,9 +471,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
                 if (e.currentTarget.hasPointerCapture(e.pointerId)) {
                   e.currentTarget.releasePointerCapture(e.pointerId);
                 }
-                handlePointerUpOrLeave();
-              }}
-            />
+                handlePointerUpOrLeave(e);  // Pass the event
+              }} />
             {tool === 'brush' && (
               <button
                 className="absolute -bottom-6 right-0 text-xs px-1.5 py-0.5 bg-gray-300 text-gray-800 rounded hover:bg-red-600 transition-colors"
@@ -552,7 +489,16 @@ export function ShapeComponent({ shape }: ShapeProps) {
                     color: '#ffffff',
                     rotation: shape.rotation,
                     locked: true,
-                    isUploading: false
+                    isUploading: false,
+                    isEditing: false,
+                    model: '',
+                    useSettings: false,
+                    depthStrength: 0,
+                    edgesStrength: 0,
+                    contentStrength: 0,
+                    poseStrength: 0,
+                    scribbleStrength: 0,
+                    remixStrength: 0
                   });
                   deleteShape(shape.id);
                   setTool('brush');
