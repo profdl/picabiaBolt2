@@ -17,16 +17,11 @@ export function Canvas() {
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
-    drawingShape
+    drawingShape,
+    selectionBox
   } = useCanvasMouseHandlers();
 
 
-  const [selectionBox] = useState<{
-    startX: number;
-    startY: number;
-    width: number;
-    height: number;
-  } | null>(null);
 
   const {
     shapes,
@@ -279,12 +274,14 @@ export function Canvas() {
             top: Math.min(selectionBox.startY, selectionBox.startY + selectionBox.height) * zoom + offset.y,
             width: Math.abs(selectionBox.width) * zoom,
             height: Math.abs(selectionBox.height) * zoom,
-            border: '2px solid #2196f3',
+            border: '1px dotted #2196f3',
             backgroundColor: 'rgba(33, 150, 243, 0.1)',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            zIndex: 1000
           }}
         />
       )}
+
     </div>
   );
 }
