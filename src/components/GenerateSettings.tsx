@@ -18,19 +18,6 @@ export const ImageGeneratePanel: React.FC = () => {
   return (
     <div className="absolute bottom-full right-0 mb-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200">
       <div className="p-4 space-y-4">
-        {/* Model Selection */}
-        <div className="space-y-2">
-          <label className="block text-sm text-gray-700">Model</label>
-          <select
-            value={advancedSettings.model || 'juggernautXL'}
-            onChange={(e) => setAdvancedSettings({ model: e.target.value })}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
-          >
-            <option value="juggernautXL">juggernautXL_juggernautX</option>
-            <option value="epicrealismXL v10">epicrealismXL_v10.safetensors            </option>
-            <option value="juggernautXL v9">Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors</option>
-          </select>
-        </div>
         {/* Size Selection*/}
         <div className="space-y-2">
           <label className="block text-sm text-gray-700">Image Dimensions</label>
@@ -49,6 +36,20 @@ export const ImageGeneratePanel: React.FC = () => {
             ))}
           </select>
         </div>
+        {/* Model Selection */}
+        <div className="space-y-2">
+          <label className="block text-sm text-gray-700">Model</label>
+          <select
+            value={advancedSettings.model || 'juggernautXL'}
+            onChange={(e) => setAdvancedSettings({ model: e.target.value })}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
+          >
+            <option value="juggernautXL">juggernautXL_juggernautX</option>
+            <option value="epicrealismXL v10">epicrealismXL_v10.safetensors            </option>
+            <option value="juggernautXL v9">Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors</option>
+          </select>
+        </div>
+
         {/* Negative Prompt */}
         <div className="space-y-2">
           <label className="block text-sm text-gray-700">Negative Prompt</label>
@@ -130,7 +131,7 @@ export const ImageGeneratePanel: React.FC = () => {
         <div className="space-y-2">
           <label className="block text-sm text-gray-700">Output Format</label>
           <select
-            value={advancedSettings.outputFormat}
+            value={advancedSettings.outputFormat || ''}
             onChange={(e) => setAdvancedSettings({ outputFormat: e.target.value })}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
           >
@@ -142,13 +143,13 @@ export const ImageGeneratePanel: React.FC = () => {
 
         <div className="space-y-2">
           <label className="block text-sm text-gray-700">
-            Output Quality ({advancedSettings.outputQuality})
+            Output Quality ({advancedSettings.outputQuality || 0})
           </label>
           <input
             type="range"
             min="0"
             max="100"
-            value={advancedSettings.outputQuality}
+            value={advancedSettings.outputQuality || 0}
             onChange={(e) => setAdvancedSettings({ outputQuality: parseInt(e.target.value) })}
             className="w-full"
           />
@@ -158,7 +159,7 @@ export const ImageGeneratePanel: React.FC = () => {
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={advancedSettings.randomiseSeeds}
+              checked={advancedSettings.randomiseSeeds || false}
               onChange={(e) => setAdvancedSettings({ randomiseSeeds: e.target.checked })}
             />
             <span className="text-sm text-gray-700">Randomize Seeds</span>

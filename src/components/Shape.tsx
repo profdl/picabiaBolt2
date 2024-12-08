@@ -108,23 +108,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     }
   };
 
-  const handleBackgroundClick = (e: React.MouseEvent) => {
-    // If clicking on the shape's background (not controls or content)
-    const controlsPanel = document.querySelector(`[data-controls-panel="${shape.id}"]`);
-    const contentArea = document.querySelector(`[data-content-area="${shape.id}"]`);
-
-    if (!controlsPanel?.contains(e.target as Node) &&
-      !contentArea?.contains(e.target as Node)) {
-      if (!selectedShapes.includes(shape.id)) {
-        setSelectedShapes([shape.id]);
-      }
-      e.stopPropagation();
-    }
-  };
-
-
-
-
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
