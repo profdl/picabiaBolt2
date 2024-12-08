@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { RotateCw, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { createShapeContextMenu } from '../utils/shapeContextMenu';
 import { useStore } from '../store';
 import { Shape, DragStart } from '../types';
@@ -9,6 +9,8 @@ import { getShapeStyles } from '../utils/shapeStyles';
 import { DiffusionSettingsPanel } from './DiffusionSettingsPanel';
 import { ImageShape } from './ImageShape';
 import { useShapeResize } from '../hooks/useShapeResize';
+import { DrawingShape } from './DrawingShape';
+import { SketchpadShape } from './SketchpadShape';
 
 
 interface ShapeProps {
@@ -35,8 +37,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     createGroup,
     ungroup,
     setContextMenu,
-    addShape,
-    setTool,
     setIsEditingText
   } = useStore();
 
@@ -51,6 +51,23 @@ export function ShapeComponent({ shape }: ShapeProps) {
     updateShapes
   );
 
+  const handleSketchpadPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (handlePointerDown) {
+      handlePointerDown(e);
+    }
+  };
+
+  const handleSketchpadPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (handlePointerMove) {
+      handlePointerMove(e);
+    }
+  };
+
+  const handleSketchpadPointerUpOrLeave = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (handlePointerUpOrLeave) {
+      handlePointerUpOrLeave(e);
+    }
+  };
 
   const handleStickyInteraction = () => {
     if (shape.type === 'sticky' && shape.isNew) {
@@ -235,7 +252,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
   useEffect(() => {
     if (shape.type === 'sketchpad' && sketchPadRef.current) {
       const updateCanvasImage = () => {
-        // Create temp canvas for resizing
+        const canvas = sketchPadRef.current;
+        if (!canvas) return;
+
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
         if (!tempCtx) {
@@ -245,19 +264,16 @@ export function ShapeComponent({ shape }: ShapeProps) {
         tempCanvas.width = 512;
         tempCanvas.height = 512;
 
-        // Debugging: Log current canvas content before scaling
-        console.log('Scaling canvas content for getCanvasImage');
-
         // Draw current canvas content scaled to 512x512
-        tempCtx.drawImage(sketchPadRef.current, 0, 0, 512, 512);
+        tempCtx.drawImage(canvas, 0, 0, 512, 512);
 
         return tempCanvas.toDataURL('image/png');
       };
 
-      // Only update the shape when necessary
       updateShape(shape.id, { getCanvasImage: updateCanvasImage });
     }
   }, [shape.id, shape.type, updateShape]);
+
 
 
   useEffect(() => {
@@ -343,64 +359,15 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
   if (shape.type === 'drawing') {
     return (
-      <div
-        id={shape.id}
-        style={{
-          position: 'absolute',
-          left: shape.position.x,
-          top: shape.position.y,
-          width: shape.width,
-          height: shape.height,
-          cursor: tool === 'select' ? 'move' : 'default',
-          transform: `rotate(${shape.rotation || 0}deg)`,
-          transformOrigin: 'center center',
-          zIndex: isSelected ? 100 : 1,
-          pointerEvents: tool === 'select' ? 'all' : 'none',
-        }}
-        onMouseDown={handleMouseDown}
-        onContextMenu={handleContextMenu}
-        className={isSelected ? 'selected' : ''}
-      >
-        <svg
-          width="100%"
-          height="100%"
-          style={{
-            overflow: 'visible',
-          }}
-        >
-          <path
-            d={`M ${shape.points?.map(p => `${p.x},${p.y}`).join(' L ')}`}
-            stroke={shape.color}
-            strokeWidth={shape.strokeWidth}
-            fill="none"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-        {isSelected && tool === 'select' && (
-          <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
-            <div
-              className="absolute -right-2 -bottom-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-se-resize"
-              style={{ zIndex: 101, pointerEvents: 'all' }}
-              onMouseDown={handleResizeStart}
-            />
-            <div
-              className="absolute w-6 h-6 bg-white border-2 border-blue-500 rounded-full cursor-pointer hover:bg-blue-50 flex items-center justify-center"
-              style={{
-                left: '50%',
-                top: -32,
-                transform: 'translateX(-50%)',
-                zIndex: 101,
-                pointerEvents: 'all'
-              }}
-              onMouseDown={handleRotateStart}
-            >
-              <RotateCw className="w-4 h-4 text-blue-500" />
-            </div>
-          </div>
-        )}
-      </div>
+      <DrawingShape
+        shape={shape}
+        isSelected={isSelected}
+        tool={tool}
+        handleMouseDown={handleMouseDown}
+        handleContextMenu={handleContextMenu}
+        handleResizeStart={handleResizeStart}
+        handleRotateStart={handleRotateStart}
+      />
     );
   }
   const shapeStyles = getShapeStyles(shape, isSelected, shapes, tool);
@@ -425,89 +392,15 @@ export function ShapeComponent({ shape }: ShapeProps) {
         className="group transition-shadow hover:shadow-xl relative"
       >
         {shape.type === 'sketchpad' && (
-          <>
-            <div className="absolute -top-6 left-0 text-sm text-gray-300 font-medium">
-              SketchPad
-            </div>
-            <canvas
-              ref={sketchPadRef}
-              width={512}
-              height={512}
-              className="w-full h-full touch-none"
-              onContextMenu={handleContextMenu}
-              style={{
-                pointerEvents: (tool === 'select' || tool === 'brush' || tool === 'eraser') ? 'all' : 'none',
-                backgroundColor: '#000000',
-                touchAction: 'none',
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                e.currentTarget.setPointerCapture(e.pointerId);
-                handlePointerDown(e);
-              }}
-              onPointerMove={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                handlePointerMove(e);
-              }}
-              onPointerUp={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                e.currentTarget.releasePointerCapture(e.pointerId);
-                handlePointerUpOrLeave(e);  // Pass the event
-              }}
-              onPointerLeave={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-                  e.currentTarget.releasePointerCapture(e.pointerId);
-                }
-                handlePointerUpOrLeave(e);  // Pass the event
-              }}
-              onPointerCancel={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-                  e.currentTarget.releasePointerCapture(e.pointerId);
-                }
-                handlePointerUpOrLeave(e);  // Pass the event
-              }} />
-            {tool === 'brush' && (
-              <button
-                className="absolute -bottom-6 right-0 text-xs px-1.5 py-0.5 bg-gray-300 text-gray-800 rounded hover:bg-red-600 transition-colors"
-                style={{ pointerEvents: 'all' }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const newId = Math.random().toString(36).substr(2, 9);
-                  addShape({
-                    id: newId,
-                    type: 'sketchpad',
-                    position: shape.position,
-                    width: shape.width,
-                    height: shape.height,
-                    color: '#ffffff',
-                    rotation: shape.rotation,
-                    locked: true,
-                    isUploading: false,
-                    isEditing: false,
-                    model: '',
-                    useSettings: false,
-                    depthStrength: 0,
-                    edgesStrength: 0,
-                    contentStrength: 0,
-                    poseStrength: 0,
-                    scribbleStrength: 0,
-                    remixStrength: 0
-                  });
-                  deleteShape(shape.id);
-                  setTool('brush');
-                }}
-              >
-                Clear
-              </button>
-            )}
-          </>
+          <SketchpadShape
+            shape={shape}
+            sketchPadRef={sketchPadRef}
+            handlePointerDown={handleSketchpadPointerDown}
+            handlePointerMove={handleSketchpadPointerMove}
+            handlePointerUpOrLeave={handleSketchpadPointerUpOrLeave}
+            handleContextMenu={handleContextMenu}
+            tool={tool}
+          />
         )}
 
         {shape.type === 'diffusionSettings' && (
@@ -572,3 +465,4 @@ export function ShapeComponent({ shape }: ShapeProps) {
     </div>
   );
 }
+

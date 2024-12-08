@@ -19,6 +19,7 @@ export interface Project {
   thumbnail: string | null;
 }
 export interface Shape {
+  getCanvasImage?: () => string | undefined;
   locked?: boolean;
   isEditing: boolean;
   isNew?: boolean;
