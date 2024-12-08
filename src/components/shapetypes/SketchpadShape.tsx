@@ -1,6 +1,6 @@
 import React from 'react';
-import { Shape } from '../types';
-import { useStore } from '../store';
+import { Shape } from '../../types';
+import { useStore } from '../../store';
 
 interface SketchpadShapeProps {
     shape: Shape;

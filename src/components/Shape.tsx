@@ -6,11 +6,11 @@ import { Shape, DragStart } from '../types';
 import { useBrush } from './BrushTool';
 import { ShapeControls } from './ShapeControls';
 import { getShapeStyles } from '../utils/shapeStyles';
-import { DiffusionSettingsPanel } from './DiffusionSettingsPanel';
-import { ImageShape } from './ImageShape';
+import { DiffusionSettingsPanel } from './shapetypes/DiffusionSettingsPanel';
+import { ImageShape } from './shapetypes/ImageShape';
 import { useShapeResize } from '../hooks/useShapeResize';
-import { DrawingShape } from './DrawingShape';
-import { SketchpadShape } from './SketchpadShape';
+import { DrawingShape } from './shapetypes/DrawingShape';
+import { SketchpadShape } from './shapetypes/SketchpadShape';
 
 
 interface ShapeProps {

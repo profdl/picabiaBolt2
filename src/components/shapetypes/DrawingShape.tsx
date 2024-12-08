@@ -1,6 +1,6 @@
 import React from 'react';
 import { RotateCw } from 'lucide-react';
-import { Shape } from '../types';
+import { Shape } from '../../types';
 
 interface DrawingShapeProps {
     shape: Shape;
