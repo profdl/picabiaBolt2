@@ -79,10 +79,10 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (set, ge
     addShape: (shape: Shape) => set(state => ({
         shapes: [{
             ...shape,
-            depthStrength: shape.depthStrength ?? 0.5,
-            edgesStrength: shape.edgesStrength ?? 0.5,
+            depthStrength: shape.depthStrength ?? 0.75,
+            edgesStrength: shape.edgesStrength ?? 0.75,
             contentStrength: shape.contentStrength ?? 0.5,
-            poseStrength: shape.poseStrength ?? 0.5,
+            poseStrength: shape.poseStrength ?? 0.75,
             scribbleStrength: shape.scribbleStrength ?? 0.5,
             remixStrength: shape.remixStrength ?? 0.5,
         }, ...state.shapes],

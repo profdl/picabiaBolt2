@@ -102,6 +102,12 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
       url: asset.url,
       width: asset.width,
       height: asset.height,
+      depthStrength: 0.75,
+      edgesStrength: 0.75,
+      contentStrength: 0.5,
+      poseStrength: 0.75,
+      scribbleStrength: 0.5,
+      remixStrength: 0.5,
     });
     if (success) {
       onClose();

@@ -94,7 +94,17 @@ export interface DrawerSlice {
     searchUnsplashImages: (query: string) => Promise<void>;
 
     addImageToCanvas: (
-        imageSource: { url: string; width?: number; height?: number },
+        imageSource: { 
+            url: string; 
+            width?: number; 
+            height?: number;
+            depthStrength?: number;
+            edgesStrength?: number;
+            contentStrength?: number;
+            poseStrength?: number;
+            scribbleStrength?: number;
+            remixStrength?: number;
+        },
         options?: { defaultWidth?: number; position?: Position }
     ) => Promise<boolean>;
 
@@ -354,12 +364,12 @@ export const drawerSlice: StateCreator<
                 model: '',
                 useSettings: false,
                 isEditing: false,
-                depthStrength: 0,
-                edgesStrength: 0,
-                contentStrength: 0,
-                poseStrength: 0,
-                scribbleStrength: 0,
-                remixStrength: 0
+                depthStrength: 0.75,
+                edgesStrength: 0.75,
+                contentStrength: 0.5,
+                poseStrength: 0.75,
+                scribbleStrength: 0.5,
+                remixStrength: 0.5
             });
 
             centerOnShape(shapeId);
@@ -369,6 +379,5 @@ export const drawerSlice: StateCreator<
             return false;
         }
 
-    }
-});
+    }});
 
