@@ -1,23 +1,20 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
-import { createShapeContextMenu } from '../utils/shapeContextMenu';
-import { useStore } from '../store';
-import { Shape, DragStart } from '../types';
-import { useBrush } from './BrushTool';
-import { ShapeControls } from './ShapeControls';
-import { getShapeStyles } from '../utils/shapeStyles';
-import { DiffusionSettingsPanel } from './shapetypes/DiffusionSettingsPanel';
-import { ImageShape } from './shapetypes/ImageShape';
-import { useShapeResize } from '../hooks/useShapeResize';
-import { DrawingShape } from './shapetypes/DrawingShape';
-import { SketchpadShape } from './shapetypes/SketchpadShape';
-
+import React, { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { createShapeContextMenu } from "../utils/shapeContextMenu";
+import { useStore } from "../store";
+import { Shape, DragStart } from "../types";
+import { useBrush } from "./BrushTool";
+import { ShapeControls } from "./ShapeControls";
+import { getShapeStyles } from "../utils/shapeStyles";
+import { DiffusionSettingsPanel } from "./shapetypes/DiffusionSettingsPanel";
+import { ImageShape } from "./shapetypes/ImageShape";
+import { useShapeResize } from "../hooks/useShapeResize";
+import { DrawingShape } from "./shapetypes/DrawingShape";
+import { SketchpadShape } from "./shapetypes/SketchpadShape";
 
 interface ShapeProps {
   shape: Shape;
 }
-
-
 
 export function ShapeComponent({ shape }: ShapeProps) {
   const {
@@ -37,7 +34,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     createGroup,
     ungroup,
     setContextMenu,
-    setIsEditingText
+    setIsEditingText,
   } = useStore();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -51,32 +48,35 @@ export function ShapeComponent({ shape }: ShapeProps) {
     updateShapes
   );
 
-  const handleSketchpadPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const handleSketchpadPointerDown = (
+    e: React.PointerEvent<HTMLCanvasElement>
+  ) => {
     if (handlePointerDown) {
       handlePointerDown(e);
     }
   };
 
-  const handleSketchpadPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const handleSketchpadPointerMove = (
+    e: React.PointerEvent<HTMLCanvasElement>
+  ) => {
     if (handlePointerMove) {
       handlePointerMove(e);
     }
   };
 
-  const handleSketchpadPointerUpOrLeave = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const handleSketchpadPointerUpOrLeave = (
+    e: React.PointerEvent<HTMLCanvasElement>
+  ) => {
     if (handlePointerUpOrLeave) {
       handlePointerUpOrLeave(e);
     }
   };
 
   const handleStickyInteraction = () => {
-    if (shape.type === 'sticky' && shape.isNew) {
+    if (shape.type === "sticky" && shape.isNew) {
       updateShape(shape.id, { isNew: false });
     }
   };
-
-
-
 
   const [rotateStart, setRotateStart] = useState<{
     angle: number;
@@ -85,18 +85,17 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
   const [showAdvanced] = useState(false);
 
-
-
-
-
-  const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush(sketchPadRef);
+  const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } =
+    useBrush(sketchPadRef);
   const isSelected = selectedShapes.includes(shape.id);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (tool === 'pan' || tool === 'pen' || isEditing) return;
+    if (tool === "pan" || tool === "pen" || isEditing) return;
 
     // Prevent drag when clicking controls panel
-    const controlsPanel = document.querySelector(`[data-controls-panel="${shape.id}"]`);
+    const controlsPanel = document.querySelector(
+      `[data-controls-panel="${shape.id}"]`
+    );
     if (controlsPanel?.contains(e.target as Node)) {
       e.stopPropagation();
       if (!selectedShapes.includes(shape.id)) {
@@ -110,18 +109,18 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
     // Store initial positions of all shapes at drag start
     const initialPositions = new Map(
-      shapes.map(s => [s.id, { ...s.position }])
+      shapes.map((s) => [s.id, { ...s.position }])
     );
 
     setDragStart({
       x: e.clientX,
       y: e.clientY,
-      initialPositions
+      initialPositions,
     });
 
     if (e.shiftKey) {
       const newSelection = selectedShapes.includes(shape.id)
-        ? selectedShapes.filter(id => id !== shape.id)
+        ? selectedShapes.filter((id) => id !== shape.id)
         : [...selectedShapes, shape.id];
       setSelectedShapes(newSelection);
     } else if (!selectedShapes.includes(shape.id)) {
@@ -141,13 +140,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
       duplicate,
       deleteShape,
       createGroup,
-      ungroup
+      ungroup,
     });
 
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
-      items: menuItems
+      items: menuItems,
     });
   };
 
@@ -162,22 +161,22 @@ export function ShapeComponent({ shape }: ShapeProps) {
       let shapesToMove = selectedShapes;
 
       // If dragging a group, include all shapes in that group
-      if (shape.type === 'group') {
+      if (shape.type === "group") {
         const groupedShapeIds = shapes
-          .filter(s => s.groupId === shape.id)
-          .map(s => s.id);
+          .filter((s) => s.groupId === shape.id)
+          .map((s) => s.id);
         shapesToMove = [...new Set([...selectedShapes, ...groupedShapeIds])];
       }
 
       // Update positions of all affected shapes
-      shapesToMove.forEach(id => {
+      shapesToMove.forEach((id) => {
         const initialPos = dragStart.initialPositions.get(id);
         if (initialPos) {
           updateShape(id, {
             position: {
               x: initialPos.x + totalDx,
-              y: initialPos.y + totalDy
-            }
+              y: initialPos.y + totalDy,
+            },
           });
         }
       });
@@ -186,18 +185,24 @@ export function ShapeComponent({ shape }: ShapeProps) {
     const handleMouseUp = () => {
       if (dragStart && shape.groupId) {
         // Recalculate group boundaries after moving a shape within it
-        const groupShape = shapes.find(s => s.id === shape.groupId);
+        const groupShape = shapes.find((s) => s.id === shape.groupId);
         if (groupShape) {
-          const groupedShapes = shapes.filter(s => s.groupId === shape.groupId);
-          const minX = Math.min(...groupedShapes.map(s => s.position.x));
-          const minY = Math.min(...groupedShapes.map(s => s.position.y));
-          const maxX = Math.max(...groupedShapes.map(s => s.position.x + s.width));
-          const maxY = Math.max(...groupedShapes.map(s => s.position.y + s.height));
+          const groupedShapes = shapes.filter(
+            (s) => s.groupId === shape.groupId
+          );
+          const minX = Math.min(...groupedShapes.map((s) => s.position.x));
+          const minY = Math.min(...groupedShapes.map((s) => s.position.y));
+          const maxX = Math.max(
+            ...groupedShapes.map((s) => s.position.x + s.width)
+          );
+          const maxY = Math.max(
+            ...groupedShapes.map((s) => s.position.y + s.height)
+          );
 
           updateShape(shape.groupId, {
             position: { x: minX, y: minY },
             width: maxX - minX,
-            height: maxY - minY
+            height: maxY - minY,
           });
         }
       }
@@ -205,15 +210,25 @@ export function ShapeComponent({ shape }: ShapeProps) {
       setResizeStart(null);
     };
 
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragStart, selectedShapes, updateShape, zoom, shapes, shape.type, shape.id, shape.groupId, isEditing, setResizeStart]);
+  }, [
+    dragStart,
+    selectedShapes,
+    updateShape,
+    zoom,
+    shapes,
+    shape.type,
+    shape.id,
+    shape.groupId,
+    isEditing,
+    setResizeStart,
+  ]);
 
   useEffect(() => {
     if (isEditing && textRef.current) {
@@ -240,25 +255,25 @@ export function ShapeComponent({ shape }: ShapeProps) {
       setRotateStart(null);
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [rotateStart, shape.id, updateShape]);
 
   useEffect(() => {
-    if (shape.type === 'sketchpad' && sketchPadRef.current) {
+    if (shape.type === "sketchpad" && sketchPadRef.current) {
       const updateCanvasImage = () => {
         const canvas = sketchPadRef.current;
         if (!canvas) return;
 
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
+        const tempCanvas = document.createElement("canvas");
+        const tempCtx = tempCanvas.getContext("2d");
         if (!tempCtx) {
-          console.error('Failed to get 2D context for tempCanvas');
+          console.error("Failed to get 2D context for tempCanvas");
           return;
         }
         tempCanvas.width = 512;
@@ -267,47 +282,43 @@ export function ShapeComponent({ shape }: ShapeProps) {
         // Draw current canvas content scaled to 512x512
         tempCtx.drawImage(canvas, 0, 0, 512, 512);
 
-        return tempCanvas.toDataURL('image/png');
+        return tempCanvas.toDataURL("image/png");
       };
 
       updateShape(shape.id, { getCanvasImage: updateCanvasImage });
     }
   }, [shape.id, shape.type, updateShape]);
 
-
-
   useEffect(() => {
-    if (shape.type === 'diffusionSettings') {
+    if (shape.type === "diffusionSettings") {
       updateShape(shape.id, {
-        height: showAdvanced ? 550 : 170
+        height: showAdvanced ? 550 : 170,
       });
     }
   }, [shape.id, shape.type, showAdvanced, updateShape]);
 
-
-
-
-  if (shape.type === 'image' && shape.isUploading) {
+  if (shape.type === "image" && shape.isUploading) {
     return (
       <div
         style={{
-          position: 'absolute',
+          position: "absolute",
           left: shape.position.x,
           top: shape.position.y,
           width: shape.width,
           height: shape.height,
           transform: `rotate(${shape.rotation}deg)`,
-          cursor: tool === 'select' ? 'move' : 'default',
-          pointerEvents: tool === 'select' ? 'all' : 'none',
-          zIndex: isSelected ? 1000 : shapes.findIndex(s => s.id === shape.id),
+          cursor: tool === "select" ? "move" : "default",
+          pointerEvents: tool === "select" ? "all" : "none",
+          zIndex: isSelected
+            ? 1000
+            : shapes.findIndex((s) => s.id === shape.id),
         }}
         className="animate-pulse bg-gray-200 rounded-lg flex items-center justify-center"
         onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
       >
-
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-        {isSelected && tool === 'select' && (
+        {isSelected && tool === "select" && (
           <ShapeControls
             shape={shape}
             isSelected={isSelected}
@@ -328,36 +339,32 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
     setRotateStart({
       angle: startAngle,
-      startRotation: shape.rotation || 0
+      startRotation: shape.rotation || 0,
     });
   };
 
-
   const handleDoubleClick = (e: React.MouseEvent) => {
-    if (shape.type === 'text' || shape.type === 'sticky') {
+    if (shape.type === "text" || shape.type === "sticky") {
       e.stopPropagation();
       setIsEditing(true);
       setIsEditingText(true);
       handleStickyInteraction();
-    } else if (shape.type === 'image') {
+    } else if (shape.type === "image") {
       e.stopPropagation();
-      const newUrl = window.prompt('Enter image URL:', shape.imageUrl);
+      const newUrl = window.prompt("Enter image URL:", shape.imageUrl);
       if (newUrl) {
         updateShape(shape.id, { imageUrl: newUrl });
       }
     }
   };
 
-
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (selectedShapes.includes(shape.id) && e.key === 'Delete') {
+    if (selectedShapes.includes(shape.id) && e.key === "Delete") {
       deleteShape(shape.id);
     }
   };
 
-
-  if (shape.type === 'drawing') {
+  if (shape.type === "drawing") {
     return (
       <DrawingShape
         shape={shape}
@@ -372,17 +379,14 @@ export function ShapeComponent({ shape }: ShapeProps) {
   }
   const shapeStyles = getShapeStyles(shape, isSelected, shapes, tool);
 
-
-
-
   return (
-    <div style={{ position: 'absolute', width: 0, height: 0 }}>
+    <div style={{ position: "absolute", width: 0, height: 0 }}>
       <div
         id={shape.id}
         style={{
           ...shapeStyles,
-          overflow: 'hidden',
-          pointerEvents: tool === 'select' ? 'all' : 'none',
+          overflow: "hidden",
+          pointerEvents: tool === "select" ? "all" : "none",
         }}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
@@ -391,7 +395,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         tabIndex={0}
         className="group transition-shadow hover:shadow-xl relative"
       >
-        {shape.type === 'sketchpad' && (
+        {shape.type === "sketchpad" && (
           <SketchpadShape
             shape={shape}
             sketchPadRef={sketchPadRef}
@@ -403,27 +407,23 @@ export function ShapeComponent({ shape }: ShapeProps) {
           />
         )}
 
-        {shape.type === 'diffusionSettings' && (
+        {shape.type === "diffusionSettings" && (
           <DiffusionSettingsPanel
             shape={shape}
             updateShape={updateShape}
             onAdvancedToggle={(isExpanded) => {
               updateShape(shape.id, {
-                height: isExpanded ? 550 : 170
+                height: isExpanded ? 550 : 170,
               });
             }}
           />
         )}
 
-
-
-        {shape.type === 'image' && (
-          <ImageShape shape={shape} />
-        )}
+        {shape.type === "image" && <ImageShape shape={shape} />}
 
         <textarea
           ref={textRef}
-          value={shape.content || ''}
+          value={shape.content || ""}
           onChange={(e) => updateShape(shape.id, { content: e.target.value })}
           onBlur={() => setIsEditing(false)}
           onMouseDown={(e) => {
@@ -431,27 +431,27 @@ export function ShapeComponent({ shape }: ShapeProps) {
               e.stopPropagation();
             }
           }}
-          className={`w-full h-full bg-transparent resize-none outline-none text-left ${isEditing ? '' : 'pointer-events-none'
-            }`}
-          style={{ fontSize: shape.fontSize || 16, scrollbarWidth: 'thin', }}
+          className={`w-full h-full bg-transparent resize-none outline-none text-left ${
+            isEditing ? "" : "pointer-events-none"
+          }`}
+          style={{ fontSize: shape.fontSize || 16, scrollbarWidth: "thin" }}
           readOnly={!isEditing}
         />
-
       </div>
 
       {/* Controls layer */}
-      {tool === 'select' && (
+      {tool === "select" && (
         <div
           data-controls-panel={shape.id}
           style={{
-            position: 'absolute',
+            position: "absolute",
             left: shape.position.x,
             top: shape.position.y,
             width: shape.width,
             height: shape.height,
             transform: `rotate(${shape.rotation || 0}deg)`,
             zIndex: isSelected ? 101 : 2,
-            pointerEvents: 'none',
+            pointerEvents: "none",
           }}
         >
           <ShapeControls
@@ -465,4 +465,3 @@ export function ShapeComponent({ shape }: ShapeProps) {
     </div>
   );
 }
-

@@ -1,4 +1,3 @@
-
 import {
   StickyNote,
   Hand,
@@ -14,23 +13,23 @@ import {
   // Frame,
   // Eraser,
   // ArrowUpRight
-} from 'lucide-react';
-import { useStore } from '../store';
-import { useState, useRef, useMemo } from 'react';
-import { useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+} from "lucide-react";
+import { useStore } from "../store";
+import { useState, useRef, useMemo } from "react";
+import { useEffect } from "react";
+import { supabase } from "../lib/supabase";
 // import { BrushShapeSelector } from './BrushShapeSelector';
 
-
 const AssetsButton = () => {
-  const toggleAssets = useStore(state => state.toggleAssets);
-  const showAssets = useStore(state => state.showAssets);
+  const toggleAssets = useStore((state) => state.toggleAssets);
+  const showAssets = useStore((state) => state.showAssets);
 
   return (
     <button
       onClick={toggleAssets}
-      className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${showAssets ? 'bg-gray-100' : ''
-        }`}
+      className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${
+        showAssets ? "bg-gray-100" : ""
+      }`}
       title="Asset Library"
     >
       <ImageIcon className="w-5 h-5" />
@@ -41,8 +40,8 @@ const AssetsButton = () => {
 const UploadButton = () => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const toggleAssets = useStore(state => state.toggleAssets);
-  const addShape = useStore(state => state.addShape);
+  const toggleAssets = useStore((state) => state.toggleAssets);
+  const addShape = useStore((state) => state.addShape);
   const { zoom, offset } = useStore();
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,24 +54,24 @@ const UploadButton = () => {
     const windowHeight = window.innerHeight * 0.4;
     const center = {
       x: (window.innerWidth / 2 - offset.x) / zoom,
-      y: (window.innerHeight / 2 - offset.y) / zoom
+      y: (window.innerHeight / 2 - offset.y) / zoom,
     };
     const shapeId = Math.random().toString(36).substr(2, 9);
     // Add loading placeholder
     addShape({
       id: shapeId,
-      type: 'image',
+      type: "image",
       position: {
         x: center.x - windowWidth / 2,
-        y: center.y - windowHeight / 2
+        y: center.y - windowHeight / 2,
       },
       width: windowWidth,
       height: windowHeight,
-      color: 'transparent',
-      imageUrl: '',
+      color: "transparent",
+      imageUrl: "",
       rotation: 0,
       isUploading: true,
-      model: '',
+      model: "",
       useSettings: false,
       isEditing: false,
       depthStrength: 0,
@@ -80,54 +79,53 @@ const UploadButton = () => {
       contentStrength: 0,
       poseStrength: 0,
       scribbleStrength: 0,
-      remixStrength: 0
+      remixStrength: 0,
     });
-
 
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
 
       const arrayBuffer = await file.arrayBuffer();
       const fileData = new Uint8Array(arrayBuffer);
 
       const { error: uploadError } = await supabase.storage
-        .from('assets')
+        .from("assets")
         .upload(fileName, fileData, {
           contentType: file.type,
-          upsert: false
+          upsert: false,
         });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('assets')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("assets").getPublicUrl(fileName);
 
-      const { error: dbError } = await supabase
-        .from('assets')
-        .insert([{
+      const { error: dbError } = await supabase.from("assets").insert([
+        {
           url: publicUrl,
-          user_id: user.id
-        }]);
+          user_id: user.id,
+        },
+      ]);
 
       if (dbError) throw dbError;
 
       useStore.getState().triggerAssetsRefresh();
 
-
       // Update the shape with the final image URL
       useStore.getState().updateShape(shapeId, {
         imageUrl: publicUrl,
-        isUploading: false
+        isUploading: false,
       });
-
     } catch (err) {
-      console.error('Error uploading asset:', err);
+      console.error("Error uploading asset:", err);
       // Remove the shape if upload fails
       useStore.getState().deleteShape(shapeId);
     } finally {
@@ -161,50 +159,6 @@ const UploadButton = () => {
   );
 };
 
-
-
-
-
-// const SettingsButton = () => {
-//   const [showPanel, setShowPanel] = useState(false);
-//   const buttonRef = useRef<HTMLDivElement>(null);
-//   const timeoutRef = useRef<NodeJS.Timeout>();
-
-//   const handleMouseEnter = () => {
-//     if (timeoutRef.current) {
-//       clearTimeout(timeoutRef.current);
-//     }
-//     setShowPanel(true);
-//   };
-
-//   const handleMouseLeave = () => {
-//     timeoutRef.current = setTimeout(() => {
-//       setShowPanel(false);
-//     }, 300); // Small delay to allow moving to panel
-//   };
-
-//   return (
-//     <div
-//       ref={buttonRef}
-//       className="relative"
-//       onMouseEnter={handleMouseEnter}
-//       onMouseLeave={handleMouseLeave}
-//     >
-//       <button
-//         className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${showPanel ? 'bg-gray-100' : ''
-//           }`}
-//         title="Image Generator Settings"
-//       >
-//         <Settings className="w-5 h-5" />
-//         <span className="text-sm font-medium">Settings</span>
-//       </button>
-
-//       {showPanel && <ImageGeneratePanel />}
-//     </div>
-//   );
-// };
-
-
 interface ToolbarProps {
   onShowImageGenerate: () => void;
   onShowUnsplash: () => void;
@@ -214,12 +168,10 @@ interface ToolbarProps {
   showGallery?: boolean;
 }
 
-export const Toolbar: React.FC<ToolbarProps> = ({
-  showGallery
-}) => {
-  useStore(state => ({
+export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
+  useStore((state) => ({
     showAssets: state.showAssets,
-    toggleAssets: state.toggleAssets
+    toggleAssets: state.toggleAssets,
   }));
   const { setCurrentColor } = useStore();
 
@@ -235,65 +187,61 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     handleGenerate,
     shapes,
     generatingPredictions,
-    // currentColor,
-    // strokeWidth,
-    // setStrokeWidth,
-    // brushSize,
-    // setBrushSize,
-    // brushOpacity,
-    // setBrushOpacity,
-    // brushTexture,
-    // setBrushTexture,
-    // brushSpacing,
-    // setBrushSpacing,
-    // brushRotation,
-    // setBrushRotation,
-    // brushFollowPath,
   } = useStore();
 
-  const hasActivePrompt = useMemo(() =>
-    shapes.some(shape =>
-      (shape.type === 'sticky' && shape.showPrompt && shape.content) ||
-      (shape.type === 'image' && (
-        shape.showDepth ||
-        shape.showEdges ||
-        shape.showPose ||
-        shape.showScribble ||
-        shape.showRemix
-      ))
-    )
-    , [shapes]);
-
+  const hasActivePrompt = useMemo(
+    () =>
+      shapes.some(
+        (shape) =>
+          (shape.type === "sticky" && shape.showPrompt && shape.content) ||
+          (shape.type === "image" &&
+            (shape.showDepth ||
+              shape.showEdges ||
+              shape.showPose ||
+              shape.showScribble ||
+              shape.showRemix))
+      ),
+    [shapes]
+  );
 
   const getViewportCenter = () => {
-    const rect = document.querySelector('#root')?.getBoundingClientRect();
+    const rect = document.querySelector("#root")?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
 
     return {
       x: (rect.width / 2 - offset.x) / zoom,
-      y: (rect.height / 2 - offset.y) / zoom
+      y: (rect.height / 2 - offset.y) / zoom,
     };
   };
 
   useEffect(() => {
-    console.log('Current tool:', tool);
+    console.log("Current tool:", tool);
   }, [tool]);
 
-  const handleAddShape = (type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'sketchpad' | 'diffusionSettings') => {
-    if (type === 'sketchpad') {
+  const handleAddShape = (
+    type:
+      | "rectangle"
+      | "circle"
+      | "text"
+      | "sticky"
+      | "image"
+      | "sketchpad"
+      | "diffusionSettings"
+  ) => {
+    if (type === "sketchpad") {
       const center = getViewportCenter();
       addShape({
         id: Math.random().toString(36).substr(2, 9),
-        type: 'sketchpad',
+        type: "sketchpad",
         position: {
           x: center.x - 256,
-          y: center.y - 256
+          y: center.y - 256,
         },
         width: 512,
         height: 512,
-        color: '#ffffff',
+        color: "#ffffff",
         rotation: 0,
-        model: '',
+        model: "",
         useSettings: false,
         isUploading: false,
         isEditing: false,
@@ -302,16 +250,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         contentStrength: 0,
         poseStrength: 0,
         scribbleStrength: 0,
-        remixStrength: 0
+        remixStrength: 0,
       });
-      setTool('select');
+      setTool("select");
       return;
     }
 
     const center = getViewportCenter();
 
-    if (type === 'image') {
-      const url = window.prompt('Enter image URL:');
+    if (type === "image") {
+      const url = window.prompt("Enter image URL:");
       if (!url) return;
 
       addShape({
@@ -319,39 +267,39 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         type,
         position: {
           x: center.x - 150,
-          y: center.y - 100
+          y: center.y - 100,
         },
         width: 300,
         height: 200,
-        color: 'transparent',
+        color: "transparent",
         imageUrl: url,
         rotation: 0,
         aspectRatio: 1.5,
         isUploading: false,
         useSettings: false,
-        model: '',
+        model: "",
         isEditing: false,
         depthStrength: 0,
         edgesStrength: 0,
         contentStrength: 0,
         poseStrength: 0,
         scribbleStrength: 0,
-        remixStrength: 0
+        remixStrength: 0,
       });
-      setTool('select');
+      setTool("select");
       return;
     }
-    if (type === 'diffusionSettings') {
+    if (type === "diffusionSettings") {
       addShape({
         id: Math.random().toString(36).substr(2, 9),
-        type: 'diffusionSettings',
+        type: "diffusionSettings",
         position: {
           x: center.x - 150,
-          y: center.y - 300
+          y: center.y - 300,
         },
         width: 250,
         height: 520,
-        color: '#f3f4f6',
+        color: "#f3f4f6",
         rotation: 0,
         isUploading: false,
         useSettings: true,
@@ -361,9 +309,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         guidanceScale: 4.5,
         outputWidth: 1360,
         outputHeight: 768,
-        model: 'juggernautXL_v9',
-        scheduler: 'dpmpp_2m_sde',
-        outputFormat: 'png',
+        model: "juggernautXL_v9",
+        scheduler: "dpmpp_2m_sde",
+        outputFormat: "png",
         randomiseSeeds: true,
         isEditing: false,
         depthStrength: 0,
@@ -371,24 +319,23 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         contentStrength: 0,
         poseStrength: 0,
         scribbleStrength: 0,
-        remixStrength: 0
+        remixStrength: 0,
       });
-
 
       return;
     }
-    const size = type === 'sticky' ? 180 : 40;
-    if (type === 'sticky') {
+    const size = type === "sticky" ? 180 : 40;
+    if (type === "sticky") {
       // Get existing shapes and updateShape from the store
       const existingShapes = useStore.getState().shapes;
       const storeUpdateShape = useStore.getState().updateShape;
 
       // First, uncheck any existing sticky notes with showPrompt
-      existingShapes.forEach(shape => {
-        if (shape.type === 'sticky' && shape.showPrompt) {
+      existingShapes.forEach((shape) => {
+        if (shape.type === "sticky" && shape.showPrompt) {
           storeUpdateShape(shape.id, {
             showPrompt: false,
-            color: shape.showNegativePrompt ? '#ffcccb' : '#fff9c4'
+            color: shape.showNegativePrompt ? "#ffcccb" : "#fff9c4",
           });
         }
       });
@@ -417,12 +364,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         "Contemporary museum building showcasing transparent glass facade supported by intricate steel framework, photographed overlooking bustling urban plaza filled with visitors.",
         "Artfully curved wooden dining chair with smooth lacquer finish positioned at round marble table, surrounded by refined Scandinavian-inspired decor in elegant dining space.",
         "Dramatic interior featuring sweeping sculptural staircase inspired by seashell spirals, enhanced by cleverly hidden lighting elements reflecting off polished stone floors.",
-        "Industrial-style desk lamp combining matte black steel framework with natural wood base elements, positioned on raw metal workbench in minimalist creative studio setting."
+        "Industrial-style desk lamp combining matte black steel framework with natural wood base elements, positioned on raw metal workbench in minimalist creative studio setting.",
       ];
-
-
-
-
 
       // Randomly select a prompt from the array
       function getRandomPrompt() {
@@ -436,29 +379,27 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         type,
         position: {
           x: center.x - size / 2,
-          y: center.y - size / 2
+          y: center.y - size / 2,
         },
         width: size * 1.5,
         height: size,
-        color: '#90EE90', // Green color
+        color: "#90EE90", // Green color
         content: getRandomPrompt(), // Use a random prompt
         fontSize: 16,
         rotation: 0,
         showPrompt: true, // Automatically enable text prompt
         isUploading: false,
         useSettings: false,
-        model: '',
-        isNew: true // Add this flag
-        ,
+        model: "",
+        isNew: true, // Add this flag
         isEditing: false,
         depthStrength: 0,
         edgesStrength: 0,
         contentStrength: 0,
         poseStrength: 0,
         scribbleStrength: 0,
-        remixStrength: 0
+        remixStrength: 0,
       });
-
     } else {
       // Handle other shape types as before
       addShape({
@@ -466,16 +407,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         type,
         position: {
           x: center.x - size / 2,
-          y: center.y - size / 2
+          y: center.y - size / 2,
         },
         width: size,
         height: size,
-        color: '#' + Math.floor(Math.random() * 16777215).toString(16),
-        content: type === 'text' ? 'Double click to edit' : undefined,
+        color: "#" + Math.floor(Math.random() * 16777215).toString(16),
+        content: type === "text" ? "Double click to edit" : undefined,
         fontSize: 16,
         rotation: 0,
         isUploading: false,
-        model: '',
+        model: "",
         useSettings: false,
         isEditing: false,
         depthStrength: 0,
@@ -483,22 +424,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         contentStrength: 0,
         poseStrength: 0,
         scribbleStrength: 0,
-        remixStrength: 0
+        remixStrength: 0,
       });
     }
-
-
-
   };
 
-
   useEffect(() => {
-    if (tool === 'brush') {
-      setCurrentColor('#ffffff');
+    if (tool === "brush") {
+      setCurrentColor("#ffffff");
     }
   }, [setCurrentColor, tool]);
-
-
 
   return (
     <div className="absolute bottom-0 left-0 right-0 bg-white shadow-lg px-4 py-2 border-t border-gray-200">
@@ -516,15 +451,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <div className="flex items-center gap-2">
           {/* Sticky Note Button */}
           <button
-            onClick={() => handleAddShape('sticky')}
+            onClick={() => handleAddShape("sticky")}
             className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
             title="Add Sticky Note"
           >
             <StickyNote className="w-5 h-5" />
             <span className="text-sm font-medium">Text Prompt</span>
           </button>
-
-
 
           {/* <button
             onClick={() => setTool('pen')}
@@ -693,22 +626,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <Type className="w-5 h-5" />
           </button> */}
 
-
-
           {/* Image Generation Tools */}
           <button
             onClick={async () => {
               await handleGenerate();
             }}
             disabled={!hasActivePrompt || generatingPredictions.size > 0}
-            className={`p-2 rounded-lg flex items-center gap-1 ${hasActivePrompt && generatingPredictions.size === 0
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'opacity-50 cursor-not-allowed text-gray-400'
-              }`}
+            className={`p-2 rounded-lg flex items-center gap-1 ${
+              hasActivePrompt && generatingPredictions.size === 0
+                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                : "opacity-50 cursor-not-allowed text-gray-400"
+            }`}
             title={
               !hasActivePrompt
-                ? 'Select a sticky note and enable prompting to generate'
-                : 'Generate Image'
+                ? "Select a sticky note and enable prompting to generate"
+                : "Generate Image"
             }
           >
             {generatingPredictions.size > 0 ? (
@@ -717,17 +649,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               <Sparkles className="w-5 h-5" />
             )}
             <span className="text-sm font-medium">
-              {generatingPredictions.size > 0 ? 'Generating...' : 'Generate'}
+              {generatingPredictions.size > 0 ? "Generating..." : "Generate"}
             </span>
           </button>
 
           {/* <SettingsButton /> */}
           <button
-            onClick={() => handleAddShape('diffusionSettings')}
+            onClick={() => handleAddShape("diffusionSettings")}
             className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
             title="Add Diffusion Settings"
           >
-
             <Settings className="w-5 h-5" />
             <span className="text-sm font-medium"> Settings</span>
           </button>
@@ -735,16 +666,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <div className="w-px bg-gray-200 mx-4" />
 
           <button
-            onClick={() => setTool('select')}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'select' ? 'bg-gray-100' : ''}`}
+            onClick={() => setTool("select")}
+            className={`p-2 hover:bg-gray-100 rounded-lg ${
+              tool === "select" ? "bg-gray-100" : ""
+            }`}
             title="Select Tool (V)"
           >
-
             <MousePointer className="w-5 h-5" />
           </button>
           <button
-            onClick={() => setTool('pan')}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'pan' ? 'bg-gray-100' : ''}`}
+            onClick={() => setTool("pan")}
+            className={`p-2 hover:bg-gray-100 rounded-lg ${
+              tool === "pan" ? "bg-gray-100" : ""
+            }`}
             title="Pan Tool (Space)"
           >
             <Hand className="w-5 h-5" />
@@ -754,24 +688,32 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               type="number"
               value={Math.round(zoom * 100)}
               onChange={(e) => {
-                const newZoom = Math.max(0.1, Math.min(5, Number(e.target.value) / 100))
-                const rect = document.querySelector('.canvas-container')?.getBoundingClientRect()
-                if (!rect) return
+                const newZoom = Math.max(
+                  0.1,
+                  Math.min(5, Number(e.target.value) / 100)
+                );
+                const rect = document
+                  .querySelector(".canvas-container")
+                  ?.getBoundingClientRect();
+                if (!rect) return;
 
-                setZoom(newZoom)
-              }} className="w-16 px-2 py-1 text-sm border rounded" min="10"
+                setZoom(newZoom);
+              }}
+              className="w-16 px-2 py-1 text-sm border rounded"
+              min="10"
               max="500"
               step="10"
             />
             <span className="text-sm text-gray-600">%</span>
           </div>
-
         </div>
         {/* Right-aligned Gallery button */}
         <div>
           <button
             onClick={toggleGallery}
-            className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${showGallery ? 'bg-gray-100' : ''}`}
+            className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${
+              showGallery ? "bg-gray-100" : ""
+            }`}
             title="Generated Images Gallery"
           >
             <Grid className="w-5 h-5" />
@@ -782,4 +724,3 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     </div>
   );
 };
-
