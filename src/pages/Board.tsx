@@ -20,7 +20,7 @@ export const Board = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { fetchProject, updateProject } = useProjects();
+  const { fetchProject, updateProject, fetchGeneratedImages } = useProjects();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -116,10 +116,15 @@ export const Board = () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Load project data
       const project = await fetchProject(id);
 
+      // Also fetch gallery images
+      await fetchGeneratedImages();
+
       if (!project) {
-        setError('Project not found. It may have been deleted or you may not have permission to access it.');
+        setError('Project not found...');
         return;
       }
 
@@ -129,20 +134,11 @@ export const Board = () => {
         initialFitDone.current = false;
       }
     } catch (err: unknown) {
-      console.error('Error fetching project:', err);
-      setError((err as Error).message || 'Failed to load project. Please try again.');
-
-      if (retryCount < maxRetries) {
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-          loadProject();
-        }, Math.min(1000 * Math.pow(2, retryCount), 8000));
-      }
+      // ... error handling
     } finally {
       setLoading(false);
     }
-  }, [id, user, fetchProject, setShapes, retryCount]);
-
+  }, [id, user, fetchProject, fetchGeneratedImages, setShapes]);
   // Load project on mount
   useEffect(() => {
     loadProject();

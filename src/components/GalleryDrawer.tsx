@@ -30,7 +30,7 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
     fetchGeneratedImages,
     deleteGeneratedImage,
     addImageToCanvas,
-
+    isLoading
   } = useStore(state => ({
     isGenerating: state.isGenerating,
     generatedImages: state.generatedImages,
@@ -38,10 +38,18 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
     deleteGeneratedImage: state.deleteGeneratedImage,
     addImageToCanvas: state.addImageToCanvas,
     galleryRefreshCounter: state.galleryRefreshCounter,
-    refreshGallery: state.refreshGallery
+    refreshGallery: state.refreshGallery,
+    isLoading: state.isLoading
   }));
 
   const showGallery = useStore(state => state.showGallery);
+
+  useEffect(() => {
+    if (showGallery) {
+      fetchGeneratedImages();
+    }
+  }, [showGallery, fetchGeneratedImages]);
+
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
@@ -98,7 +106,7 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
       <div className="p-2">
         <ImageGrid
           images={displayImages}
-          loading={false}
+          loading={isLoading} // Use the loading state here
           emptyMessage="No generated images yet"
           onImageClick={handleImageClick}
           onImageDelete={deleteGeneratedImage}

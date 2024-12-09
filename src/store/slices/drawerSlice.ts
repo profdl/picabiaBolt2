@@ -1,7 +1,6 @@
 import { StateCreator } from 'zustand';
 import { getImageDimensions } from '../../utils/image';
 import { supabase } from '../../lib/supabase/client';
-import { CanvasState } from './canvasSlice';
 import { Shape } from '../../types';
 interface Position {
     x: number;
@@ -14,6 +13,13 @@ export interface SavedImage {
     created_at: string;
     status: 'generating' | 'completed' | 'failed';
     aspect_ratio: string;
+}
+
+interface CanvasState {
+    shapes: Shape[];
+    setOffset: (offset: Position) => void;
+    addShape: (shape: Shape) => void;
+    centerOnShape: (shapeId: string) => void; // Add this
 }
 interface UnsplashImage {
     id: string;
@@ -50,8 +56,10 @@ export interface DrawerState {
 
     zoom: number;
     offset: Position;
+    isLoading: boolean;
+    shapes: Shape[];
 }
-interface DrawerSlice {
+export interface DrawerSlice {
     activeDrawer: 'none' | 'assets' | 'gallery' | 'imageGenerate' | 'unsplash';
     galleryRefreshCounter: number;
     selectedGalleryImage: SavedImage | null;
@@ -62,7 +70,7 @@ interface DrawerSlice {
     unsplashQuery: string;
     unsplashImages: UnsplashImage[];
     unsplashLoading: boolean;
-
+    isLoading: boolean;
     // Actions - Drawer visibility
     openDrawer: (drawer: DrawerState['activeDrawer']) => void;
     closeDrawer: () => void;
@@ -114,8 +122,9 @@ export const drawerSlice: StateCreator<
     DrawerState & DrawerSlice & CanvasState,
     [],
     [],
-    DrawerSlice & Partial<CanvasState>  // Add this to include CanvasState properties
-> = (set, get) => ({
+    DrawerSlice & Partial<CanvasState>
+> = (set, get: () => DrawerState & DrawerSlice & CanvasState) => ({
+
     // Initial states
     activeDrawer: 'none',
     galleryRefreshCounter: 0,
@@ -127,6 +136,7 @@ export const drawerSlice: StateCreator<
     unsplashQuery: '',
     unsplashImages: [],
     unsplashLoading: false,
+    isLoading: false,
 
     // Drawer visibility actions
     openDrawer: (drawer) => set({ activeDrawer: drawer }),
@@ -141,6 +151,7 @@ export const drawerSlice: StateCreator<
 
     fetchGeneratedImages: async () => {
         try {
+            set({ isLoading: true }); // Set loading true before fetch
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
@@ -154,8 +165,11 @@ export const drawerSlice: StateCreator<
             set({ generatedImages: data || [] });
         } catch (err) {
             console.error('Error fetching generated images:', err);
+        } finally {
+            set({ isLoading: false }); // Set loading false after fetch
         }
     },
+
 
     deleteGeneratedImage: async (imageId: string) => {
         try {
