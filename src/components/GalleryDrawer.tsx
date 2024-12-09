@@ -15,7 +15,11 @@ interface SavedImage {
 }
 interface GalleryDrawerProps {
   setViewingImage: (image: ImageItem | null) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  viewingImage: SavedImage | null;
 }
+
 
 export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
   setViewingImage
@@ -26,8 +30,7 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
     fetchGeneratedImages,
     deleteGeneratedImage,
     addImageToCanvas,
-    galleryRefreshCounter,
-    refreshGallery
+
   } = useStore(state => ({
     isGenerating: state.isGenerating,
     generatedImages: state.generatedImages,

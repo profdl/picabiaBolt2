@@ -2,11 +2,12 @@ import { StateCreator } from 'zustand';
 import { getImageDimensions } from '../../utils/image';
 import { supabase } from '../../lib/supabase/client';
 import { CanvasState } from './canvasSlice';
+import { Shape } from '../../types';
 interface Position {
     x: number;
     y: number;
 }
-interface SavedImage {
+export interface SavedImage {
     id: string;
     generated_01: string;
     prompt: string;
@@ -337,7 +338,14 @@ export const drawerSlice: StateCreator<
                 rotation: 0,
                 isUploading: false,
                 model: '',
-                useSettings: false
+                useSettings: false,
+                isEditing: false,
+                depthStrength: 0,
+                edgesStrength: 0,
+                contentStrength: 0,
+                poseStrength: 0,
+                scribbleStrength: 0,
+                remixStrength: 0
             });
 
             centerOnShape(shapeId);

@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { Canvas } from '../components/Canvas';
 import { Toolbar } from '../components/Toolbar';
-import { ImageGeneratePanel } from '../components/GenerateSettings';
 import { GalleryDrawer } from '../components/GalleryDrawer';
 import { useStore } from '../store';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +12,9 @@ import { ShortcutsPanel } from '../components/ShortcutsPanel';
 import { AssetsDrawer } from '../components/AssetsDrawer';
 import { ContextMenu, } from '../components/ContextMenu';
 import { ImageDetailsModal } from '../components/ImageDetailsModal';
+import { SavedImage } from '../store/slices/drawerSlice';
+import { Shape } from '../types';
+
 
 export const Board = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +26,6 @@ export const Board = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const {
-    showImageGenerate,
     showGallery,
     toggleImageGenerate,
     toggleUnsplash,
@@ -66,23 +67,19 @@ export const Board = () => {
   const maxRetries = 3;
   const [viewingImage, setViewingImage] = useState<SavedImage | null>(null);
 
-  // Memoize the auto-save debounce function
+  // Memoize the auto-save debounce function// Update the debouncedSave function signature to use proper typing
   const debouncedSave = useMemo(() => {
-    return async (shapes: unknown[]) => {
+    return async (shapes: Shape[]) => {  // Change unknown[] to Shape[]
       if (!id || !user) return;
 
-      // Convert shapes to string for comparison
       const shapesString = JSON.stringify(shapes);
 
-      // Don't save if shapes haven't changed
       if (shapesString === lastSavedRef.current) return;
 
-      // Clear any existing timeout
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
 
-      // Set a new timeout
       saveTimeoutRef.current = setTimeout(async () => {
         if (isSaving) return;
 
@@ -98,9 +95,10 @@ export const Board = () => {
         } finally {
           setIsSaving(false);
         }
-      }, 2000); // Increased debounce time to 2 seconds
+      }, 2000);
     };
   }, [id, user, updateProject, isSaving]);
+
 
   const fitShapesToView = useCallback(() => {
     if (!containerRef.current || !shapes?.length) return;
@@ -234,15 +232,15 @@ export const Board = () => {
           onAddShape={addShape}
           getViewportCenter={getViewportCenter}
         />
-        {showImageGenerate && <ImageGeneratePanel onClose={toggleImageGenerate} />}
         {showGallery && (
           <GalleryDrawer
+            setViewingImage={setViewingImage}
             isOpen={showGallery}
             onClose={toggleGallery}
             viewingImage={viewingImage}
-            setViewingImage={setViewingImage}
           />
         )}
+
         {isSaving && (
           <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
             Saving...

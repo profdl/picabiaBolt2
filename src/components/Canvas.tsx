@@ -29,16 +29,12 @@ export function Canvas() {
     offset,
     isDragging,
     tool,
-    currentColor,
-    strokeWidth,
     gridEnabled,
     gridSize,
     setOffset,
-    setIsDragging,
     setZoom,
-    addShape,
-    setSelectedShapes,
     selectedShapes,
+    isEditingText
   } = useStore();
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
@@ -80,7 +76,6 @@ export function Canvas() {
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
-      // First check if we're editing a sticky note
       const isEditingSticky = shapes.some(shape =>
         shape.type === 'sticky' && selectedShapes.includes(shape.id) && isEditingText
       );
@@ -115,7 +110,7 @@ export function Canvas() {
         });
       }
     },
-    [zoom, offset, setZoom, setOffset, shapes, selectedShapes]
+    [zoom, offset, setZoom, setOffset, shapes, selectedShapes, isEditingText]
   );
 
 

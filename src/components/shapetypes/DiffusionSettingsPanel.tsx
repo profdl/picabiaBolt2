@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { Shape } from '../types';
-import { ModelName, modelDefaults, SCHEDULER_OPTIONS } from '../constants/diffusionModels';
+import { Shape } from '../../types';
+import { ModelName, modelDefaults, SCHEDULER_OPTIONS } from '../../constants/diffusionModels';
 
 interface DiffusionSettingsPanelProps {
     shape: Shape;

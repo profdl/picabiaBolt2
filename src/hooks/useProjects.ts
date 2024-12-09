@@ -73,7 +73,7 @@ export function useProjects() {
   }, [user]);
 
 
-  const createProject = async (p0: { shapes: never[]; name: string; }) => {
+  const createProject = async ({ name, shapes }: { name: string; shapes: never[] }) => {
     if (!user) {
       throw new Error('User not authenticated');
     }
@@ -84,9 +84,9 @@ export function useProjects() {
         .from('projects')
         .insert([
           {
-            name: 'Untitled Board',
+            name,
             user_id: user.id,
-            shapes: [],
+            shapes,
             thumbnail: null
           }
         ])
@@ -107,6 +107,7 @@ export function useProjects() {
       throw new Error(errorMessage);
     }
   };
+
 
   const updateProject = async (id: string, updates: Partial<Project>) => {
     if (!user) {

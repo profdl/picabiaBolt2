@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import { Drawer } from './Drawer';
 import ImageGrid from './ui/ImageGrid';
 import { supabase } from '../lib/supabase';
+import { Shape } from '../types';
 
 
 interface Asset {
@@ -25,6 +26,8 @@ interface Asset {
 interface AssetsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  onAddShape: (shape: Shape) => void;
+  getViewportCenter: () => { x: number; y: number; };
 }
 
 

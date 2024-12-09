@@ -90,7 +90,7 @@ export function useKeyboardShortcuts() {
       e.preventDefault();
       deleteShapes(selectedShapes);
     }
-  }, [selectedShapes, shapes, setTool, copyShapes, cutShapes, pasteShapes, deleteShapes, undo, redo, setSelectedShapes]);
+  }, [selectedShapes, shapes, setTool, copyShapes, cutShapes, pasteShapes, deleteShapes, setSelectedShapes]);
 
   const handleKeyUp = useCallback((e: KeyboardEvent) => {
     if (e.code === 'Space') {

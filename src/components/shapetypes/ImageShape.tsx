@@ -1,7 +1,7 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import { Shape } from '../types';
-import { useStore } from '../store';
+import { Shape } from '../../types';
+import { useStore } from '../../store';
 
 interface ImageShapeProps {
     shape: Shape;

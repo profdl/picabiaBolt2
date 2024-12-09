@@ -73,7 +73,14 @@ const UploadButton = () => {
       rotation: 0,
       isUploading: true,
       model: '',
-      useSettings: false
+      useSettings: false,
+      isEditing: false,
+      depthStrength: 0,
+      edgesStrength: 0,
+      contentStrength: 0,
+      poseStrength: 0,
+      scribbleStrength: 0,
+      remixStrength: 0
     });
 
 
@@ -288,7 +295,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         rotation: 0,
         model: '',
         useSettings: false,
-        isUploading: false
+        isUploading: false,
+        isEditing: false,
+        depthStrength: 0,
+        edgesStrength: 0,
+        contentStrength: 0,
+        poseStrength: 0,
+        scribbleStrength: 0,
+        remixStrength: 0
       });
       setTool('select');
       return;
@@ -315,7 +329,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         aspectRatio: 1.5,
         isUploading: false,
         useSettings: false,
-        model: ''
+        model: '',
+        isEditing: false,
+        depthStrength: 0,
+        edgesStrength: 0,
+        contentStrength: 0,
+        poseStrength: 0,
+        scribbleStrength: 0,
+        remixStrength: 0
       });
       setTool('select');
       return;
@@ -344,6 +365,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         scheduler: 'dpmpp_2m_sde',
         outputFormat: 'png',
         randomiseSeeds: true,
+        isEditing: false,
+        depthStrength: 0,
+        edgesStrength: 0,
+        contentStrength: 0,
+        poseStrength: 0,
+        scribbleStrength: 0,
+        remixStrength: 0
       });
 
 
@@ -421,6 +449,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         useSettings: false,
         model: '',
         isNew: true // Add this flag
+        ,
+        isEditing: false,
+        depthStrength: 0,
+        edgesStrength: 0,
+        contentStrength: 0,
+        poseStrength: 0,
+        scribbleStrength: 0,
+        remixStrength: 0
       });
 
     } else {
@@ -440,7 +476,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         rotation: 0,
         isUploading: false,
         model: '',
-        useSettings: false
+        useSettings: false,
+        isEditing: false,
+        depthStrength: 0,
+        edgesStrength: 0,
+        contentStrength: 0,
+        poseStrength: 0,
+        scribbleStrength: 0,
+        remixStrength: 0
       });
     }
 

@@ -21,7 +21,14 @@ export const useImageUpload = () => {
             rotation: 0,
             isUploading: true,
             model: "",
-            useSettings: false
+            useSettings: false,
+            isEditing: false,
+            depthStrength: 0,
+            edgesStrength: 0,
+            contentStrength: 0,
+            poseStrength: 0,
+            scribbleStrength: 0,
+            remixStrength: 0
         });
 
         try {
@@ -42,7 +49,14 @@ export const useImageUpload = () => {
                 rotation: 0,
                 isUploading: false,
                 model: "",
-                useSettings: false
+                useSettings: false,
+                isEditing: false,
+                depthStrength: 0,
+                edgesStrength: 0,
+                contentStrength: 0,
+                poseStrength: 0,
+                scribbleStrength: 0,
+                remixStrength: 0
             });
 
             deleteShape(tempId);
