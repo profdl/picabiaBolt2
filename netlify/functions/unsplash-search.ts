@@ -2,14 +2,29 @@ import { Handler } from '@netlify/functions';
 
 const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
-export const handler: Handler = async (event) => {
-    console.log('Unsplash search triggered:', event.queryStringParameters);
+// Add basic rate limiting
+const RATE_LIMIT_WINDOW = 1000; // 1 second
+let lastRequestTime = 0;
 
+export const handler: Handler = async (event) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Content-Type': 'application/json'
     };
+    const now = Date.now();
+    if (now - lastRequestTime < RATE_LIMIT_WINDOW) {
+        return {
+            statusCode: 429,
+            headers,
+            body: JSON.stringify({ error: 'Too many requests' })
+        };
+    }
+    lastRequestTime = now;
+
+    console.log('Unsplash search triggered:', event.queryStringParameters);
+
+
 
     try {
         const query = event.queryStringParameters?.query;

@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useStore } from '../store';
-import { Position } from '../types';
-import { ShapeComponent } from './Shape';
-import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import { useImageUpload } from '../hooks/useImageUpload';
-import { useCanvasMouseHandlers } from '../hooks/useCanvasMouseHandlers';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useStore } from "../store";
+import { Position } from "../types";
+import { ShapeComponent } from "./Shape";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { useImageUpload } from "../hooks/useImageUpload";
+import { useCanvasMouseHandlers } from "../hooks/useCanvasMouseHandlers";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -18,10 +18,8 @@ export function Canvas() {
     handleMouseMove,
     handleMouseUp,
     drawingShape,
-    selectionBox
+    selectionBox,
   } = useCanvasMouseHandlers();
-
-
 
   const {
     shapes,
@@ -34,14 +32,14 @@ export function Canvas() {
     setOffset,
     setZoom,
     selectedShapes,
-    isEditingText
+    isEditingText,
   } = useStore();
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingFile(false);
 
     const files = Array.from(e.dataTransfer.files);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
     const point = getCanvasPoint(e);
 
     for (const file of imageFiles) {
@@ -53,7 +51,7 @@ export function Canvas() {
         const baseWidth = 512; // Base width
         await handleImageUpload(file, point, {
           width: baseWidth,
-          height: baseWidth / ratio
+          height: baseWidth / ratio,
         });
         URL.revokeObjectURL(url);
       };
@@ -76,13 +74,18 @@ export function Canvas() {
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
-      const isEditingSticky = shapes.some(shape =>
-        shape.type === 'sticky' && selectedShapes.includes(shape.id) && isEditingText
+      const isEditingSticky = shapes.some(
+        (shape) =>
+          shape.type === "sticky" &&
+          selectedShapes.includes(shape.id) &&
+          isEditingText
       );
       if (isEditingSticky) return;
 
       // Existing diffusion settings check
-      const isDiffusionSettings = (e.target as Element)?.closest('[data-shape-type="diffusionSettings"]');
+      const isDiffusionSettings = (e.target as Element)?.closest(
+        '[data-shape-type="diffusionSettings"]'
+      );
       if (isDiffusionSettings) return;
 
       if (e.ctrlKey) {
@@ -113,8 +116,6 @@ export function Canvas() {
     [zoom, offset, setZoom, setOffset, shapes, selectedShapes, isEditingText]
   );
 
-
-
   useEffect(() => {
     const preventDefaultZoom = (e: WheelEvent) => {
       if (e.ctrlKey) {
@@ -122,15 +123,15 @@ export function Canvas() {
       }
     };
 
-    window.addEventListener('wheel', preventDefaultZoom, { passive: false });
-    return () => window.removeEventListener('wheel', preventDefaultZoom);
+    window.addEventListener("wheel", preventDefaultZoom, { passive: false });
+    return () => window.removeEventListener("wheel", preventDefaultZoom);
   }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canvas.addEventListener('wheel', handleWheel, { passive: false });
-    return () => canvas.removeEventListener('wheel', handleWheel);
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
 
   const getCanvasPoint = (e: React.MouseEvent | React.DragEvent): Position => {
@@ -144,7 +145,7 @@ export function Canvas() {
     // Convert to canvas coordinates considering zoom and offset
     return {
       x: (mouseX - offset.x) / zoom,
-      y: (mouseY - offset.y) / zoom
+      y: (mouseY - offset.y) / zoom,
     };
   };
 
@@ -184,7 +185,7 @@ export function Canvas() {
           y1={0}
           x2={x * zoom + offset.x}
           y2={rect.height}
-          stroke={isMajorLine ? '#E2E8F0' : '#F1F5F9'}
+          stroke={isMajorLine ? "#E2E8F0" : "#F1F5F9"}
           strokeWidth={isMajorLine ? 1 : 0.5}
         />
       );
@@ -199,7 +200,7 @@ export function Canvas() {
           y1={y * zoom + offset.y}
           x2={rect.width}
           y2={y * zoom + offset.y}
-          stroke={isMajorLine ? '#E2E8F0' : '#F1F5F9'}
+          stroke={isMajorLine ? "#E2E8F0" : "#F1F5F9"}
           strokeWidth={isMajorLine ? 1 : 0.5}
         />
       );
@@ -219,15 +220,16 @@ export function Canvas() {
     );
   };
 
-
-
-
   return (
     <div
       ref={canvasRef}
-      className={`w-full h-full overflow-hidden bg-white relative ${tool === 'pan' || spacePressed ? 'cursor-grab' :
-        tool === 'pen' ? 'cursor-crosshair' : 'cursor-default'
-        } ${isDragging ? '!cursor-grabbing' : ''}`}
+      className={`w-full h-full overflow-hidden bg-white relative ${
+        tool === "pan" || spacePressed
+          ? "cursor-grab"
+          : tool === "pen"
+          ? "cursor-crosshair"
+          : "cursor-default"
+      } ${isDragging ? "!cursor-grabbing" : ""}`}
       onMouseDown={(e) => handleMouseDown(e, canvasRef, spacePressed)}
       onMouseMove={(e) => handleMouseMove(e, canvasRef)}
       onMouseUp={handleMouseUp}
@@ -236,8 +238,6 @@ export function Canvas() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-
-
       {isDraggingFile && (
         <div className="absolute inset-0 bg-blue-500/10 border-2 border-blue-500 border-dashed z-50 pointer-events-none flex items-center justify-center">
           <div className="bg-white px-4 py-2 rounded-lg shadow-lg">
@@ -245,38 +245,49 @@ export function Canvas() {
           </div>
         </div>
       )}
+
       {renderGrid()}
       <div
         className="relative w-full h-full"
         style={{
-          transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${offset.y / zoom
-            }px)`,
-          transformOrigin: '0 0',
+          transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${
+            offset.y / zoom
+          }px)`,
+          transformOrigin: "0 0",
         }}
       >
         {shapes?.map((shape) => (
           <ShapeComponent key={shape.id} shape={shape} />
         )) || null}
-        {drawingShape && (
-          <ShapeComponent shape={drawingShape} />
-        )}
+        {drawingShape && <ShapeComponent shape={drawingShape} />}
       </div>
       {selectionBox && (
         <div
           style={{
-            position: 'absolute',
-            left: Math.min(selectionBox.startX, selectionBox.startX + selectionBox.width) * zoom + offset.x,
-            top: Math.min(selectionBox.startY, selectionBox.startY + selectionBox.height) * zoom + offset.y,
+            position: "absolute",
+            left:
+              Math.min(
+                selectionBox.startX,
+                selectionBox.startX + selectionBox.width
+              ) *
+                zoom +
+              offset.x,
+            top:
+              Math.min(
+                selectionBox.startY,
+                selectionBox.startY + selectionBox.height
+              ) *
+                zoom +
+              offset.y,
             width: Math.abs(selectionBox.width) * zoom,
             height: Math.abs(selectionBox.height) * zoom,
-            border: '1px dotted #2196f3',
-            backgroundColor: 'rgba(33, 150, 243, 0.1)',
-            pointerEvents: 'none',
-            zIndex: 1000
+            border: "1px dotted #2196f3",
+            backgroundColor: "rgba(33, 150, 243, 0.1)",
+            pointerEvents: "none",
+            zIndex: 1000,
           }}
         />
       )}
-
     </div>
   );
 }

@@ -1,45 +1,40 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
-import { Canvas } from '../components/Canvas';
-import { Toolbar } from '../components/Toolbar';
-import { GalleryDrawer } from '../components/GalleryDrawer';
-import { useStore } from '../store';
-import { useAuth } from '../contexts/AuthContext';
-import { useProjects } from '../hooks/useProjects';
-import { calculateViewportFit } from '../utils/canvas';
-import { ShortcutsPanel } from '../components/ShortcutsPanel';
-import { AssetsDrawer } from '../components/AssetsDrawer';
-import { ContextMenu, } from '../components/ContextMenu';
-import { ImageDetailsModal } from '../components/ImageDetailsModal';
-import { SavedImage } from '../store/slices/drawerSlice';
-import { Shape } from '../types';
-
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { AlertCircle } from "lucide-react";
+import { Canvas } from "../components/Canvas";
+import { Toolbar } from "../components/Toolbar";
+import { GalleryDrawer } from "../components/GalleryDrawer";
+import { useStore } from "../store";
+import { useAuth } from "../contexts/AuthContext";
+import { useProjects } from "../hooks/useProjects";
+import { calculateViewportFit } from "../utils/canvas";
+import { ShortcutsPanel } from "../components/ShortcutsPanel";
+import { AssetsDrawer } from "../components/AssetsDrawer";
+import { ContextMenu } from "../components/ContextMenu";
+import { ImageDetailsModal } from "../components/ImageDetailsModal";
+import { SavedImage } from "../store/slices/drawerSlice";
+import { Shape } from "../types";
 
 export const Board = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { fetchProject, updateProject, fetchGeneratedImages } = useProjects();
+  const { fetchProject, updateProject } = useProjects();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const {
-    showGallery,
-    toggleImageGenerate,
-    toggleUnsplash,
-    toggleGallery
-  } = useStore();
-  const { showAssets, toggleAssets } = useStore(state => ({
+  const { showGallery, toggleImageGenerate, toggleUnsplash, toggleGallery } =
+    useStore();
+  const { showAssets, toggleAssets } = useStore((state) => ({
     showAssets: state.showAssets,
-    toggleAssets: state.toggleAssets
+    toggleAssets: state.toggleAssets,
   }));
-  const addShape = useStore(state => state.addShape);
-  const zoom = useStore(state => state.zoom);
-  const offset = useStore(state => state.offset);
-  const contextMenu = useStore(state => state.contextMenu);
-  const setContextMenu = useStore(state => state.setContextMenu);
+  const addShape = useStore((state) => state.addShape);
+  const zoom = useStore((state) => state.zoom);
+  const offset = useStore((state) => state.offset);
+  const contextMenu = useStore((state) => state.contextMenu);
+  const setContextMenu = useStore((state) => state.setContextMenu);
 
   const getViewportCenter = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -47,29 +42,30 @@ export const Board = () => {
 
     return {
       x: (rect.width / 2 - offset.x) / zoom,
-      y: (rect.height / 2 - offset.y) / zoom
+      y: (rect.height / 2 - offset.y) / zoom,
     };
   }, [zoom, offset]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
-  const lastSavedRef = useRef<string>('');
+  const lastSavedRef = useRef<string>("");
 
-  const shapes = useStore(state => state.shapes);
-  const { setShapes } = useStore(state => ({
-    setShapes: state.setShapes
+  const shapes = useStore((state) => state.shapes);
+  const { setShapes } = useStore((state) => ({
+    setShapes: state.setShapes,
   }));
-  const setZoom = useStore(state => state.setZoom);
-  const setOffset = useStore(state => state.setOffset);
-  const resetState = useStore(state => state.resetState);
+  const setZoom = useStore((state) => state.setZoom);
+  const setOffset = useStore((state) => state.setOffset);
+  const resetState = useStore((state) => state.resetState);
 
   const maxRetries = 3;
   const [viewingImage, setViewingImage] = useState<SavedImage | null>(null);
 
   // Memoize the auto-save debounce function// Update the debouncedSave function signature to use proper typing
   const debouncedSave = useMemo(() => {
-    return async (shapes: Shape[]) => {  // Change unknown[] to Shape[]
+    return async (shapes: Shape[]) => {
+      // Change unknown[] to Shape[]
       if (!id || !user) return;
 
       const shapesString = JSON.stringify(shapes);
@@ -87,18 +83,17 @@ export const Board = () => {
           setIsSaving(true);
           await updateProject(id, {
             shapes,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           });
           lastSavedRef.current = shapesString;
         } catch (err) {
-          console.error('Error auto-saving project:', err);
+          console.error("Error auto-saving project:", err);
         } finally {
           setIsSaving(false);
         }
       }, 2000);
     };
   }, [id, user, updateProject, isSaving]);
-
 
   const fitShapesToView = useCallback(() => {
     if (!containerRef.current || !shapes?.length) return;
@@ -111,39 +106,59 @@ export const Board = () => {
   }, [shapes, setZoom, setOffset]);
 
   const loadProject = useCallback(async () => {
-    if (!id || !user) return;
+    console.log("Loading project, ID:", id);
+    if (!id || !user) {
+      console.log("Missing id or user:", { id, userId: user?.id });
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
 
-      // Load project data
+      console.log("Fetching project data...");
       const project = await fetchProject(id);
-
-      // Also fetch gallery images
-      await fetchGeneratedImages();
+      console.log("Project data received:", project);
 
       if (!project) {
-        setError('Project not found...');
+        setError("Project not found...");
         return;
       }
 
-      if (project.shapes) {
+      // Check if shapes is already an array
+      if (Array.isArray(project.shapes)) {
         setShapes(project.shapes);
         lastSavedRef.current = JSON.stringify(project.shapes);
-        initialFitDone.current = false;
+      } else if (project.shapes) {
+        // Only try to parse if shapes exists and is a string
+        try {
+          const parsedShapes = JSON.parse(project.shapes);
+          setShapes(parsedShapes);
+          lastSavedRef.current = project.shapes;
+        } catch (e) {
+          console.warn("Shape parsing error:", e);
+          // Set empty array as fallback
+          setShapes([]);
+          lastSavedRef.current = "[]";
+        }
+      } else {
+        // Handle case where shapes is null/undefined
+        setShapes([]);
+        lastSavedRef.current = "[]";
       }
-    } catch (err: unknown) {
-      // ... error handling
+
+      initialFitDone.current = false;
+    } catch (err) {
+      console.error("Project load error:", err);
     } finally {
       setLoading(false);
     }
-  }, [id, user, fetchProject, fetchGeneratedImages, setShapes]);
-  // Load project on mount
+  }, [id, user, fetchProject, setShapes]);
+
   useEffect(() => {
+    console.log("Board mounted, triggering loadProject");
     loadProject();
   }, [loadProject]);
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -180,7 +195,7 @@ export const Board = () => {
           <p className="text-gray-600 mb-6">{error}</p>
           <div className="flex gap-4">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate("/")}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md"
             >
               Go to Dashboard
@@ -188,7 +203,7 @@ export const Board = () => {
             {retryCount < maxRetries && (
               <button
                 onClick={() => {
-                  setRetryCount(prev => prev + 1);
+                  setRetryCount((prev) => prev + 1);
                   loadProject();
                 }}
                 className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md"

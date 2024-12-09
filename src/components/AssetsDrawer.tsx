@@ -1,12 +1,11 @@
 // AssetsDrawer.tsx
-import React, { useRef, useEffect } from 'react';
-import { Upload, Loader2, Search } from 'lucide-react';
-import { useStore } from '../store';
-import { Drawer } from './Drawer';
-import ImageGrid from './ui/ImageGrid';
-import { supabase } from '../lib/supabase';
-import { Shape } from '../types';
-
+import React, { useRef, useEffect } from "react";
+import { Upload, Loader2, Search } from "lucide-react";
+import { useStore } from "../store";
+import { Drawer } from "./Drawer";
+import ImageGrid from "./ui/ImageGrid";
+import { supabase } from "../lib/supabase";
+import { Shape } from "../types";
 
 interface Asset {
   id: string;
@@ -22,22 +21,23 @@ interface Asset {
   remixStrength?: number;
 }
 
-
 interface AssetsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onAddShape: (shape: Shape) => void;
-  getViewportCenter: () => { x: number; y: number; };
+  getViewportCenter: () => { x: number; y: number };
 }
 
-
-
-export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({ isOpen, onClose }) => {
+export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
+  isOpen,
+  onClose,
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = React.useState('my-assets');
+  const [activeTab, setActiveTab] = React.useState("my-assets");
   const [assets, setAssets] = React.useState<Asset[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
+  const searchDebounceRef = useRef<NodeJS.Timeout>();
 
   const {
     uploadAsset,
@@ -46,7 +46,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({ isOpen, onClose }) =
     assetsRefreshTrigger,
     unsplashQuery,
     setUnsplashQuery,
-  } = useStore(state => ({
+  } = useStore((state) => ({
     uploadAsset: state.uploadAsset,
     addImageToCanvas: state.addImageToCanvas,
     deleteAsset: state.deleteAsset,
@@ -55,29 +55,23 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({ isOpen, onClose }) =
     setUnsplashQuery: state.setUnsplashQuery,
   }));
 
-  const {
-    unsplashImages,
-    unsplashLoading
-  } = useStore(state => {
-    console.log('Unsplash Images:', state.unsplashImages); // Add this debug log
-    return {
-      unsplashImages: state.unsplashImages || [],
-      unsplashLoading: state.unsplashLoading
-    };
-  });
+  const { unsplashImages, unsplashLoading } = useStore((state) => ({
+    unsplashImages: state.unsplashImages || [],
+    unsplashLoading: state.unsplashLoading,
+  }));
 
   const fetchAssets = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('assets')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("assets")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setAssets(data || []);
     } catch (err) {
-      console.error('Error fetching assets:', err);
+      console.error("Error fetching assets:", err);
     } finally {
       setLoading(false);
     }
@@ -97,7 +91,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({ isOpen, onClose }) =
     try {
       await uploadAsset(file);
     } catch (err) {
-      console.error('Error uploading asset:', err);
+      console.error("Error uploading asset:", err);
     } finally {
       setUploading(false);
     }
@@ -107,7 +101,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({ isOpen, onClose }) =
     const success = await addImageToCanvas({
       url: asset.url,
       width: asset.width,
-      height: asset.height
+      height: asset.height,
     });
     if (success) {
       onClose();
@@ -116,84 +110,91 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({ isOpen, onClose }) =
 
   const handleDeleteAsset = async (assetId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const asset = assets.find(a => a.id === assetId);
+    const asset = assets.find((a) => a.id === assetId);
     if (asset) {
       await deleteAsset(assetId, asset.url);
-      setAssets(prevAssets => prevAssets.filter(a => a.id !== assetId));
+      setAssets((prevAssets) => prevAssets.filter((a) => a.id !== assetId));
     }
   };
 
   const mapAssetsToImageItems = (assets: Asset[]) => {
-    return assets.map(asset => ({
+    return assets.map((asset) => ({
       id: asset.id,
       url: asset.url,
-      status: 'completed' as const
+      status: "completed" as const,
     }));
   };
 
   // Add this effect to handle search
   useEffect(() => {
-    const searchUnsplash = async () => {
-      if (!unsplashQuery.trim()) return;
+    if (!unsplashQuery.trim()) {
+      useStore.setState({ unsplashImages: [] });
+      return;
+    }
 
+    // Clear previous timeout
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    // Set new timeout
+    searchDebounceRef.current = setTimeout(async () => {
+      useStore.setState({ unsplashLoading: true });
       try {
-        const response = await fetch(`/.netlify/functions/unsplash-search?query=${encodeURIComponent(unsplashQuery)}`);
+        const response = await fetch(
+          `/.netlify/functions/unsplash-search?query=${encodeURIComponent(
+            unsplashQuery
+          )}`
+        );
         const data = await response.json();
-
-        // Update Unsplash images in store
         useStore.setState({
           unsplashImages: data.results,
-          unsplashLoading: false
+          unsplashLoading: false,
         });
       } catch (error) {
-        console.error('Unsplash search error:', error);
-        useStore.setState({ unsplashLoading: false });
+        console.error("Unsplash search error:", error);
+        useStore.setState({
+          unsplashImages: [],
+          unsplashLoading: false,
+        });
+      }
+    }, 800); // Increased debounce time
+
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
       }
     };
-
-    // Debounce the search
-    const timeoutId = setTimeout(() => {
-      if (unsplashQuery) {
-        useStore.setState({ unsplashLoading: true });
-        searchUnsplash();
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
   }, [unsplashQuery]);
 
-
   return (
-    <Drawer
-      title="Assets"
-      isOpen={isOpen}
-      onClose={onClose}
-      position="left"
-    >
+    <Drawer title="Assets" isOpen={isOpen} onClose={onClose} position="left">
       <div className="flex flex-col h-full">
         <div className="flex border-b border-gray-200">
           <button
-            onClick={() => setActiveTab('my-assets')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'my-assets'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+            onClick={() => setActiveTab("my-assets")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === "my-assets"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
           >
             My Assets
           </button>
           <button
-            onClick={() => setActiveTab('stock')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'stock'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+            onClick={() => setActiveTab("stock")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === "stock"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
           >
             Stock Images
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {activeTab === 'my-assets' && (
+          {activeTab === "my-assets" && (
             <div className="p-4">
               <input
                 ref={fileInputRef}
@@ -212,18 +213,20 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({ isOpen, onClose }) =
                 ) : (
                   <Upload className="w-5 h-5" />
                 )}
-                {uploading ? 'Uploading...' : 'Upload Image'}
+                {uploading ? "Uploading..." : "Upload Image"}
               </button>
               <ImageGrid
                 images={mapAssetsToImageItems(assets)}
                 loading={loading}
                 emptyMessage="No uploaded assets yet"
-                onImageClick={(image) => handleAssetClick(assets.find(a => a.id === image.id)!)}
+                onImageClick={(image) =>
+                  handleAssetClick(assets.find((a) => a.id === image.id)!)
+                }
                 onImageDelete={handleDeleteAsset}
               />
             </div>
           )}
-          {activeTab === 'stock' && (
+          {activeTab === "stock" && (
             <div className="p-4">
               <div className="relative mb-3">
                 <input
@@ -236,31 +239,33 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({ isOpen, onClose }) =
                 <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               </div>
               <ImageGrid
-
-                images={unsplashImages?.map(img => ({
-                  id: img.id,
-                  url: img.urls.regular,
-                  thumbnailUrl: img.urls.thumb,
-                  alt: img.alt_description || 'Unsplash image',
-                  status: 'completed' as const,
-
-                })) || []}
+                images={
+                  unsplashImages?.map((img) => ({
+                    id: img.id,
+                    url: img.urls.regular,
+                    thumbnailUrl: img.urls.thumb,
+                    alt: img.alt_description || "Unsplash image",
+                    status: "completed" as const,
+                  })) || []
+                }
                 loading={unsplashLoading}
                 emptyMessage="Search for images to get started"
                 onImageClick={(image) => {
-                  const unsplashImage = unsplashImages.find(img => img.id === image.id);
+                  const unsplashImage = unsplashImages.find(
+                    (img) => img.id === image.id
+                  );
                   if (unsplashImage) {
                     handleAssetClick({
                       id: unsplashImage.id,
                       url: unsplashImage.urls.regular,
                       created_at: new Date().toISOString(),
-                      user_id: '',
+                      user_id: "",
                       width: unsplashImage.width,
-                      height: unsplashImage.height
+                      height: unsplashImage.height,
                     });
                   }
                 }}
-                onImageDelete={() => { }}
+                onImageDelete={() => {}}
                 showViewButton={false}
                 imageUrlKey="thumbnailUrl"
               />

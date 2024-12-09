@@ -58,12 +58,23 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (set, ge
     setIsEditingText: (isEditingText: boolean) => set({ isEditingText }),
 
 
-    setShapes: (shapes) => set(state => ({
-        shapes,
-        history: [...state.history.slice(0, state.historyIndex + 1), shapes].slice(-MAX_HISTORY),
-        historyIndex: state.historyIndex + 1,
-        selectedShapes: []
-    })),
+    setShapes: (shapes) => set(state => {
+        // Validate shape data
+        const validShapes = shapes.filter(shape => {
+            const hasRequiredProps = shape.id && shape.type && shape.position
+            if (!hasRequiredProps) {
+                console.warn('Invalid shape:', shape)
+            }
+            return hasRequiredProps
+        })
+
+        return {
+            shapes: validShapes,
+            history: [...state.history.slice(0, state.historyIndex + 1), validShapes].slice(-MAX_HISTORY),
+            historyIndex: state.historyIndex + 1,
+            selectedShapes: []
+        }
+    }),
 
     addShape: (shape: Shape) => set(state => ({
         shapes: [{
