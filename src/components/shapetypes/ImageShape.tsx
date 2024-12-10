@@ -161,6 +161,11 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
           draggable={false}
         />
       )}
+      {shape.isProcessingSubject && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        </div>
+      )}
     </div>
   );
 };

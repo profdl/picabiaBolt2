@@ -19,7 +19,10 @@ export interface Project {
   thumbnail: string | null;
 }
 export interface Shape {
-  getCanvasImage?: () => string | undefined;
+  isProcessingSubject?: boolean;
+  subjectPreviewUrl?: string;
+  hasSubjectGenerated?: boolean;
+    getCanvasImage?: () => string | undefined;
   locked?: boolean;
   isEditing: boolean;
   isNew?: boolean;
@@ -173,4 +176,14 @@ export interface DrawerState {
   unsplashQuery: string;
   unsplashImages: UnsplashImage[];
   unsplashLoading: boolean;
+}
+
+export interface StoreState {
+  shapes: Shape[];
+  addShape: (shape: Shape) => void;
+  setSelectedShapes: (ids: string[]) => void;
+  addGeneratingPrediction: (id: string) => void;
+  removeGeneratingPrediction: (id: string) => void;
+  updateShape: (id: string, props: Partial<Shape>) => void;
+  error: string | null;
 }

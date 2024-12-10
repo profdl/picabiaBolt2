@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useStore } from "../store";
 import { Shape } from "../types";
-import { supabase } from "../lib/supabase";
+import getSubjectWorkflow from "../lib/getSubject_workflow.json";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -16,6 +16,11 @@ export function ShapeControls({
   handleResizeStart,
 }: ShapeControlsProps) {
   const { updateShape, shapes, setSelectedShapes } = useStore();
+
+  const handleGenerateSubject = useStore(
+    (state) => state.handleGenerateSubject
+  );
+
   const generatePreprocessedImage = useStore(
     (state) => state.generatePreprocessedImage
   );
@@ -286,45 +291,62 @@ export function ShapeControls({
               ))}
           </div>
         )}
-      {/* Download button for images */}
+      {/* Image Controls - Download and Select Subject buttons */}
       {shape.type === "image" && shape.imageUrl && isSelected && (
-        <div
-          className="absolute -left-0 -bottom-7 w-6 h-6 bg-white border border-gray-200 rounded-2px cursor-pointer hover:bg-gray-50 flex items-center justify-center shadow-sm"
-          style={{ zIndex: 101, pointerEvents: "all" }}
-          onClick={async (e) => {
-            e.stopPropagation();
-            if (shape.imageUrl) {
-              const response = await fetch(shape.imageUrl);
-              const blob = await response.blob();
-              const url = window.URL.createObjectURL(blob);
-              const link = document.createElement("a");
-              link.href = url;
-              link.download = `image-${shape.id}.png`;
-              link.style.display = "none";
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              window.URL.revokeObjectURL(url);
-            }
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-gray-600"
+        <>
+          {/* Download button */}
+          <div
+            className="absolute -left-0 -bottom-7 w-6 h-6 bg-white border border-gray-200 rounded-2px cursor-pointer hover:bg-gray-50 flex items-center justify-center shadow-sm"
+            style={{ zIndex: 101, pointerEvents: "all" }}
+            onClick={async (e) => {
+              e.stopPropagation();
+              if (shape.imageUrl) {
+                const response = await fetch(shape.imageUrl);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `image-${shape.id}.png`;
+                link.style.display = "none";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+              }
+            }}
           >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-        </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-gray-600"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </div>
+
+          {/* Select Subject button */}
+          <div
+            className="absolute left-8 -bottom-7 px-2 h-6 bg-white border border-gray-200 rounded cursor-pointer hover:bg-gray-50 flex items-center justify-center shadow-sm whitespace-nowrap"
+            style={{ zIndex: 101, pointerEvents: "all" }}
+            onClick={async (e) => {
+              e.stopPropagation();
+              if (shape.imageUrl) {
+                await handleGenerateSubject(shape);
+              }
+            }}
+          >
+            <span className="text-xs text-gray-600">Select Subject</span>
+          </div>
+        </>
       )}
 
       {/* Resize handle */}
