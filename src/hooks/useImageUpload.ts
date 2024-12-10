@@ -23,12 +23,12 @@ export const useImageUpload = () => {
             model: "",
             useSettings: false,
             isEditing: false,
-            depthStrength: 0,
-            edgesStrength: 0,
-            contentStrength: 0,
-            poseStrength: 0,
-            scribbleStrength: 0,
-            remixStrength: 0
+            depthStrength: 0.75,
+            edgesStrength: 0.75,
+            contentStrength: 0.75,
+            poseStrength: 0.75,
+            scribbleStrength: 0.75,
+            remixStrength: 0.75
         });
 
         try {
@@ -51,12 +51,12 @@ export const useImageUpload = () => {
                 model: "",
                 useSettings: false,
                 isEditing: false,
-                depthStrength: 0,
-                edgesStrength: 0,
-                contentStrength: 0,
-                poseStrength: 0,
-                scribbleStrength: 0,
-                remixStrength: 0
+                depthStrength: 0.75,
+                edgesStrength: 0.75,
+                contentStrength: 0.75,
+                poseStrength: 0.75,
+                scribbleStrength: 0.75,
+                remixStrength: 0.75
             });
 
             deleteShape(tempId);

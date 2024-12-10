@@ -1,14 +1,14 @@
-import { useState, useRef } from 'react';
-import { useStore } from '../store';
-import { Link, useLocation } from 'react-router-dom';
-import { Save } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { ProjectsSidebar } from './ProjectsSidebar';
-import { useProjects } from '../hooks/useProjects';
-import { generateThumbnail } from '../utils/thumbnail';
-import { Menu } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef } from "react";
+import { useStore } from "../store";
+import { Link, useLocation } from "react-router-dom";
+import { Save } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { ProjectsSidebar } from "./ProjectsSidebar";
+import { useProjects } from "../hooks/useProjects";
+import { generateThumbnail } from "../utils/thumbnail";
+import { Menu } from "lucide-react";
+import { supabase } from "../lib/supabase";
+import { useNavigate } from "react-router-dom";
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
@@ -16,19 +16,19 @@ export const Navbar = () => {
   const [isSaving, setIsSaving] = useState(false);
   const location = useLocation();
   const { updateProject } = useProjects();
-  const shapes = useStore(state => state.shapes);
-  const isBoard = location.pathname.startsWith('/board/');
-  const boardId = isBoard ? location.pathname.split('/')[2] : null;
+  const shapes = useStore((state) => state.shapes);
+  const isBoard = location.pathname.startsWith("/board/");
+  const boardId = isBoard ? location.pathname.split("/")[2] : null;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const handleMouseEnter = () => setIsMenuOpen(true);
   const handleMouseLeave = () => setIsMenuOpen(false);
   const { createProject } = useProjects();
   const navigate = useNavigate();
-  const addShape = useStore(state => state.addShape);
-  const zoom = useStore(state => state.zoom);
-  const offset = useStore(state => state.offset);
-  const setTool = useStore(state => state.setTool);
+  const addShape = useStore((state) => state.addShape);
+  const zoom = useStore((state) => state.zoom);
+  const offset = useStore((state) => state.offset);
+  const setTool = useStore((state) => state.setTool);
 
   const helpContent = `
 >>  DOUBLE CLICK this sticky to enable scrolling the text. <<
@@ -85,35 +85,34 @@ Tips for Effective Use
   const addHelpNote = () => {
     const center = {
       x: (window.innerWidth / 2 - offset.x) / zoom,
-      y: (window.innerHeight / 2 - offset.y) / zoom
+      y: (window.innerHeight / 2 - offset.y) / zoom,
     };
 
     addShape({
       id: Math.random().toString(36).substr(2, 9),
-      type: 'sticky',
+      type: "sticky",
       position: {
         x: center.x - 200,
-        y: center.y - 250
+        y: center.y - 250,
       },
       width: 500,
       height: 300,
-      color: '#fff9c4',
+      color: "#fff9c4",
       content: helpContent,
       fontSize: 14,
       rotation: 0,
       isUploading: false,
-      model: '',
+      model: "",
       useSettings: false,
       isEditing: false,
-      depthStrength: 0,
-      edgesStrength: 0,
-      contentStrength: 0,
-      poseStrength: 0,
-      scribbleStrength: 0,
-      remixStrength: 0
+      depthStrength: 0.75,
+      edgesStrength: 0.75,
+      contentStrength: 0.75,
+      poseStrength: 0.75,
+      scribbleStrength: 0.75,
+      remixStrength: 0.75,
     });
   };
-
 
   const handleSave = async () => {
     if (!boardId) return;
@@ -123,31 +122,36 @@ Tips for Effective Use
       const fileName = `${boardId}-${Date.now()}.webp`;
 
       // Extract just the binary data
-      const base64Data = thumbnailBase64.replace(/^data:image\/\w+;base64,/, '');
-      const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+      const base64Data = thumbnailBase64.replace(
+        /^data:image\/\w+;base64,/,
+        ""
+      );
+      const binaryData = Uint8Array.from(atob(base64Data), (c) =>
+        c.charCodeAt(0)
+      );
 
       // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
-        .from('assets')
+        .from("assets")
         .upload(fileName, binaryData, {
-          contentType: 'image/webp',
-          upsert: true
+          contentType: "image/webp",
+          upsert: true,
         });
 
       if (uploadError) throw uploadError;
 
       // Get the clean URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('assets')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("assets").getPublicUrl(fileName);
 
       // Update project with clean URL
       await updateProject(boardId, {
         shapes,
-        thumbnail: publicUrl
+        thumbnail: publicUrl,
       });
     } catch (error) {
-      console.error('Failed to save project:', error);
+      console.error("Failed to save project:", error);
     } finally {
       setIsSaving(false);
     }
@@ -156,16 +160,15 @@ Tips for Effective Use
     if (isBoard && boardId) {
       await handleSave();
     }
-    window.location.href = '/';
+    window.location.href = "/";
   };
-
 
   const handleDashboardClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (isBoard && boardId) {
       await handleSave();
     }
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   const handleNewProjectClick = async (e: React.MouseEvent) => {
@@ -175,13 +178,13 @@ Tips for Effective Use
     }
     const newProject = await createProject({
       shapes: [],
-      name: 'Untitled'
+      name: "Untitled",
     });
     navigate(`/board/${newProject.id}`);
   };
 
   const { projects } = useProjects();
-  const currentProject = projects.find(p => p.id === boardId);
+  const currentProject = projects.find((p) => p.id === boardId);
 
   const handleDuplicateProject = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -192,13 +195,13 @@ Tips for Effective Use
       // Create new project with current shapes
       const newProject = await createProject({
         shapes: [],
-        name: `Copy of ${currentProject?.name || 'Untitled Project'}`
+        name: `Copy of ${currentProject?.name || "Untitled Project"}`,
       });
 
       // Update the new project with current shapes
       await updateProject(newProject.id, {
         shapes,
-        name: `Copy of ${boardId}`
+        name: `Copy of ${boardId}`,
       });
 
       navigate(`/board/${newProject.id}`);
@@ -210,10 +213,14 @@ Tips for Effective Use
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center gap-4">
-              <Link to="/" className="flex items-center" onClick={(e) => {
-                e.preventDefault();
-                handleNavigation();
-              }}>
+              <Link
+                to="/"
+                className="flex items-center"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleNavigation();
+                }}
+              >
                 <span className="text-xl font-bold text-gray-900">Picabia</span>
               </Link>
               {isBoard && (
@@ -260,7 +267,7 @@ Tips for Effective Use
                             addHelpNote();
                             setIsMenuOpen(false);
                             menuRef.current?.blur();
-                            setTool('select');
+                            setTool("select");
                           }}
                         >
                           Help
@@ -276,18 +283,16 @@ Tips for Effective Use
                   <span>Saving...</span>
                 </div>
               )}
-
             </div>
-            {user ? (<div className="flex items-center gap-4">
-
-              <button
-                onClick={logout}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md text-sm font-medium"
-              >
-                Sign Out
-              </button>
-
-            </div>
+            {user ? (
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={logout}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md text-sm font-medium"
+                >
+                  Sign Out
+                </button>
+              </div>
             ) : (
               <div className="flex items-center gap-4">
                 <Link
@@ -307,8 +312,10 @@ Tips for Effective Use
           </div>
         </div>
       </nav>
-      <ProjectsSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <ProjectsSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
     </>
   );
-}
-
+};

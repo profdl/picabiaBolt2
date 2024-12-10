@@ -78,12 +78,12 @@ export function useCanvasMouseHandlers() {
                 isUploading: false,
                 model: '',
                 useSettings: false,
-                depthStrength: 0,
-                edgesStrength: 0,
-                contentStrength: 0,
-                poseStrength: 0,
-                scribbleStrength: 0,
-                remixStrength: 0,
+                depthStrength: 0.75,
+                edgesStrength: 0.75,
+                contentStrength: 0.75,
+                poseStrength: 0.75,
+                scribbleStrength: 0.75,
+                remixStrength: 0.75,
                 isEditing: false
             };
             setDrawingShape(newShape);

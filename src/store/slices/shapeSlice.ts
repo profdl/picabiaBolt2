@@ -79,18 +79,17 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (set, ge
     addShape: (shape: Shape) => set(state => ({
         shapes: [{
             ...shape,
-            depthStrength: shape.depthStrength ?? 0.75,
-            edgesStrength: shape.edgesStrength ?? 0.75,
-            contentStrength: shape.contentStrength ?? 0.5,
-            poseStrength: shape.poseStrength ?? 0.75,
-            scribbleStrength: shape.scribbleStrength ?? 0.5,
-            remixStrength: shape.remixStrength ?? 0.5,
+            depthStrength: 0.75,    // Changed from 0
+            edgesStrength: 0.75,    // Changed from 0
+            contentStrength: 0.75,   // Changed from 0
+            poseStrength: 0.75,     // Changed from 0
+            scribbleStrength: 0.75,  // Changed from 0
+            remixStrength: 0.75,     // Changed from 0
         }, ...state.shapes],
         history: [...state.history.slice(0, state.historyIndex + 1), [...state.shapes, shape]],
         historyIndex: state.historyIndex + 1,
         selectedShapes: [shape.id]
     })),
-
     addShapes: (newShapes) => set(state => {
         const updatedShapes = [...state.shapes, ...newShapes];
         return {
@@ -350,12 +349,12 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (set, ge
             model: '',
             useSettings: false,
             isEditing: false,
-            depthStrength: 0,
-            edgesStrength: 0,
-            contentStrength: 0,
-            poseStrength: 0,
-            scribbleStrength: 0,
-            remixStrength: 0
+            depthStrength: 0.75,
+            edgesStrength: 0.75,
+            contentStrength: 0.75,
+            poseStrength: 0.75,
+            scribbleStrength: 0.75,
+            remixStrength: 0.75
         };
 
         const updatedShapes = state.shapes.map(shape =>
