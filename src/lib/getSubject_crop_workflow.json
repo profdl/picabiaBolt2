@@ -1,0 +1,93 @@
+{
+  "14": {
+    "inputs": {
+      "image": "https://picsum.photos/200/300",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "28": {
+    "inputs": {
+      "rembg_session": [
+        "69",
+        0
+      ],
+      "image": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "ImageRemoveBackground+",
+    "_meta": {
+      "title": "🔧 Image Remove Background"
+    }
+  },
+  "53": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "67",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "67": {
+    "inputs": {
+      "top": [
+        "68",
+        2
+      ],
+      "left": [
+        "68",
+        3
+      ],
+      "right": [
+        "68",
+        4
+      ],
+      "bottom": [
+        "68",
+        5
+      ],
+      "image": [
+        "28",
+        0
+      ]
+    },
+    "class_type": "Image Crop Location",
+    "_meta": {
+      "title": "Image Crop Location"
+    }
+  },
+  "68": {
+    "inputs": {
+      "padding": 0,
+      "region_type": "dominant",
+      "mask": [
+        "28",
+        1
+      ]
+    },
+    "class_type": "Mask Crop Region",
+    "_meta": {
+      "title": "Mask Crop Region"
+    }
+  },
+  "69": {
+    "inputs": {
+      "model": "u2net: general purpose",
+      "providers": "CPU"
+    },
+    "class_type": "RemBGSession+",
+    "_meta": {
+      "title": "🔧 RemBG Session"
+    }
+  }
+}
