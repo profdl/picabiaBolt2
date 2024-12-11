@@ -348,17 +348,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
       setIsEditing(true);
       setIsEditingText(true);
       handleStickyInteraction();
-      // Focus and select all text immediately
       if (textRef.current) {
         textRef.current.focus();
         textRef.current.select();
       }
     } else if (shape.type === "image") {
       e.stopPropagation();
-      const newUrl = window.prompt("Enter image URL:", shape.imageUrl);
-      if (newUrl) {
-        updateShape(shape.id, { imageUrl: newUrl });
-      }
+      updateShape(shape.id, { isImageEditing: true });
     }
   };
 

@@ -19,17 +19,27 @@ export interface Project {
   thumbnail: string | null;
 }
 export interface Shape {
+  isImageEditing?: boolean;
   isProcessingSubject?: boolean;
   subjectPreviewUrl?: string;
   hasSubjectGenerated?: boolean;
-    getCanvasImage?: () => string | undefined;
+  getCanvasImage?: () => string | undefined;
   locked?: boolean;
   isEditing: boolean;
   isNew?: boolean;
   model: string;
   useSettings: boolean;
   id: string;
-  type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'drawing' | 'sketchpad' | 'group' | 'diffusionSettings';
+  type:
+    | "rectangle"
+    | "circle"
+    | "text"
+    | "sticky"
+    | "image"
+    | "drawing"
+    | "sketchpad"
+    | "group"
+    | "diffusionSettings";
   position: Position;
   content?: string;
   width: number;
@@ -100,7 +110,7 @@ export interface CanvasState {
   zoom: number;
   offset: Position;
   isDragging: boolean;
-  tool: 'select' | 'pan' | 'pen' | 'brush' | 'eraser';
+  tool: "select" | "pan" | "pen" | "brush" | "eraser";
   locked: boolean;
   history: Shape[][];
   historyIndex: number;
@@ -127,7 +137,7 @@ export interface CanvasState {
   setZoom: (zoom: number, center?: Position) => void;
   setOffset: (offset: Position) => void;
   setIsDragging: (isDragging: boolean) => void;
-  setTool: (tool: 'select' | 'pan' | 'pen' | 'brush' | 'eraser') => void;
+  setTool: (tool: "select" | "pan" | "pen" | "brush" | "eraser") => void;
   setCurrentColor: (color: string) => void;
   setStrokeWidth: (width: number) => void;
   undo: () => void;
@@ -146,7 +156,6 @@ export interface ContextMenuState {
   y: number;
   items: ContextMenuItem[];
 }
-
 
 export interface WorkflowNode {
   inputs: Record<string, unknown>;

@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { Shape } from "../../types";
 import { useStore } from "../../store";
 import { supabase } from "../../lib/supabase";
+import { ImageEditor } from "./ImageEditor";
 
 interface ImageShapeProps {
   shape: Shape;
@@ -89,6 +90,19 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
   }, [shape.id, updateShape]);
   return (
     <div className="relative w-full h-full">
+      {shape.isImageEditing ? (
+        <ImageEditor shape={shape} updateShape={updateShape} />
+      ) : (
+        <>
+          <img
+            src={shape.imageUrl}
+            alt="Original image"
+            className="absolute w-full h-full object-cover"
+            draggable={false}
+          />
+          {/* Rest of your existing layers */}
+        </>
+      )}
       {/* Base image */}
       <img
         src={shape.imageUrl}
