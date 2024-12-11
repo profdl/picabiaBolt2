@@ -124,6 +124,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[1000] bg-black/50 flex items-center justify-center">
       <div className="bg-white rounded-lg p-6 flex flex-col">
+        {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium">Edit Image</h3>
           <Button
@@ -134,6 +135,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           </Button>
         </div>
 
+        {/* Image Container with fixed height */}
         <div className="w-[400px] h-[400px] flex items-center justify-center">
           <ReactCrop
             crop={crop}
@@ -151,6 +153,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           </ReactCrop>
         </div>
 
+        {/* Footer */}
         <div className="flex justify-end gap-2 mt-4">
           <Button
             variant="outline"
