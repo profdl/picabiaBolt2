@@ -1,24 +1,21 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useStore } from "../store";
-import { Position } from "../types";
 import { ShapeComponent } from "./Shape";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
-import { useImageUpload } from "../hooks/useImageUpload";
 import { useCanvasMouseHandlers } from "../hooks/useCanvasMouseHandlers";
+import { useCanvasDragAndDrop } from "../hooks/useCanvasDragAndDrop";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [spacePressed] = useState(false);
 
-  const [isDraggingFile, setIsDraggingFile] = useState(false);
-
-  const { handleImageUpload } = useImageUpload();
   const {
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
     drawingShape,
     selectionBox,
+    getCanvasPoint,
   } = useCanvasMouseHandlers();
 
   const {
@@ -34,34 +31,8 @@ export function Canvas() {
     selectedShapes,
     isEditingText,
   } = useStore();
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingFile(false);
 
-    const files = Array.from(e.dataTransfer.files);
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
-    const point = getCanvasPoint(e);
-
-    for (const file of imageFiles) {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-
-      img.onload = async () => {
-        const ratio = img.naturalWidth / img.naturalHeight;
-        const baseWidth = 512; // Base width
-        await handleImageUpload(file, point, {
-          width: baseWidth,
-          height: baseWidth / ratio,
-        });
-        URL.revokeObjectURL(url);
-      };
-      img.src = url;
-    }
-  };
-
-  // Initialize keyboard shortcuts
-  useKeyboardShortcuts();
-
+  // Center the canvas when the component mounts
   useEffect(() => {
     if (canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
@@ -72,92 +43,10 @@ export function Canvas() {
     }
   }, [setOffset]);
 
-  const handleWheel = useCallback(
-    (e: WheelEvent) => {
-      const isEditingSticky = shapes.some(
-        (shape) =>
-          shape.type === "sticky" &&
-          selectedShapes.includes(shape.id) &&
-          isEditingText
-      );
-      if (isEditingSticky) return;
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts();
 
-      // Existing diffusion settings check
-      const isDiffusionSettings = (e.target as Element)?.closest(
-        '[data-shape-type="diffusionSettings"]'
-      );
-      if (isDiffusionSettings) return;
-
-      if (e.ctrlKey) {
-        const rect = canvasRef.current?.getBoundingClientRect();
-        if (!rect) return;
-
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        const mouseCanvasX = (mouseX - offset.x) / zoom;
-        const mouseCanvasY = (mouseY - offset.y) / zoom;
-
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        const newZoom = Math.min(Math.max(zoom * delta, 0.1), 5);
-
-        setZoom(newZoom);
-        setOffset({
-          x: mouseX - mouseCanvasX * newZoom,
-          y: mouseY - mouseCanvasY * newZoom,
-        });
-      } else {
-        setOffset({
-          x: offset.x - e.deltaX,
-          y: offset.y - e.deltaY,
-        });
-      }
-    },
-    [zoom, offset, setZoom, setOffset, shapes, selectedShapes, isEditingText]
-  );
-
-  useEffect(() => {
-    const preventDefaultZoom = (e: WheelEvent) => {
-      if (e.ctrlKey) {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener("wheel", preventDefaultZoom, { passive: false });
-    return () => window.removeEventListener("wheel", preventDefaultZoom);
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.addEventListener("wheel", handleWheel, { passive: false });
-    return () => canvas.removeEventListener("wheel", handleWheel);
-  }, [handleWheel]);
-
-  const getCanvasPoint = (e: React.MouseEvent | React.DragEvent): Position => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-
-    // Get the mouse position relative to the canvas
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    // Convert to canvas coordinates considering zoom and offset
-    return {
-      x: (mouseX - offset.x) / zoom,
-      y: (mouseY - offset.y) / zoom,
-    };
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingFile(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDraggingFile(false);
-  };
-
+  // Render the grid
   const renderGrid = () => {
     if (!gridEnabled || !canvasRef.current || !shapes) return null;
 
@@ -220,6 +109,75 @@ export function Canvas() {
     );
   };
 
+  // Block the browser's default zoom behavior
+  useEffect(() => {
+    const preventDefaultZoom = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("wheel", preventDefaultZoom, { passive: false });
+    return () => window.removeEventListener("wheel", preventDefaultZoom);
+  }, []);
+
+  // Handle zooming with the mouse wheel
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      const isEditingSticky = shapes.some(
+        (shape) =>
+          shape.type === "sticky" &&
+          selectedShapes.includes(shape.id) &&
+          isEditingText
+      );
+      if (isEditingSticky) return;
+
+      // Existing diffusion settings check
+      const isDiffusionSettings = (e.target as Element)?.closest(
+        '[data-shape-type="diffusionSettings"]'
+      );
+      if (isDiffusionSettings) return;
+
+      if (e.ctrlKey) {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const mouseCanvasX = (mouseX - offset.x) / zoom;
+        const mouseCanvasY = (mouseY - offset.y) / zoom;
+
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        const newZoom = Math.min(Math.max(zoom * delta, 0.1), 5);
+
+        setZoom(newZoom);
+        setOffset({
+          x: mouseX - mouseCanvasX * newZoom,
+          y: mouseY - mouseCanvasY * newZoom,
+        });
+      } else {
+        setOffset({
+          x: offset.x - e.deltaX,
+          y: offset.y - e.deltaY,
+        });
+      }
+    },
+    [zoom, offset, setZoom, setOffset, shapes, selectedShapes, isEditingText]
+  );
+
+  // Add event listeners for zooming
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", handleWheel);
+  }, [handleWheel]);
+
+  // Handle drag and drop events for adding images to the canvas
+  const { isDraggingFile, handleDrop, handleDragOver, handleDragLeave } =
+    useCanvasDragAndDrop();
+
   return (
     <div
       ref={canvasRef}
@@ -236,7 +194,7 @@ export function Canvas() {
       onMouseLeave={handleMouseUp}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      onDrop={(e) => handleDrop(e, canvasRef, getCanvasPoint)}
     >
       {isDraggingFile && (
         <div className="absolute inset-0 bg-blue-500/10 border-2 border-blue-500 border-dashed z-50 pointer-events-none flex items-center justify-center">
