@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "../store";
 import { Shape } from "../types";
+import { ChevronDown } from "lucide-react";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -14,6 +15,67 @@ export function ShapeControls({
   isSelected,
   handleResizeStart,
 }: ShapeControlsProps) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Check if click is outside the dropdown
+      if (isDropdownOpen && !target.closest(".action-dropdown")) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isDropdownOpen]);
+
+  // Action handlers
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (shape.imageUrl) {
+      try {
+        const response = await fetch(shape.imageUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `image-${shape.id}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Download failed:", error);
+      }
+    }
+    setIsDropdownOpen(false);
+  };
+
+  const handleSelectSubject = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (shape.imageUrl) {
+      try {
+        await handleGenerateSubject(shape);
+      } catch (error) {
+        console.error("Select subject failed:", error);
+      }
+    }
+    setIsDropdownOpen(false);
+  };
+
+  const handleCrop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    updateShape(shape.id, { isImageEditing: true });
+    setIsDropdownOpen(false);
+  };
+
   const prompts = [
     "A wilted rose droops beside an antique cracked porcelain teacup and weathered book, chiaroscuro lighting casting long shadows against gradient background.",
     "Chaotic sculptural installation featuring intricately knotted silk cords and suspended translucent resin forms casting delicate web-like shadows across dimly lit gallery walls and floor.",
@@ -320,62 +382,51 @@ export function ShapeControls({
               ))}
           </div>
         )}
-      {/* Image Controls - Download and Select Subject buttons */}
+      {/* Image Controls – Action Dropdown */}
       {shape.type === "image" && shape.imageUrl && isSelected && (
-        <>
-          {/* Download button */}
-          <div
-            className="absolute -left-0 -bottom-7 w-6 h-6 bg-white border border-gray-200 rounded-2px cursor-pointer hover:bg-gray-50 flex items-center justify-center shadow-sm"
-            style={{ zIndex: 101, pointerEvents: "all" }}
-            onClick={async (e) => {
-              e.stopPropagation();
-              if (shape.imageUrl) {
-                const response = await fetch(shape.imageUrl);
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = `image-${shape.id}.png`;
-                link.style.display = "none";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(url);
-              }
-            }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-gray-600"
+        <div
+          className="absolute -left-0 -bottom-7 action-dropdown"
+          style={{ zIndex: 101, pointerEvents: "all" }}
+        >
+          <div className="relative">
+            <button
+              className="flex items-center gap-1 px-2 h-6 bg-white border border-gray-200 rounded hover:bg-gray-50 shadow-sm cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsDropdownOpen(!isDropdownOpen);
+              }}
             >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          </div>
+              <span className="text-xs text-gray-600">Actions</span>
+              <ChevronDown className="w-3 h-3 text-gray-500" />
+            </button>
 
-          {/* Select Subject button */}
-          <div
-            className="absolute left-8 -bottom-7 px-2 h-6 bg-white border border-gray-200 rounded cursor-pointer hover:bg-gray-50 flex items-center justify-center shadow-sm whitespace-nowrap"
-            style={{ zIndex: 101, pointerEvents: "all" }}
-            onClick={async (e) => {
-              e.stopPropagation();
-              if (shape.imageUrl) {
-                await handleGenerateSubject(shape);
-              }
-            }}
-          >
-            <span className="text-xs text-gray-600">Select Subject</span>
+            {isDropdownOpen && (
+              <div
+                className="absolute left-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded shadow-lg py-1"
+                style={{ zIndex: 1002 }}
+              >
+                <button
+                  className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  onClick={handleDownload}
+                >
+                  Download
+                </button>
+                <button
+                  className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  onClick={handleSelectSubject}
+                >
+                  Select Subject
+                </button>
+                <button
+                  className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  onClick={handleCrop}
+                >
+                  Crop
+                </button>
+              </div>
+            )}
           </div>
-        </>
+        </div>
       )}
 
       {/* Resize handle */}
