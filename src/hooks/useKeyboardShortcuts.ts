@@ -1,5 +1,5 @@
-import { useEffect, useCallback } from 'react';
-import { useStore } from '../store';
+import { useEffect, useCallback } from "react";
+import { useStore } from "../store";
 
 export function useKeyboardShortcuts() {
   const {
@@ -10,101 +10,141 @@ export function useKeyboardShortcuts() {
     cutShapes,
     pasteShapes,
     deleteShapes,
-    undo,
-    redo,
-    setSelectedShapes
+
+    setSelectedShapes,
+    updateShape,
+    setIsEditingText,
   } = useStore();
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Ignore shortcuts when typing in input fields
-    const isInput = e.target instanceof HTMLInputElement ||
-      e.target instanceof HTMLTextAreaElement;
-    if (isInput) return;
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      // Existing checks for input fields
+      const isInput =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement;
+      if (isInput) return;
 
-    // Space for pan tool
-    if (e.code === 'Space') {
-      e.preventDefault();
-      setTool('pan');
-    }
+      // Add new check for printable characters when shape is selected
+      const isPrintableKey = e.key.length === 1 && !e.ctrlKey && !e.metaKey;
+      const selectedShape = shapes.find((s) => selectedShapes.includes(s.id));
 
-    // Single key shortcuts (when no modifier keys are pressed)
-    if (!e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-      switch (e.key.toLowerCase()) {
-        case 'v':
-          e.preventDefault();
-          setTool('select');
-          break;
-        case 'p':
-          e.preventDefault();
-          setTool('pen');
-          break;
-        case 'escape':
-          e.preventDefault();
-          setSelectedShapes([]);
-          break;
+      if (
+        isPrintableKey &&
+        selectedShape &&
+        (selectedShape.type === "text" || selectedShape.type === "sticky")
+      ) {
+        e.preventDefault();
+        setIsEditingText(true);
+        updateShape(selectedShape.id, {
+          content: (selectedShape.content || "") + e.key,
+          isEditing: true,
+        });
+        return;
       }
-    }
 
-    // Command/Control shortcuts
-    if ((e.metaKey || e.ctrlKey) && !e.altKey) {
-      switch (e.key.toLowerCase()) {
-        case 'c': // Copy
-          e.preventDefault();
-          if (selectedShapes.length > 0) {
-            copyShapes();
-          }
-          break;
-
-        case 'x': // Cut
-          e.preventDefault();
-          if (selectedShapes.length > 0) {
-            cutShapes();
-          }
-          break;
-
-        case 'v': // Paste
-          e.preventDefault();
-          pasteShapes();
-          break;
-
-        // case 'z': // Undo/Redo
-        //   e.preventDefault();
-        //   if (e.shiftKey) {
-        //     redo();
-        //   } else {
-        //     undo();
-        //   }
-        //   break;
-
-        case 'a': // Select all
-          e.preventDefault();
-          if (shapes?.length) {
-            setSelectedShapes(shapes.map(shape => shape.id));
-          }
-          break;
+      // Space for pan tool
+      if (e.code === "Space") {
+        e.preventDefault();
+        setTool("pan");
       }
-    }
 
-    // Delete/Backspace
-    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShapes.length > 0) {
-      e.preventDefault();
-      deleteShapes(selectedShapes);
-    }
-  }, [selectedShapes, shapes, setTool, copyShapes, cutShapes, pasteShapes, deleteShapes, setSelectedShapes]);
+      // Single key shortcuts (when no modifier keys are pressed)
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        switch (e.key.toLowerCase()) {
+          case "v":
+            e.preventDefault();
+            setTool("select");
+            break;
+          case "p":
+            e.preventDefault();
+            setTool("pen");
+            break;
+          case "escape":
+            e.preventDefault();
+            setSelectedShapes([]);
+            break;
+        }
+      }
 
-  const handleKeyUp = useCallback((e: KeyboardEvent) => {
-    if (e.code === 'Space') {
-      e.preventDefault();
-      setTool('select');
-    }
-  }, [setTool]);
+      // Command/Control shortcuts
+      if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+        switch (e.key.toLowerCase()) {
+          case "c": // Copy
+            e.preventDefault();
+            if (selectedShapes.length > 0) {
+              copyShapes();
+            }
+            break;
+
+          case "x": // Cut
+            e.preventDefault();
+            if (selectedShapes.length > 0) {
+              cutShapes();
+            }
+            break;
+
+          case "v": // Paste
+            e.preventDefault();
+            pasteShapes();
+            break;
+
+          // case 'z': // Undo/Redo
+          //   e.preventDefault();
+          //   if (e.shiftKey) {
+          //     redo();
+          //   } else {
+          //     undo();
+          //   }
+          //   break;
+
+          case "a": // Select all
+            e.preventDefault();
+            if (shapes?.length) {
+              setSelectedShapes(shapes.map((shape) => shape.id));
+            }
+            break;
+        }
+      }
+
+      // Delete/Backspace
+      if (
+        (e.key === "Delete" || e.key === "Backspace") &&
+        selectedShapes.length > 0
+      ) {
+        e.preventDefault();
+        deleteShapes(selectedShapes);
+      }
+    },
+    [
+      shapes,
+      selectedShapes,
+      setIsEditingText,
+      updateShape,
+      setTool,
+      setSelectedShapes,
+      pasteShapes,
+      copyShapes,
+      cutShapes,
+      deleteShapes,
+    ]
+  );
+
+  const handleKeyUp = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        setTool("select");
+      }
+    },
+    [setTool]
+  );
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
     };
   }, [handleKeyDown, handleKeyUp]);
 }

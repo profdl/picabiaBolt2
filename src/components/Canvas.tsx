@@ -19,8 +19,15 @@ export function Canvas() {
     getCanvasPoint,
   } = useCanvasMouseHandlers();
 
-  const { shapes, isDragging, tool, gridEnabled, gridSize, setOffset } =
-    useStore();
+  const {
+    shapes,
+    isDragging,
+    tool,
+    gridEnabled,
+    gridSize,
+    setOffset,
+    setSelectedShapes,
+  } = useStore();
 
   // Center the canvas when the component mounts
   useEffect(() => {
@@ -105,7 +112,6 @@ export function Canvas() {
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
-
   return (
     <div
       ref={canvasRef}
@@ -120,6 +126,12 @@ export function Canvas() {
       onMouseMove={(e) => handleMouseMove(e, canvasRef)}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onClick={(e) => {
+        // Only deselect if clicking directly on the canvas background
+        if (e.target === e.currentTarget) {
+          setSelectedShapes([]);
+        }
+      }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={(e) => handleDrop(e, canvasRef, getCanvasPoint)}

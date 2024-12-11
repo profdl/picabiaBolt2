@@ -182,11 +182,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     tool,
     setTool,
     offset,
-
     toggleGallery,
     handleGenerate,
     shapes,
     generatingPredictions,
+    setSelectedShapes,
+    setIsEditingText,
   } = useStore();
 
   const hasActivePrompt = useMemo(
@@ -340,66 +341,51 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         }
       });
 
-      // Array of prompts
-      const prompts = [
-        "A wilted rose droops beside an antique cracked porcelain teacup and weathered book, chiaroscuro lighting casting long shadows against gradient background.",
-        "Chaotic sculptural installation featuring intricately knotted silk cords and suspended translucent resin forms casting delicate web-like shadows across dimly lit gallery walls and floor.",
-        "Surreal organic wall relief sculpture showcasing deep crater-like voids and roughly welded metallic surfaces, softly illuminated by angled lights in raw industrial studio space.",
-        "Minimalist wooden bench crafted with sharp geometric lines and exposed joinery, positioned under single bright spotlight in pristine white gallery space, emphasizing natural wood grain.",
-        "Large abstract painting rendered in cool blues and misty greys suggesting layers of mountain fog, displayed on stark gallery wall above polished concrete floor catching subtle reflections.",
-        "Vibrant swimming pool scene captured from above, featuring crystal turquoise water rippling around hot pink pool floats, surrounded by pristine white tiles under bright summer sunlight.",
-        "Surreal dark kitchen scene where animated silver cutlery dances around grotesque food sculptures, creating eerie movements in deep shadows beneath dim vintage lighting fixtures.",
-        "Dynamic kaleidoscopic photomontage combining fragmented human faces, classical architectural details, and mechanical parts arranged in spiraling patterns across experimental gallery installation.",
-        "Striking black and white photograph capturing mysterious overlap of classical mannequin head, elongated chess piece shadow, and spiral staircase under harsh directional studio lighting.",
-        "Bold geometric photography composition featuring angular metallic surfaces intersecting with deep shadows, arranged within clean lines of modernist concrete and glass architectural setting.",
-        "Immersive installation of chaotic cardboard sculptures and crumpled metallic shapes, interspersed with urgent handwritten text fragments creating sense of disorder.",
-        "Meticulously detailed gallery wall covered in precise rows of handwritten graphite patterns creating overwhelming sense of academic intensity.",
-        "Sleek modern record player featuring minimalist aluminum body and warm wooden accents, photographed on clean desk surface in softly lit contemporary living space.",
-        "Inviting lounge chair showcasing gently curved wooden shell and rich leather upholstery, positioned near floor-to-ceiling window overlooking lush garden landscape in afternoon light.",
-        "Ultramodern chrome citrus juicer with striking design and elegant mechanical details, centered on expansive pristine white marble kitchen counter under subtle spotlighting.",
-        "Bold sculptural coffee table featuring fluid pink-and-orange curves and high-gloss surfaces, glowing dramatically in vibrantly decorated modern living space with ambient lighting.",
-        "Nature-inspired modern house design showcasing strong horizontal lines and dramatic cantilevered roofs, photographed during golden hour as it blends seamlessly into wooded landscape.",
-        "Spacious open-plan studio apartment featuring modular grid-based furniture and primary-colored storage shelving, naturally lit through towering industrial windows with city views.",
-        "Elegant modernist glass pavilion surrounded by serene reflecting pool capturing sky reflections, sparsely furnished with classic pieces amongst mature trees and landscaping.",
-        "Contemporary museum building showcasing transparent glass facade supported by intricate steel framework, photographed overlooking bustling urban plaza filled with visitors.",
-        "Artfully curved wooden dining chair with smooth lacquer finish positioned at round marble table, surrounded by refined Scandinavian-inspired decor in elegant dining space.",
-        "Dramatic interior featuring sweeping sculptural staircase inspired by seashell spirals, enhanced by cleverly hidden lighting elements reflecting off polished stone floors.",
-        "Industrial-style desk lamp combining matte black steel framework with natural wood base elements, positioned on raw metal workbench in minimalist creative studio setting.",
-      ];
-
-      // Randomly select a prompt from the array
-      function getRandomPrompt() {
-        const randomIndex = Math.floor(Math.random() * prompts.length);
-        return prompts[randomIndex];
-      }
-
       // Function to add a sticky note with a random prompt
-      addShape({
-        id: Math.random().toString(36).substr(2, 9),
-        type,
-        position: {
-          x: center.x - size / 2,
-          y: center.y - size / 2,
-        },
-        width: size * 1.5,
-        height: size,
-        color: "#90EE90", // Green color
-        content: getRandomPrompt(), // Use a random prompt
-        fontSize: 16,
-        rotation: 0,
-        showPrompt: true, // Automatically enable text prompt
-        isUploading: false,
-        useSettings: false,
-        model: "",
-        isNew: true, // Add this flag
-        isEditing: false,
-        depthStrength: 0,
-        edgesStrength: 0,
-        contentStrength: 0,
-        poseStrength: 0,
-        scribbleStrength: 0,
-        remixStrength: 0,
-      });
+      if (type === "sticky") {
+        const shapeId = Math.random().toString(36).substr(2, 9);
+
+        // Add the shape
+        addShape({
+          id: shapeId,
+          type,
+          position: {
+            x: center.x - size / 2,
+            y: center.y - size / 2,
+          },
+          width: size * 1.5,
+          height: size,
+          color: "#90EE90",
+          content: "",
+          fontSize: 16,
+          rotation: 0,
+          showPrompt: true,
+          isUploading: false,
+          useSettings: false,
+          model: "",
+          isNew: true,
+          isEditing: true,
+          depthStrength: 0,
+          edgesStrength: 0,
+          contentStrength: 0,
+          poseStrength: 0,
+          scribbleStrength: 0,
+          remixStrength: 0,
+        });
+
+        // Set tool to select and select the new shape
+        setTool("select");
+        setSelectedShapes([shapeId]);
+        setIsEditingText(true);
+
+        // Focus the shape
+        requestAnimationFrame(() => {
+          const shapeElement = document.getElementById(shapeId);
+          if (shapeElement) {
+            shapeElement.focus();
+          }
+        });
+      }
     } else {
       // Handle other shape types as before
       addShape({

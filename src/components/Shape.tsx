@@ -232,6 +232,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
   useEffect(() => {
     if (isEditing && textRef.current) {
       textRef.current.focus();
+      const length = textRef.current.value.length;
+      textRef.current.setSelectionRange(length, length);
     }
   }, [isEditing]);
   useEffect(() => {
@@ -358,9 +360,20 @@ export function ShapeComponent({ shape }: ShapeProps) {
     }
   };
 
+  const handleBlur = () => {
+    setIsEditing(false);
+    setIsEditingText(false);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (selectedShapes.includes(shape.id) && e.key === "Delete") {
-      deleteShape(shape.id);
+    if (selectedShapes.includes(shape.id)) {
+      if (e.key === "Delete") {
+        deleteShape(shape.id);
+      } else if (e.shiftKey && e.key === "Enter") {
+        setIsEditing(false);
+        setIsEditingText(false);
+        setSelectedShapes([]);
+      }
     }
   };
 
@@ -432,7 +445,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
           ref={textRef}
           value={shape.content || ""}
           onChange={(e) => updateShape(shape.id, { content: e.target.value })}
-          onBlur={() => setIsEditing(false)}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
           onMouseDown={(e) => {
             if (isEditing) {
               e.stopPropagation();
@@ -449,7 +463,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
           readOnly={!isEditing}
         />
       </div>
-
       {/* Controls layer */}
       {tool === "select" && (
         <div
