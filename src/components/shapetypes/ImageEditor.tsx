@@ -73,7 +73,6 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
     try {
       const asset = await uploadAsset(file);
       if (asset) {
-        // Calculate new dimensions based on crop aspect ratio
         const cropAspectRatio = crop.width / crop.height;
         let newWidth = shape.width;
         let newHeight = shape.height;
@@ -84,19 +83,21 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           newWidth = shape.height * cropAspectRatio;
         }
 
-        // Find rightmost shape position
         const rightmostX = Math.max(
           ...shapes.map((s) => s.position.x + s.width)
         );
-        const spacing = 20; // Gap between shapes
+        const spacing = 20;
 
-        addShape({
+        const newShapePosition = {
+          x: rightmostX + spacing,
+          y: shape.position.y,
+        };
+
+        // Add the new shape
+        const newShape = {
           id: Math.random().toString(36).substr(2, 9),
           type: "image",
-          position: {
-            x: rightmostX + spacing,
-            y: shape.position.y,
-          },
+          position: newShapePosition,
           width: newWidth,
           height: newHeight,
           color: "#ffffff",
@@ -112,6 +113,19 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           poseStrength: 0.75,
           scribbleStrength: 0.75,
           remixStrength: 0.75,
+        };
+
+        addShape(newShape);
+
+        // Animate canvas to center the new shape
+        const centerX = newShapePosition.x + newWidth / 2;
+        const centerY = newShapePosition.y + newHeight / 2;
+
+        // Using window.scrollTo with smooth behavior
+        window.scrollTo({
+          left: centerX - window.innerWidth / 2,
+          top: centerY - window.innerHeight / 2,
+          behavior: "smooth",
         });
       }
     } catch (error) {
@@ -124,19 +138,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[1000] bg-black/50 flex items-center justify-center">
       <div className="bg-white rounded-lg p-6 flex flex-col">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Edit Image</h3>
-          <Button
-            variant="ghost"
-            onClick={() => updateShape(shape.id, { isImageEditing: false })}
-          >
-            Cancel
-          </Button>
-        </div>
-
         {/* Image Container with fixed height */}
-        <div className="w-[400px] h-[400px] flex items-center justify-center">
+        <div className="w-[600px] h-[400px] flex items-center justify-center overflow-hidden">
           <ReactCrop
             crop={crop}
             onChange={(c) => setCrop(c)}
@@ -148,7 +151,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
               src={shape.imageUrl}
               alt="Edit"
               crossOrigin="anonymous"
-              className="max-h-[400px] max-w-[400px] object-contain"
+              className="max-h-[350px] w-auto object-contain" // Updated styles
+              style={{ maxHeight: "350px" }} // Added max-width constraint
             />
           </ReactCrop>
         </div>

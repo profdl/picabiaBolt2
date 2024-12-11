@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../store";
 import { Shape } from "../types";
-import { ChevronDown } from "lucide-react";
+import { ImageActionDropdown } from "./ImageActionDropdown";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -16,6 +16,8 @@ export function ShapeControls({
   handleResizeStart,
 }: ShapeControlsProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { sendToBack, sendToFront, sendBackward, sendForward, deleteShape } =
+    useStore();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -388,47 +390,21 @@ export function ShapeControls({
           className="absolute -left-0 -bottom-7 action-dropdown"
           style={{ zIndex: 101, pointerEvents: "all" }}
         >
-          <div className="relative">
-            <button
-              className="flex items-center gap-1 px-2 h-6 bg-white border border-gray-200 rounded hover:bg-gray-50 shadow-sm cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsDropdownOpen(!isDropdownOpen);
-              }}
-            >
-              <span className="text-xs text-gray-600">Actions</span>
-              <ChevronDown className="w-3 h-3 text-gray-500" />
-            </button>
-
-            {isDropdownOpen && (
-              <div
-                className="absolute left-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded shadow-lg py-1"
-                style={{ zIndex: 1002 }}
-              >
-                <button
-                  className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer"
-                  onClick={handleDownload}
-                >
-                  Download
-                </button>
-                <button
-                  className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer"
-                  onClick={handleSelectSubject}
-                >
-                  Select Subject
-                </button>
-                <button
-                  className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer"
-                  onClick={handleCrop}
-                >
-                  Crop
-                </button>
-              </div>
-            )}
-          </div>
+          <ImageActionDropdown
+            shape={shape}
+            isDropdownOpen={isDropdownOpen}
+            setIsDropdownOpen={setIsDropdownOpen}
+            onSelectSubject={handleSelectSubject}
+            onCrop={handleCrop}
+            onDownload={handleDownload}
+            sendToBack={() => sendToBack()}
+            sendToFront={() => sendToFront()}
+            sendBackward={() => sendBackward()}
+            sendForward={() => sendForward()}
+            deleteShape={() => deleteShape(shape.id)}
+          />
         </div>
       )}
-
       {/* Resize handle */}
       {showManipulationControls && (
         <div

@@ -9,6 +9,7 @@ import { historySlice } from "./slices/historySlice";
 import { uiSlice } from "./slices/uiSlice";
 import { generationHandlerSlice } from "./slices/generationHandlerSlice";
 import { subjectGenerationSlice } from "./slices/subjectGenerationSlice";
+import { imageTrimSlice } from "./slices/imageTrimSlice";
 
 type State = {
   [K in keyof ReturnType<typeof shapeSlice>]: ReturnType<typeof shapeSlice>[K];
@@ -40,6 +41,10 @@ type State = {
   [K in keyof ReturnType<typeof subjectGenerationSlice>]: ReturnType<
     typeof subjectGenerationSlice
   >[K];
+} & {
+  [K in keyof ReturnType<typeof imageTrimSlice>]: ReturnType<
+    typeof imageTrimSlice
+  >[K];
 };
 
 export const useStore = create<State>()(
@@ -54,6 +59,7 @@ export const useStore = create<State>()(
       ...uiSlice(...a),
       ...generationHandlerSlice(...a),
       ...subjectGenerationSlice(...a),
+      ...imageTrimSlice(...a),
     }),
     { name: "PicabiaBolt Store" }
   )
