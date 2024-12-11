@@ -316,7 +316,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
       >
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         {isSelected && tool === "select" && (
           <ShapeControls
             shape={shape}
@@ -348,6 +348,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
       setIsEditing(true);
       setIsEditingText(true);
       handleStickyInteraction();
+      // Focus and select all text immediately
+      if (textRef.current) {
+        textRef.current.focus();
+        textRef.current.select();
+      }
     } else if (shape.type === "image") {
       e.stopPropagation();
       const newUrl = window.prompt("Enter image URL:", shape.imageUrl);
@@ -376,7 +381,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
       />
     );
   }
-  const shapeStyles = getShapeStyles(shape, isSelected, shapes, tool);
+  const shapeStyles = getShapeStyles(
+    shape,
+    isSelected,
+    shapes,
+    tool,
+    isEditing
+  );
 
   return (
     <div style={{ position: "absolute", width: 0, height: 0 }}>
@@ -392,7 +403,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
         tabIndex={0}
-        className="group transition-shadow hover:shadow-xl relative"
+        className={`group transition-shadow hover:shadow-xl relative ${
+          isEditing ? "ring-2 ring-blue-500 ring-opacity-50" : ""
+        }`}
       >
         {shape.type === "sketchpad" && (
           <SketchpadShape
@@ -419,7 +432,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
         )}
 
         {shape.type === "image" && <ImageShape shape={shape} />}
-
         <textarea
           ref={textRef}
           value={shape.content || ""}
@@ -431,9 +443,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
             }
           }}
           className={`w-full h-full bg-transparent resize-none outline-none text-left ${
-            isEditing ? "" : "pointer-events-none"
+            isEditing ? "cursor-text" : "cursor-default pointer-events-none"
           }`}
-          style={{ fontSize: shape.fontSize || 16, scrollbarWidth: "thin" }}
+          style={{
+            fontSize: shape.fontSize || 16,
+            scrollbarWidth: "thin",
+            cursor: isEditing ? "text" : "default",
+          }}
           readOnly={!isEditing}
         />
       </div>

@@ -101,7 +101,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
       {shape.showDepth &&
         (preprocessingStates[shape.id]?.depth ? (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50">
-            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
         ) : (
           shape.depthPreviewUrl && (
@@ -118,7 +118,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
       {shape.showEdges &&
         (useStore.getState().preprocessingStates[shape.id]?.edge ? (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50">
-            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
         ) : (
           shape.edgePreviewUrl && (
@@ -136,7 +136,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
       {shape.showPose &&
         (useStore.getState().preprocessingStates[shape.id]?.pose ? (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50">
-            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
         ) : (
           shape.posePreviewUrl && (
@@ -171,7 +171,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
       )}
       {shape.isProcessingSubject && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
       )}
     </div>
