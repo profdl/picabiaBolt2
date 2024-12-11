@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useStore } from "../store";
 import { ShapeComponent } from "./Shape";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useCanvasMouseHandlers } from "../hooks/useCanvasMouseHandlers";
 import { useCanvasDragAndDrop } from "../hooks/useCanvasDragAndDrop";
+import { useCanvasZoom } from "../hooks/useCanvasZoom";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -18,19 +19,8 @@ export function Canvas() {
     getCanvasPoint,
   } = useCanvasMouseHandlers();
 
-  const {
-    shapes,
-    zoom,
-    offset,
-    isDragging,
-    tool,
-    gridEnabled,
-    gridSize,
-    setOffset,
-    setZoom,
-    selectedShapes,
-    isEditingText,
-  } = useStore();
+  const { shapes, isDragging, tool, gridEnabled, gridSize, setOffset } =
+    useStore();
 
   // Center the canvas when the component mounts
   useEffect(() => {
@@ -42,9 +32,6 @@ export function Canvas() {
       });
     }
   }, [setOffset]);
-
-  // Initialize keyboard shortcuts
-  useKeyboardShortcuts();
 
   // Render the grid
   const renderGrid = () => {
@@ -109,74 +96,15 @@ export function Canvas() {
     );
   };
 
-  // Block the browser's default zoom behavior
-  useEffect(() => {
-    const preventDefaultZoom = (e: WheelEvent) => {
-      if (e.ctrlKey) {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener("wheel", preventDefaultZoom, { passive: false });
-    return () => window.removeEventListener("wheel", preventDefaultZoom);
-  }, []);
-
-  // Handle zooming with the mouse wheel
-  const handleWheel = useCallback(
-    (e: WheelEvent) => {
-      const isEditingSticky = shapes.some(
-        (shape) =>
-          shape.type === "sticky" &&
-          selectedShapes.includes(shape.id) &&
-          isEditingText
-      );
-      if (isEditingSticky) return;
-
-      // Existing diffusion settings check
-      const isDiffusionSettings = (e.target as Element)?.closest(
-        '[data-shape-type="diffusionSettings"]'
-      );
-      if (isDiffusionSettings) return;
-
-      if (e.ctrlKey) {
-        const rect = canvasRef.current?.getBoundingClientRect();
-        if (!rect) return;
-
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        const mouseCanvasX = (mouseX - offset.x) / zoom;
-        const mouseCanvasY = (mouseY - offset.y) / zoom;
-
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        const newZoom = Math.min(Math.max(zoom * delta, 0.1), 5);
-
-        setZoom(newZoom);
-        setOffset({
-          x: mouseX - mouseCanvasX * newZoom,
-          y: mouseY - mouseCanvasY * newZoom,
-        });
-      } else {
-        setOffset({
-          x: offset.x - e.deltaX,
-          y: offset.y - e.deltaY,
-        });
-      }
-    },
-    [zoom, offset, setZoom, setOffset, shapes, selectedShapes, isEditingText]
-  );
-
-  // Add event listeners for zooming
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.addEventListener("wheel", handleWheel, { passive: false });
-    return () => canvas.removeEventListener("wheel", handleWheel);
-  }, [handleWheel]);
+  // Zoom in and out
+  const { zoom, offset } = useCanvasZoom(canvasRef);
 
   // Handle drag and drop events for adding images to the canvas
   const { isDraggingFile, handleDrop, handleDragOver, handleDragLeave } =
     useCanvasDragAndDrop();
+
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts();
 
   return (
     <div

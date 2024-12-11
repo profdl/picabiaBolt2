@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useStore } from "../store";
 import { Shape } from "../types";
-import getSubjectWorkflow from "../lib/getSubject_workflow.json";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -222,13 +221,9 @@ export function ShapeControls({
                       <div className="flex items-center gap-1.5">
                         <input
                           type="checkbox"
-                          checked={
-                            control.showKey in shape
-                              ? (shape[
-                                  control.showKey as keyof Shape
-                                ] as boolean)
-                              : false
-                          }
+                          checked={Boolean(
+                            shape[control.showKey as keyof Shape]
+                          )}
                           onChange={(e) => handleCheckboxChange(control, e)}
                           className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-0"
                           style={{ pointerEvents: "all" }}
@@ -265,11 +260,13 @@ export function ShapeControls({
                               max={control.type === "Remix" ? "2.0" : "1"}
                               step="0.05"
                               value={
-                                control.strengthKey in shape
+                                typeof shape[
+                                  control.strengthKey as keyof Shape
+                                ] === "number"
                                   ? (shape[
                                       control.strengthKey as keyof Shape
-                                    ] as number) ?? 0.5
-                                  : 0.5
+                                    ] as number)
+                                  : 0.75
                               }
                               onMouseEnter={() => setIsHovering(true)}
                               onMouseLeave={() => setIsHovering(false)}

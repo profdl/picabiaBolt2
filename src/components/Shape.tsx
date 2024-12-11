@@ -11,7 +11,6 @@ import { ImageShape } from "./shapetypes/ImageShape";
 import { useShapeResize } from "../hooks/useShapeResize";
 import { DrawingShape } from "./shapetypes/DrawingShape";
 import { SketchpadShape } from "./shapetypes/SketchpadShape";
-
 interface ShapeProps {
   shape: Shape;
 }

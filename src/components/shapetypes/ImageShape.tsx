@@ -10,6 +10,8 @@ interface ImageShapeProps {
 
 export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
   const updateShape = useStore((state) => state.updateShape);
+  // Add a selector to track the preprocessing state
+  const preprocessingStates = useStore((state) => state.preprocessingStates);
 
   // Subscription effect
   useEffect(() => {
@@ -23,19 +25,27 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
           table: "preprocessed_images",
         },
         (payload) => {
+          console.log("Received preprocessing update:", payload);
+
           if (payload.new.shapeId === shape.id) {
             const processType = payload.new.processType;
-            useStore.setState((state) => ({
-              ...state,
-              preprocessingStates: {
-                ...state.preprocessingStates,
-                [shape.id]: {
-                  ...state.preprocessingStates[shape.id],
-                  [processType]: false,
-                },
-              },
-            }));
 
+            // Update store state immediately
+            useStore.setState((state) => {
+              const newState = {
+                preprocessingStates: {
+                  ...state.preprocessingStates,
+                  [shape.id]: {
+                    ...state.preprocessingStates[shape.id],
+                    [processType]: false,
+                  },
+                },
+              };
+              console.log("New preprocessing state:", newState);
+              return newState;
+            });
+
+            // Update shape with new preview URL
             updateShape(shape.id, {
               [`${processType}PreviewUrl`]: payload.new[`${processType}Url`],
             });
@@ -48,7 +58,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
       channel.unsubscribe();
     };
   }, [shape.id, updateShape]);
-
   // Visibility change effect
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -90,7 +99,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
 
       {/* Depth layer */}
       {shape.showDepth &&
-        (useStore.getState().preprocessingStates[shape.id]?.depth ? (
+        (preprocessingStates[shape.id]?.depth ? (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50">
             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
           </div>
@@ -105,7 +114,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
             />
           )
         ))}
-
       {/* Edges layer */}
       {shape.showEdges &&
         (useStore.getState().preprocessingStates[shape.id]?.edge ? (
