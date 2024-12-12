@@ -420,7 +420,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
     set((state) => {
       const groupId = Math.random().toString(36).substr(2, 9);
       const groupedShapes = state.shapes.filter((s) => shapeIds.includes(s.id));
-
+      const group_padding = 20;
       const minX = Math.min(...groupedShapes.map((s) => s.position.x));
       const minY = Math.min(...groupedShapes.map((s) => s.position.y));
       const maxX = Math.max(
@@ -433,9 +433,12 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       const groupShape: Shape = {
         id: groupId,
         type: "group",
-        position: { x: minX, y: minY },
-        width: maxX - minX,
-        height: maxY - minY,
+        position: {
+          x: minX - group_padding,
+          y: minY - group_padding,
+        },
+        width: maxX - minX + group_padding * 2,
+        height: maxY - minY + group_padding * 2,
         color: "transparent",
         rotation: 0,
         isUploading: false,
@@ -457,6 +460,11 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       return {
         shapes: [groupShape, ...updatedShapes],
         selectedShapes: [groupId],
+        history: [
+          ...state.history.slice(0, state.historyIndex + 1),
+          [groupShape, ...updatedShapes],
+        ].slice(-MAX_HISTORY),
+        historyIndex: state.historyIndex + 1,
       };
     }),
 

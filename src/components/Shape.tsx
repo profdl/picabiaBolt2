@@ -40,6 +40,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const textRef = useRef<HTMLTextAreaElement>(null);
   const sketchPadRef = useRef<HTMLCanvasElement>(null);
   const [dragStart, setDragStart] = useState<DragStart | null>(null);
+  const group_padding = 20;
   const { handleResizeStart, setResizeStart } = useShapeResize(
     shape,
     zoom,
@@ -183,8 +184,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
     };
 
     const handleMouseUp = () => {
+      // In the handleMouseUp effect
       if (dragStart && shape.groupId) {
-        // Recalculate group boundaries after moving a shape within it
         const groupShape = shapes.find((s) => s.id === shape.groupId);
         if (groupShape) {
           const groupedShapes = shapes.filter(
@@ -200,12 +201,16 @@ export function ShapeComponent({ shape }: ShapeProps) {
           );
 
           updateShape(shape.groupId, {
-            position: { x: minX, y: minY },
-            width: maxX - minX,
-            height: maxY - minY,
+            position: {
+              x: minX - group_padding,
+              y: minY - group_padding,
+            },
+            width: maxX - minX + group_padding * 2,
+            height: maxY - minY + group_padding * 2,
           });
         }
       }
+
       setDragStart(null);
       setResizeStart(null);
     };

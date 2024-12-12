@@ -31,16 +31,17 @@ export const getShapeStyles = (
     pointerEvents: tool === "select" ? "all" : "none",
     cursor: tool === "select" ? "move" : "default",
     border:
-      shape.type === "sticky"
+      shape.type === "group"
+        ? "2px dashed #9CA3AF" // Gray dashed border for groups
+        : shape.type === "sticky"
         ? isEditing
-          ? "3px solid rgba(128, 128, 255, 1)" // Thicker, semi-transparent purple border
+          ? "3px solid rgba(128, 128, 255, 1)"
           : isSelected
-          ? "2px solid #2196f3" // Blue border for selected
+          ? "2px solid #2196f3"
           : "none"
         : isSelected
         ? "2px solid #2196f3"
         : "none",
-
     borderRadius: shape.type === "sticky" ? "8px" : "4px",
     display: "absolute",
     alignItems: "center",
