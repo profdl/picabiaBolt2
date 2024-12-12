@@ -1,6 +1,5 @@
 import { useCallback, useEffect } from "react";
 import { useStore } from "../store";
-import { Position } from "../types";
 
 export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
   const {
@@ -40,32 +39,35 @@ export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
       );
       if (isDiffusionSettings) return;
 
-      if (e.ctrlKey) {
-        const rect = canvasRef.current?.getBoundingClientRect();
-        if (!rect) return;
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
 
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
 
-        const mouseCanvasX = (mouseX - offset.x) / zoom;
-        const mouseCanvasY = (mouseY - offset.y) / zoom;
+      const mouseCanvasX = (mouseX - offset.x) / zoom;
+      const mouseCanvasY = (mouseY - offset.y) / zoom;
 
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        const newZoom = Math.min(Math.max(zoom * delta, 0.1), 5);
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.min(Math.max(zoom * delta, 0.1), 5);
 
-        setZoom(newZoom);
-        setOffset({
-          x: mouseX - mouseCanvasX * newZoom,
-          y: mouseY - mouseCanvasY * newZoom,
-        });
-      } else {
-        setOffset({
-          x: offset.x - e.deltaX,
-          y: offset.y - e.deltaY,
-        });
-      }
+      setZoom(newZoom);
+      setOffset({
+        x: mouseX - mouseCanvasX * newZoom,
+        y: mouseY - mouseCanvasY * newZoom,
+      });
     },
-    [zoom, offset, setZoom, setOffset, shapes, selectedShapes, isEditingText]
+    [
+      shapes,
+      canvasRef,
+      offset.x,
+      offset.y,
+      zoom,
+      setZoom,
+      setOffset,
+      selectedShapes,
+      isEditingText,
+    ]
   );
 
   useEffect(() => {
