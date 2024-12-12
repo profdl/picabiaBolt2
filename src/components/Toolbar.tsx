@@ -188,6 +188,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     generatingPredictions,
     setSelectedShapes,
     setIsEditingText,
+    updateShape,
   } = useStore();
 
   const hasActivePrompt = useMemo(
@@ -291,6 +292,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
       return;
     }
     if (type === "diffusionSettings") {
+      shapes.forEach((shape) => {
+        if (shape.type === "diffusionSettings") {
+          updateShape(shape.id, { useSettings: false });
+        }
+      });
       addShape({
         id: Math.random().toString(36).substr(2, 9),
         type: "diffusionSettings",
@@ -304,7 +310,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         rotation: 0,
         isUploading: false,
         useSettings: true,
-        // Initialize all numeric values
         steps: 30,
         outputQuality: 100,
         guidanceScale: 4.5,

@@ -1,16 +1,15 @@
-
 // GalleryDrawer.tsx
-import React, { useEffect } from 'react';
-import { Drawer } from './Drawer';
-import { useStore } from '../store';
-import ImageGrid from './ui/ImageGrid';
-import { ImageItem } from './ui/ImageGrid';
+import React, { useEffect } from "react";
+import { Drawer } from "./Drawer";
+import { useStore } from "../store";
+import ImageGrid from "./ui/ImageGrid";
+import { ImageItem } from "./ui/ImageGrid";
 interface SavedImage {
   id: string;
   generated_01: string;
   prompt?: string;
   created_at: string;
-  status: 'generating' | 'completed' | 'failed';
+  status: "generating" | "completed" | "failed";
   aspect_ratio: string;
 }
 interface GalleryDrawerProps {
@@ -20,9 +19,8 @@ interface GalleryDrawerProps {
   viewingImage: SavedImage | null;
 }
 
-
 export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
-  setViewingImage
+  setViewingImage,
 }) => {
   const {
     isGenerating,
@@ -30,8 +28,8 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
     fetchGeneratedImages,
     deleteGeneratedImage,
     addImageToCanvas,
-    isLoading
-  } = useStore(state => ({
+    isLoading,
+  } = useStore((state) => ({
     isGenerating: state.isGenerating,
     generatedImages: state.generatedImages,
     fetchGeneratedImages: state.fetchGeneratedImages,
@@ -39,10 +37,10 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
     addImageToCanvas: state.addImageToCanvas,
     galleryRefreshCounter: state.galleryRefreshCounter,
     refreshGallery: state.refreshGallery,
-    isLoading: state.isLoading
+    isLoading: state.isLoading,
   }));
 
-  const showGallery = useStore(state => state.showGallery);
+  const showGallery = useStore((state) => state.showGallery);
 
   useEffect(() => {
     if (showGallery) {
@@ -50,29 +48,20 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
     }
   }, [showGallery, fetchGeneratedImages]);
 
-
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
-
-    if (isGenerating) {
-      pollInterval = setInterval(() => {
-        fetchGeneratedImages();
-      }, 2000); // Poll every 2 seconds
+    if (showGallery) {
+      fetchGeneratedImages();
     }
-
-    return () => {
-      if (pollInterval) clearInterval(pollInterval);
-    };
-  }, [isGenerating, fetchGeneratedImages]);
+  }, [showGallery, fetchGeneratedImages]);
 
   const handleImageClick = async (image: ImageItem) => {
     const savedImage: SavedImage = {
       id: image.id,
-      generated_01: image.generated_01 || '',
+      generated_01: image.generated_01 || "",
       prompt: image.prompt,
       created_at: image.created_at || new Date().toISOString(),
-      status: image.status || 'completed',
-      aspect_ratio: image.aspect_ratio || '1:1'
+      status: image.status || "completed",
+      aspect_ratio: image.aspect_ratio || "1:1",
     };
 
     const success = await addImageToCanvas(
@@ -84,17 +73,15 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
     }
   };
 
-  const displayImages: ImageItem[] = generatedImages.map(img => ({
+  const displayImages: ImageItem[] = generatedImages.map((img) => ({
     id: img.id,
     url: img.generated_01,
     prompt: img.prompt,
-    status: img.status || 'completed',
+    status: img.status || "completed",
     created_at: img.created_at,
     aspect_ratio: img.aspect_ratio,
-    generated_01: img.generated_01
+    generated_01: img.generated_01,
   }));
-
-
 
   return (
     <Drawer
