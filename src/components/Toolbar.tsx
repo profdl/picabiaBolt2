@@ -18,6 +18,8 @@ import { useStore } from "../store";
 import { useState, useRef, useMemo } from "react";
 import { useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { Tooltip } from "./ui/Tooltip";
+
 // import { BrushShapeSelector } from './BrushShapeSelector';
 
 const AssetsButton = () => {
@@ -431,14 +433,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         {/* Center-aligned toolbar buttons */}
         <div className="flex items-center gap-2">
           {/* Sticky Note Button */}
-          <button
-            onClick={() => handleAddShape("sticky")}
-            className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
-            title="Add Sticky Note"
+          <Tooltip
+            content="Create a new sticky note. Use the text to guide the AI image generation."
+            side="bottom"
           >
-            <StickyNote className="w-5 h-5" />
-            <span className="text-sm font-medium">Text Prompt</span>
-          </button>
+            <button
+              onClick={() => handleAddShape("sticky")}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <span className="flex items-center gap-1">
+                <StickyNote className="w-5 h-5" />
+                <span className="text-sm font-medium">Text Prompt</span>
+              </span>
+            </button>
+          </Tooltip>
 
           {/* <button
             onClick={() => setTool('pen')}
@@ -608,31 +616,46 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           </button> */}
 
           {/* Image Generation Tools */}
-          <button
-            onClick={async () => {
-              await handleGenerate();
-            }}
-            disabled={!hasActivePrompt || generatingPredictions.size > 0}
-            className={`p-2 rounded-lg flex items-center gap-1 ${
-              hasActivePrompt && generatingPredictions.size === 0
-                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                : "opacity-50 cursor-not-allowed text-gray-400"
-            }`}
-            title={
-              !hasActivePrompt
-                ? "Select a sticky note and enable prompting to generate"
-                : "Generate Image"
+          <Tooltip
+            content={
+              !hasActivePrompt || generatingPredictions.size > 0 ? (
+                "Add a text or image prompt to activate. Make sure Text Prompt is checked on a Sticky Note that has a prompt written. Or add an image and check a control type such as Remix"
+              ) : (
+                <div>
+                  <p>
+                    All checked notes and images will effect the generated
+                    image.
+                  </p>
+                  <p>
+                    The first image may take up to 3 minutes to generate. After
+                    that it should only take a few seconds.
+                  </p>
+                </div>
+              )
             }
+            side="top"
           >
-            {generatingPredictions.size > 0 ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Sparkles className="w-5 h-5" />
-            )}
-            <span className="text-sm font-medium">
-              {generatingPredictions.size > 0 ? "Generating..." : "Generate"}
-            </span>
-          </button>
+            <button
+              onClick={async () => {
+                await handleGenerate();
+              }}
+              disabled={!hasActivePrompt || generatingPredictions.size > 0}
+              className={`p-2 rounded-lg flex items-center gap-1 ${
+                hasActivePrompt && generatingPredictions.size === 0
+                  ? "bg-blue-600 hover:bg-blue-700 text-white"
+                  : "opacity-50 cursor-not-allowed text-gray-400"
+              }`}
+            >
+              {generatingPredictions.size > 0 ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Sparkles className="w-5 h-5" />
+              )}
+              <span className="text-sm font-medium">
+                {generatingPredictions.size > 0 ? "Generating..." : "Generate"}
+              </span>
+            </button>
+          </Tooltip>
 
           {/* <SettingsButton /> */}
           <button

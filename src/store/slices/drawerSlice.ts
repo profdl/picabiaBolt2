@@ -341,7 +341,7 @@ export const drawerSlice: StateCreator<
   },
 
   addImageToCanvas: async (imageSource, options = {}) => {
-    const { zoom, offset, addShape, shapes, centerOnShape } = get();
+    const { zoom, offset, addShape, shapes } = get();
     const defaultWidth = options.defaultWidth || 300;
 
     try {
@@ -359,12 +359,12 @@ export const drawerSlice: StateCreator<
       const width = defaultWidth;
       const height = width / aspectRatio;
 
-      const center = options.position || {
-        x: (window.innerWidth / 2 - offset.x) / zoom,
-        y: (window.innerHeight / 2 - offset.y) / zoom,
-      };
-
-      const position = findOpenSpace(shapes, width, height, center);
+      const position =
+        options.position ||
+        findOpenSpace(shapes, width, height, {
+          x: (window.innerWidth / 2 - offset.x) / zoom,
+          y: (window.innerHeight / 2 - offset.y) / zoom,
+        });
 
       const shapeId = Math.random().toString(36).substr(2, 9);
       addShape({
@@ -391,7 +391,9 @@ export const drawerSlice: StateCreator<
         remixStrength: 0.5,
       });
 
-      centerOnShape(shapeId);
+      if (get().centerOnShape) {
+        get().centerOnShape(shapeId);
+      }
       return true;
     } catch (err) {
       console.error("Error adding image:", err);

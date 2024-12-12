@@ -18,6 +18,7 @@ interface UiState {
   showImageGenerate: unknown;
   setError: (error: string | null) => void;
   uploadAsset: (file: File) => Promise<Asset>;
+  showTooltips: boolean;
 }
 
 interface UiSlice {
@@ -45,6 +46,8 @@ interface UiSlice {
   removeUploadingAsset: (id: string) => void;
   triggerAssetsRefresh: () => void;
   uploadAsset: (file: File) => Promise<Asset>;
+  showTooltips: boolean;
+  toggleTooltips: () => void;
 }
 
 export const uiSlice: StateCreator<UiState, [], [], UiSlice> = (set) => ({
@@ -59,6 +62,8 @@ export const uiSlice: StateCreator<UiState, [], [], UiSlice> = (set) => ({
   galleryRefreshCounter: 0,
   uploadingAssets: [],
   assetsRefreshTrigger: 0,
+  showTooltips: true,
+  toggleTooltips: () => set((state) => ({ showTooltips: !state.showTooltips })),
   toggleImageGenerate: () =>
     set((state) => ({ showImageGenerate: !state.showImageGenerate })),
   toggleUnsplash: () => set((state) => ({ showUnsplash: !state.showUnsplash })),

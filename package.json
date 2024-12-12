@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@netlify/functions": "^2.6.0",
+    "@radix-ui/react-tooltip": "^1.1.4",
     "@supabase/supabase-js": "^2.39.7",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

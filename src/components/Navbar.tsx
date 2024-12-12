@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useStore } from "../store";
 import { Link, useLocation } from "react-router-dom";
-import { Save } from "lucide-react";
+import { Save, EyeOff, Eye } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { ProjectsSidebar } from "./ProjectsSidebar";
 import { useProjects } from "../hooks/useProjects";
@@ -25,94 +25,10 @@ export const Navbar = () => {
   const handleMouseLeave = () => setIsMenuOpen(false);
   const { createProject } = useProjects();
   const navigate = useNavigate();
-  const addShape = useStore((state) => state.addShape);
-  const zoom = useStore((state) => state.zoom);
-  const offset = useStore((state) => state.offset);
-  const setTool = useStore((state) => state.setTool);
-
-  const helpContent = `
->>  DOUBLE CLICK this sticky to enable scrolling the text. <<
-  
-  Using Picabia for AI Image Generation
-
-  Getting Started:
-  – Add reference images by dragging and dropping or using the upload button.
-  – Toggle the assets drawer to view the images you've added or search for more via Unsplash. 
-  – Add sticky notes and double-click to edit the text. Choose a sticky to use as a prompt for image Generation..
-  – Select Model: Choose AI model and adjust settings
-  
-------------------------------------------------
-ControlNet Features
-------------------------------------------------
-ControlNet allows you to use specific elements of an image as input for AI generation. 
-You can activate one mode at a time per image:
-
-- **Depth**: Leverages the 3D depth map of an image.
-- **Edges**: Extracts line art or boundaries.
-- **Pose**: Applies the pose or skeletal structure.
-- **Scribble**: Uses freehand sketches as input.
-
-Each mode has a **strength slider** to adjust how much the AI incorporates that control type. 
-Once a checkbox is selected, it may take 5 seconds to 1 minute to analyze the image.
-
-*Note*: Only one checkbox per mode (Depth, Edges, Pose, or Scribble) can be active 
-across all images at a time.
-
-------------------------------------------------
-Remix with IP-Adapter
-------------------------------------------------
-Remix mode allows you to combine one or more images as reference inputs for your generation.
-
-- Select the "Remix" checkbox for any image(s) you want to use.
-- Multiple images can have the Remix checkbox active at the same time.
-- Use the **strength slider** to control how strongly the selected images influence the output.
-
-------------------------------------------------
-Generating Images
-------------------------------------------------
-1. After setting your text prompt, adjusting sliders, and selecting checkboxes, click "Generate."
-2. The output image will immediately appear on the canvas in the center, but it may take 
-   10 seconds to 3 minutes (or longer) to fully render.
-
-------------------------------------------------
-Tips for Effective Use
-------------------------------------------------
-- Combine ControlNet and Remix features for fine-tuned control over style and structure.
-- Adjust sliders to experiment with the influence of your input images.
-- Be patient during analysis and generation times to allow the AI to produce the best results.
-`;
-
-  const addHelpNote = () => {
-    const center = {
-      x: (window.innerWidth / 2 - offset.x) / zoom,
-      y: (window.innerHeight / 2 - offset.y) / zoom,
-    };
-
-    addShape({
-      id: Math.random().toString(36).substr(2, 9),
-      type: "sticky",
-      position: {
-        x: center.x - 200,
-        y: center.y - 250,
-      },
-      width: 500,
-      height: 300,
-      color: "#fff9c4",
-      content: helpContent,
-      fontSize: 14,
-      rotation: 0,
-      isUploading: false,
-      model: "",
-      useSettings: false,
-      isEditing: false,
-      depthStrength: 0.75,
-      edgesStrength: 0.75,
-      contentStrength: 0.75,
-      poseStrength: 0.75,
-      scribbleStrength: 0.75,
-      remixStrength: 0.75,
-    });
-  };
+  const { showTooltips, toggleTooltips } = useStore((state) => ({
+    showTooltips: state.showTooltips,
+    toggleTooltips: state.toggleTooltips,
+  }));
 
   const handleSave = async () => {
     if (!boardId) return;
@@ -261,16 +177,20 @@ Tips for Effective Use
 
                         <Link
                           to="#"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between"
                           onClick={(e) => {
                             e.preventDefault();
-                            addHelpNote();
+                            toggleTooltips();
                             setIsMenuOpen(false);
                             menuRef.current?.blur();
-                            setTool("select");
                           }}
                         >
-                          Help
+                          <span>Toggle Tips</span>
+                          {showTooltips ? (
+                            <Eye className="w-4 h-4" />
+                          ) : (
+                            <EyeOff className="w-4 h-4" />
+                          )}
                         </Link>
                       </div>
                     </div>
