@@ -1,52 +1,36 @@
-// GalleryDrawer.tsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Drawer } from "./Drawer";
-import { useStore } from "../store";
 import ImageGrid from "./ui/ImageGrid";
 import { ImageItem } from "./ui/ImageGrid";
-interface SavedImage {
-  id: string;
-  generated_01: string;
-  prompt?: string;
-  created_at: string;
-  status: "generating" | "completed" | "failed";
-  aspect_ratio: string;
-}
+import { ImageDetailsModal, SavedImage } from "./ImageDetailsModal";
+import { useStore } from "../store";
+
 interface GalleryDrawerProps {
-  setViewingImage: (image: ImageItem | null) => void;
-  isOpen: boolean;
-  onClose: () => void;
-  viewingImage: SavedImage | null;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
-  setViewingImage,
-}) => {
+export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
+  const [viewingImage, setViewingImage] = useState<SavedImage | null>(null);
+
   const {
-    isGenerating,
     generatedImages,
     fetchGeneratedImages,
     deleteGeneratedImage,
     addImageToCanvas,
     isLoading,
+    showGallery,
+    toggleGallery,
   } = useStore((state) => ({
-    isGenerating: state.isGenerating,
     generatedImages: state.generatedImages,
     fetchGeneratedImages: state.fetchGeneratedImages,
     deleteGeneratedImage: state.deleteGeneratedImage,
     addImageToCanvas: state.addImageToCanvas,
-    galleryRefreshCounter: state.galleryRefreshCounter,
-    refreshGallery: state.refreshGallery,
     isLoading: state.isLoading,
+    showGallery: state.showGallery,
+    toggleGallery: state.toggleGallery,
   }));
-
-  const showGallery = useStore((state) => state.showGallery);
-
-  useEffect(() => {
-    if (showGallery) {
-      fetchGeneratedImages();
-    }
-  }, [showGallery, fetchGeneratedImages]);
 
   useEffect(() => {
     if (showGallery) {
@@ -55,21 +39,12 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
   }, [showGallery, fetchGeneratedImages]);
 
   const handleImageClick = async (image: ImageItem) => {
-    const savedImage: SavedImage = {
-      id: image.id,
-      generated_01: image.generated_01 || "",
-      prompt: image.prompt,
-      created_at: image.created_at || new Date().toISOString(),
-      status: image.status || "completed",
-      aspect_ratio: image.aspect_ratio || "1:1",
-    };
-
     const success = await addImageToCanvas(
-      { url: savedImage.generated_01 },
+      { url: image.url },
       { defaultWidth: 512 }
     );
     if (success) {
-      useStore.getState().toggleGallery();
+      toggleGallery();
     }
   };
 
@@ -77,31 +52,68 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = ({
     id: img.id,
     url: img.generated_01,
     prompt: img.prompt,
-    status: img.status || "completed",
+    status: img.status,
     created_at: img.created_at,
     aspect_ratio: img.aspect_ratio,
-    generated_01: img.generated_01,
+    alt: img.prompt || "Generated image",
   }));
 
+  const handleImageViewClick = (image: ImageItem) => {
+    const fullImage = generatedImages.find((img) => img.id === image.id);
+    if (fullImage) {
+      const index = generatedImages.indexOf(fullImage);
+      setCurrentImageIndex(index);
+      setViewingImage(fullImage);
+    }
+  };
+
+  const handleNext = () => {
+    const nextIndex = currentImageIndex + 1;
+    if (nextIndex < generatedImages.length) {
+      setCurrentImageIndex(nextIndex);
+      setViewingImage(generatedImages[nextIndex]);
+    }
+  };
+
+  const handlePrevious = () => {
+    const prevIndex = currentImageIndex - 1;
+    if (prevIndex >= 0) {
+      setCurrentImageIndex(prevIndex);
+      setViewingImage(generatedImages[prevIndex]);
+    }
+  };
+
   return (
-    <Drawer
-      title="Generated Images"
-      isOpen={showGallery}
-      onClose={() => useStore.getState().toggleGallery()}
-      position="right"
-    >
-      <div className="p-2">
-        <ImageGrid
-          images={displayImages}
-          loading={isLoading} // Use the loading state here
-          emptyMessage="No generated images yet"
-          onImageClick={handleImageClick}
-          onImageDelete={deleteGeneratedImage}
-          onViewDetails={setViewingImage}
-          showViewButton={true}
-          imageUrlKey="url"
+    <>
+      <Drawer
+        title="Generated Images"
+        isOpen={showGallery}
+        onClose={toggleGallery}
+        position="right"
+      >
+        <div className="p-2">
+          <ImageGrid
+            images={displayImages}
+            loading={isLoading}
+            emptyMessage="No generated images yet"
+            onImageClick={handleImageClick}
+            onImageDelete={deleteGeneratedImage}
+            onViewDetails={handleImageViewClick}
+            showViewButton={true}
+            imageUrlKey="url"
+          />
+        </div>
+      </Drawer>
+      {viewingImage && (
+        <ImageDetailsModal
+          image={viewingImage}
+          onClose={() => setViewingImage(null)}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
+          hasNext={currentImageIndex < generatedImages.length - 1}
+          hasPrevious={currentImageIndex > 0}
         />
-      </div>
-    </Drawer>
+      )}
+    </>
   );
 };
