@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useStore } from "../store";
 import { Shape } from "../types";
 import { ImageActionDropdown } from "./ImageActionDropdown";
+import { generatePrompt } from "../utils/prompt-generator";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -482,7 +483,7 @@ export function ShapeControls({
           style={{ zIndex: 101, pointerEvents: "all" }}
           onClick={(e) => {
             e.stopPropagation();
-            const randomPrompt = getRandomPrompt();
+            const randomPrompt = generatePrompt();
             updateShape(shape.id, {
               content: randomPrompt,
             });
