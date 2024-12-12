@@ -345,7 +345,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
       if (type === "sticky") {
         const shapeId = Math.random().toString(36).substr(2, 9);
 
-        // Add the shape
         addShape({
           id: shapeId,
           type,
@@ -364,7 +363,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           useSettings: false,
           model: "",
           isNew: true,
-          isEditing: true,
+          isEditing: false,
           depthStrength: 0,
           edgesStrength: 0,
           contentStrength: 0,
@@ -373,18 +372,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           remixStrength: 0,
         });
 
-        // Set tool to select and select the new shape
         setTool("select");
         setSelectedShapes([shapeId]);
         setIsEditingText(true);
-
-        // Focus the shape
-        requestAnimationFrame(() => {
-          const shapeElement = document.getElementById(shapeId);
-          if (shapeElement) {
-            shapeElement.focus();
-          }
-        });
       }
     } else {
       // Handle other shape types as before

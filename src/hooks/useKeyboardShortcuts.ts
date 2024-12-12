@@ -18,26 +18,25 @@ export function useKeyboardShortcuts() {
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // Existing checks for input fields
       const isInput =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
       if (isInput) return;
 
-      // Add new check for printable characters when shape is selected
       const isPrintableKey = e.key.length === 1 && !e.ctrlKey && !e.metaKey;
       const selectedShape = shapes.find((s) => selectedShapes.includes(s.id));
 
+      // Only allow text input if shape is in editing mode
       if (
         isPrintableKey &&
         selectedShape &&
-        (selectedShape.type === "text" || selectedShape.type === "sticky")
+        (selectedShape.type === "text" || selectedShape.type === "sticky") &&
+        selectedShape.isEditing
       ) {
         e.preventDefault();
         setIsEditingText(true);
         updateShape(selectedShape.id, {
           content: (selectedShape.content || "") + e.key,
-          isEditing: true,
         });
         return;
       }

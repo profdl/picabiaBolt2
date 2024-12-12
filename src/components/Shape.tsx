@@ -88,8 +88,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
     useBrush(sketchPadRef);
   const isSelected = selectedShapes.includes(shape.id);
 
+  // In the handleMouseDown function:
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (tool === "pan" || tool === "pen" || isEditing) return;
+    if (tool === "pan" || tool === "pen" || (isEditing && !shape.isNew)) return;
 
     // Prevent drag when clicking controls panel
     const controlsPanel = document.querySelector(
@@ -427,7 +428,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
             tool={tool}
           />
         )}
-
         {shape.type === "diffusionSettings" && (
           <DiffusionSettingsPanel
             shape={shape}
@@ -439,7 +439,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
             }}
           />
         )}
-
         {shape.type === "image" && <ImageShape shape={shape} />}
         <textarea
           ref={textRef}
@@ -448,7 +447,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           onMouseDown={(e) => {
-            if (isEditing) {
+            if (!isEditing) {
               e.stopPropagation();
             }
           }}
@@ -458,7 +457,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
           style={{
             fontSize: shape.fontSize || 16,
             scrollbarWidth: "thin",
-            cursor: isEditing ? "text" : "default",
+            cursor: isEditing ? "text" : "move",
           }}
           readOnly={!isEditing}
         />
