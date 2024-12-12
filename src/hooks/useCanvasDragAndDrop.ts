@@ -2,7 +2,11 @@ import { useState } from "react";
 import { useImageUpload } from "./useImageUpload";
 import { Position } from "../types";
 import { useStore } from "../store";
-
+interface ImageDimensions {
+  width: number;
+  height: number;
+  aspectRatio: number;
+}
 export function useCanvasDragAndDrop() {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const { handleImageUpload } = useImageUpload();
@@ -44,10 +48,12 @@ export function useCanvasDragAndDrop() {
       const url = URL.createObjectURL(file);
 
       img.onload = async () => {
+        const aspectRatio = img.naturalWidth / img.naturalHeight;
         await handleImageUpload(file, point, {
           width: img.naturalWidth,
           height: img.naturalHeight,
-        });
+          aspectRatio,
+        } as ImageDimensions);
         URL.revokeObjectURL(url);
       };
       img.src = url;

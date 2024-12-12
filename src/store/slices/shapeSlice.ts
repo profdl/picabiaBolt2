@@ -278,21 +278,122 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
     const { clipboard, shapes, history, historyIndex } = get();
     if (clipboard.length === 0) return;
 
-    const updatedOriginalShapes = shapes.map((shape) => {
-      if (
-        shape.type === "sticky" &&
-        (shape.showPrompt || shape.showNegativePrompt)
-      ) {
-        return {
-          ...shape,
-          showPrompt: false,
-          showNegativePrompt: false,
-          color: "#fff9c4",
-        };
-      }
-      return shape;
-    });
+    // Handle image shapes specifically
+    const hasImageShapes = clipboard.some((shape) => shape.type === "image");
+    if (hasImageShapes) {
+      // Get control states from clipboard images
+      const controlStates = clipboard.reduce(
+        (acc, shape) => {
+          if (shape.type === "image") {
+            return {
+              showDepth: acc.showDepth || shape.showDepth,
+              showEdges: acc.showEdges || shape.showEdges,
+              showPose: acc.showPose || shape.showPose,
+              showScribble: acc.showScribble || shape.showScribble,
+              showRemix: acc.showRemix || shape.showRemix,
+            };
+          }
+          return acc;
+        },
+        {
+          showDepth: false,
+          showEdges: false,
+          showPose: false,
+          showScribble: false,
+          showRemix: false,
+        }
+      );
 
+      // Uncheck controls on existing image shapes
+      const updatedOriginalShapes = shapes.map((shape) => {
+        if (shape.type === "image") {
+          return {
+            ...shape,
+            showDepth: controlStates.showDepth ? false : shape.showDepth,
+            showEdges: controlStates.showEdges ? false : shape.showEdges,
+            showPose: controlStates.showPose ? false : shape.showPose,
+            showScribble: controlStates.showScribble
+              ? false
+              : shape.showScribble,
+            showRemix: controlStates.showRemix ? false : shape.showRemix,
+          };
+        }
+        return shape;
+      });
+
+      // Create new shapes preserving control states
+      const newShapes = clipboard.map((shape) => ({
+        ...shape,
+        id: Math.random().toString(36).substr(2, 9),
+        position: {
+          x: shape.position.x + offset.x,
+          y: shape.position.y + offset.y,
+        },
+        // Preserve preview URLs and control states for image shapes
+        depthPreviewUrl:
+          shape.type === "image" ? shape.depthPreviewUrl : undefined,
+        edgePreviewUrl:
+          shape.type === "image" ? shape.edgePreviewUrl : undefined,
+        posePreviewUrl:
+          shape.type === "image" ? shape.posePreviewUrl : undefined,
+        scribblePreviewUrl:
+          shape.type === "image" ? shape.scribblePreviewUrl : undefined,
+        remixPreviewUrl:
+          shape.type === "image" ? shape.remixPreviewUrl : undefined,
+      }));
+
+      const updatedShapes = [...updatedOriginalShapes, ...newShapes];
+      set({
+        shapes: updatedShapes,
+        selectedShapes: newShapes.map((shape) => shape.id),
+        history: [...history.slice(0, historyIndex + 1), updatedShapes].slice(
+          -MAX_HISTORY
+        ),
+        historyIndex: historyIndex + 1,
+      });
+      return;
+    }
+
+    // Handle sticky notes specifically
+    const hasStickyNotes = clipboard.some((shape) => shape.type === "sticky");
+    if (hasStickyNotes) {
+      // Uncheck all existing sticky notes' text prompts
+      const updatedOriginalShapes = shapes.map((shape) => {
+        if (shape.type === "sticky") {
+          return {
+            ...shape,
+            showPrompt: false,
+            color: shape.showNegativePrompt ? "#ffcccb" : "#fff9c4",
+          };
+        }
+        return shape;
+      });
+
+      // Create new shapes with text prompt checked for sticky notes
+      const newShapes = clipboard.map((shape) => ({
+        ...shape,
+        id: Math.random().toString(36).substr(2, 9),
+        position: {
+          x: shape.position.x + offset.x,
+          y: shape.position.y + offset.y,
+        },
+        showPrompt: shape.type === "sticky" ? true : shape.showPrompt,
+        color: shape.type === "sticky" ? "#90EE90" : shape.color,
+      }));
+
+      const updatedShapes = [...updatedOriginalShapes, ...newShapes];
+      set({
+        shapes: updatedShapes,
+        selectedShapes: newShapes.map((shape) => shape.id),
+        history: [...history.slice(0, historyIndex + 1), updatedShapes].slice(
+          -MAX_HISTORY
+        ),
+        historyIndex: historyIndex + 1,
+      });
+      return;
+    }
+
+    // Handle non-sticky note shapes as before
     const newShapes = clipboard.map((shape) => ({
       ...shape,
       id: Math.random().toString(36).substr(2, 9),
@@ -302,7 +403,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       },
     }));
 
-    const updatedShapes = [...updatedOriginalShapes, ...newShapes];
+    const updatedShapes = [...shapes, ...newShapes];
     set({
       shapes: updatedShapes,
       selectedShapes: newShapes.map((shape) => shape.id),
@@ -312,7 +413,6 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       historyIndex: historyIndex + 1,
     });
   },
-
   sendBackward: () =>
     set((state) => {
       const newShapes = [...state.shapes];

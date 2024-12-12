@@ -1,72 +1,86 @@
 import { convertToWebP, uploadAssetToSupabase } from "../lib/supabase";
-import { useStore } from '../store';
+import { useStore } from "../store";
 
 export const useImageUpload = () => {
-    const { addShape, deleteShape, triggerAssetsRefresh } = useStore();
+  const { addShape, deleteShape, triggerAssetsRefresh } = useStore();
 
-    const handleImageUpload = async (file: File, point: { x: number; y: number; }, p0: { width: number; height: number; }) => {
-        const tempId = Math.random().toString(36).substr(2, 9);
+  const handleImageUpload = async (
+    file: File,
+    point: { x: number; y: number },
+    p0: { width: number; height: number }
+  ) => {
+    const tempId = Math.random().toString(36).substr(2, 9);
+    const aspectRatio = p0.width / p0.height;
 
-        addShape({
-            id: tempId,
-            type: 'image',
-            position: {
-                x: point.x - 150,
-                y: point.y - 150
-            },
-            width: 300,
-            height: 300,
-            color: 'transparent',
-            imageUrl: URL.createObjectURL(file),
-            rotation: 0,
-            isUploading: true,
-            model: "",
-            useSettings: false,
-            isEditing: false,
-            depthStrength: 0.75,
-            edgesStrength: 0.75,
-            contentStrength: 0.75,
-            poseStrength: 0.75,
-            scribbleStrength: 0.75,
-            remixStrength: 0.75
-        });
+    let width = 300;
+    let height = width / aspectRatio;
 
-        try {
-            const webpBlob = await convertToWebP(file);
-            const { publicUrl } = await uploadAssetToSupabase(webpBlob);
+    if (height > 300) {
+      height = 300;
+      width = height * aspectRatio;
+    }
 
-            addShape({
-                id: Math.random().toString(36).substr(2, 9),
-                type: 'image',
-                position: {
-                    x: point.x - 150,
-                    y: point.y - 150
-                },
-                width: 300,
-                height: 300,
-                color: 'transparent',
-                imageUrl: publicUrl,
-                rotation: 0,
-                isUploading: false,
-                model: "",
-                useSettings: false,
-                isEditing: false,
-                depthStrength: 0.75,
-                edgesStrength: 0.75,
-                contentStrength: 0.75,
-                poseStrength: 0.75,
-                scribbleStrength: 0.75,
-                remixStrength: 0.75
-            });
+    addShape({
+      id: tempId,
+      type: "image",
+      position: {
+        x: point.x - width / 2,
+        y: point.y - height / 2,
+      },
+      width,
+      height,
+      aspectRatio,
+      color: "transparent",
+      imageUrl: URL.createObjectURL(file),
+      rotation: 0,
+      isUploading: true,
+      model: "",
+      useSettings: false,
+      isEditing: false,
+      depthStrength: 0.75,
+      edgesStrength: 0.75,
+      contentStrength: 0.75,
+      poseStrength: 0.75,
+      scribbleStrength: 0.75,
+      remixStrength: 0.75,
+    });
 
-            deleteShape(tempId);
-            triggerAssetsRefresh();
+    try {
+      const webpBlob = await convertToWebP(file);
+      const { publicUrl } = await uploadAssetToSupabase(webpBlob);
 
-        } catch (err) {
-            console.error('Upload failed:', err);
-            deleteShape(tempId);
-        }
-    };
+      addShape({
+        id: Math.random().toString(36).substr(2, 9),
+        type: "image",
+        position: {
+          x: point.x - width / 2,
+          y: point.y - height / 2,
+        },
+        width,
+        height,
+        aspectRatio,
+        color: "transparent",
+        imageUrl: publicUrl,
+        rotation: 0,
+        isUploading: false,
+        model: "",
+        useSettings: false,
+        isEditing: false,
+        depthStrength: 0.75,
+        edgesStrength: 0.75,
+        contentStrength: 0.75,
+        poseStrength: 0.75,
+        scribbleStrength: 0.75,
+        remixStrength: 0.75,
+      });
 
-    return { handleImageUpload };
+      deleteShape(tempId);
+      triggerAssetsRefresh();
+    } catch (err) {
+      console.error("Upload failed:", err);
+      deleteShape(tempId);
+    }
+  };
+
+  return { handleImageUpload };
 };
