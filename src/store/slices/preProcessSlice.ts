@@ -122,61 +122,90 @@ export const preProcessSlice: StateCreator<
   generatePreprocessedImage: async (shapeId, processType) => {
     console.log("Starting preprocessing:", { shapeId, processType });
     const state = get();
-    set((state) => ({
-      preprocessingStates: {
-        ...state.preprocessingStates,
-        [shapeId]: {
-          ...state.preprocessingStates[shapeId],
-          [processType]: true,
-        },
-      },
-    }));
 
     try {
       const shape = state.shapes.find((s) => s.id === shapeId);
-      if (!shape?.imageUrl) return;
+      if (!shape?.imageUrl) {
+        throw new Error("No image URL found for shape");
+      }
 
-      // Create subscription first
-      const subscription = supabase.channel(`preprocessing_${shapeId}`);
-      await subscription
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "preprocessed_images",
-            filter: `shape_id=eq.${shapeId}`,
+      // Set preprocessing state
+      set((state) => ({
+        preprocessingStates: {
+          ...state.preprocessingStates,
+          [shapeId]: {
+            ...state.preprocessingStates[shapeId],
+            [processType]: true,
           },
-          (payload: PreprocessingPayload) => {
-            console.log("Received webhook payload:", payload);
-            if (payload.new.status === "completed") {
-              const updates: Partial<Shape> = {};
-              switch (processType) {
-                case "depth":
-                  updates.depthPreviewUrl = payload.new.output_url;
-                  break;
-                case "edge":
-                  updates.edgePreviewUrl = payload.new.output_url;
-                  break;
-                case "pose":
-                  updates.posePreviewUrl = payload.new.output_url;
-                  break;
-                case "scribble":
-                  updates.scribblePreviewUrl = payload.new.output_url;
-                  break;
-                case "remix":
-                  updates.remixPreviewUrl = payload.new.output_url;
-                  break;
-              }
-              state.updateShape(shapeId, updates);
-              subscription.unsubscribe();
-            }
-          }
-        )
-        .subscribe();
+        },
+      }));
 
-      // Then make the API call
-      await fetch("/.netlify/functions/preprocess-image", {
+      // Create and wait for subscription to be established
+      const channel = `preprocessing_${shapeId}_${processType}`;
+      console.log(`Creating subscription for channel: ${channel}`);
+
+      const subscription = supabase.channel(channel);
+
+      const subscriptionPromise = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error("Subscription timeout"));
+        }, 10000); // 10 second timeout
+
+        subscription
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "preprocessed_images",
+              filter: `shape_id=eq.${shapeId}`,
+            },
+            (payload: PreprocessingPayload) => {
+              console.log("Received webhook payload:", payload);
+
+              if (payload.new.status === "completed") {
+                const updates: Partial<Shape> = {};
+                switch (processType) {
+                  case "depth":
+                    updates.depthPreviewUrl = payload.new.output_url;
+                    break;
+                  case "edge":
+                    updates.edgePreviewUrl = payload.new.output_url;
+                    break;
+                  case "pose":
+                    updates.posePreviewUrl = payload.new.output_url;
+                    break;
+                  case "scribble":
+                    updates.scribblePreviewUrl = payload.new.output_url;
+                    break;
+                  case "remix":
+                    updates.remixPreviewUrl = payload.new.output_url;
+                    break;
+                }
+
+                console.log(`Updating shape with new data:`, updates);
+                get().updateShape(shapeId, updates);
+
+                clearTimeout(timeout);
+                subscription.unsubscribe();
+              }
+            }
+          )
+          .subscribe((status) => {
+            if (status === "SUBSCRIBED") {
+              console.log(`Successfully subscribed to channel: ${channel}`);
+              clearTimeout(timeout);
+              resolve(true);
+            }
+          });
+      });
+
+      // Wait for subscription to be established
+      await subscriptionPromise;
+
+      // Only make API call after subscription is confirmed
+      console.log("Making preprocessing API call");
+      const response = await fetch("/.netlify/functions/preprocess-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -185,11 +214,24 @@ export const preProcessSlice: StateCreator<
           shapeId,
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.statusText}`);
+      }
+
+      console.log("Preprocessing API call successful");
     } catch (error) {
-      console.error("Error generating preprocessed image:", error);
+      console.error("Error in preprocessing:", error);
       set({
         error:
           error instanceof Error ? error.message : "Failed to preprocess image",
+        preprocessingStates: {
+          ...state.preprocessingStates,
+          [shapeId]: {
+            ...state.preprocessingStates[shapeId],
+            [processType]: false,
+          },
+        },
       });
     }
   },
