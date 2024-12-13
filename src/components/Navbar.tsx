@@ -25,6 +25,26 @@ export const Navbar = () => {
   const handleMouseLeave = () => setIsMenuOpen(false);
   const { createProject } = useProjects();
   const navigate = useNavigate();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const { projects } = useProjects();
+  const currentProject = projects.find((p) => p.id === boardId);
+
+  const [projectName, setProjectName] = useState(
+    currentProject?.name || "Untitled"
+  );
+
+  const handleNameChange = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (boardId) {
+        await updateProject(boardId, {
+          name: projectName,
+          shapes,
+        });
+        setIsEditingName(false);
+      }
+    }
+  };
   const { showTooltips, toggleTooltips } = useStore((state) => ({
     showTooltips: state.showTooltips,
     toggleTooltips: state.toggleTooltips,
@@ -99,9 +119,6 @@ export const Navbar = () => {
     navigate(`/board/${newProject.id}`);
   };
 
-  const { projects } = useProjects();
-  const currentProject = projects.find((p) => p.id === boardId);
-
   const handleDuplicateProject = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (boardId) {
@@ -126,9 +143,9 @@ export const Navbar = () => {
   return (
     <>
       <nav className="bg-white dark:bg-gray-900 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center gap-4">
+        <div className=" mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="flex justify-between w-full h-16">
+            <div className="flex items-center gap-4 flex-none">
               <Link
                 to="/"
                 className="flex items-center"
@@ -146,7 +163,7 @@ export const Navbar = () => {
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                 >
-                  <button className="p-2 hover:bg-gray-100 rounded-lg ml-2">
+                  <button className="p-2 hover:bg-gray-100 rounded-lg">
                     <Menu className="w-5 h-5" />
                   </button>
                   {isMenuOpen && (
@@ -203,32 +220,54 @@ export const Navbar = () => {
                   <span>Saving...</span>
                 </div>
               )}
+              {isBoard && (
+                <div className="ml-4">
+                  {isEditingName ? (
+                    <input
+                      type="text"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      onKeyDown={handleNameChange}
+                      onBlur={() => setIsEditingName(false)}
+                      className="px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      autoFocus
+                    />
+                  ) : (
+                    <button
+                      onClick={() => setIsEditingName(true)}
+                      className="text-sm text-gray-600 hover:text-gray-900"
+                    >
+                      {projectName}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-            {user ? (
-              <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 ml-auto">
+              {user ? (
                 <button
                   onClick={logout}
                   className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md text-sm font-medium"
                 >
                   Sign Out
                 </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-4">
-                <Link
-                  to="/login"
-                  className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  Sign Up
-                </Link>
-              </div>
-            )}
+              ) : (
+                <div className="flex items-center gap-4">
+                  <Link
+                    to="/login"
+                    className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
