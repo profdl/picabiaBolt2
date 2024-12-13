@@ -1,4 +1,3 @@
-// AssetsDrawer.tsx
 import React, { useRef, useEffect } from "react";
 import { Upload, Loader2, Search } from "lucide-react";
 import { useStore } from "../store";
@@ -6,6 +5,8 @@ import { Drawer } from "./Drawer";
 import ImageGrid from "./ui/ImageGrid";
 import { supabase } from "../lib/supabase";
 import { Shape } from "../types";
+import { ArenaGrid } from "./ArenaGrid";
+import { ArenaChannel } from "./ArenaGrid";
 
 interface Asset {
   id: string;
@@ -28,6 +29,31 @@ interface AssetsDrawerProps {
   getViewportCenter: () => { x: number; y: number };
 }
 
+interface ArenaResults {
+  channels: ArenaChannel[];
+  blocks: ArenaBlock[];
+}
+interface ArenaBlock {
+  id: number;
+  title: string;
+  content: string;
+  image: {
+    original: {
+      url: string;
+    };
+    display: {
+      url: string;
+    };
+  };
+  created_at: string;
+  updated_at: string;
+  class: string;
+  source: {
+    url: string;
+    title: string;
+  };
+}
+
 export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   isOpen,
   onClose,
@@ -38,6 +64,12 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   const [loading, setLoading] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const searchDebounceRef = useRef<NodeJS.Timeout>();
+  const [arenaQuery, setArenaQuery] = React.useState("");
+  const [arenaResults, setArenaResults] = React.useState<ArenaResults>({
+    channels: [],
+    blocks: [],
+  });
+  const [arenaLoading, setArenaLoading] = React.useState(false);
 
   const {
     uploadAsset,
@@ -131,7 +163,46 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     }));
   };
 
-  // Add this effect to handle search
+  //Arena API
+  useEffect(() => {
+    if (!arenaQuery.trim()) {
+      setArenaResults({ channels: [], blocks: [] });
+      return;
+    }
+
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    searchDebounceRef.current = setTimeout(async () => {
+      setArenaLoading(true);
+      try {
+        console.log("Fetching Arena results for query:", arenaQuery);
+        const response = await fetch(
+          `/.netlify/functions/arena-search?query=${encodeURIComponent(
+            arenaQuery
+          )}`
+        );
+        const data = await response.json();
+        console.log("Arena response data:", data); // Debug log
+
+        setArenaResults(data); // Make sure we're setting the full data object
+      } catch (error) {
+        console.error("Are.na search error:", error);
+        setArenaResults({ channels: [], blocks: [] });
+      } finally {
+        setArenaLoading(false);
+      }
+    }, 800);
+
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [arenaQuery]);
+
+  // Unsplash search
   useEffect(() => {
     if (!unsplashQuery.trim()) {
       useStore.setState({ unsplashImages: [] });
@@ -188,6 +259,21 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
             My Assets
           </button>
           <button
+            onClick={() => {
+              setActiveTab("arena");
+              if (!arenaQuery) {
+                setArenaQuery("");
+              }
+            }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === "arena"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Are.na
+          </button>
+          <button
             onClick={() => setActiveTab("stock")}
             className={`px-4 py-2 text-sm font-medium border-b-2 ${
               activeTab === "stock"
@@ -232,6 +318,36 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
               />
             </div>
           )}
+          {activeTab === "arena" && (
+            <div className="p-4">
+              <div className="relative mb-3">
+                <input
+                  type="text"
+                  value={arenaQuery}
+                  onChange={(e) => setArenaQuery(e.target.value)}
+                  placeholder="Search Are.na..."
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              </div>
+
+              <ArenaGrid
+                results={arenaResults}
+                loading={arenaLoading}
+                onSelect={(block) => {
+                  if (block.image?.original?.url) {
+                    handleAssetClick({
+                      id: block.id.toString(),
+                      url: block.image.original.url,
+                      created_at: new Date().toISOString(),
+                      user_id: "",
+                    });
+                  }
+                }}
+              />
+            </div>
+          )}
+
           {activeTab === "stock" && (
             <div className="p-4">
               <div className="relative mb-3">
