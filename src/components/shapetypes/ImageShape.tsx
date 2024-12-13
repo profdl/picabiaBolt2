@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { Shape } from "../../types";
 import { useStore } from "../../store";
@@ -8,86 +8,160 @@ import { ImageEditor } from "./ImageEditor";
 interface ImageShapeProps {
   shape: Shape;
 }
+interface PreprocessedImagePayload {
+  new: {
+    status: string;
+    processType: string;
+    shapeId: string;
+    [key: string]: string | number | boolean | null;
+  };
+}
 
 export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
   const updateShape = useStore((state) => state.updateShape);
-  // Add a selector to track the preprocessing state
   const preprocessingStates = useStore((state) => state.preprocessingStates);
+  const subscriptionRef = useRef<{
+    [key: string]: ReturnType<typeof supabase.channel>;
+  }>({});
 
-  // Subscription effect
-  useEffect(() => {
-    const channel = supabase
-      .channel("preprocessed_images_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "preprocessed_images",
-        },
-        (payload) => {
-          console.log("Received preprocessing update:", payload);
+  // Fetch current state on mount and visibility change
+  const fetchCurrentState = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("preprocessed_images")
+        .select("*")
+        .eq("shapeId", shape.id)
+        .in("status", ["processing", "completed"]);
 
-          if (payload.new.shapeId === shape.id) {
-            const processType = payload.new.processType;
+      if (error) throw error;
 
-            // Update store state immediately
-            useStore.setState((state) => {
-              const newState = {
-                preprocessingStates: {
-                  ...state.preprocessingStates,
-                  [shape.id]: {
-                    ...state.preprocessingStates[shape.id],
-                    [processType]: false,
-                  },
-                },
-              };
-              console.log("New preprocessing state:", newState);
-              return newState;
-            });
+      if (data) {
+        data.forEach((record) => {
+          if (record.status === "completed" && record.processType) {
+            const urlKey = `${record.processType}Url`;
+            const previewUrlKey = `${record.processType}PreviewUrl`;
 
-            // Update shape with new preview URL
             updateShape(shape.id, {
-              [`${processType}PreviewUrl`]: payload.new[`${processType}Url`],
+              [previewUrlKey]: record[urlKey],
             });
-          }
-        }
-      )
-      .subscribe();
 
-    return () => {
-      channel.unsubscribe();
-    };
+            useStore.setState((state) => ({
+              preprocessingStates: {
+                ...state.preprocessingStates,
+                [shape.id]: {
+                  ...state.preprocessingStates[shape.id],
+                  [record.processType]: false,
+                },
+              },
+            }));
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching current state:", error);
+    }
   }, [shape.id, updateShape]);
-  // Visibility change effect
+
+  // Handle visibility changes
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        supabase
-          .from("preprocessed_images")
-          .select("*")
-          .eq("shapeId", shape.id)
-          .single()
-          .then(({ data, error }) => {
-            if (error) {
-              console.error("Error fetching preprocessed image:", error);
-              return;
-            }
-            if (data) {
-              const previewUrlKey = `${data.processType}PreviewUrl`;
-              updateShape(shape.id, {
-                [previewUrlKey]: data[`${data.processType}Url`],
-                [`is${data.processType}Processing`]: false,
-              });
-            }
-          });
+        fetchCurrentState();
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [shape.id, updateShape]);
+  }, [fetchCurrentState, shape.id]);
+
+  // Set up subscriptions for each process type
+  useEffect(() => {
+    const processTypes = ["depth", "edge", "pose", "scribble", "remix"];
+
+    processTypes.forEach((processType) => {
+      if (
+        shape[
+          `show${
+            processType.charAt(0).toUpperCase() + processType.slice(1)
+          }` as keyof Shape
+        ]
+      ) {
+        const channelName = `preprocessing_${shape.id}_${processType}`;
+
+        if (!subscriptionRef.current[channelName]) {
+          const subscription = supabase
+            .channel(channelName)
+            .on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "preprocessed_images",
+                filter: `shapeId=eq.${shape.id}`,
+              },
+              (payload: PreprocessedImagePayload) => {
+                if (
+                  payload.new.status === "completed" &&
+                  payload.new.processType === processType
+                ) {
+                  const urlKey = `${processType}Url`;
+                  const previewUrlKey = `${processType}PreviewUrl`;
+
+                  updateShape(shape.id, {
+                    [previewUrlKey]: payload.new[urlKey],
+                  });
+
+                  useStore.setState((state) => ({
+                    preprocessingStates: {
+                      ...state.preprocessingStates,
+                      [shape.id]: {
+                        ...state.preprocessingStates[shape.id],
+                        [processType]: false,
+                      },
+                    },
+                  }));
+                }
+              }
+            )
+            .subscribe();
+
+          subscriptionRef.current[channelName] = subscription;
+        }
+      } else if (
+        subscriptionRef.current[`preprocessing_${shape.id}_${processType}`]
+      ) {
+        subscriptionRef.current[
+          `preprocessing_${shape.id}_${processType}`
+        ].unsubscribe();
+        delete subscriptionRef.current[
+          `preprocessing_${shape.id}_${processType}`
+        ];
+      }
+    });
+
+    // Fetch current state on mount
+    fetchCurrentState();
+
+    // Cleanup subscriptions
+    return () => {
+      Object.values(subscriptionRef.current).forEach((subscription) => {
+        subscription.unsubscribe();
+      });
+      subscriptionRef.current = {};
+    };
+  }, [
+    shape.id,
+    shape.showDepth,
+    shape.showEdges,
+    shape.showPose,
+    shape.showScribble,
+    shape.showRemix,
+    fetchCurrentState,
+    shape,
+    updateShape,
+  ]);
+
   return (
     <div className="relative w-full h-full">
       {shape.isImageEditing ? (

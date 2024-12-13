@@ -1,19 +1,6 @@
 import { StateCreator } from "zustand";
 import { Shape } from "../../types";
-import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
-
-interface PreprocessingPayload {
-  new: {
-    status: string;
-    output_url: string;
-    shape_id: string;
-  };
-}
 interface GenerationState {
   shapes: Shape[];
   error: string | null;
@@ -129,7 +116,7 @@ export const preProcessSlice: StateCreator<
         throw new Error("No image URL found for shape");
       }
 
-      // Set preprocessing state
+      // Set preprocessing state immediately
       set((state) => ({
         preprocessingStates: {
           ...state.preprocessingStates,
@@ -140,71 +127,7 @@ export const preProcessSlice: StateCreator<
         },
       }));
 
-      // Create and wait for subscription to be established
-      const channel = `preprocessing_${shapeId}_${processType}`;
-      console.log(`Creating subscription for channel: ${channel}`);
-
-      const subscription = supabase.channel(channel);
-
-      const subscriptionPromise = new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error("Subscription timeout"));
-        }, 10000); // 10 second timeout
-
-        subscription
-          .on(
-            "postgres_changes",
-            {
-              event: "UPDATE",
-              schema: "public",
-              table: "preprocessed_images",
-              filter: `shape_id=eq.${shapeId}`,
-            },
-            (payload: PreprocessingPayload) => {
-              console.log("Received webhook payload:", payload);
-
-              if (payload.new.status === "completed") {
-                const updates: Partial<Shape> = {};
-                switch (processType) {
-                  case "depth":
-                    updates.depthPreviewUrl = payload.new.output_url;
-                    break;
-                  case "edge":
-                    updates.edgePreviewUrl = payload.new.output_url;
-                    break;
-                  case "pose":
-                    updates.posePreviewUrl = payload.new.output_url;
-                    break;
-                  case "scribble":
-                    updates.scribblePreviewUrl = payload.new.output_url;
-                    break;
-                  case "remix":
-                    updates.remixPreviewUrl = payload.new.output_url;
-                    break;
-                }
-
-                console.log(`Updating shape with new data:`, updates);
-                get().updateShape(shapeId, updates);
-
-                clearTimeout(timeout);
-                subscription.unsubscribe();
-              }
-            }
-          )
-          .subscribe((status) => {
-            if (status === "SUBSCRIBED") {
-              console.log(`Successfully subscribed to channel: ${channel}`);
-              clearTimeout(timeout);
-              resolve(true);
-            }
-          });
-      });
-
-      // Wait for subscription to be established
-      await subscriptionPromise;
-
-      // Only make API call after subscription is confirmed
-      console.log("Making preprocessing API call");
+      // Make API call
       const response = await fetch("/.netlify/functions/preprocess-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -219,10 +142,11 @@ export const preProcessSlice: StateCreator<
         throw new Error(`API call failed: ${response.statusText}`);
       }
 
+      // No need to wait for subscription confirmation
       console.log("Preprocessing API call successful");
     } catch (error) {
       console.error("Error in preprocessing:", error);
-      set({
+      set((state) => ({
         error:
           error instanceof Error ? error.message : "Failed to preprocess image",
         preprocessingStates: {
@@ -232,7 +156,7 @@ export const preProcessSlice: StateCreator<
             [processType]: false,
           },
         },
-      });
+      }));
     }
   },
 });
