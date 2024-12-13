@@ -2,6 +2,7 @@ import { StateCreator } from "zustand";
 import { getImageDimensions } from "../../utils/image";
 import { supabase } from "../../lib/supabase/client";
 import { Shape } from "../../types";
+import { DEFAULT_CONTROL_STRENGTHS } from "../../constants/shapeControlSettings";
 
 interface Position {
   x: number;
@@ -406,12 +407,7 @@ export const drawerSlice: StateCreator<
         model: "",
         useSettings: false,
         isEditing: false,
-        depthStrength: 0.75,
-        edgesStrength: 0.75,
-        contentStrength: 0.5,
-        poseStrength: 0.75,
-        scribbleStrength: 0.5,
-        remixStrength: 0.5,
+        ...DEFAULT_CONTROL_STRENGTHS,
       });
 
       if (get().centerOnShape) {

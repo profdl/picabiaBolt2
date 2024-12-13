@@ -1,8 +1,50 @@
 import { convertToWebP, uploadAssetToSupabase } from "../lib/supabase";
 import { useStore } from "../store";
+import {
+  DEFAULT_CONTROL_STRENGTHS,
+  DEFAULT_CONTROL_STATES,
+} from "../constants/shapeControlSettings";
 
 export const useImageUpload = () => {
   const { addShape, deleteShape, triggerAssetsRefresh } = useStore();
+  const MAX_DIMENSION = 2400;
+
+  const resizeImage = async (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          if (width > height) {
+            height = (height / width) * MAX_DIMENSION;
+            width = MAX_DIMENSION;
+          } else {
+            width = (width / height) * MAX_DIMENSION;
+            height = MAX_DIMENSION;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          const resizedFile = new File([blob!], file.name, { type: file.type });
+          resolve(resizedFile);
+        }, file.type);
+      };
+
+      img.src = url;
+    });
+  };
 
   const handleImageUpload = async (
     file: File,
@@ -37,16 +79,13 @@ export const useImageUpload = () => {
       model: "",
       useSettings: false,
       isEditing: false,
-      depthStrength: 0.75,
-      edgesStrength: 0.75,
-      contentStrength: 0.75,
-      poseStrength: 0.75,
-      scribbleStrength: 0.75,
-      remixStrength: 0.75,
+      ...DEFAULT_CONTROL_STRENGTHS,
+      ...DEFAULT_CONTROL_STATES,
     });
 
     try {
-      const webpBlob = await convertToWebP(file);
+      const resizedBlob = await resizeImage(file);
+      const webpBlob = await convertToWebP(resizedBlob);
       const { publicUrl } = await uploadAssetToSupabase(webpBlob);
 
       addShape({

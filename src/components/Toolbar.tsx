@@ -240,7 +240,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           width: size * 1.5,
           height: size,
           color: "#90EE90",
-          content: "",
+          content: "Double-Click to Edit...",
           fontSize: 16,
           rotation: 0,
           showPrompt: true,

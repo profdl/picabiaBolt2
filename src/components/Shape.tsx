@@ -356,6 +356,12 @@ export function ShapeComponent({ shape }: ShapeProps) {
       setIsEditing(true);
       setIsEditingText(true);
       handleStickyInteraction();
+
+      // Clear default text on first edit
+      if (shape.content === "Double-Click to Edit...") {
+        updateShape(shape.id, { content: "" });
+      }
+
       if (textRef.current) {
         textRef.current.focus();
         textRef.current.select();
