@@ -4,7 +4,7 @@ import { Shape } from "../types";
 import { ImageActionDropdown } from "./ImageActionDropdown";
 import { generatePrompt } from "../utils/prompt-generator";
 import { Tooltip } from "./ui/Tooltip";
-import { getControlDescription } from "../utils/tooltips";
+import { getControlDescription, ControlType } from "../utils/tooltips";
 interface ShapeControlsProps {
   shape: Shape;
   isSelected: boolean;
@@ -178,8 +178,6 @@ export function ShapeControls({
     control: (typeof controls)[0],
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    console.log("Control:", control);
-    console.log("Shape before update:", shape);
     e.stopPropagation();
     if (!control.showKey || !control.processType) return;
 
@@ -209,19 +207,18 @@ export function ShapeControls({
 
     // Rest of the existing handleCheckboxChange logic...
     const previewUrl = shape[`${control.processType}PreviewUrl` as keyof Shape];
-
-    // Update the checkbox state immediately
     updateShape(shape.id, { [control.showKey]: isChecked });
 
-    // Uncheck other images' same control
-    shapes.forEach((otherShape) => {
-      if (otherShape.id !== shape.id && otherShape.type === "image") {
-        const showKey = control.showKey as keyof Shape;
-        if (otherShape[showKey]) {
-          updateShape(otherShape.id, { [control.showKey]: false });
+    if (control.processType !== "remix") {
+      shapes.forEach((otherShape) => {
+        if (otherShape.id !== shape.id && otherShape.type === "image") {
+          const showKey = control.showKey as keyof Shape;
+          if (otherShape[showKey]) {
+            updateShape(otherShape.id, { [control.showKey]: false });
+          }
         }
-      }
-    });
+      });
+    }
 
     // Generate preview if needed
     if (isChecked && !previewUrl) {
@@ -288,7 +285,11 @@ export function ShapeControls({
                         content={
                           <div>
                             <h4 className="font-medium mb-1">{control.type}</h4>
-                            <p>{getControlDescription(control.type)}</p>
+                            <p>
+                              {getControlDescription(
+                                control.type as ControlType
+                              )}
+                            </p>
                           </div>
                         }
                       >
