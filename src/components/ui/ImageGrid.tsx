@@ -37,8 +37,8 @@ const ImageGrid = ({
 }: ImageGridProps) => {
   if (loading) {
     return (
-      <div className="text-center py-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+      <div className="text-center py-8">
+        <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
         <p className="mt-2 text-gray-600">{loadingMessage}</p>
       </div>
     );

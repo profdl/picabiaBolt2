@@ -2,6 +2,7 @@ import { StateCreator } from "zustand";
 import { getImageDimensions } from "../../utils/image";
 import { supabase } from "../../lib/supabase/client";
 import { Shape } from "../../types";
+
 interface Position {
   x: number;
   y: number;
@@ -251,18 +252,17 @@ export const drawerSlice: StateCreator<
       } = await supabase.auth.getUser();
       if (!user) return false;
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      // Log the upload attempt
+      console.log("Uploading asset to bucket:", file.name);
 
-      const arrayBuffer = await file.arrayBuffer();
-      const fileData = new Uint8Array(arrayBuffer);
+      const fileName = `${user.id}-${Date.now()}-${file.name}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from("assets")
-        .upload(fileName, fileData, {
-          contentType: file.type,
-          upsert: false,
-        });
+        .upload(fileName, file);
+
+      // Log the upload result
+      console.log("Upload result:", { uploadData, uploadError });
 
       if (uploadError) throw uploadError;
 
@@ -270,15 +270,39 @@ export const drawerSlice: StateCreator<
         data: { publicUrl },
       } = supabase.storage.from("assets").getPublicUrl(fileName);
 
+      // Log the public URL
+      console.log("Generated public URL:", publicUrl);
+
+      // Get image dimensions first, matching the drag & drop pattern
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      const dimensions = await new Promise<{ width: number; height: number }>(
+        (resolve) => {
+          img.onload = () => {
+            resolve({
+              width: img.naturalWidth,
+              height: img.naturalHeight,
+            });
+          };
+          img.src = url;
+        }
+      );
+
+      // Insert record into assets table with dimensions
       const { error: dbError } = await supabase.from("assets").insert([
         {
           url: publicUrl,
           user_id: user.id,
+          width: dimensions.width,
+          height: dimensions.height,
+          created_at: new Date().toISOString(),
         },
       ]);
 
       if (dbError) throw dbError;
 
+      URL.revokeObjectURL(url);
       get().triggerAssetsRefresh();
       return true;
     } catch (err) {
@@ -286,7 +310,6 @@ export const drawerSlice: StateCreator<
       return false;
     }
   },
-
   deleteAsset: async (assetId: string, url: string) => {
     try {
       const {

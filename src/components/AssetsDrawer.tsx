@@ -3,7 +3,11 @@ import { Upload, Loader2, Search } from "lucide-react";
 import { useStore } from "../store";
 import { Drawer } from "./Drawer";
 import ImageGrid from "./ui/ImageGrid";
-import { supabase } from "../lib/supabase";
+import {
+  supabase,
+  convertToWebP,
+  uploadAssetToSupabase,
+} from "../lib/supabase";
 import { Shape } from "../types";
 import { ArenaGrid } from "./ArenaGrid";
 import { ArenaChannel } from "./ArenaGrid";
@@ -72,7 +76,6 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   const [arenaLoading, setArenaLoading] = React.useState(false);
 
   const {
-    uploadAsset,
     addImageToCanvas,
     deleteAsset,
     assetsRefreshTrigger,
@@ -95,9 +98,15 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   const fetchAssets = async () => {
     setLoading(true);
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data, error } = await supabase
         .from("assets")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -121,11 +130,26 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
 
     setUploading(true);
     try {
-      await uploadAsset(file);
+      const webpBlob = await convertToWebP(file);
+      const { publicUrl } = await uploadAssetToSupabase(webpBlob);
+
+      // Add to local assets state and refresh
+      const newAsset: Asset = {
+        id: Math.random().toString(36).substr(2, 9),
+        url: publicUrl,
+        created_at: new Date().toISOString(),
+        user_id: "",
+      };
+
+      setAssets((prev) => [newAsset, ...prev]);
+      fetchAssets();
     } catch (err) {
       console.error("Error uploading asset:", err);
     } finally {
       setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
