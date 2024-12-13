@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useStore } from "../store";
 import { Link, useLocation } from "react-router-dom";
 import { Save, EyeOff, Eye } from "lucide-react";
@@ -28,10 +28,15 @@ export const Navbar = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const { projects } = useProjects();
   const currentProject = projects.find((p) => p.id === boardId);
-
   const [projectName, setProjectName] = useState(
     currentProject?.name || "Untitled"
   );
+
+  useEffect(() => {
+    if (currentProject?.name) {
+      setProjectName(currentProject.name);
+    }
+  }, [currentProject?.name]);
 
   const handleNameChange = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -45,6 +50,7 @@ export const Navbar = () => {
       }
     }
   };
+
   const { showTooltips, toggleTooltips } = useStore((state) => ({
     showTooltips: state.showTooltips,
     toggleTooltips: state.toggleTooltips,
@@ -92,6 +98,7 @@ export const Navbar = () => {
       setIsSaving(false);
     }
   };
+
   const handleNavigation = async () => {
     if (isBoard && boardId) {
       await handleSave();
@@ -140,9 +147,10 @@ export const Navbar = () => {
       navigate(`/board/${newProject.id}`);
     }
   };
+
   return (
     <>
-      <nav className="bg-white dark:bg-gray-900 shadow-sm">
+      <nav className="bg-white dark:bg-gray-900 shadow z-50 relative">
         <div className=" mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="flex justify-between w-full h-16">
             <div className="flex items-center gap-4 flex-none">
@@ -214,12 +222,6 @@ export const Navbar = () => {
                   )}
                 </div>
               )}
-              {user && isBoard && isSaving && (
-                <div className="flex items-center gap-2 text-gray-400">
-                  <Save className="w-4 h-4 animate-pulse" />
-                  <span>Saving...</span>
-                </div>
-              )}
               {isBoard && (
                 <div className="ml-4">
                   {isEditingName ? (
@@ -240,6 +242,12 @@ export const Navbar = () => {
                       {projectName}
                     </button>
                   )}
+                </div>
+              )}
+              {user && isBoard && isSaving && (
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Save className="w-4 h-4 animate-pulse" />
+                  <span>Saving...</span>
                 </div>
               )}
             </div>
