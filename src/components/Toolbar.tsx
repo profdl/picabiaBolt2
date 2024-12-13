@@ -6,7 +6,6 @@ import {
   Sparkles,
   Settings,
   Image as ImageIcon,
-  Upload,
   Loader2,
   Grid,
   // Brush,
@@ -15,10 +14,10 @@ import {
   // ArrowUpRight
 } from "lucide-react";
 import { useStore } from "../store";
-import { useState, useRef, useMemo } from "react";
+import { useMemo } from "react";
 import { useEffect } from "react";
-import { supabase } from "../lib/supabase";
 import { Tooltip } from "./ui/Tooltip";
+import { UploadButton } from "./ui/UploadButton";
 
 // import { BrushShapeSelector } from './BrushShapeSelector';
 
@@ -37,127 +36,6 @@ const AssetsButton = () => {
       <ImageIcon className="w-5 h-5" />
       <span className="text-sm font-medium">Assets</span>
     </button>
-  );
-};
-const UploadButton = () => {
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const toggleAssets = useStore((state) => state.toggleAssets);
-  const addShape = useStore((state) => state.addShape);
-  const { zoom, offset } = useStore();
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    toggleAssets();
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Create placeholder immediately
-    const windowWidth = window.innerWidth * 0.4;
-    const windowHeight = window.innerHeight * 0.4;
-    const center = {
-      x: (window.innerWidth / 2 - offset.x) / zoom,
-      y: (window.innerHeight / 2 - offset.y) / zoom,
-    };
-    const shapeId = Math.random().toString(36).substr(2, 9);
-    // Add loading placeholder
-    addShape({
-      id: shapeId,
-      type: "image",
-      position: {
-        x: center.x - windowWidth / 2,
-        y: center.y - windowHeight / 2,
-      },
-      width: windowWidth,
-      height: windowHeight,
-      color: "transparent",
-      imageUrl: "",
-      rotation: 0,
-      isUploading: true,
-      model: "",
-      useSettings: false,
-      isEditing: false,
-      depthStrength: 0.75,
-      edgesStrength: 0.75,
-      contentStrength: 0.75,
-      poseStrength: 0.75,
-      scribbleStrength: 0.75,
-      remixStrength: 0.75,
-    });
-
-    setUploading(true);
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-
-      const arrayBuffer = await file.arrayBuffer();
-      const fileData = new Uint8Array(arrayBuffer);
-
-      const { error: uploadError } = await supabase.storage
-        .from("assets")
-        .upload(fileName, fileData, {
-          contentType: file.type,
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("assets").getPublicUrl(fileName);
-
-      const { error: dbError } = await supabase.from("assets").insert([
-        {
-          url: publicUrl,
-          user_id: user.id,
-        },
-      ]);
-
-      if (dbError) throw dbError;
-
-      useStore.getState().triggerAssetsRefresh();
-
-      // Update the shape with the final image URL
-      useStore.getState().updateShape(shapeId, {
-        imageUrl: publicUrl,
-        isUploading: false,
-      });
-    } catch (err) {
-      console.error("Error uploading asset:", err);
-      // Remove the shape if upload fails
-      useStore.getState().deleteShape(shapeId);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-      />
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={uploading}
-        className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1`}
-        title="Upload Image"
-      >
-        {uploading ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
-        ) : (
-          <Upload className="w-5 h-5" />
-        )}
-        <span className="text-sm font-medium">Add Image</span>
-      </button>
-    </>
   );
 };
 
