@@ -129,7 +129,7 @@ export const UploadButton = ({ className }: UploadButtonProps) => {
         variant="ghost"
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
-        className={className}
+        className={`gap-2 ${className}`} // Added gap-2 here
       >
         {uploading ? (
           <Loader2 className="w-5 h-5 animate-spin" />

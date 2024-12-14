@@ -107,12 +107,12 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           useSettings: false,
           isUploading: false,
           isEditing: false,
-          depthStrength: 0.75,
-          edgesStrength: 0.75,
-          contentStrength: 0.75,
-          poseStrength: 0.75,
-          scribbleStrength: 0.75,
-          remixStrength: 0.75,
+          depthStrength: 0.25,
+          edgesStrength: 0.25,
+          contentStrength: 0.25,
+          poseStrength: 0.25,
+          scribbleStrength: 0.25,
+          remixStrength: 0.25,
         };
 
         addShape(newShape);

@@ -86,12 +86,12 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       shapes: [
         {
           ...shape,
-          depthStrength: 0.75,
-          edgesStrength: 0.75,
-          contentStrength: 0.75,
-          poseStrength: 0.75,
-          scribbleStrength: 0.75,
-          remixStrength: 0.75,
+          depthStrength: 0.25,
+          edgesStrength: 0.25,
+          contentStrength: 0.25,
+          poseStrength: 0.25,
+          scribbleStrength: 0.25,
+          remixStrength: 0.25,
           isEditing: shape.type === "sticky", // Set editing mode for sticky
         },
         ...state.shapes,

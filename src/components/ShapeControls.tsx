@@ -327,13 +327,13 @@ export function ShapeControls({
                                   shape[
                                     control.strengthKey as keyof Shape
                                   ] as number
-                                )?.toFixed(2) ?? "0.50"}
+                                )?.toFixed(2) ?? "0.25"}
                               </div>
                             )}
                             <input
                               type="range"
-                              min={control.type === "Remix" ? "0.1" : "0"}
-                              max={control.type === "Remix" ? "2.0" : "1"}
+                              min="0.05"
+                              max="1.00"
                               step="0.05"
                               value={
                                 typeof shape[
@@ -342,7 +342,7 @@ export function ShapeControls({
                                   ? (shape[
                                       control.strengthKey as keyof Shape
                                     ] as number)
-                                  : 0.75
+                                  : 0.25
                               }
                               onMouseEnter={() => setIsHovering(true)}
                               onMouseLeave={() => setIsHovering(false)}

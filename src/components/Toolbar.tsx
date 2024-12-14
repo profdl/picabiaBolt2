@@ -127,12 +127,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         useSettings: false,
         isUploading: false,
         isEditing: false,
-        depthStrength: 0,
-        edgesStrength: 0,
-        contentStrength: 0,
-        poseStrength: 0,
-        scribbleStrength: 0,
-        remixStrength: 0,
+        depthStrength: 0.25,
+        edgesStrength: 0.25,
+        contentStrength: 0.25,
+        poseStrength: 0.25,
+        scribbleStrength: 0.25,
+        remixStrength: 0.25,
       });
       setTool("select");
       return;
@@ -542,7 +542,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             title="Add Diffusion Settings"
           >
             <Settings className="w-5 h-5" />
-            <span className="text-sm font-medium"> Settings</span>
+            {/* <span className="text-sm font-medium"> Settings</span> */}
           </button>
           {/* Select, Pan Zoom */}
           <div className="w-px bg-gray-200 mx-4" />

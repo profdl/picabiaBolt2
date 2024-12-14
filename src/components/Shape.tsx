@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { createShapeContextMenu } from "../utils/shapeContextMenu";
 import { useStore } from "../store";
 import { Shape, DragStart } from "../types";
@@ -11,6 +10,8 @@ import { ImageShape } from "./shapetypes/ImageShape";
 import { useShapeResize } from "../hooks/useShapeResize";
 import { DrawingShape } from "./shapetypes/DrawingShape";
 import { SketchpadShape } from "./shapetypes/SketchpadShape";
+import { LoadingPlaceholder } from "./ui/LoadingPlaceholder";
+
 interface ShapeProps {
   shape: Shape;
 }
@@ -320,11 +321,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
             ? 1000
             : shapes.findIndex((s) => s.id === shape.id),
         }}
-        className="animate-pulse bg-gray-200 rounded-lg flex items-center justify-center"
+        className="bg-gray-200 rounded-lg flex items-center justify-center"
         onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
       >
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <LoadingPlaceholder />
         {isSelected && tool === "select" && (
           <ShapeControls
             shape={shape}

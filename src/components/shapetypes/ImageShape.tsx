@@ -197,7 +197,9 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
               src={shape.depthPreviewUrl}
               alt="Depth map"
               className="absolute w-full h-full object-cover"
-              style={{ opacity: shape.depthStrength || 0.5 }}
+              style={{
+                opacity: 0.5 + shape.depthStrength * 0.5,
+              }}
               draggable={false}
             />
           )
