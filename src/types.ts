@@ -145,6 +145,28 @@ export interface CanvasState {
   toggleGrid: () => void;
 }
 
+export interface ArenaBlock {
+  id: number;
+  title: string;
+  content: string;
+  description: string;
+  image: {
+    original: {
+      url: string;
+    };
+    display: {
+      url: string;
+    };
+  };
+  created_at: string;
+  updated_at: string;
+  class: string;
+  source: {
+    url: string;
+    title: string;
+  };
+}
+
 export interface ContextMenuItem {
   label: string;
   action: () => void;

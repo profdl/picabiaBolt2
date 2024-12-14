@@ -35,6 +35,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     ungroup,
     setContextMenu,
     setIsEditingText,
+    generatingPredictions,
   } = useStore();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -306,6 +307,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
   }, [shape.id, shape.type, showAdvanced, updateShape]);
 
   if (shape.type === "image" && shape.isUploading) {
+    const isGenerating = generatingPredictions.has(shape.id);
+
     return (
       <div
         style={{
@@ -325,7 +328,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
       >
-        <LoadingPlaceholder />
+        <LoadingPlaceholder isGenerating={isGenerating} />
         {isSelected && tool === "select" && (
           <ShapeControls
             shape={shape}
@@ -337,7 +340,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
       </div>
     );
   }
-
   const handleRotateStart = (e: React.MouseEvent) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();

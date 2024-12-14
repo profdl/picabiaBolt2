@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Loader2, ArrowLeft, Link as LinkIcon } from "lucide-react";
+import { ArenaBlock } from "../types";
 
 export interface ArenaChannel {
   id: number;
@@ -12,24 +13,6 @@ export interface ArenaChannel {
   };
 }
 
-interface ArenaBlock {
-  id: number;
-  title: string;
-  description?: string;
-  image: {
-    display: {
-      url: string;
-    };
-    original: {
-      url: string;
-    };
-  };
-  class: string;
-  source?: {
-    url: string;
-  };
-}
-
 interface ArenaGridProps {
   results: {
     channels?: ArenaChannel[];
@@ -37,12 +20,14 @@ interface ArenaGridProps {
   };
   loading: boolean;
   onSelect: (block: ArenaBlock) => void;
+  defaultChannelSlug?: string;
 }
 
 export const ArenaGrid: React.FC<ArenaGridProps> = ({
   results,
   loading,
   onSelect,
+  defaultChannelSlug = "daniel-lefcourt/terraform",
 }) => {
   const [selectedChannel, setSelectedChannel] = useState<ArenaChannel | null>(
     null
@@ -52,8 +37,6 @@ export const ArenaGrid: React.FC<ArenaGridProps> = ({
   const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
   const [blockConnections, setBlockConnections] = useState<ArenaChannel[]>([]);
   const [loadingConnections, setLoadingConnections] = useState(false);
-
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -62,8 +45,33 @@ export const ArenaGrid: React.FC<ArenaGridProps> = ({
   const channels = results?.channels || [];
   const blocks = results?.blocks || [];
 
+  // Helper function to make authenticated API requests
+  const fetchFromArena = async (endpoint: string) => {
+    const response = await fetch(
+      `/.netlify/functions/arena-search?endpoint=${encodeURIComponent(
+        endpoint
+      )}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`Arena API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    return data;
+  };
+
   const fetchChannelContents = useCallback(
     async (channel: ArenaChannel, newPage?: number) => {
+      if (!channel?.id) {
+        console.error("Invalid channel ID:", channel);
+        return;
+      }
+
       const pageToFetch = newPage || currentPage;
 
       if (pageToFetch === 1) {
@@ -74,14 +82,17 @@ export const ArenaGrid: React.FC<ArenaGridProps> = ({
       }
 
       try {
-        const response = await fetch(
-          `https://api.are.na/v2/channels/${channel.slug}/contents?page=${pageToFetch}&per=24`
+        const data = await fetchFromArena(
+          `/channels/${channel.id}/contents?page=${pageToFetch}&per=24`
         );
-        const data = await response.json();
+
+        if (!data?.contents) {
+          throw new Error("Invalid response data");
+        }
 
         const imageBlocks = data.contents.filter(
           (block: ArenaBlock) =>
-            block.image?.display?.url || block.image?.original?.url
+            block?.image?.display?.url || block?.image?.original?.url
         );
 
         if (pageToFetch === 1) {
@@ -97,6 +108,7 @@ export const ArenaGrid: React.FC<ArenaGridProps> = ({
         if (pageToFetch === 1) {
           setChannelContents([]);
         }
+        setHasMore(false);
       } finally {
         if (pageToFetch === 1) {
           setLoadingChannel(false);
@@ -108,41 +120,58 @@ export const ArenaGrid: React.FC<ArenaGridProps> = ({
     [currentPage]
   );
 
-  // Function to fetch default Terraform channel using the specific user/channel combination
   const fetchDefaultChannel = useCallback(async () => {
+    if (!defaultChannelSlug) {
+      console.error("No default channel slug provided");
+      return;
+    }
+
     setLoadingChannel(true);
     try {
-      const response = await fetch(
-        "https://api.are.na/v2/channels/daniel-lefcourt/terraform"
-      );
-      const channel = await response.json();
+      // Use the slug endpoint format
+      const data = await fetchFromArena(`/channels/slug/${defaultChannelSlug}`);
 
-      if (channel) {
-        const channelData: ArenaChannel = {
-          id: channel.id,
-          title: channel.title,
-          length: channel.length,
-          slug: "daniel-lefcourt/terraform",
-          updated_at: channel.updated_at,
-          user: {
-            username: channel.user.username,
-          },
-        };
-        await fetchChannelContents(channelData);
+      if (!data?.id) {
+        throw new Error("Invalid channel data received");
       }
+
+      const channelData: ArenaChannel = {
+        id: data.id,
+        title: data.title || "Untitled Channel",
+        length: data.length || 0,
+        slug: defaultChannelSlug,
+        updated_at: data.updated_at || new Date().toISOString(),
+        user: {
+          username: data.user?.username || "unknown",
+        },
+      };
+
+      await fetchChannelContents(channelData);
     } catch (error) {
       console.error("Error fetching default channel:", error);
+      setChannelContents([]);
     } finally {
       setLoadingChannel(false);
     }
-  }, [fetchChannelContents]);
+  }, [defaultChannelSlug, fetchChannelContents]);
 
   // Load default channel when component mounts and no search results exist
   useEffect(() => {
-    if (channels.length === 0 && blocks.length === 0 && !loading) {
+    if (
+      channels.length === 0 &&
+      blocks.length === 0 &&
+      !loading &&
+      defaultChannelSlug
+    ) {
       fetchDefaultChannel();
     }
-  }, [channels.length, blocks.length, loading, fetchDefaultChannel]);
+  }, [
+    channels.length,
+    blocks.length,
+    loading,
+    fetchDefaultChannel,
+    defaultChannelSlug,
+  ]);
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {

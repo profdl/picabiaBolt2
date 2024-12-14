@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Upload, Loader2, Search } from "lucide-react";
 import { useStore } from "../store";
 import { Drawer } from "./Drawer";
@@ -8,9 +8,12 @@ import {
   convertToWebP,
   uploadAssetToSupabase,
 } from "../lib/supabase";
-import { Shape } from "../types";
-import { ArenaGrid } from "./ArenaGrid";
-import { ArenaChannel } from "./ArenaGrid";
+import { Shape, ArenaBlock } from "../types";
+import { ArenaGrid, ArenaChannel } from "./ArenaGrid";
+import {
+  DEFAULT_CONTROL_STRENGTHS,
+  DEFAULT_CONTROL_STATES,
+} from "../constants/shapeControlSettings";
 
 interface Asset {
   id: string;
@@ -37,31 +40,17 @@ interface ArenaResults {
   channels: ArenaChannel[];
   blocks: ArenaBlock[];
 }
-interface ArenaBlock {
-  id: number;
-  title: string;
-  content: string;
-  image: {
-    original: {
-      url: string;
-    };
-    display: {
-      url: string;
-    };
-  };
-  created_at: string;
-  updated_at: string;
-  class: string;
-  source: {
-    url: string;
-    title: string;
-  };
-}
 
 export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   isOpen,
   onClose,
 }) => {
+  const [fetchDefaultChannel] = useState<() => void>(() => () => {});
+  const [onDefaultChannelLoad] = useState<() => void>(() => () => {
+    if (!arenaQuery) {
+      setArenaQuery("");
+    }
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = React.useState("my-assets");
   const [assets, setAssets] = React.useState<Asset[]>([]);
@@ -74,7 +63,15 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     blocks: [],
   });
   const [arenaLoading, setArenaLoading] = React.useState(false);
-
+  const { addShape, updateShape, deleteShape, zoom, offset } = useStore(
+    (state) => ({
+      addShape: state.addShape,
+      updateShape: state.updateShape,
+      deleteShape: state.deleteShape,
+      zoom: state.zoom,
+      offset: state.offset,
+    })
+  );
   const {
     addImageToCanvas,
     deleteAsset,
@@ -170,6 +167,67 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     }
   };
 
+  const handleArenaAssetClick = (block: ArenaBlock) => {
+    if (block.image?.original?.url) {
+      const img = new Image();
+      const url = block.image.original.url;
+
+      img.onload = async () => {
+        const aspectRatio = img.naturalWidth / img.naturalHeight;
+
+        // Fetch the image as a blob
+        const response = await fetch(url);
+        const blob = await response.blob();
+
+        // Add placeholder shape immediately
+        const tempId = Math.random().toString(36).substr(2, 9);
+        let width = 300;
+        let height = width / aspectRatio;
+
+        if (height > 300) {
+          height = 300;
+          width = height * aspectRatio;
+        }
+
+        addShape({
+          id: tempId,
+          type: "image",
+          position: getViewportCenter(),
+          width,
+          height,
+          aspectRatio,
+          color: "transparent",
+          imageUrl: url,
+          rotation: 0,
+          isUploading: true,
+          model: "",
+          useSettings: false,
+          isEditing: false,
+          ...DEFAULT_CONTROL_STRENGTHS,
+          ...DEFAULT_CONTROL_STATES,
+        });
+
+        try {
+          const { publicUrl } = await uploadAssetToSupabase(blob);
+
+          // Update the shape with the final uploaded image URL
+          updateShape(tempId, {
+            imageUrl: publicUrl,
+            isUploading: false,
+          });
+
+          fetchAssets();
+          onClose();
+        } catch (err) {
+          console.error("Error processing Arena image:", err);
+          deleteShape(tempId);
+        }
+      };
+
+      img.src = url;
+    }
+  };
+
   const handleDeleteAsset = async (assetId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const asset = assets.find((a) => a.id === assetId);
@@ -188,6 +246,16 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   };
 
   //Arena API
+  const getViewportCenter = () => {
+    const rect = document.querySelector("#root")?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+
+    return {
+      x: (rect.width / 2 - offset.x) / zoom,
+      y: (rect.height / 2 - offset.y) / zoom,
+    };
+  };
+
   useEffect(() => {
     if (!arenaQuery.trim()) {
       setArenaResults({ channels: [], blocks: [] });
@@ -287,6 +355,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
               setActiveTab("arena");
               if (!arenaQuery) {
                 setArenaQuery("");
+                onDefaultChannelLoad();
               }
             }}
             className={`px-4 py-2 text-sm font-medium border-b-2 ${
@@ -297,6 +366,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
           >
             Are.na
           </button>
+
           <button
             onClick={() => setActiveTab("stock")}
             className={`px-4 py-2 text-sm font-medium border-b-2 ${
@@ -358,16 +428,8 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
               <ArenaGrid
                 results={arenaResults}
                 loading={arenaLoading}
-                onSelect={(block) => {
-                  if (block.image?.original?.url) {
-                    handleAssetClick({
-                      id: block.id.toString(),
-                      url: block.image.original.url,
-                      created_at: new Date().toISOString(),
-                      user_id: "",
-                    });
-                  }
-                }}
+                onSelect={handleArenaAssetClick}
+                defaultChannelSlug="daniel-lefcourt/terraform"
               />
             </div>
           )}
