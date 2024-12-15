@@ -26,6 +26,9 @@ export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
+      const is3DShapeOrbiting = shapes.some(
+        (shape) => shape.type === "3d" && shape.isOrbiting
+      );
       const isEditingSticky = shapes.some(
         (shape) =>
           shape.type === "sticky" &&
@@ -33,6 +36,7 @@ export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
           isEditingText
       );
       if (isEditingSticky) return;
+      if (is3DShapeOrbiting) return;
 
       const isDiffusionSettings = (e.target as Element)?.closest(
         '[data-shape-type="diffusionSettings"]'

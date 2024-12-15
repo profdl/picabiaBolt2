@@ -50,6 +50,13 @@ export function useCanvasMouseHandlers() {
     canvasRef: React.RefObject<HTMLDivElement>,
     spacePressed: boolean
   ) => {
+    const isOrbiting = shapes.some(
+      (shape) =>
+        shape.type === "3d" &&
+        selectedShapes.includes(shape.id) &&
+        shape.isOrbiting
+    );
+    if (isOrbiting) return;
     // Check if clicking on shape controls
     const controlsPanel = (e.target as Element)?.closest(
       "[data-controls-panel]"
@@ -57,6 +64,7 @@ export function useCanvasMouseHandlers() {
     if (controlsPanel) {
       return;
     }
+
     const isEditingSticky = shapes.some(
       (shape) =>
         shape.type === "sticky" &&

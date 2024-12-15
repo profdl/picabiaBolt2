@@ -39,7 +39,8 @@ export interface Shape {
     | "drawing"
     | "sketchpad"
     | "group"
-    | "diffusionSettings";
+    | "diffusionSettings"
+    | "3d";
   position: Position;
   content?: string;
   width: number;
@@ -102,6 +103,25 @@ export interface Shape {
   negativePrompt?: string;
   outputWidth?: number;
   outputHeight?: number;
+  // 3D specific properties
+  depthMap?: string;
+  displacementScale?: number;
+  orbitControls?: {
+    autoRotate?: boolean;
+    autoRotateSpeed?: number;
+    enableZoom?: boolean;
+    enablePan?: boolean;
+  };
+  lighting?: {
+    intensity?: number;
+    position?: Position;
+    color?: string;
+  };
+  camera?: {
+    position?: Position & { z: number };
+    fov?: number;
+  };
+  isOrbiting?: boolean;
 }
 
 export interface CanvasState {
@@ -143,8 +163,9 @@ export interface CanvasState {
   undo: () => void;
   redo: () => void;
   toggleGrid: () => void;
+  create3DDepth: (sourceShape: Shape) => void;
+  isOrbiting?: boolean;
 }
-
 export interface ArenaBlock {
   id: number;
   title: string;
@@ -217,4 +238,5 @@ export interface StoreState {
   removeGeneratingPrediction: (id: string) => void;
   updateShape: (id: string, props: Partial<Shape>) => void;
   error: string | null;
+  create3DDepth: (sourceShape: Shape) => void;
 }

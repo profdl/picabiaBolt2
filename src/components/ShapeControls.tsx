@@ -242,7 +242,19 @@ export function ShapeControls({
   if (!showControlPanel && !shape.isNew) return null;
 
   return (
-    <div className="absolute inset-0" style={{ pointerEvents: "none" }}>
+    <div
+      className="absolute inset-0"
+      style={{
+        pointerEvents: "none",
+        ...(isSelected && shape.type === "3d"
+          ? {
+              border: "2px solid #3b82f6", // Blue border matching other selected shapes
+              borderRadius: "4px",
+            }
+          : {}),
+      }}
+    >
+      {" "}
       {/* New Sticky Note Overlay Message */}
       {shape.type === "sticky" && shape.isNew && (
         <div
@@ -254,7 +266,6 @@ export function ShapeControls({
           </div>
         </div>
       )}
-
       {/* Side Controls Panel */}
       {(shape.type === "image" || shape.type === "sketchpad") &&
         showControlPanel && (
@@ -393,12 +404,12 @@ export function ShapeControls({
           onMouseDown={handleResizeStart}
         />
       )}
-
       {/* Color picker for non-image/canvas/sticky shapes */}
       {shape.type !== "image" &&
         shape.type !== "sketchpad" &&
         shape.type !== "group" &&
-        shape.type !== "sticky" && (
+        shape.type !== "sticky" &&
+        shape.type !== "3d" && (
           <input
             type="color"
             value={shape.color}
@@ -407,7 +418,6 @@ export function ShapeControls({
             style={{ zIndex: 101, pointerEvents: "all" }}
           />
         )}
-
       {/* Color picker for sketchpad shapes */}
       {shape.type === "sketchpad" && (
         <input
@@ -418,7 +428,6 @@ export function ShapeControls({
           style={{ zIndex: 101, pointerEvents: "all" }}
         />
       )}
-
       {/* Diffusion Settings controls */}
       {shape.type === "diffusionSettings" && (
         <div
@@ -477,7 +486,6 @@ export function ShapeControls({
           </div>
         </Tooltip>
       )}
-
       {/* Sticky note controls */}
       {shape.type === "sticky" && (
         <div

@@ -118,28 +118,6 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       };
     }),
 
-  updateShape: (id: string, props: Partial<Shape>) =>
-    set((state) => {
-      const newShapes = state.shapes.map((shape) => {
-        if (shape.id === id) {
-          return {
-            ...shape,
-            ...props,
-            showDepth: "showDepth" in props ? props.showDepth : shape.showDepth,
-            showEdges: "showEdges" in props ? props.showEdges : shape.showEdges,
-            showPose: "showPose" in props ? props.showPose : shape.showPose,
-            showScribble:
-              "showScribble" in props ? props.showScribble : shape.showScribble,
-            showRemix: "showRemix" in props ? props.showRemix : shape.showRemix,
-            showPrompt:
-              "showPrompt" in props ? props.showPrompt : shape.showPrompt,
-          };
-        }
-        return shape;
-      });
-      return { shapes: newShapes };
-    }),
-
   updateShapes: (updates: { id: string; shape: Partial<Shape> }[]) =>
     set((state) => {
       const newShapes = state.shapes.map((shape) => {
@@ -283,14 +261,23 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
     if (hasImageShapes) {
       // Get control states from clipboard images
       const controlStates = clipboard.reduce(
-        (acc, shape) => {
+        (
+          acc: {
+            showDepth: boolean;
+            showEdges: boolean;
+            showPose: boolean;
+            showScribble: boolean;
+            showRemix: boolean;
+          },
+          shape: Shape
+        ) => {
           if (shape.type === "image") {
             return {
-              showDepth: acc.showDepth || shape.showDepth,
-              showEdges: acc.showEdges || shape.showEdges,
-              showPose: acc.showPose || shape.showPose,
-              showScribble: acc.showScribble || shape.showScribble,
-              showRemix: acc.showRemix || shape.showRemix,
+              showDepth: acc.showDepth || Boolean(shape.showDepth),
+              showEdges: acc.showEdges || Boolean(shape.showEdges),
+              showPose: acc.showPose || Boolean(shape.showPose),
+              showScribble: acc.showScribble || Boolean(shape.showScribble),
+              showRemix: acc.showRemix || Boolean(shape.showRemix),
             };
           }
           return acc;
@@ -615,4 +602,81 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       }
       return state;
     }),
+  create3DDepth: (sourceShape: Shape) =>
+    set((state) => {
+      if (!sourceShape.depthPreviewUrl) return state;
+
+      const newShape: Shape = {
+        id: Math.random().toString(36).substr(2, 9),
+        type: "3d",
+        position: {
+          x: sourceShape.position.x + 20,
+          y: sourceShape.position.y + 20,
+        },
+        width: sourceShape.width,
+        height: sourceShape.height,
+        color: "#ffffff",
+        rotation: 0,
+        model: "",
+        useSettings: false,
+        isUploading: false,
+        isEditing: false,
+        isOrbiting: false, // Initialize isOrbiting to false
+        imageUrl: sourceShape.imageUrl,
+        depthMap: sourceShape.depthPreviewUrl,
+        displacementScale: 0.5,
+        orbitControls: {
+          autoRotate: false,
+          autoRotateSpeed: 2.0,
+          enableZoom: true,
+          enablePan: true,
+        },
+        lighting: {
+          intensity: 1,
+          position: { x: 0, y: 1 },
+          color: "#ffffff",
+        },
+        camera: {
+          position: { x: 0, y: 0, z: 2 },
+          fov: 75,
+        },
+        depthStrength: 0.75,
+        edgesStrength: 0.75,
+        contentStrength: 0.75,
+        poseStrength: 0.75,
+        scribbleStrength: 0.75,
+        remixStrength: 0.75,
+      };
+
+      return {
+        shapes: [newShape, ...state.shapes],
+        selectedShapes: [newShape.id],
+      };
+    }),
+  updateShape: (id: string, props: Partial<Shape>) =>
+    set((state) => ({
+      shapes: state.shapes.map((shape) => {
+        if (shape.id === id) {
+          if (shape.type === "3d") {
+            return {
+              ...shape,
+              ...props,
+              isOrbiting: props.isOrbiting,
+            };
+          }
+          return {
+            ...shape,
+            ...props,
+          };
+        }
+        return shape;
+      }),
+    })),
+
+  update3DSettings: (id: string, settings: Partial<Shape>) =>
+    set((state) => ({
+      shapes: state.shapes.map((shape) =>
+        shape.id === id ? { ...shape, ...settings } : shape
+      ),
+    })),
 });

@@ -9,9 +9,12 @@ import {
   MoveUp,
   ChevronRight,
   Trash2,
+  Box,
 } from "lucide-react";
+import { useStore } from "../store";
+
 import { useState } from "react";
-import { Shape } from "../types";
+import { Shape, StoreState } from "../types";
 
 interface ImageActionDropdownProps {
   shape: Shape;
@@ -38,11 +41,23 @@ export function ImageActionDropdown({
   sendToFront,
   sendToBack,
   deleteShape,
+  shape,
 }: ImageActionDropdownProps) {
   const [showArrangeMenu, setShowArrangeMenu] = useState(false);
   const handleAction = (action: (e: React.MouseEvent) => void) => {
     action(new MouseEvent("click") as unknown as React.MouseEvent);
     setIsDropdownOpen(false);
+  };
+
+  const { create3DDepth } = useStore((state) => ({
+    create3DDepth: state.create3DDepth,
+  }));
+
+  const onSelect3DDepth = (shape: Shape) => {
+    if (shape.depthPreviewUrl) {
+      create3DDepth(shape);
+      setIsDropdownOpen(false);
+    }
   };
 
   return (
@@ -114,6 +129,13 @@ export function ImageActionDropdown({
           >
             <Eraser className="w-3 h-3 text-gray-500" />
             Remove Background
+          </button>
+          <button
+            className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+            onClick={() => handleAction(() => onSelect3DDepth(shape))}
+          >
+            <Box className="w-3 h-3 text-gray-500" />
+            3D Depth
           </button>
           <button
             className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"

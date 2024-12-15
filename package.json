@@ -15,6 +15,8 @@
   "dependencies": {
     "@netlify/functions": "^2.6.0",
     "@radix-ui/react-tooltip": "^1.1.4",
+    "@react-three/drei": "^9.120.4",
+    "@react-three/fiber": "^8.17.10",
     "@supabase/supabase-js": "^2.39.7",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -27,6 +29,7 @@
     "react-image-crop": "^11.0.7",
     "react-router-dom": "^6.22.3",
     "tailwind-merge": "^2.5.5",
+    "three": "^0.171.0",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
@@ -36,6 +39,7 @@
     "@types/node-fetch": "^2.6.11",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
+    "@types/three": "^0.171.0",
     "@vitejs/plugin-react": "^4.3.1",
     "@vitest/ui": "^2.1.4",
     "autoprefixer": "^10.4.18",

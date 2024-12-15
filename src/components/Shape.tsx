@@ -11,6 +11,7 @@ import { useShapeResize } from "../hooks/useShapeResize";
 import { DrawingShape } from "./shapetypes/DrawingShape";
 import { SketchpadShape } from "./shapetypes/SketchpadShape";
 import { LoadingPlaceholder } from "./ui/LoadingPlaceholder";
+import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
 
 interface ShapeProps {
   shape: Shape;
@@ -91,8 +92,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
     useBrush(sketchPadRef);
   const isSelected = selectedShapes.includes(shape.id);
 
-  // In the handleMouseDown function:
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Prevent shape dragging if the shape is in orbit mode
+    if (shape.type === "3d" && shape.isOrbiting) {
+      e.stopPropagation();
+      return;
+    }
+
     if (tool === "pan" || tool === "pen" || (isEditing && !shape.isNew)) return;
 
     // Prevent drag when clicking controls panel
@@ -340,6 +346,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       </div>
     );
   }
+
   const handleRotateStart = (e: React.MouseEvent) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -354,6 +361,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
+    if (shape.type === "3d") {
+      e.stopPropagation();
+      updateShape(shape.id, { isOrbiting: true });
+      setIsEditingText(true);
+      return;
+    }
+
     if (shape.type === "text" || shape.type === "sticky") {
       e.stopPropagation();
       setIsEditing(true);
@@ -405,6 +419,40 @@ export function ShapeComponent({ shape }: ShapeProps) {
       />
     );
   }
+
+  if (shape.type === "3d") {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          left: shape.position.x,
+          top: shape.position.y,
+          width: shape.width,
+          height: shape.height,
+          transform: `rotate(${shape.rotation}deg)`,
+          cursor: tool === "select" ? "move" : "default",
+          pointerEvents: tool === "select" ? "all" : "none",
+          zIndex: isSelected
+            ? 1000
+            : shapes.findIndex((s) => s.id === shape.id),
+        }}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
+        onContextMenu={handleContextMenu}
+      >
+        <ThreeJSShape shape={shape} />
+        {isSelected && tool === "select" && (
+          <ShapeControls
+            shape={shape}
+            isSelected={isSelected}
+            isEditing={isEditing}
+            handleResizeStart={handleResizeStart}
+          />
+        )}
+      </div>
+    );
+  }
+
   const shapeStyles = getShapeStyles(
     shape,
     isSelected,
@@ -442,6 +490,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
             tool={tool}
           />
         )}
+
         {shape.type === "diffusionSettings" && (
           <DiffusionSettingsPanel
             shape={shape}

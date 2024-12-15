@@ -19,15 +19,8 @@ export function Canvas() {
     getCanvasPoint,
   } = useCanvasMouseHandlers();
 
-  const {
-    shapes,
-    isDragging,
-    tool,
-    gridEnabled,
-    gridSize,
-    setOffset,
-    setSelectedShapes,
-  } = useStore();
+  const { shapes, isDragging, tool, gridEnabled, gridSize, setOffset } =
+    useStore();
 
   // Center the canvas when the component mounts
   useEffect(() => {
@@ -116,7 +109,9 @@ export function Canvas() {
     <div
       ref={canvasRef}
       className={`w-full h-full overflow-hidden bg-white relative ${
-        tool === "pan" || spacePressed
+        shapes.some((s) => s.type === "3d" && s.isOrbiting)
+          ? "cursor-move"
+          : tool === "pan" || spacePressed
           ? "cursor-grab"
           : tool === "pen"
           ? "cursor-crosshair"
@@ -137,7 +132,6 @@ export function Canvas() {
           </div>
         </div>
       )}
-
       {renderGrid()}
       <div
         className="relative w-full h-full"
