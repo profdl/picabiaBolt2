@@ -82,6 +82,8 @@ export const ThreeJSShape: FC<ThreeJSShapeProps> = ({ shape }) => {
         side: THREE.DoubleSide,
         roughness: 0.8,
         metalness: 0.2,
+        transparent: true, // Enable transparency
+        alphaTest: 0.5, // Adjust this value based on desired transparency threshold
       });
 
       // Create geometry with balanced detail
@@ -140,17 +142,21 @@ export const ThreeJSShape: FC<ThreeJSShapeProps> = ({ shape }) => {
           console.error("Texture loading error:", error);
         }
       })();
-      const aspectRatio = shape.width / shape.height;
-      const fov = shape.camera?.fov || 75;
-      const distance = 1 / Math.tan(((fov / 2) * Math.PI) / 180);
 
-      camera.position.set(
-        shape.camera?.position?.x || 0,
-        shape.camera?.position?.y || 0,
-        shape.camera?.position?.z || distance
-      );
-      camera.aspect = aspectRatio;
-      camera.updateProjectionMatrix();
+      // After creating the plane and setting up its geometry
+      const box = new THREE.Box3().setFromObject(plane);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+
+      // Calculate distance based on object size
+      const fov = shape.camera?.fov || 75;
+      const fovRadians = (fov * Math.PI) / 180;
+      const distance =
+        (Math.max(size.x, size.y) / (2 * Math.tan(fovRadians / 2))) * 1.25;
+
+      // Position camera
+      camera.position.set(0, 0, distance);
+      camera.lookAt(center);
 
       const sceneScale =
         Math.min(shape.width, shape.height) /
@@ -173,11 +179,17 @@ export const ThreeJSShape: FC<ThreeJSShapeProps> = ({ shape }) => {
       controls.maxDistance = 4;
 
       // Lighting setup
-      const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(0, 1, 1);
+      const light = new THREE.DirectionalLight(0xffffff, 1.5); // Increased intensity
+      light.position.set(1, 1, 1);
       scene.add(light);
 
-      const ambientLight = new THREE.AmbientLight(0x404040);
+      // Add a second directional light from another angle for better coverage
+      const secondaryLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      secondaryLight.position.set(-1, 0.5, -1);
+      scene.add(secondaryLight);
+
+      // Brighter ambient light for better overall illumination
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Increased intensity and using white
       scene.add(ambientLight);
 
       // Smooth animation loop

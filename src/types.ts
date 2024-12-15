@@ -238,5 +238,5 @@ export interface StoreState {
   removeGeneratingPrediction: (id: string) => void;
   updateShape: (id: string, props: Partial<Shape>) => void;
   error: string | null;
-  create3DDepth: (sourceShape: Shape) => void;
+  create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
 }

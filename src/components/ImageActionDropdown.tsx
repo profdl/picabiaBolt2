@@ -14,7 +14,7 @@ import {
 import { useStore } from "../store";
 
 import { useState } from "react";
-import { Shape, StoreState } from "../types";
+import { Shape } from "../types";
 
 interface ImageActionDropdownProps {
   shape: Shape;
@@ -55,7 +55,11 @@ export function ImageActionDropdown({
 
   const onSelect3DDepth = (shape: Shape) => {
     if (shape.depthPreviewUrl) {
-      create3DDepth(shape);
+      const newX = shape.position.x + (shape.width || 512) + 20;
+      create3DDepth(shape, {
+        x: newX,
+        y: shape.position.y,
+      });
       setIsDropdownOpen(false);
     }
   };

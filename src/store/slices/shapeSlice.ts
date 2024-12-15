@@ -44,6 +44,7 @@ interface ShapeSlice extends ShapeState {
   undo: () => void;
   redo: () => void;
   setIsEditingText: (isEditing: boolean) => void;
+  create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
 }
 
 export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
@@ -58,6 +59,19 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
   preprocessingStates: {},
   isEditingText: false,
   setIsEditingText: (isEditingText: boolean) => set({ isEditingText }),
+  create3DDepth: (shape, position) => {
+    const { shapes } = get();
+    const newShape = {
+      ...shape,
+      depthStrength: 0.25,
+      position: {
+        x: position.x,
+        y: position.y,
+      },
+    };
+    const newShapes = [...shapes, newShape];
+    set({ shapes: newShapes });
+  },
 
   setShapes: (shapes) =>
     set((state) => {
