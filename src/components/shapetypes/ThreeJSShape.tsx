@@ -11,115 +11,224 @@ interface ThreeJSShapeProps {
 export const ThreeJSShape: FC<ThreeJSShapeProps> = ({ shape }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const planeRef = useRef<THREE.Mesh>();
+  const frameIdRef = useRef<number>();
+  const isInteractingRef = useRef(false);
   const { updateShape } = useStore();
 
   useEffect(() => {
-    if (!mountRef.current || !shape.imageUrl || !shape.depthMap) return;
+    if (!mountRef.current || !shape.imageUrl) return;
 
-    let renderer = rendererRef.current;
-
-    if (!renderer) {
-      renderer = new THREE.WebGLRenderer({
-        alpha: true,
-        antialias: true,
-      });
-      rendererRef.current = renderer;
-    }
-
-    const mountElement = mountRef.current;
-    mountElement.innerHTML = "";
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      shape.camera?.fov || 75,
-      shape.width / shape.height,
-      0.1,
-      1000
-    );
-
-    renderer.setSize(shape.width, shape.height);
-    mountElement.appendChild(renderer.domElement);
-
-    const geometry = new THREE.PlaneGeometry(1, 1, 32, 32);
-    const material = new THREE.MeshStandardMaterial({
-      map: new THREE.TextureLoader().load(shape.imageUrl),
-      displacementMap: new THREE.TextureLoader().load(shape.depthMap),
-      displacementScale: shape.displacementScale || 0.5,
-      side: THREE.DoubleSide,
-    });
-
-    const plane = new THREE.Mesh(geometry, material);
-    scene.add(plane);
-
-    const aspectRatio = shape.width / shape.height;
-    const fov = shape.camera?.fov || 75;
-    const distance = 1 / Math.tan(((fov / 2) * Math.PI) / 180);
-    camera.position.set(
-      shape.camera?.position?.x || 0,
-      shape.camera?.position?.y || 0,
-      shape.camera?.position?.z || distance
-    );
-
-    camera.aspect = aspectRatio;
-    camera.updateProjectionMatrix();
-
-    const sceneScale =
-      Math.min(shape.width, shape.height) / Math.max(shape.width, shape.height);
-    scene.scale.set(sceneScale, sceneScale, sceneScale);
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-
-    controls.enabled = Boolean(shape.isOrbiting);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.enableZoom = true;
-    controls.enablePan = true;
-
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(0, 1, 1);
-    scene.add(light);
-
-    const ambientLight = new THREE.AmbientLight(0x404040);
-    scene.add(ambientLight);
-
-    const animate = () => {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    };
-
-    animate();
-
-    // Handle clicking outside to exit orbit mode
-    const handleClickOutside = (e: MouseEvent) => {
-      if (!mountElement.contains(e.target as Node) && shape.isOrbiting) {
-        const currentCamera = {
-          position: {
-            x: camera.position.x,
-            y: camera.position.y,
-            z: camera.position.z,
-          },
-          fov: camera.fov,
-        };
-
-        updateShape(shape.id, {
-          isOrbiting: false,
-          camera: currentCamera,
-        });
+    const cleanup = () => {
+      if (frameIdRef.current) {
+        cancelAnimationFrame(frameIdRef.current);
       }
-    };
 
-    document.addEventListener("click", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-      if (renderer) {
-        renderer.dispose();
-        renderer.forceContextLoss();
-        renderer.domElement.remove();
+      if (rendererRef.current) {
+        const context = rendererRef.current.getContext();
+        if (context) {
+          const loseContext = context.getExtension("WEBGL_lose_context");
+          if (loseContext) loseContext.loseContext();
+        }
+        rendererRef.current.dispose();
         rendererRef.current = null;
       }
+
+      if (sceneRef.current) {
+        sceneRef.current.traverse((object) => {
+          if (object instanceof THREE.Mesh) {
+            object.geometry.dispose();
+            if (Array.isArray(object.material)) {
+              object.material.forEach((m) => m.dispose());
+            } else {
+              object.material.dispose();
+            }
+          }
+        });
+        sceneRef.current = null;
+      }
     };
+
+    cleanup();
+
+    try {
+      const scene = new THREE.Scene();
+      sceneRef.current = scene;
+
+      const renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true, // Enable antialiasing for smoother rendering
+        powerPreference: "high-performance",
+      });
+
+      // Set pixel ratio with a reasonable maximum
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(shape.width, shape.height);
+      rendererRef.current = renderer;
+
+      const mountElement = mountRef.current;
+      mountElement.innerHTML = "";
+      mountElement.appendChild(renderer.domElement);
+
+      const camera = new THREE.PerspectiveCamera(
+        shape.camera?.fov || 75,
+        shape.width / shape.height,
+        0.1,
+        1000
+      );
+
+      const material = new THREE.MeshStandardMaterial({
+        side: THREE.DoubleSide,
+        roughness: 0.8,
+        metalness: 0.2,
+      });
+
+      // Create geometry with balanced detail
+      const createGeometry = (aspect: number = 1) => {
+        const segmentMultiplier = Math.min(shape.width, shape.height) / 300;
+        const segments = Math.max(32, Math.floor(48 * segmentMultiplier));
+        return new THREE.PlaneGeometry(
+          aspect,
+          1,
+          Math.floor(segments * aspect),
+          segments
+        );
+      };
+
+      const plane = new THREE.Mesh(createGeometry(), material);
+      planeRef.current = plane;
+      scene.add(plane);
+
+      const textureLoader = new THREE.TextureLoader();
+      const loadTexture = (url: string): Promise<THREE.Texture> => {
+        return new Promise((resolve, reject) => {
+          textureLoader.load(
+            url,
+            (loadedTexture) => {
+              loadedTexture.generateMipmaps = true; // Enable mipmaps for better scaling
+              loadedTexture.minFilter = THREE.LinearMipmapLinearFilter; // Better minification filtering
+              loadedTexture.magFilter = THREE.LinearFilter;
+              resolve(loadedTexture);
+            },
+            undefined,
+            reject
+          );
+        });
+      };
+
+      (async () => {
+        try {
+          const mainTexture = await loadTexture(shape.imageUrl);
+          const imageAspect =
+            mainTexture.image.width / mainTexture.image.height;
+
+          if (planeRef.current) {
+            planeRef.current.geometry.dispose();
+            planeRef.current.geometry = createGeometry(imageAspect);
+            material.map = mainTexture;
+            material.needsUpdate = true;
+
+            if (typeof shape.depthMap === "string") {
+              const depthTexture = await loadTexture(shape.depthMap);
+              material.displacementMap = depthTexture;
+              material.displacementScale = shape.displacementScale || 0.5;
+              material.needsUpdate = true;
+            }
+          }
+        } catch (error) {
+          console.error("Texture loading error:", error);
+        }
+      })();
+      const aspectRatio = shape.width / shape.height;
+      const fov = shape.camera?.fov || 75;
+      const distance = 1 / Math.tan(((fov / 2) * Math.PI) / 180);
+
+      camera.position.set(
+        shape.camera?.position?.x || 0,
+        shape.camera?.position?.y || 0,
+        shape.camera?.position?.z || distance
+      );
+      camera.aspect = aspectRatio;
+      camera.updateProjectionMatrix();
+
+      const sceneScale =
+        Math.min(shape.width, shape.height) /
+        Math.max(shape.width, shape.height);
+      scene.scale.set(sceneScale, sceneScale, sceneScale);
+
+      // Optimize OrbitControls for smoother interaction
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enabled = Boolean(shape.isOrbiting);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.1; // Increased for smoother movement
+      controls.rotateSpeed = 0.8; // Adjusted for better control
+      controls.zoomSpeed = 0.8; // Adjusted for better control
+      controls.panSpeed = 0.8; // Adjusted for better control
+      controls.enableZoom = true;
+      controls.enablePan = true;
+
+      // Add smooth zoom constraints
+      controls.minDistance = 0.5;
+      controls.maxDistance = 4;
+
+      // Lighting setup
+      const light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(0, 1, 1);
+      scene.add(light);
+
+      const ambientLight = new THREE.AmbientLight(0x404040);
+      scene.add(ambientLight);
+
+      // Smooth animation loop
+      const animate = () => {
+        frameIdRef.current = requestAnimationFrame(animate);
+
+        if (controls.enabled) {
+          controls.update();
+        }
+
+        renderer.render(scene, camera);
+      };
+
+      frameIdRef.current = requestAnimationFrame(animate);
+
+      const handleClickOutside = (e: MouseEvent) => {
+        if (!mountElement.contains(e.target as Node) && shape.isOrbiting) {
+          const currentCamera = {
+            position: {
+              x: camera.position.x,
+              y: camera.position.y,
+              z: camera.position.z,
+            },
+            fov: camera.fov,
+          };
+
+          updateShape(shape.id, {
+            isOrbiting: false,
+            camera: currentCamera,
+          });
+        }
+      };
+
+      controls.addEventListener("start", () => {
+        isInteractingRef.current = true;
+      });
+
+      controls.addEventListener("end", () => {
+        isInteractingRef.current = false;
+      });
+
+      document.addEventListener("click", handleClickOutside);
+
+      return () => {
+        document.removeEventListener("click", handleClickOutside);
+        cleanup();
+      };
+    } catch (error) {
+      console.error("Three.js initialization error:", error);
+      cleanup();
+    }
   }, [shape, updateShape]);
 
   return (
