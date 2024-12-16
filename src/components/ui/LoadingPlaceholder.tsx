@@ -14,8 +14,8 @@ export const LoadingPlaceholder: React.FC<LoadingPlaceholderProps> = ({
 
   useEffect(() => {
     const messages = [
-      "...thanks for waiting.\nWe are working on it...",
-      "Some images just take a while...",
+      "...looks like the AI was sleeping...",
+      "sometimes it takes a while to start up the AI...",
       "What do you call a fish with no eyes?\nFsh.",
       "The first image can take up to 3 minutes",
       "Why don't eggs tell jokes?\nThey'd crack up!",
