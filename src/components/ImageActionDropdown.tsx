@@ -55,7 +55,7 @@ export function ImageActionDropdown({
 
   const onSelect3DDepth = (shape: Shape) => {
     if (shape.depthPreviewUrl) {
-      const newX = shape.position.x + (shape.width || 512) + 20;
+      const newX = shape.position.x + shape.width + 20;
       create3DDepth(shape, {
         x: newX,
         y: shape.position.y,
@@ -73,7 +73,7 @@ export function ImageActionDropdown({
           setIsDropdownOpen(!isDropdownOpen);
         }}
       >
-        <span className="text-xs text-gray-600">Edit Image</span>
+        <span className="text-xs text-gray-600">ACTIONS...</span>
         <ChevronDown className="w-3 h-3 text-gray-500" />
       </button>
 

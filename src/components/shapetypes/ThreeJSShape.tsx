@@ -8,12 +8,19 @@ import { setupScene, createSceneSetup } from "../../lib/sceneSetup";
 interface ThreeJSShapeProps {
   shape: Shape;
 }
+interface MeshWithUniforms extends THREE.Mesh {
+  updateUniforms?: () => void;
+}
+
+interface ThreeJSShapeProps {
+  shape: Shape;
+}
 
 export const ThreeJSShape: FC<ThreeJSShapeProps> = ({ shape }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
-  const planeRef = useRef<THREE.Mesh>();
+  const planeRef = useRef<MeshWithUniforms>(); // Updated type
   const frameIdRef = useRef<number>();
   const isInteractingRef = useRef(false);
   const { updateShape } = useStore();
@@ -134,9 +141,10 @@ export const ThreeJSShape: FC<ThreeJSShapeProps> = ({ shape }) => {
               mainTexture,
               depthTexture,
               {
-                minFOV: 30,
+                minFOV: 60,
                 maxFOV: 90,
-                baseDistance: 2,
+                baseDistance: 0.05,
+                displacementScale: shape.displacementScale || 0.5,
               }
             );
           });
@@ -178,7 +186,7 @@ export const ThreeJSShape: FC<ThreeJSShapeProps> = ({ shape }) => {
       const fov = shape.camera?.fov || 75;
       const fovRadians = (fov * Math.PI) / 180;
       const distance =
-        (Math.max(size.x, size.y) / (2 * Math.tan(fovRadians / 2))) * 1.25;
+        (Math.max(size.x, size.y) / (2 * Math.tan(fovRadians / 2))) * 1;
 
       // Position camera
       camera.position.set(0, 0, distance);
@@ -201,8 +209,8 @@ export const ThreeJSShape: FC<ThreeJSShapeProps> = ({ shape }) => {
       controls.enablePan = true;
 
       // Add smooth zoom constraints
-      controls.minDistance = 0.5;
-      controls.maxDistance = 4;
+      controls.minDistance = 0.1; // Changed from 0.5
+      controls.maxDistance = 1.0; // Changed from 4
 
       // Lighting setup
       const light = new THREE.DirectionalLight(0xffffff, 1.5); // Increased intensity
@@ -224,6 +232,11 @@ export const ThreeJSShape: FC<ThreeJSShapeProps> = ({ shape }) => {
 
         if (controls.enabled) {
           controls.update();
+        }
+
+        // Type-safe check for updateUniforms
+        if (planeRef.current?.updateUniforms) {
+          planeRef.current.updateUniforms();
         }
 
         renderer.render(scene, camera);

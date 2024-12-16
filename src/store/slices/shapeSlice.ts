@@ -610,12 +610,12 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       const newShape: Shape = {
         id: Math.random().toString(36).substr(2, 9),
         type: "3d",
-        position: {
-          x: sourceShape.position.x + 20,
-          y: sourceShape.position.y + 20,
-        },
         width: sourceShape.width,
         height: sourceShape.height,
+        position: {
+          x: sourceShape.position.x + sourceShape.width + 20,
+          y: sourceShape.position.y,
+        },
         color: "#ffffff",
         rotation: 0,
         model: "",
