@@ -127,15 +127,17 @@ export function createSceneSetup(
 
   const plane = new THREE.Mesh(geometry, material);
   scene.add(plane);
-
   // Add default lighting
-  const light = new THREE.DirectionalLight(0xffffff, 1.5);
-  light.position.set(1, 1, 1);
-  scene.add(light);
+  const mainLight = new THREE.DirectionalLight(0xffffff, 2.5); // Increased intensity
+  mainLight.position.set(1, 2, 1);
+  scene.add(mainLight);
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  fillLight.position.set(-1, 0.5, -1);
+  scene.add(fillLight);
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); // Increased ambient intensity
   scene.add(ambientLight);
-
   container.appendChild(renderer.domElement);
 
   return {
