@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Shape } from "../../types";
 import { useStore } from "../../store";
+import { setupScene, createSceneSetup } from "../../lib/sceneSetup";
 
 interface ThreeJSShapeProps {
   shape: Shape;
@@ -19,6 +20,11 @@ export const ThreeJSShape: FC<ThreeJSShapeProps> = ({ shape }) => {
 
   useEffect(() => {
     if (!mountRef.current || !shape.imageUrl) return;
+    const sceneConfig = createSceneSetup(
+      mountRef.current,
+      shape.width,
+      shape.height
+    );
 
     const cleanup = () => {
       if (frameIdRef.current) {
@@ -119,8 +125,28 @@ export const ThreeJSShape: FC<ThreeJSShapeProps> = ({ shape }) => {
         });
       };
 
+      loadTexture(shape.imageUrl).then((mainTexture) => {
+        if (shape.depthMap) {
+          loadTexture(shape.depthMap).then((depthTexture) => {
+            setupScene(
+              sceneConfig.camera,
+              sceneConfig.plane,
+              mainTexture,
+              depthTexture,
+              {
+                minFOV: 30,
+                maxFOV: 90,
+                baseDistance: 2,
+              }
+            );
+          });
+        }
+      });
+
       (async () => {
         try {
+          if (!shape.imageUrl) return;
+
           const mainTexture = await loadTexture(shape.imageUrl);
           const imageAspect =
             mainTexture.image.width / mainTexture.image.height;
