@@ -1,15 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store";
 import { Shape } from "../types";
 import { ImageActionDropdown } from "./ImageActionDropdown";
 import { generatePrompt } from "../utils/prompt-generator";
 import { Tooltip } from "./ui/Tooltip";
 import { getControlDescription, ControlType } from "../utils/tooltips";
+import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
+
 interface ShapeControlsProps {
   shape: Shape;
   isSelected: boolean;
   isEditing: boolean;
   handleResizeStart: (e: React.MouseEvent<HTMLDivElement>) => void;
+}
+
+interface ThreeJSShapeRef {
+  exportToGLTF: () => void;
 }
 
 export function ShapeControls({
@@ -20,6 +26,7 @@ export function ShapeControls({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { sendToBack, sendToFront, sendBackward, sendForward, deleteShape } =
     useStore();
+  const threeJSRef = useRef<ThreeJSShapeRef>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -611,6 +618,36 @@ export function ShapeControls({
               </div>
             </Tooltip>
           </div>
+        </div>
+      )}
+      {shape.type === "3d" && isSelected && (
+        <div>
+          <ThreeJSShape ref={threeJSRef} shape={shape} />
+          <Tooltip content="Download 3D Scene" side="bottom">
+            <div
+              className="absolute -left-0 -bottom-8 w-6 h-6 bg-white border border-gray-200 rounded-2px cursor-pointer hover:bg-gray-50 flex items-center justify-center shadow-sm"
+              style={{ zIndex: 101, pointerEvents: "all" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (threeJSRef.current) {
+                  threeJSRef.current.exportToGLTF();
+                }
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </div>
+          </Tooltip>
         </div>
       )}
     </div>

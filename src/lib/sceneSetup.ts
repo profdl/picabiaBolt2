@@ -281,8 +281,8 @@ export function setupScene(
   const geometry = new THREE.PlaneGeometry(
     aspect,
     1,
-    baseSegments,
-    Math.floor(baseSegments / aspect)
+    Math.max(256, baseSegments), // Increased from 128
+    Math.floor(Math.max(256, baseSegments) / aspect)
   );
 
   // Create and set up the improved material
@@ -377,18 +377,21 @@ export function createSceneSetup(
   scene.add(plane);
 
   // Lighting setup
-  const mainLight = new THREE.DirectionalLight(0xffffff, 1.8);
-  mainLight.position.set(2, 3, 1);
-  scene.add(mainLight);
 
   const fillLight = new THREE.DirectionalLight(0xffd7ba, 1.2);
   fillLight.position.set(-1, 0.5, -1);
   scene.add(fillLight);
+  const mainLight = new THREE.DirectionalLight(0xffffff, 1.8);
+  mainLight.position.set(2, 3, 1);
+  const target = new THREE.Object3D();
+  target.position.set(0, 0, -1);
+  mainLight.add(target);
+  mainLight.target = target;
+  scene.add(mainLight);
 
   const backLight = new THREE.DirectionalLight(0xb6d0ff, 0.8);
   backLight.position.set(0, 1, -2);
   scene.add(backLight);
-
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(ambientLight);
 

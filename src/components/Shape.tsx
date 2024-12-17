@@ -11,7 +11,7 @@ import { useShapeResize } from "../hooks/useShapeResize";
 import { DrawingShape } from "./shapetypes/DrawingShape";
 import { SketchpadShape } from "./shapetypes/SketchpadShape";
 import { LoadingPlaceholder } from "./ui/LoadingPlaceholder";
-import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
+import { ThreeJSShape, ThreeJSShapeRef } from "./shapetypes/ThreeJSShape";
 
 interface ShapeProps {
   shape: Shape;
@@ -38,6 +38,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     setIsEditingText,
     generatingPredictions,
   } = useStore();
+  const threeJSRef = useRef<ThreeJSShapeRef>(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -440,7 +441,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
       >
-        <ThreeJSShape shape={shape} />
+        <ThreeJSShape ref={threeJSRef} shape={shape} />
         {isSelected && tool === "select" && (
           <ShapeControls
             shape={shape}

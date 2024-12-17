@@ -240,3 +240,7 @@ export interface StoreState {
   error: string | null;
   create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
 }
+
+export interface ThreeJSShapeRef {
+  exportToGLTF: () => void;
+}

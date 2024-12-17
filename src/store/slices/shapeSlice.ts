@@ -59,7 +59,6 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
   preprocessingStates: {},
   isEditingText: false,
   setIsEditingText: (isEditingText: boolean) => set({ isEditingText }),
-
   setShapes: (shapes) =>
     set((state) => {
       // Validate shape data
