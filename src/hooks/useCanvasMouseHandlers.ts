@@ -27,6 +27,7 @@ export function useCanvasMouseHandlers() {
     addShape,
     setSelectedShapes,
     selectedShapes,
+    setTool,
   } = useStore();
 
   function getCanvasPoint(
@@ -50,6 +51,14 @@ export function useCanvasMouseHandlers() {
     canvasRef: React.RefObject<HTMLDivElement>,
     spacePressed: boolean
   ) => {
+    if (tool === "brush" || tool === "eraser") {
+      const clickedElement = e.target as HTMLElement;
+      const isSketchpad = clickedElement.closest("canvas");
+      if (!isSketchpad) {
+        setTool("select");
+        return;
+      }
+    }
     const isOrbiting = shapes.some(
       (shape) =>
         shape.type === "3d" &&

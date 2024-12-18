@@ -7,8 +7,6 @@ import {
   Image as ImageIcon,
   Loader2,
   Grid,
-  Brush,
-  Eraser,
   BookImageIcon,
 } from "lucide-react";
 import { useStore } from "../store";
@@ -68,8 +66,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     setIsEditingText,
     updateShape,
     currentColor,
-    strokeWidth,
-    setStrokeWidth,
+
     brushTexture,
     setBrushTexture,
     setBrushSize,
@@ -139,6 +136,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         useSettings: false,
         isUploading: false,
         isEditing: false,
+        showScribble: true, // Add this line
         depthStrength: 0.25,
         edgesStrength: 0.25,
         contentStrength: 0.25,
@@ -321,7 +319,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         </div>
 
         {/* Center-aligned toolbar buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {/* Sticky Note Button */}
           <Tooltip
             content="Create a new sticky note. Use the text to guide the AI image generation."
@@ -338,32 +336,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             </button>
           </Tooltip>
 
-          <div className="w-px bg-gray-200 mx-2" />
-          {(tool === "pen" || tool === "brush" || tool === "eraser") && (
+          {(tool === "brush" || tool === "eraser") && (
             <div className="absolute bottom-full mb-4 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg px-4 py-2 flex items-center gap-4">
-              {tool === "pen" && (
-                <>
-                  <input
-                    type="color"
-                    value={currentColor}
-                    onChange={(e) => setCurrentColor(e.target.value)}
-                    className="w-8 h-8 p-0 cursor-pointer"
-                    title="Stroke Color"
-                  />
-                  <select
-                    value={strokeWidth}
-                    onChange={(e) => setStrokeWidth(Number(e.target.value))}
-                    className="p-1 border rounded"
-                    title="Stroke Width"
-                  >
-                    {[1, 2, 4, 6, 8, 12].map((width) => (
-                      <option key={width} value={width}>
-                        {width}px
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
               {(tool === "brush" || tool === "eraser") && (
                 <div className="flex items-center gap-4">
                   <input
@@ -456,30 +430,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
               )}
             </div>
           )}
-          <button
-            onClick={() => {
-              setTool("brush");
-              setCurrentColor("#ffffff"); // White for brush
-            }}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${
-              tool === "brush" ? "bg-gray-100" : ""
-            }`}
-            title="Brush Tool (B)"
-          >
-            <Brush className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => {
-              setTool("eraser");
-              setCurrentColor("#000000"); // Black for eraser
-            }}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${
-              tool === "eraser" ? "bg-gray-100" : ""
-            }`}
-            title="Eraser Tool (E)"
-          >
-            <Eraser className="w-5 h-5" />
-          </button>
 
           {/* Sketchpad  */}
           <button
@@ -487,8 +437,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             className="p-2 hover:bg-gray-100 rounded-lg"
             title="Add sketchpad"
           >
-            <BookImageIcon className="w-5 h-5" />
+            <span className="flex items-center gap-1">
+              <BookImageIcon className="w-5 h-5" />
+              <span className="text-sm font-medium">Sketch Prompt</span>
+            </span>
           </button>
+          <div className="w-px bg-gray-200 mx-2" />
 
           {/* Image Generation Tools */}
           <Tooltip

@@ -21,16 +21,19 @@ export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
   handleContextMenu,
   tool,
 }) => {
-  const { addShape, deleteShape, setTool, updateShape } = useStore();
+  const { addShape, deleteShape, setTool } = useStore();
 
   useEffect(() => {
-    if (sketchPadRef.current) {
-      // Store the actual canvas data
+    if (sketchPadRef.current && shape.canvasData) {
       const canvas = sketchPadRef.current;
-      const canvasData = canvas.toDataURL("image/png");
-      updateShape(shape.id, { canvasData });
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+      img.onload = () => {
+        ctx?.drawImage(img, 0, 0);
+      };
+      img.src = shape.canvasData;
     }
-  }, [shape.id, sketchPadRef, updateShape]);
+  }, [shape.canvasData, sketchPadRef]);
 
   return (
     <>

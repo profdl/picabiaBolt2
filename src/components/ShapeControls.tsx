@@ -6,6 +6,8 @@ import { generatePrompt } from "../utils/prompt-generator";
 import { Tooltip } from "./ui/Tooltip";
 import { getControlDescription, ControlType } from "../utils/tooltips";
 import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
+import { Brush, Eraser } from "lucide-react";
+import { BrushShapeSelector } from "./BrushShapeSelector";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -27,6 +29,28 @@ export function ShapeControls({
   const { sendToBack, sendToFront, sendBackward, sendForward, deleteShape } =
     useStore();
   const threeJSRef = useRef<ThreeJSShapeRef>(null);
+  const {
+    tool,
+    setTool,
+    setCurrentColor,
+    brushTexture,
+    setBrushTexture,
+    brushSize,
+    setBrushSize,
+    brushOpacity,
+    setBrushOpacity,
+  } = useStore((state) => ({
+    tool: state.tool,
+    setTool: state.setTool,
+    currentColor: state.currentColor,
+    setCurrentColor: state.setCurrentColor,
+    brushTexture: state.brushTexture,
+    setBrushTexture: state.setBrushTexture,
+    brushSize: state.brushSize,
+    setBrushSize: state.setBrushSize,
+    brushOpacity: state.brushOpacity,
+    setBrushOpacity: state.setBrushOpacity,
+  }));
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -36,7 +60,6 @@ export function ShapeControls({
         setIsDropdownOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDropdownOpen]);
@@ -177,7 +200,10 @@ export function ShapeControls({
     shape.showScribble ||
     shape.showRemix;
   const showControlPanel =
-    isSelected || anyCheckboxChecked || shape.useSettings;
+    isSelected ||
+    anyCheckboxChecked ||
+    shape.useSettings ||
+    (shape.type === "sketchpad" && (tool === "brush" || tool === "eraser"));
 
   if (!showControlPanel) return null;
 
@@ -638,6 +664,71 @@ export function ShapeControls({
               </svg>
             </div>
           </Tooltip>
+        </div>
+      )}
+      {shape.type === "sketchpad" && (
+        <div
+          className="absolute -left-12 top-0 flex flex-col gap-2"
+          style={{ zIndex: 101, pointerEvents: "all" }}
+        >
+          <Tooltip content="Brush Tool" side="left">
+            <button
+              onClick={() => {
+                setTool("brush");
+                setCurrentColor("#ffffff");
+              }}
+              className={`p-2 bg-white border border-gray-200 rounded-lg ${
+                tool === "brush" ? "bg-blue-100 border-blue-500" : ""
+              }`}
+            >
+              <Brush className="w-5 h-5" />
+            </button>
+          </Tooltip>
+          <Tooltip content="Eraser Tool" side="left">
+            <button
+              onClick={() => {
+                setTool("eraser");
+                setCurrentColor("#000000");
+              }}
+              className={`p-2 bg-white border border-gray-200 rounded-lg ${
+                tool === "eraser" ? "bg-blue-100 border-blue-500" : ""
+              }`}
+            >
+              <Eraser className="w-5 h-5" />
+            </button>
+          </Tooltip>
+
+          {(tool === "brush" || tool === "eraser") && (
+            <div className="absolute left-12 top-0 bg-white shadow-lg rounded-lg p-4 flex flex-col gap-4">
+              <BrushShapeSelector
+                currentTexture={brushTexture}
+                onTextureSelect={setBrushTexture}
+              />
+              <div className="space-y-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-500">Size</label>
+                  <input
+                    type="range"
+                    value={brushSize}
+                    onChange={(e) => setBrushSize(Number(e.target.value))}
+                    min="1"
+                    max="100"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-500">Opacity</label>
+                  <input
+                    type="range"
+                    value={brushOpacity}
+                    onChange={(e) => setBrushOpacity(Number(e.target.value))}
+                    min="0"
+                    max="1"
+                    step="0.1"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

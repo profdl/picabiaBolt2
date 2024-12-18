@@ -12,7 +12,7 @@ import { DrawingShape } from "./shapetypes/DrawingShape";
 import { SketchpadShape } from "./shapetypes/SketchpadShape";
 import { LoadingPlaceholder } from "./ui/LoadingPlaceholder";
 import { ThreeJSShape, ThreeJSShapeRef } from "./shapetypes/ThreeJSShape";
-import { canvasToFile } from "../utils/canvasUtils";
+import { uploadCanvasToSupabase } from "../utils/canvasUtils";
 
 interface ShapeProps {
   shape: Shape;
@@ -69,11 +69,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
     }
   };
 
-  const handleSketchpadPointerUpOrLeave = (
-    e: React.PointerEvent<HTMLCanvasElement>
-  ) => {
+  const handleSketchpadPointerUpOrLeave = () => {
     if (handlePointerUpOrLeave) {
-      handlePointerUpOrLeave(e);
+      handlePointerUpOrLeave();
     }
   };
 
@@ -467,6 +465,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
             handlePointerUpOrLeave={handleSketchpadPointerUpOrLeave}
             handleContextMenu={handleContextMenu}
             tool={tool}
+            uploadCanvasToSupabase={uploadCanvasToSupabase}
           />
         )}
 
@@ -505,7 +504,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
         />
       </div>
       {/* Controls layer */}
-      {tool === "select" && (
+      {(tool === "select" ||
+        (shape.type === "sketchpad" &&
+          (tool === "brush" || tool === "eraser"))) && (
         <div
           data-controls-panel={shape.id}
           style={{
