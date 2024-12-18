@@ -49,8 +49,8 @@ export interface SavedImage {
   depth_scale: number;
   edge_scale: number;
   pose_scale: number;
-  scribbleMapUrl: string;
-  scribble_scale: number;
+  sketchMapUrl: string;
+  sketch_scale: number;
   remixMapUrl: string;
   remix_scale: number;
   logs: string;
@@ -103,7 +103,7 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
     Depth: image.depth_scale,
     Edge: image.edge_scale,
     Pose: image.pose_scale,
-    Scribble: image.scribble_scale,
+    Sketch: image.sketch_scale,
     Remix: image.remix_scale,
   };
 
@@ -216,7 +216,7 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
                     { url: image.depthMapUrl, label: "Depth" },
                     { url: image.edgeMapUrl, label: "Edge" },
                     { url: image.poseMapUrl, label: "Pose" },
-                    { url: image.scribbleMapUrl, label: "Scribble" },
+                    { url: image.sketchMapUrl, label: "Sketch" },
                     { url: image.remixMapUrl, label: "Remix" },
                   ]
                     .filter((map) => map.url)

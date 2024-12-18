@@ -104,7 +104,7 @@ export interface DrawerSlice {
       edgesStrength?: number;
       contentStrength?: number;
       poseStrength?: number;
-      scribbleStrength?: number;
+      sketchStrength?: number;
       remixStrength?: number;
     },
     options?: { defaultWidth?: number; position?: Position }

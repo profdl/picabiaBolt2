@@ -117,8 +117,8 @@ export function ShapeControls({
   const poseProcessing = useStore(
     (state) => state.preprocessingStates[shape.id]?.pose
   );
-  const scribbleProcessing = useStore(
-    (state) => state.preprocessingStates[shape.id]?.scribble
+  const sketchProcessing = useStore(
+    (state) => state.preprocessingStates[shape.id]?.sketch
   );
   const remixProcessing = useStore(
     (state) => state.preprocessingStates[shape.id]?.remix
@@ -160,13 +160,13 @@ export function ShapeControls({
       preprocessor: "OpenPose",
     },
     {
-      type: "Scribble",
-      preview: shape.scribblePreviewUrl,
-      showKey: "showScribble",
-      strengthKey: "scribbleStrength",
-      isProcessing: scribbleProcessing,
-      processType: "scribble",
-      preprocessor: "Scribble",
+      type: "Sketch",
+      preview: shape.sketchPreviewUrl,
+      showKey: "showSketch",
+      strengthKey: "sketchStrength",
+      isProcessing: sketchProcessing,
+      processType: "sketch",
+      preprocessor: "Sketch",
     },
     {
       type: "Remix",
@@ -186,7 +186,7 @@ export function ShapeControls({
     shape.showPose ||
     shape.showPrompt ||
     shape.showNegativePrompt ||
-    shape.showScribble ||
+    shape.showSketch ||
     shape.showRemix;
   const showControlPanel =
     isSelected ||
@@ -209,11 +209,11 @@ export function ShapeControls({
       setSelectedShapes([shape.id]);
     }
 
-    // For scribble control, use the original image as preview
-    if (control.processType === "scribble") {
+    // For sketch control, use the original image as preview
+    if (control.processType === "sketch") {
       updateShape(shape.id, {
         [control.showKey]: isChecked,
-        scribblePreviewUrl: isChecked ? shape.imageUrl : undefined,
+        sketchPreviewUrl: isChecked ? shape.imageUrl : undefined,
       });
       return;
     }
@@ -247,12 +247,7 @@ export function ShapeControls({
       try {
         await generatePreprocessedImage(
           shape.id,
-          control.processType as
-            | "depth"
-            | "edge"
-            | "pose"
-            | "scribble"
-            | "remix"
+          control.processType as "depth" | "edge" | "pose" | "sketch" | "remix"
         );
       } catch (error) {
         console.error("Failed to generate preprocessed image:", error);

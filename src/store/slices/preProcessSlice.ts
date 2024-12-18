@@ -29,7 +29,7 @@ interface PreprocessingStates {
     depth?: boolean;
     edge?: boolean;
     pose?: boolean;
-    scribble?: boolean;
+    sketch?: boolean;
     remix?: boolean;
   };
 }
@@ -43,7 +43,7 @@ interface PreProcessSlice {
   preprocessingStates: PreprocessingStates;
   generatePreprocessedImage: (
     shapeId: string,
-    processType: "depth" | "edge" | "pose" | "scribble" | "remix"
+    processType: "depth" | "edge" | "pose" | "sketch" | "remix"
   ) => Promise<void>;
   addGeneratingPrediction: (id: string) => void;
   removeGeneratingPrediction: (id: string) => void;

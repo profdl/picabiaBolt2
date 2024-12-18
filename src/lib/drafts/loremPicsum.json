@@ -1,317 +1,239 @@
 {
-    "3": {
-        "inputs": {
-            "seed": 501550308463297,
-            "steps": 20,
-            "cfg": 8,
-            "sampler_name": "dpmpp_2m_sde",
-            "scheduler": "karras",
-            "denoise": 1,
-            "model": [
-                26,
-                0
-            ],
-            "positive": [
-                22,
-                0
-            ],
-            "negative": [
-                7,
-                0
-            ],
-            "latent_image": [
-                5,
-                0
-            ]
-        },
-        "class_type": "KSampler",
-        "_meta": {
-            "title": "KSampler"
-        }
+  "3": {
+    "inputs": {
+      "seed": 501550308463297,
+      "steps": 20,
+      "cfg": 8,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [26, 0],
+      "positive": [22, 0],
+      "negative": [7, 0],
+      "latent_image": [5, 0]
     },
-    "4": {
-        "inputs": {
-            "ckpt_name": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
-        },
-        "class_type": "CheckpointLoaderSimple",
-        "_meta": {
-            "title": "Load Checkpoint"
-        }
-    },
-    "5": {
-        "inputs": {
-            "width": 512,
-            "height": 512,
-            "batch_size": 1
-        },
-        "class_type": "EmptyLatentImage",
-        "_meta": {
-            "title": "Empty Latent Image"
-        }
-    },
-    "6": {
-        "inputs": {
-            "text": "",
-            "clip": [
-                4,
-                1
-            ]
-        },
-        "class_type": "CLIPTextEncode",
-        "_meta": {
-            "title": "CLIP Text Encode (Prompt)"
-        }
-    },
-    "7": {
-        "inputs": {
-            "text": "text, watermark",
-            "clip": [
-                4,
-                1
-            ]
-        },
-        "class_type": "CLIPTextEncode",
-        "_meta": {
-            "title": "CLIP Text Encode (Negative Prompt)"
-        }
-    },
-    "8": {
-        "inputs": {
-            "samples": [
-                3,
-                0
-            ],
-            "vae": [
-                4,
-                2
-            ]
-        },
-        "class_type": "VAEDecode",
-        "_meta": {
-            "title": "VAE Decode"
-        }
-    },
-    "9": {
-        "inputs": {
-            "filename_prefix": "ComfyUI",
-            "images": [
-                8,
-                0
-            ]
-        },
-        "class_type": "SaveImage",
-        "_meta": {
-            "title": "Save Image"
-        }
-    },
-    "11": {
-        "inputs": {
-            "strength": 1,
-            "conditioning": [
-                6,
-                0
-            ],
-            "control_net": [
-                12,
-                0
-            ],
-            "image": [
-                13,
-                0
-            ]
-        },
-        "class_type": "ControlNetApply",
-        "_meta": {
-            "title": "Apply ControlNet (Depth)"
-        }
-    },
-    "12": {
-        "inputs": {
-            "control_net_name": "controlnet-depth-sdxl-1.0.safetensors"
-        },
-        "class_type": "ControlNetLoader",
-        "_meta": {
-            "title": "Load ControlNet Model (Depth)"
-        }
-    },
-    "13": {
-        "inputs": {
-            "image": "",
-            "upload": "image"
-        },
-        "class_type": "LoadImage",
-        "_meta": {
-            "title": "Load Depth Image"
-        }
-    },
-    "14": {
-        "inputs": {
-            "strength": 1,
-            "conditioning": [
-                11,
-                0
-            ],
-            "control_net": [
-                15,
-                0
-            ],
-            "image": [
-                16,
-                0
-            ]
-        },
-        "class_type": "ControlNetApply",
-        "_meta": {
-            "title": "Apply ControlNet (Edge)"
-        }
-    },
-    "15": {
-        "inputs": {
-            "control_net_name": "controlnet-canny-sdxl-1.0_V2.safetensors"
-        },
-        "class_type": "ControlNetLoader",
-        "_meta": {
-            "title": "Load ControlNet Model (Edge)"
-        }
-    },
-    "16": {
-        "inputs": {
-            "image": "",
-            "upload": "image"
-        },
-        "class_type": "LoadImage",
-        "_meta": {
-            "title": "Load Edge Image"
-        }
-    },
-    "17": {
-        "inputs": {
-            "strength": 1,
-            "conditioning": [
-                14,
-                0
-            ],
-            "control_net": [
-                18,
-                0
-            ],
-            "image": [
-                19,
-                0
-            ]
-        },
-        "class_type": "ControlNetApply",
-        "_meta": {
-            "title": "Apply ControlNet (Pose)"
-        }
-    },
-    "18": {
-        "inputs": {
-            "control_net_name": "controlnet-openpose-sdxl-1.0.safetensors"
-        },
-        "class_type": "ControlNetLoader",
-        "_meta": {
-            "title": "Load ControlNet Model (Pose)"
-        }
-    },
-    "19": {
-        "inputs": {
-            "image": "",
-            "upload": "image"
-        },
-        "class_type": "LoadImage",
-        "_meta": {
-            "title": "Load Pose Image"
-        }
-    },
-    "20": {
-        "inputs": {
-            "control_net_name": "controlnet-scribble-sdxl-1.0.safetensors"
-        },
-        "class_type": "ControlNetLoader",
-        "_meta": {
-            "title": "Load ControlNet Model (Scribble)"
-        }
-    },
-    "21": {
-        "inputs": {
-            "image": "",
-            "upload": "image"
-        },
-        "class_type": "LoadImage",
-        "_meta": {
-            "title": "Load Scribble Image"
-        }
-    },
-    "22": {
-        "inputs": {
-            "strength": 1,
-            "conditioning": [
-                17,
-                0
-            ],
-            "control_net": [
-                20,
-                0
-            ],
-            "image": [
-                21,
-                0
-            ]
-        },
-        "class_type": "ControlNetApply",
-        "_meta": {
-            "title": "Apply ControlNet (Scribble)"
-        }
-    },
-    "24": {
-        "inputs": {
-            "image": "",
-            "upload": "image"
-        },
-        "class_type": "LoadImage",
-        "_meta": {
-            "title": "Load Reference Image"
-        }
-    },
-    "25": {
-        "inputs": {
-            "model": [
-                4,
-                0
-            ]
-        },
-        "class_type": "IPAdapterUnifiedLoader",
-        "_meta": {
-            "title": "Load IPAdapter Unified"
-        }
-    },
-    "26": {
-        "inputs": {
-            "model": [
-                4,
-                0
-            ],
-            "ipadapter": [
-                25,
-                0
-            ],
-            "image": [
-                24,
-                0
-            ],
-            "weight": 0.8,
-            "weight_type": "linear",
-            "start_at": 0,
-            "end_at": 1,
-            "conditioning": [
-                6,
-                0
-            ]
-        },
-        "class_type": "IPAdapterAdvanced",
-        "_meta": {
-            "title": "IPAdapter Advanced"
-        }
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
     }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": "",
+      "clip": [4, 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [4, 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [3, 0],
+      "vae": [4, 2]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [8, 0]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "11": {
+    "inputs": {
+      "strength": 1,
+      "conditioning": [6, 0],
+      "control_net": [12, 0],
+      "image": [13, 0]
+    },
+    "class_type": "ControlNetApply",
+    "_meta": {
+      "title": "Apply ControlNet (Depth)"
+    }
+  },
+  "12": {
+    "inputs": {
+      "control_net_name": "controlnet-depth-sdxl-1.0.safetensors"
+    },
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Load ControlNet Model (Depth)"
+    }
+  },
+  "13": {
+    "inputs": {
+      "image": "",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Depth Image"
+    }
+  },
+  "14": {
+    "inputs": {
+      "strength": 1,
+      "conditioning": [11, 0],
+      "control_net": [15, 0],
+      "image": [16, 0]
+    },
+    "class_type": "ControlNetApply",
+    "_meta": {
+      "title": "Apply ControlNet (Edge)"
+    }
+  },
+  "15": {
+    "inputs": {
+      "control_net_name": "controlnet-canny-sdxl-1.0_V2.safetensors"
+    },
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Load ControlNet Model (Edge)"
+    }
+  },
+  "16": {
+    "inputs": {
+      "image": "",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Edge Image"
+    }
+  },
+  "17": {
+    "inputs": {
+      "strength": 1,
+      "conditioning": [14, 0],
+      "control_net": [18, 0],
+      "image": [19, 0]
+    },
+    "class_type": "ControlNetApply",
+    "_meta": {
+      "title": "Apply ControlNet (Pose)"
+    }
+  },
+  "18": {
+    "inputs": {
+      "control_net_name": "controlnet-openpose-sdxl-1.0.safetensors"
+    },
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Load ControlNet Model (Pose)"
+    }
+  },
+  "19": {
+    "inputs": {
+      "image": "",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Pose Image"
+    }
+  },
+  "20": {
+    "inputs": {
+      "control_net_name": "controlnet-scribble-sdxl-1.0.safetensors"
+    },
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Load ControlNet Model (Sketch)"
+    }
+  },
+  "21": {
+    "inputs": {
+      "image": "",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Sketch Image"
+    }
+  },
+  "22": {
+    "inputs": {
+      "strength": 1,
+      "conditioning": [17, 0],
+      "control_net": [20, 0],
+      "image": [21, 0]
+    },
+    "class_type": "ControlNetApply",
+    "_meta": {
+      "title": "Apply ControlNet (Sketch)"
+    }
+  },
+  "24": {
+    "inputs": {
+      "image": "",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Reference Image"
+    }
+  },
+  "25": {
+    "inputs": {
+      "model": [4, 0]
+    },
+    "class_type": "IPAdapterUnifiedLoader",
+    "_meta": {
+      "title": "Load IPAdapter Unified"
+    }
+  },
+  "26": {
+    "inputs": {
+      "model": [4, 0],
+      "ipadapter": [25, 0],
+      "image": [24, 0],
+      "weight": 0.8,
+      "weight_type": "linear",
+      "start_at": 0,
+      "end_at": 1,
+      "conditioning": [6, 0]
+    },
+    "class_type": "IPAdapterAdvanced",
+    "_meta": {
+      "title": "IPAdapter Advanced"
+    }
+  }
 }

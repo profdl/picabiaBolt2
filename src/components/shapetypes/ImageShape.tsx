@@ -77,7 +77,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
 
   // Set up subscriptions for each process type
   useEffect(() => {
-    const processTypes = ["depth", "edge", "pose", "scribble", "remix"];
+    const processTypes = ["depth", "edge", "pose", "sketch", "remix"];
 
     processTypes.forEach((processType) => {
       if (
@@ -155,7 +155,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
     shape.showDepth,
     shape.showEdges,
     shape.showPose,
-    shape.showScribble,
+    shape.showSketch,
     shape.showRemix,
     fetchCurrentState,
     shape,
@@ -240,12 +240,12 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
           )
         ))}
 
-      {shape.showScribble && shape.scribblePreviewUrl && (
+      {shape.showSketch && shape.sketchPreviewUrl && (
         <img
-          src={shape.scribblePreviewUrl}
-          alt="Scribble"
+          src={shape.sketchPreviewUrl}
+          alt="Sketch"
           className="absolute w-full h-full object-cover"
-          style={{ opacity: shape.scribbleStrength || 0.5 }}
+          style={{ opacity: shape.sketchStrength || 0.5 }}
           draggable={false}
         />
       )}

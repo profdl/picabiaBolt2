@@ -89,7 +89,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             (shape.showDepth ||
               shape.showEdges ||
               shape.showPose ||
-              shape.showScribble ||
+              shape.showSketch ||
               shape.showRemix))
       ),
     [shapes]
@@ -136,12 +136,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         useSettings: false,
         isUploading: false,
         isEditing: false,
-        showScribble: true, // Add this line
+        showSketch: true, // Add this line
         depthStrength: 0.25,
         edgesStrength: 0.25,
         contentStrength: 0.25,
         poseStrength: 0.25,
-        scribbleStrength: 0.25,
+        sketchStrength: 0.25,
         remixStrength: 0.25,
       });
       setTool("select");
@@ -175,7 +175,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         edgesStrength: 0,
         contentStrength: 0,
         poseStrength: 0,
-        scribbleStrength: 0,
+        sketchStrength: 0,
         remixStrength: 0,
       });
       setTool("select");
@@ -214,7 +214,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         edgesStrength: 0,
         contentStrength: 0,
         poseStrength: 0,
-        scribbleStrength: 0,
+        sketchStrength: 0,
         remixStrength: 0,
       });
 
@@ -263,7 +263,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           edgesStrength: 0,
           contentStrength: 0,
           poseStrength: 0,
-          scribbleStrength: 0,
+          sketchStrength: 0,
           remixStrength: 0,
         });
 
@@ -294,7 +294,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         edgesStrength: 0,
         contentStrength: 0,
         poseStrength: 0,
-        scribbleStrength: 0,
+        sketchStrength: 0,
         remixStrength: 0,
       });
     }

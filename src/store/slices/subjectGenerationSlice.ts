@@ -87,7 +87,7 @@ export const subjectGenerationSlice: StateCreator<
         edgesStrength: 0.75,
         contentStrength: 0.75,
         poseStrength: 0.75,
-        scribbleStrength: 0.75,
+        sketchStrength: 0.75,
         remixStrength: 0.75,
       };
 

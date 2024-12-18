@@ -176,7 +176,7 @@
     },
     "class_type": "ControlNetLoader",
     "_meta": {
-      "title": "Load ControlNet Model (Scribble)"
+      "title": "Load ControlNet Model (Sketch)"
     }
   },
   "21": {
@@ -186,7 +186,7 @@
     },
     "class_type": "LoadImage",
     "_meta": {
-      "title": "Load Scribble Image"
+      "title": "Load Sketch Image"
     }
   },
   "22": {
@@ -198,7 +198,7 @@
     },
     "class_type": "ControlNetApply",
     "_meta": {
-      "title": "Apply ControlNet (Scribble)"
+      "title": "Apply ControlNet (Sketch)"
     }
   }
 }

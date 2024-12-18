@@ -111,7 +111,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           edgesStrength: 0.25,
           contentStrength: 0.25,
           poseStrength: 0.25,
-          scribbleStrength: 0.25,
+          sketchStrength: 0.25,
           remixStrength: 0.25,
         };
 

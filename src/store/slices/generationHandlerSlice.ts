@@ -100,7 +100,7 @@ export const generationHandlerSlice: StateCreator<
         (shape.showDepth ||
           shape.showEdges ||
           shape.showPose ||
-          shape.showScribble ||
+          shape.showSketch ||
           shape.showRemix)
     );
 
@@ -168,7 +168,7 @@ export const generationHandlerSlice: StateCreator<
           (shape.showDepth ||
             shape.showEdges ||
             shape.showPose ||
-            shape.showScribble ||
+            shape.showSketch ||
             shape.showRemix)
       );
 
@@ -239,7 +239,7 @@ export const generationHandlerSlice: StateCreator<
           currentPositiveNode = "42";
         }
 
-        if (controlShape.showScribble && controlShape.type === "sketchpad") {
+        if (controlShape.showSketch && controlShape.type === "sketchpad") {
           const tempCanvas = document.createElement("canvas");
           tempCanvas.width = 512; // Match original dimensions
           tempCanvas.height = 512;
@@ -274,7 +274,7 @@ export const generationHandlerSlice: StateCreator<
                   positive: [currentPositiveNode, 0],
                   negative: ["7", 0],
                   control_net: ["39", 0],
-                  strength: controlShape.scribbleStrength || 0.5,
+                  strength: controlShape.sketchStrength || 0.5,
                 },
               };
               currentPositiveNode = "43";
@@ -403,12 +403,12 @@ export const generationHandlerSlice: StateCreator<
         edgesStrength: 0,
         contentStrength: 0,
         poseStrength: 0,
-        scribbleStrength: 0,
+        sketchStrength: 0,
         remixStrength: 0,
         showDepth: false,
         showEdges: false,
         showPose: false,
-        showScribble: false,
+        showSketch: false,
         showRemix: false,
       };
 
@@ -472,8 +472,8 @@ export const generationHandlerSlice: StateCreator<
           .map((shape) => shape.posePreviewUrl)
           .filter(Boolean)
           .join(","),
-        scribbleMapUrl: controlShapes
-          .filter((shape) => shape.showScribble)
+        sketchMapUrl: controlShapes
+          .filter((shape) => shape.showSketch)
           .map((shape) => shape.imageUrl)
           .filter(Boolean)
           .join(","),
@@ -497,10 +497,10 @@ export const generationHandlerSlice: StateCreator<
             .filter((shape) => shape.showPose)
             .map((shape) => shape.poseStrength || 0.5)
         ),
-        scribble_scale: Math.max(
+        sketch_scale: Math.max(
           ...controlShapes
-            .filter((shape) => shape.showScribble)
-            .map((shape) => shape.scribbleStrength || 0.5)
+            .filter((shape) => shape.showSketch)
+            .map((shape) => shape.sketchStrength || 0.5)
         ),
         remix_scale: Math.max(
           ...controlShapes
