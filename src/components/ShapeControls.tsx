@@ -425,16 +425,6 @@ export function ShapeControls({
             style={{ zIndex: 101, pointerEvents: "all" }}
           />
         )}
-      {/* Color picker for sketchpad shapes */}
-      {shape.type === "sketchpad" && (
-        <input
-          type="color"
-          value={shape.color || "#000000"}
-          onChange={(e) => updateShape(shape.id, { color: e.target.value })}
-          className="absolute -left-6 top-1/2 w-4 h-4 cursor-pointer transform -translate-y-1/2"
-          style={{ zIndex: 101, pointerEvents: "all" }}
-        />
-      )}
       {/* Diffusion Settings controls */}
       {shape.type === "diffusionSettings" && (
         <div

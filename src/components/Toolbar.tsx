@@ -2,16 +2,14 @@ import {
   StickyNote,
   Hand,
   MousePointer,
-  // Pencil,
   Sparkles,
   Settings,
   Image as ImageIcon,
   Loader2,
   Grid,
-  // Brush,
-  // Frame,
-  // Eraser,
-  // ArrowUpRight
+  Brush,
+  Eraser,
+  BookImageIcon,
 } from "lucide-react";
 import { useStore } from "../store";
 import { useMemo } from "react";
@@ -19,7 +17,7 @@ import { useEffect } from "react";
 import { Tooltip } from "./ui/Tooltip";
 import { UploadButton } from "./ui/UploadButton";
 
-// import { BrushShapeSelector } from './BrushShapeSelector';
+import { BrushShapeSelector } from "./BrushShapeSelector";
 
 const AssetsButton = () => {
   const toggleAssets = useStore((state) => state.toggleAssets);
@@ -69,6 +67,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     setSelectedShapes,
     setIsEditingText,
     updateShape,
+    currentColor,
+    strokeWidth,
+    setStrokeWidth,
+    brushTexture,
+    setBrushTexture,
+    setBrushSize,
+    brushSize,
+    setBrushOpacity,
+    brushOpacity,
+    setBrushRotation,
+    brushRotation,
+    brushFollowPath,
+    setBrushSpacing,
+    brushSpacing,
   } = useStore();
 
   const hasActivePrompt = useMemo(
@@ -326,18 +338,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             </button>
           </Tooltip>
 
-          {/* <button
-            onClick={() => setTool('pen')}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'pen' ? 'bg-gray-100' : ''}`}
-            title="Pen Tool"
-          >
-            <Pencil className="w-5 h-5" />
-          </button> */}
-
-          {/* <div className="w-px bg-gray-200 mx-2" />
-          {(tool === 'pen' || tool === 'brush' || tool === 'eraser') && (
+          <div className="w-px bg-gray-200 mx-2" />
+          {(tool === "pen" || tool === "brush" || tool === "eraser") && (
             <div className="absolute bottom-full mb-4 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg px-4 py-2 flex items-center gap-4">
-              {tool === 'pen' && (
+              {tool === "pen" && (
                 <>
                   <input
                     type="color"
@@ -353,12 +357,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                     title="Stroke Width"
                   >
                     {[1, 2, 4, 6, 8, 12].map((width) => (
-                      <option key={width} value={width}>{width}px</option>
+                      <option key={width} value={width}>
+                        {width}px
+                      </option>
                     ))}
                   </select>
                 </>
               )}
-              {(tool === 'brush' || tool === 'eraser') && (
+              {(tool === "brush" || tool === "eraser") && (
                 <div className="flex items-center gap-4">
                   <input
                     type="color"
@@ -402,12 +408,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                       <input
                         type="range"
                         value={brushRotation}
-                        onChange={(e) => setBrushRotation(Number(e.target.value))}
+                        onChange={(e) =>
+                          setBrushRotation(Number(e.target.value))
+                        }
                         min="0"
                         max="360"
                         title="Brush Rotation"
                       />
-
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
@@ -416,22 +423,30 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                         type="checkbox"
                         id="brushFollowPath"
                         checked={brushFollowPath}
-                        onChange={(e) => useStore.getState().setBrushFollowPath(e.target.checked)}
+                        onChange={(e) =>
+                          useStore
+                            .getState()
+                            .setBrushFollowPath(e.target.checked)
+                        }
                         className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                       />
-                      <label htmlFor="brushFollowPath" className="text-xs text-gray-500">
+                      <label
+                        htmlFor="brushFollowPath"
+                        className="text-xs text-gray-500"
+                      >
                         Follow
                       </label>
                     </div>
                   </div>
-
 
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-gray-500">Spacing</label>
                     <input
                       type="range"
                       value={brushSpacing * 100}
-                      onChange={(e) => setBrushSpacing(Number(e.target.value) / 100)}
+                      onChange={(e) =>
+                        setBrushSpacing(Number(e.target.value) / 100)
+                      }
                       min="5"
                       max="100"
                       title="Brush Spacing"
@@ -440,58 +455,40 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 </div>
               )}
             </div>
-          )} */}
-          {/* <button
+          )}
+          <button
             onClick={() => {
-              setTool('brush');
-              setCurrentColor('#ffffff'); // White for brush
+              setTool("brush");
+              setCurrentColor("#ffffff"); // White for brush
             }}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'brush' ? 'bg-gray-100' : ''}`}
+            className={`p-2 hover:bg-gray-100 rounded-lg ${
+              tool === "brush" ? "bg-gray-100" : ""
+            }`}
             title="Brush Tool (B)"
           >
             <Brush className="w-5 h-5" />
-          </button> */}
-          {/* <button
+          </button>
+          <button
             onClick={() => {
-              setTool('eraser');
-              setCurrentColor('#000000'); // Black for eraser
+              setTool("eraser");
+              setCurrentColor("#000000"); // Black for eraser
             }}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${tool === 'eraser' ? 'bg-gray-100' : ''}`}
+            className={`p-2 hover:bg-gray-100 rounded-lg ${
+              tool === "eraser" ? "bg-gray-100" : ""
+            }`}
             title="Eraser Tool (E)"
           >
             <Eraser className="w-5 h-5" />
-          </button> */}
+          </button>
 
-          {/* Canvas */}
-          {/* <button
-            onClick={() => handleAddShape('sketchpad')}
+          {/* Sketchpad  */}
+          <button
+            onClick={() => handleAddShape("sketchpad")}
             className="p-2 hover:bg-gray-100 rounded-lg"
             title="Add sketchpad"
           >
-            <Frame className="w-5 h-5" />
-          </button> */}
-          {/* Shape Tools */}
-          {/* <button
-            onClick={() => handleAddShape('rectangle')}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Add Rectangle"
-          >
-            <Square className="w-5 h-5" />
+            <BookImageIcon className="w-5 h-5" />
           </button>
-          <button
-            onClick={() => handleAddShape('circle')}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Add Circle"
-          >
-            <Circle className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => handleAddShape('text')}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Add Text"
-          >
-            <Type className="w-5 h-5" />
-          </button> */}
 
           {/* Image Generation Tools */}
           <Tooltip

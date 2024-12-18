@@ -1,4 +1,4 @@
-import React from "react";
+import { useEffect } from "react";
 import { Shape } from "../../types";
 import { useStore } from "../../store";
 
@@ -10,6 +10,7 @@ interface SketchpadShapeProps {
   handlePointerUpOrLeave: (e: React.PointerEvent<HTMLCanvasElement>) => void;
   handleContextMenu: (e: React.MouseEvent) => void;
   tool: "select" | "pan" | "pen" | "brush" | "eraser";
+  uploadCanvasToSupabase: (canvas: HTMLCanvasElement) => Promise<string | null>;
 }
 export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
   shape,
@@ -20,7 +21,16 @@ export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
   handleContextMenu,
   tool,
 }) => {
-  const { addShape, deleteShape, setTool } = useStore();
+  const { addShape, deleteShape, setTool, updateShape } = useStore();
+
+  useEffect(() => {
+    if (sketchPadRef.current) {
+      // Store the actual canvas data
+      const canvas = sketchPadRef.current;
+      const canvasData = canvas.toDataURL("image/png");
+      updateShape(shape.id, { canvasData });
+    }
+  }, [shape.id, sketchPadRef, updateShape]);
 
   return (
     <>
@@ -29,15 +39,13 @@ export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
       </div>
       <canvas
         ref={sketchPadRef}
+        data-shape-id={shape.id}
         width={512}
         height={512}
         className="w-full h-full touch-none"
         onContextMenu={handleContextMenu}
         style={{
-          pointerEvents:
-            tool === "select" || tool === "brush" || tool === "eraser"
-              ? "all"
-              : "none",
+          pointerEvents: tool === "select" ? "none" : "all",
           backgroundColor: "#000000",
           touchAction: "none",
         }}

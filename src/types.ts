@@ -19,6 +19,8 @@ export interface Project {
   thumbnail: string | null;
 }
 export interface Shape {
+  canvasData?: string;
+  sketchPadRef?: React.RefObject<HTMLCanvasElement>;
   isImageEditing?: boolean;
   isProcessingSubject?: boolean;
   subjectPreviewUrl?: string;
@@ -57,7 +59,6 @@ export interface Shape {
   strokeWidth?: number;
   showPrompt?: boolean;
   showNegativePrompt?: boolean;
-  canvasData?: ImageData;
   isUploading: boolean;
   showDepth?: boolean;
   showEdges?: boolean;

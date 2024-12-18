@@ -12,6 +12,7 @@ import { DrawingShape } from "./shapetypes/DrawingShape";
 import { SketchpadShape } from "./shapetypes/SketchpadShape";
 import { LoadingPlaceholder } from "./ui/LoadingPlaceholder";
 import { ThreeJSShape, ThreeJSShapeRef } from "./shapetypes/ThreeJSShape";
+import { canvasToFile } from "../utils/canvasUtils";
 
 interface ShapeProps {
   shape: Shape;
@@ -87,8 +88,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     startRotation: number;
   } | null>(null);
 
-  const [showAdvanced] = useState(false);
-
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } =
     useBrush(sketchPadRef);
   const isSelected = selectedShapes.includes(shape.id);
@@ -100,7 +99,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       return;
     }
 
-    if (tool === "pan" || tool === "pen" || (isEditing && !shape.isNew)) return;
+    if (tool === "pan" || (isEditing && !shape.isNew)) return;
 
     // Prevent drag when clicking controls panel
     const controlsPanel = document.querySelector(
@@ -284,34 +283,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
     if (shape.type === "sketchpad" && sketchPadRef.current) {
       const updateCanvasImage = () => {
         const canvas = sketchPadRef.current;
-        if (!canvas) return;
-
-        const tempCanvas = document.createElement("canvas");
-        const tempCtx = tempCanvas.getContext("2d");
-        if (!tempCtx) {
-          console.error("Failed to get 2D context for tempCanvas");
-          return;
-        }
-        tempCanvas.width = 512;
-        tempCanvas.height = 512;
-
-        // Draw current canvas content scaled to 512x512
-        tempCtx.drawImage(canvas, 0, 0, 512, 512);
-
-        return tempCanvas.toDataURL("image/png");
+        if (!canvas) return undefined;
+        return canvas.toDataURL("image/png");
       };
 
       updateShape(shape.id, { getCanvasImage: updateCanvasImage });
     }
   }, [shape.id, shape.type, updateShape]);
-
-  useEffect(() => {
-    if (shape.type === "diffusionSettings") {
-      updateShape(shape.id, {
-        height: showAdvanced ? 550 : 170,
-      });
-    }
-  }, [shape.id, shape.type, showAdvanced, updateShape]);
 
   if (shape.type === "image" && shape.isUploading) {
     const isGenerating = generatingPredictions.has(shape.id);

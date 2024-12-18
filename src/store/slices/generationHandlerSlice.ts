@@ -2,6 +2,7 @@ import { StateCreator } from "zustand";
 import { createClient } from "@supabase/supabase-js";
 import multiControlWorkflow from "../../lib/generateWorkflow.json";
 import { Shape, Position } from "../../types";
+import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -50,10 +51,11 @@ const findOpenSpace = (
 ): Position => {
   const PADDING = 20; // Space between shapes
   const rightBoundary = findRightmostBoundary(shapes);
+  const maxWidth = Math.max(width, rightBoundary); // Use width parameter
 
   return {
-    x: rightBoundary + PADDING,
-    y: center.y - height / 2, // Vertically center the new shape
+    x: maxWidth + PADDING,
+    y: center.y - height / 2,
   };
 };
 export const generationHandlerSlice: StateCreator<
@@ -117,7 +119,7 @@ export const generationHandlerSlice: StateCreator<
     // In generationHandlerSlice
     set((state) => ({
       isGenerating: true,
-      hasActivePrompt: state.hasActivePrompt, // Preserve the active state
+      hasActivePrompt: state.hasActivePrompt,
     }));
 
     try {
@@ -162,7 +164,7 @@ export const generationHandlerSlice: StateCreator<
 
       const controlShapes = shapes.filter(
         (shape) =>
-          shape.type === "image" &&
+          (shape.type === "image" || shape.type === "sketchpad") &&
           (shape.showDepth ||
             shape.showEdges ||
             shape.showPose ||
@@ -237,23 +239,47 @@ export const generationHandlerSlice: StateCreator<
           currentPositiveNode = "42";
         }
 
-        if (controlShape.showScribble && controlShape.imageUrl) {
-          currentWorkflow["40"] = {
-            ...workflow["40"],
-            inputs: { ...workflow["40"].inputs, image: controlShape.imageUrl },
-          };
-          currentWorkflow["39"] = workflow["39"];
-          currentWorkflow["43"] = {
-            ...workflow["43"],
-            inputs: {
-              ...workflow["43"].inputs,
-              positive: [currentPositiveNode, 0],
-              negative: ["7", 0],
-              control_net: ["39", 0],
-              strength: controlShape.scribbleStrength || 0.5,
-            },
-          };
-          currentPositiveNode = "43";
+        if (controlShape.showScribble && controlShape.type === "sketchpad") {
+          const tempCanvas = document.createElement("canvas");
+          tempCanvas.width = 512; // Match original dimensions
+          tempCanvas.height = 512;
+          const ctx = tempCanvas.getContext("2d");
+
+          if (ctx && controlShape.canvasData) {
+            const img = new Image();
+            img.src = controlShape.canvasData;
+            await new Promise((resolve) => {
+              img.onload = () => {
+                ctx.drawImage(img, 0, 0);
+                resolve(null);
+              };
+            });
+
+            const publicUrl = await uploadCanvasToSupabase(tempCanvas);
+
+            if (publicUrl) {
+              currentWorkflow["40"] = {
+                ...workflow["40"],
+                inputs: {
+                  image: publicUrl,
+                  upload: "image",
+                },
+                class_type: "LoadImage",
+              };
+              currentWorkflow["39"] = workflow["39"];
+              currentWorkflow["43"] = {
+                ...workflow["43"],
+                inputs: {
+                  ...workflow["43"].inputs,
+                  positive: [currentPositiveNode, 0],
+                  negative: ["7", 0],
+                  control_net: ["39", 0],
+                  strength: controlShape.scribbleStrength || 0.5,
+                },
+              };
+              currentPositiveNode = "43";
+            }
+          }
         }
 
         let currentModelNode = "4"; // Start with the base model
@@ -360,9 +386,9 @@ export const generationHandlerSlice: StateCreator<
         center
       );
 
-      const placeholderShape = {
+      const placeholderShape: Shape = {
         id: prediction_id,
-        type: "image" as const,
+        type: "image",
         position: openPosition,
         width: scaledWidth,
         height: scaledHeight,
@@ -372,6 +398,13 @@ export const generationHandlerSlice: StateCreator<
         rotation: 0,
         model: "",
         useSettings: false,
+        isEditing: false,
+        depthStrength: 0,
+        edgesStrength: 0,
+        contentStrength: 0,
+        poseStrength: 0,
+        scribbleStrength: 0,
+        remixStrength: 0,
         showDepth: false,
         showEdges: false,
         showPose: false,
