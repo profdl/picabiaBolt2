@@ -1,5 +1,6 @@
 import { StateCreator } from "zustand";
 import { Position, Shape } from "../../types";
+import { supabase } from "../../lib/supabase";
 
 const MAX_HISTORY = 50;
 
@@ -46,6 +47,25 @@ interface ShapeSlice extends ShapeState {
   setIsEditingText: (isEditing: boolean) => void;
   create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
 }
+
+const updateAssetInSupabase = async (
+  assetId: string,
+  canvasData: string | undefined
+) => {
+  if (!canvasData) return;
+
+  const { data: user } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { error } = await supabase
+    .from("assets")
+    .update({ data: canvasData })
+    .eq("id", assetId);
+
+  if (error) {
+    console.error("Error updating asset:", error);
+  }
+};
 
 export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
   set,
@@ -651,15 +671,18 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         selectedShapes: [newShape.id],
       };
     }),
+
   updateShape: (id: string, props: Partial<Shape>) =>
     set((state) => ({
       shapes: state.shapes.map((shape) => {
         if (shape.id === id) {
-          if (shape.type === "3d") {
+          // If this is a sketchpad with an existing assetId,
+          // update the existing asset instead of creating new
+          if (shape.type === "sketchpad" && shape.assetId) {
+            updateAssetInSupabase(shape.assetId, props.canvasData);
             return {
               ...shape,
               ...props,
-              isOrbiting: props.isOrbiting,
             };
           }
           return {

@@ -19,6 +19,9 @@ export interface Project {
   thumbnail: string | null;
 }
 export interface Shape {
+  assetId?: string;
+  onClear?: () => void;
+  isCleared?: boolean;
   canvasData?: string;
   sketchPadRef?: React.RefObject<HTMLCanvasElement>;
   isImageEditing?: boolean;

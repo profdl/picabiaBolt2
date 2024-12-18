@@ -3,7 +3,7 @@ import { Shape } from "../../types";
 import { useStore } from "../../store";
 
 interface SketchpadShapeProps {
-  shape: Shape;
+  shape: Shape & { assetId?: string };
   sketchPadRef: React.RefObject<HTMLCanvasElement>;
   handlePointerDown: (e: React.PointerEvent<HTMLCanvasElement>) => void;
   handlePointerMove: (e: React.PointerEvent<HTMLCanvasElement>) => void;
@@ -11,6 +11,7 @@ interface SketchpadShapeProps {
   handleContextMenu: (e: React.MouseEvent) => void;
   tool: "select" | "pan" | "pen" | "brush" | "eraser";
   uploadCanvasToSupabase: (canvas: HTMLCanvasElement) => Promise<string | null>;
+  onClear: () => void;
 }
 export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
   shape,
@@ -22,6 +23,37 @@ export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
   tool,
 }) => {
   const { addShape, deleteShape, setTool } = useStore();
+  const { updateShape } = useStore();
+
+  useEffect(() => {
+    const handleClear = () => {
+      if (sketchPadRef.current) {
+        // Clear the main canvas
+        const ctx = sketchPadRef.current.getContext("2d");
+        if (ctx) {
+          ctx.fillStyle = "#000000";
+          ctx.fillRect(0, 0, 512, 512);
+
+          // Reset the stroke canvas in BrushTool
+          const strokeCanvas = document.querySelector(
+            '[data-shape-id="' + shape.id + '"]'
+          ) as HTMLCanvasElement | null;
+          if (strokeCanvas) {
+            const strokeCtx = strokeCanvas.getContext("2d");
+            if (strokeCtx) {
+              strokeCtx.fillStyle = "#000000";
+              strokeCtx.fillRect(0, 0, 512, 512);
+            }
+          }
+
+          // Save the cleared state immediately
+          const canvasData = sketchPadRef.current.toDataURL("image/png");
+          updateShape(shape.id, { canvasData });
+        }
+      }
+    };
+    updateShape(shape.id, { onClear: handleClear });
+  }, [shape.id, updateShape, sketchPadRef]);
 
   useEffect(() => {
     if (sketchPadRef.current && shape.canvasData) {
@@ -92,8 +124,9 @@ export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
           style={{ pointerEvents: "all" }}
           onClick={(e) => {
             e.stopPropagation();
+            // Create new shape with fresh canvas state
             const newId = Math.random().toString(36).substr(2, 9);
-            addShape({
+            const newShape = {
               id: newId,
               type: "sketchpad",
               position: shape.position,
@@ -112,8 +145,13 @@ export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
               poseStrength: 0.25,
               sketchStrength: 0.25,
               remixStrength: 0.25,
-            });
+              canvasData: null, // Ensure we start with a fresh canvas
+            };
+
+            // Delete old shape first to clean up associated canvases
             deleteShape(shape.id);
+            // Add new shape and set tool
+            addShape(newShape);
             setTool("brush");
           }}
         >

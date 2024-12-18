@@ -252,7 +252,8 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
   const drawBrushStroke = (
     ctx: CanvasRenderingContext2D,
     start: Point,
-    end: Point
+    end: Point,
+    current: number
   ) => {
     const textureImg = brushTextures.get(brushTexture);
     if (!textureImg || !textureImg.complete) return;

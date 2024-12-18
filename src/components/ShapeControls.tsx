@@ -6,7 +6,7 @@ import { generatePrompt } from "../utils/prompt-generator";
 import { Tooltip } from "./ui/Tooltip";
 import { getControlDescription, ControlType } from "../utils/tooltips";
 import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
-import { Brush, Eraser } from "lucide-react";
+import { Brush, Eraser, Trash2 } from "lucide-react";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -651,37 +651,52 @@ export function ShapeControls({
         </div>
       )}
       {shape.type === "sketchpad" && (
-        <div
-          className="absolute left-0 -bottom-12 flex gap-2"
-          style={{ zIndex: 101, pointerEvents: "all" }}
-        >
-          <Tooltip content="Brush Tool" side="bottom">
-            <button
-              onClick={() => {
-                setTool("brush");
-                setCurrentColor("#ffffff");
-              }}
-              className={`p-2 bg-white border border-gray-200 rounded-lg ${
-                tool === "brush" ? "bg-blue-100 border-blue-500" : ""
-              }`}
-            >
-              <Brush className="w-5 h-5" />
-            </button>
-          </Tooltip>
-          <Tooltip content="Eraser Tool" side="bottom">
-            <button
-              onClick={() => {
-                setTool("eraser");
-                setCurrentColor("#000000");
-              }}
-              className={`p-2 bg-white border border-gray-200 rounded-lg ${
-                tool === "eraser" ? "bg-blue-100 border-blue-500" : ""
-              }`}
-            >
-              <Eraser className="w-5 h-5" />
-            </button>
-          </Tooltip>
-        </div>
+        <>
+          <div
+            className="absolute left-3 -bottom-9 flex gap-2"
+            style={{ zIndex: 101, pointerEvents: "all" }}
+          >
+            <Tooltip content="Brush Tool" side="bottom">
+              <button
+                onClick={() => {
+                  setTool("brush");
+                  setCurrentColor("#ffffff");
+                }}
+                className={`p-2 bg-white border border-gray-200 rounded-lg ${
+                  tool === "brush" ? "bg-blue-100 border-blue-500" : ""
+                }`}
+              >
+                <Brush className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip content="Eraser Tool" side="bottom">
+              <button
+                onClick={() => {
+                  setTool("eraser");
+                  setCurrentColor("#000000");
+                }}
+                className={`p-2 bg-white border border-gray-200 rounded-lg ${
+                  tool === "eraser" ? "bg-blue-100 border-blue-500" : ""
+                }`}
+              >
+                <Eraser className="w-5 h-5" />
+              </button>
+            </Tooltip>
+          </div>
+          <div
+            className="absolute right-0 -bottom-9"
+            style={{ zIndex: 101, pointerEvents: "all" }}
+          >
+            <Tooltip content="Clear Canvas" side="bottom">
+              <button
+                onClick={() => shape.onClear?.()}
+                className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-500"
+              >
+                <Trash2 className="w-4 h-5" />
+              </button>
+            </Tooltip>
+          </div>
+        </>
       )}
     </div>
   );

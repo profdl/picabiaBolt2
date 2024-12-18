@@ -466,6 +466,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
             handleContextMenu={handleContextMenu}
             tool={tool}
             uploadCanvasToSupabase={uploadCanvasToSupabase}
+            onClear={() => shape.onClear?.()}
           />
         )}
 

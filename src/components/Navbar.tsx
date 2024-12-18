@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useStore } from "../store";
 import { Link, useLocation } from "react-router-dom";
 import { Save, EyeOff, Eye } from "lucide-react";
@@ -56,14 +56,12 @@ export const Navbar = () => {
     toggleTooltips: state.toggleTooltips,
   }));
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!boardId) return;
     setIsSaving(true);
     try {
       const thumbnailBase64 = await generateThumbnail(shapes);
       const fileName = `${boardId}-${Date.now()}.webp`;
-
-      // Extract just the binary data
       const base64Data = thumbnailBase64.replace(
         /^data:image\/\w+;base64,/,
         ""
@@ -72,7 +70,6 @@ export const Navbar = () => {
         c.charCodeAt(0)
       );
 
-      // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from("assets")
         .upload(fileName, binaryData, {
@@ -82,12 +79,10 @@ export const Navbar = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get the clean URL
       const {
         data: { publicUrl },
       } = supabase.storage.from("assets").getPublicUrl(fileName);
 
-      // Update project with clean URL
       await updateProject(boardId, {
         shapes,
         thumbnail: publicUrl,
@@ -97,7 +92,17 @@ export const Navbar = () => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [boardId, shapes, updateProject]);
+
+  useEffect(() => {
+    if (!boardId || !shapes.length) return;
+
+    const autoSaveInterval = setInterval(async () => {
+      await handleSave();
+    }, 30000); // Save every 30 seconds
+
+    return () => clearInterval(autoSaveInterval);
+  }, [boardId, handleSave, shapes]);
 
   const handleNavigation = async () => {
     if (isBoard && boardId) {
