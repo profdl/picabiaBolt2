@@ -7,7 +7,6 @@ import { Tooltip } from "./ui/Tooltip";
 import { getControlDescription, ControlType } from "../utils/tooltips";
 import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
 import { Brush, Eraser } from "lucide-react";
-import { BrushShapeSelector } from "./BrushShapeSelector";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -29,17 +28,7 @@ export function ShapeControls({
   const { sendToBack, sendToFront, sendBackward, sendForward, deleteShape } =
     useStore();
   const threeJSRef = useRef<ThreeJSShapeRef>(null);
-  const {
-    tool,
-    setTool,
-    setCurrentColor,
-    brushTexture,
-    setBrushTexture,
-    brushSize,
-    setBrushSize,
-    brushOpacity,
-    setBrushOpacity,
-  } = useStore((state) => ({
+  const { tool, setTool, setCurrentColor } = useStore((state) => ({
     tool: state.tool,
     setTool: state.setTool,
     currentColor: state.currentColor,
@@ -668,10 +657,10 @@ export function ShapeControls({
       )}
       {shape.type === "sketchpad" && (
         <div
-          className="absolute -left-12 top-0 flex flex-col gap-2"
+          className="absolute left-0 -bottom-12 flex gap-2"
           style={{ zIndex: 101, pointerEvents: "all" }}
         >
-          <Tooltip content="Brush Tool" side="left">
+          <Tooltip content="Brush Tool" side="bottom">
             <button
               onClick={() => {
                 setTool("brush");
@@ -684,7 +673,7 @@ export function ShapeControls({
               <Brush className="w-5 h-5" />
             </button>
           </Tooltip>
-          <Tooltip content="Eraser Tool" side="left">
+          <Tooltip content="Eraser Tool" side="bottom">
             <button
               onClick={() => {
                 setTool("eraser");
@@ -697,38 +686,6 @@ export function ShapeControls({
               <Eraser className="w-5 h-5" />
             </button>
           </Tooltip>
-
-          {(tool === "brush" || tool === "eraser") && (
-            <div className="absolute left-12 top-0 bg-white shadow-lg rounded-lg p-4 flex flex-col gap-4">
-              <BrushShapeSelector
-                currentTexture={brushTexture}
-                onTextureSelect={setBrushTexture}
-              />
-              <div className="space-y-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs text-gray-500">Size</label>
-                  <input
-                    type="range"
-                    value={brushSize}
-                    onChange={(e) => setBrushSize(Number(e.target.value))}
-                    min="1"
-                    max="100"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs text-gray-500">Opacity</label>
-                  <input
-                    type="range"
-                    value={brushOpacity}
-                    onChange={(e) => setBrushOpacity(Number(e.target.value))}
-                    min="0"
-                    max="1"
-                    step="0.1"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
