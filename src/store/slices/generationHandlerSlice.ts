@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import multiControlWorkflow from "../../lib/generateWorkflow.json";
 import { Shape, Position } from "../../types";
 import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -58,12 +59,20 @@ const findOpenSpace = (
     y: center.y - height / 2,
   };
 };
+
+
+interface GenerationHandlerSlice {
+  subscription: RealtimeChannel | null;
+  handleGenerate: () => Promise<void>;
+}
+
 export const generationHandlerSlice: StateCreator<
   StoreState & GenerationHandlerSlice,
   [],
   [],
   GenerationHandlerSlice
 > = (set, get) => ({
+  subscription: null,
   handleGenerate: async () => {
     const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
@@ -122,6 +131,7 @@ export const generationHandlerSlice: StateCreator<
       hasActivePrompt: state.hasActivePrompt,
     }));
 
+    let subscription: RealtimeChannel | null = null;
     try {
       workflow["3"].inputs.steps = activeSettings.steps || 20;
       workflow["3"].inputs.cfg = activeSettings.guidanceScale || 7.5;
@@ -418,30 +428,37 @@ export const generationHandlerSlice: StateCreator<
       get().addGeneratingPrediction(prediction_id);
 
       const subscription = supabase
-        .channel(`generation_${prediction_id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "generated_images",
-            filter: `prediction_id=eq.${prediction_id}`,
-          },
-          (payload: unknown) => {
-            const typedPayload = payload as {
-              new: { status: string; generated_01: string };
+      .channel('generated_images')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'generated_images',
+        },
+        (payload: unknown) => {
+          const typedPayload = payload as {
+            new: { 
+              status: string; 
+              generated_01: string; 
+              prediction_id: string;
+              updated_at: string;
             };
-            if (typedPayload.new.status === "completed") {
-              get().updateShape(prediction_id, {
-                isUploading: false,
-                imageUrl: typedPayload.new.generated_01,
-              });
-              get().removeGeneratingPrediction(prediction_id);
-              subscription.unsubscribe();
-            }
+          };
+          
+          // Handle completion regardless of window focus
+          if (typedPayload.new.status === 'completed' && typedPayload.new.generated_01) {
+            get().updateShape(typedPayload.new.prediction_id, {
+              isUploading: false,
+              imageUrl: typedPayload.new.generated_01,
+              lastUpdated: typedPayload.new.updated_at
+            });
+            get().removeGeneratingPrediction(typedPayload.new.prediction_id);
           }
-        )
-        .subscribe();
+        }
+      )
+      .subscribe();
+    
 
       const insertData = {
         id: crypto.randomUUID(),
@@ -545,5 +562,6 @@ export const generationHandlerSlice: StateCreator<
         set({ isGenerating: false });
       }
     }
-  },
+    set({ subscription: subscription });
+  }
 });

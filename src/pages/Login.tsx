@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useStore } from '../store';
+
 
 interface LocationState {
   message?: string;
@@ -15,6 +17,7 @@ export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as LocationState;
+  const { warmupModel } = useStore();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -26,6 +29,9 @@ export function Login() {
         setError('Invalid credentials. Please try again or register for a new account.');
         return;
       }
+
+      warmupModel();
+
 
       navigate('/');
     } finally {

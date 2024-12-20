@@ -10,6 +10,7 @@ import { uiSlice } from "./slices/uiSlice";
 import { generationHandlerSlice } from "./slices/generationHandlerSlice";
 import { subjectGenerationSlice } from "./slices/subjectGenerationSlice";
 import { imageTrimSlice } from "./slices/imageTrimSlice";
+import { warmupSlice } from './slices/warmupSlice';
 
 type State = {
   [K in keyof ReturnType<typeof shapeSlice>]: ReturnType<typeof shapeSlice>[K];
@@ -45,11 +46,14 @@ type State = {
   [K in keyof ReturnType<typeof imageTrimSlice>]: ReturnType<
     typeof imageTrimSlice
   >[K];
+} & {
+  [K in keyof ReturnType<typeof warmupSlice>]: ReturnType<typeof warmupSlice>[K];
 };
 
 export const useStore = create<State>()(
   devtools(
     (...a) => ({
+      ...warmupSlice(...a),
       ...shapeSlice(...a),
       ...canvasSlice(...a),
       ...drawerSlice(...a),

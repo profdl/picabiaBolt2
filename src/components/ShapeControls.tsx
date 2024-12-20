@@ -99,7 +99,8 @@ export function ShapeControls({
     setIsDropdownOpen(false);
   };
 
-  const { updateShape, shapes, setSelectedShapes } = useStore();
+ 
+  const { updateShape, shapes, setSelectedShapes,  addShape} = useStore();
 
   const handleGenerateSubject = useStore(
     (state) => state.handleGenerateSubject
@@ -688,12 +689,40 @@ export function ShapeControls({
             style={{ zIndex: 101, pointerEvents: "all" }}
           >
             <Tooltip content="Clear Canvas" side="bottom">
-              <button
-                onClick={() => shape.onClear?.()}
-                className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-500"
-              >
-                <Trash2 className="w-4 h-5" />
-              </button>
+<button
+  onClick={() => {
+    const newId = Math.random().toString(36).substr(2, 9);
+    const newShape: Shape = {
+      id: newId,
+      type: "sketchpad",
+      position: shape.position,
+      width: shape.width,
+      height: shape.height,
+      color: "#ffffff",
+      rotation: shape.rotation,
+      locked: true,
+      isUploading: false,
+      isEditing: false,
+      model: "",
+      useSettings: false,
+      depthStrength: 0.25,
+      edgesStrength: 0.25,
+      contentStrength: 0.25,
+      poseStrength: 0.25,
+      sketchStrength: 0.25,
+      remixStrength: 0.25,
+      canvasData: undefined,
+      showSketch: true
+    };
+    deleteShape(shape.id);
+    addShape(newShape);
+    setTool("brush");
+  }}
+  className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-500"
+>
+  <Trash2 className="w-4 h-5" />
+</button>
+
             </Tooltip>
           </div>
         </>

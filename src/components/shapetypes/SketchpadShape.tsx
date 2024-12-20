@@ -33,27 +33,27 @@ export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
         if (ctx) {
           ctx.fillStyle = "#000000";
           ctx.fillRect(0, 0, 512, 512);
-
-          // Reset the stroke canvas in BrushTool
-          const strokeCanvas = document.querySelector(
-            '[data-shape-id="' + shape.id + '"]'
-          ) as HTMLCanvasElement | null;
-          if (strokeCanvas) {
-            const strokeCtx = strokeCanvas.getContext("2d");
-            if (strokeCtx) {
-              strokeCtx.fillStyle = "#000000";
-              strokeCtx.fillRect(0, 0, 512, 512);
+  
+          // Clear any overlay/stroke canvases
+          const overlayCanvas = document.querySelector(`canvas[data-overlay="${shape.id}"]`) as HTMLCanvasElement | null;
+          if (overlayCanvas) {
+            const overlayCtx = overlayCanvas.getContext("2d");
+            if (overlayCtx) {
+              overlayCtx.clearRect(0, 0, 512, 512);
             }
           }
-
-          // Save the cleared state immediately
+  
+          // Save the cleared state with empty canvas data
           const canvasData = sketchPadRef.current.toDataURL("image/png");
-          updateShape(shape.id, { canvasData });
+          updateShape(shape.id, { 
+            canvasData
+          });
         }
       }
     };
     updateShape(shape.id, { onClear: handleClear });
   }, [shape.id, updateShape, sketchPadRef]);
+  
 
   useEffect(() => {
     if (sketchPadRef.current && shape.canvasData) {
@@ -126,9 +126,9 @@ export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
             e.stopPropagation();
             // Create new shape with fresh canvas state
             const newId = Math.random().toString(36).substr(2, 9);
-            const newShape = {
+            const newShape: Shape = {
               id: newId,
-              type: "sketchpad",
+              type: "sketchpad",  
               position: shape.position,
               width: shape.width,
               height: shape.height,
@@ -145,8 +145,9 @@ export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
               poseStrength: 0.25,
               sketchStrength: 0.25,
               remixStrength: 0.25,
-              canvasData: null, // Ensure we start with a fresh canvas
+              canvasData: ""
             };
+            
 
             // Delete old shape first to clean up associated canvases
             deleteShape(shape.id);
