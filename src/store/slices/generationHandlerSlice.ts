@@ -17,7 +17,7 @@ interface Workflow {
   };
 }
 
-interface StoreState {
+ interface StoreState {
   shapes: Shape[];
   zoom: number;
   offset: Position;
@@ -35,7 +35,8 @@ interface StoreState {
   setIsGenerating: (isGenerating: boolean) => void;
   hasActivePrompt: boolean;
 }
-interface GenerationHandlerSlice {
+export interface GenerationHandlerSlice {
+  subscription: RealtimeChannel | null;
   handleGenerate: () => Promise<void>;
 }
 
@@ -59,12 +60,6 @@ const findOpenSpace = (
     y: center.y - height / 2,
   };
 };
-
-
-interface GenerationHandlerSlice {
-  subscription: RealtimeChannel | null;
-  handleGenerate: () => Promise<void>;
-}
 
 export const generationHandlerSlice: StateCreator<
   StoreState & GenerationHandlerSlice,
@@ -249,48 +244,64 @@ export const generationHandlerSlice: StateCreator<
           currentPositiveNode = "42";
         }
 
-        if (controlShape.showSketch && controlShape.type === "sketchpad") {
-          const tempCanvas = document.createElement("canvas");
-          tempCanvas.width = 512; // Match original dimensions
-          tempCanvas.height = 512;
-          const ctx = tempCanvas.getContext("2d");
-
-          if (ctx && controlShape.canvasData) {
-            const img = new Image();
-            img.src = controlShape.canvasData;
-            await new Promise((resolve) => {
-              img.onload = () => {
-                ctx.drawImage(img, 0, 0);
-                resolve(null);
-              };
-            });
-
-            const publicUrl = await uploadCanvasToSupabase(tempCanvas);
-
-            if (publicUrl) {
-              currentWorkflow["40"] = {
-                ...workflow["40"],
-                inputs: {
-                  image: publicUrl,
-                  upload: "image",
-                },
-                class_type: "LoadImage",
-              };
-              currentWorkflow["39"] = workflow["39"];
-              currentWorkflow["43"] = {
-                ...workflow["43"],
-                inputs: {
-                  ...workflow["43"].inputs,
-                  positive: [currentPositiveNode, 0],
-                  negative: ["7", 0],
-                  control_net: ["39", 0],
-                  strength: controlShape.sketchStrength || 0.5,
-                },
-              };
-              currentPositiveNode = "43";
+        if (controlShape.showSketch) {
+          if (controlShape.type === "sketchpad" && controlShape.canvasData) {
+            // Existing canvas processing logic for sketchpad
+            const tempCanvas = document.createElement("canvas");
+            tempCanvas.width = 512;
+            tempCanvas.height = 512;
+            const ctx = tempCanvas.getContext("2d");
+            
+            if (ctx) {
+              const img = new Image();
+              img.src = controlShape.canvasData;
+              await new Promise((resolve) => {
+                img.onload = () => {
+                  ctx.drawImage(img, 0, 0);
+                  resolve(null);
+                };
+              });
+              
+              const publicUrl = await uploadCanvasToSupabase(tempCanvas);
+              if (publicUrl) {
+                // Set up workflow nodes
+                currentWorkflow["40"] = {
+                  ...workflow["40"],
+                  inputs: {
+                    image: publicUrl,
+                    upload: "image",
+                  },
+                  class_type: "LoadImage", 
+                };
+              }
             }
+          } else if (controlShape.type === "image" && controlShape.imageUrl) {
+            // Direct image URL processing for ImageShape
+            currentWorkflow["40"] = {
+              ...workflow["40"],
+              inputs: {
+                image: controlShape.imageUrl,
+                upload: "image",
+              },
+              class_type: "LoadImage",
+            };
           }
+        
+          // Common workflow setup for both types
+          currentWorkflow["39"] = workflow["39"];
+          currentWorkflow["43"] = {
+            ...workflow["43"],
+            inputs: {
+              ...workflow["43"].inputs,
+              positive: [currentPositiveNode, 0],
+              negative: ["7", 0],
+              control_net: ["39", 0],
+              strength: controlShape.sketchStrength || 0.5,
+            },
+          };
+          currentPositiveNode = "43";
         }
+        
 
         let currentModelNode = "4"; // Start with the base model
         let ipAdapterCounter = 0;

@@ -195,7 +195,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           y: center.y - 300,
         },
         width: 250,
-        height: 520,
+        height: 180,
         color: "#f3f4f6",
         rotation: 0,
         isUploading: false,

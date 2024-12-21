@@ -5,7 +5,6 @@ import { drawerSlice } from "./slices/drawerSlice";
 import { shapeSlice } from "./slices/shapeSlice";
 import { toolSlice } from "./slices/toolSlice";
 import { preProcessSlice } from "./slices/preProcessSlice";
-import { historySlice } from "./slices/historySlice";
 import { uiSlice } from "./slices/uiSlice";
 import { generationHandlerSlice } from "./slices/generationHandlerSlice";
 import { subjectGenerationSlice } from "./slices/subjectGenerationSlice";
@@ -27,10 +26,6 @@ type State = {
 } & {
   [K in keyof ReturnType<typeof preProcessSlice>]: ReturnType<
     typeof preProcessSlice
-  >[K];
-} & {
-  [K in keyof ReturnType<typeof historySlice>]: ReturnType<
-    typeof historySlice
   >[K];
 } & {
   [K in keyof ReturnType<typeof uiSlice>]: ReturnType<typeof uiSlice>[K];
@@ -59,7 +54,6 @@ export const useStore = create<State>()(
       ...drawerSlice(...a),
       ...toolSlice(...a),
       ...preProcessSlice(...a),
-      ...historySlice(...a),
       ...uiSlice(...a),
       ...generationHandlerSlice(...a),
       ...subjectGenerationSlice(...a),

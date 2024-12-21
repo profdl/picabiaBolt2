@@ -10,7 +10,8 @@ export function useKeyboardShortcuts() {
     cutShapes,
     pasteShapes,
     deleteShapes,
-
+    undo,
+    redo,
     setSelectedShapes,
     updateShape,
     setIsEditingText,
@@ -87,14 +88,14 @@ export function useKeyboardShortcuts() {
             pasteShapes();
             break;
 
-          // case 'z': // Undo/Redo
-          //   e.preventDefault();
-          //   if (e.shiftKey) {
-          //     redo();
-          //   } else {
-          //     undo();
-          //   }
-          //   break;
+          case 'z': // Undo/Redo
+            e.preventDefault();
+            if (e.shiftKey) {
+              redo();
+            } else {
+              undo();
+            }
+            break;
 
           case "a": // Select all
             e.preventDefault();
