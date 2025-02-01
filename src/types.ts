@@ -126,6 +126,7 @@ export interface Shape {
     fov?: number;
   };
   isOrbiting?: boolean;
+  lastUpdated?: string;
 }
 
 export interface CanvasState {

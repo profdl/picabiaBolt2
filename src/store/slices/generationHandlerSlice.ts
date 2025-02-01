@@ -438,7 +438,7 @@ export const generationHandlerSlice: StateCreator<
       get().centerOnShape(prediction_id);
       get().addGeneratingPrediction(prediction_id);
 
-      const subscription = supabase
+      subscription = supabase
       .channel('generated_images')
       .on(
         'postgres_changes',

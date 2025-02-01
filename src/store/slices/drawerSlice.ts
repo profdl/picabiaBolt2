@@ -3,6 +3,20 @@ import { getImageDimensions } from "../../utils/image";
 import { supabase } from "../../lib/supabase/client";
 import { Shape } from "../../types";
 import { DEFAULT_CONTROL_STRENGTHS } from "../../constants/shapeControlSettings";
+import debounce from 'lodash/debounce';
+
+interface SourcePlusImage {
+  id: string;
+  url: string;  
+  thumbnail_url?: string;  
+  width?: number;
+  height?: number;
+  description?: string;
+  author?: {
+    name?: string;
+    username?: string;
+  };
+}
 
 interface Position {
   x: number;
@@ -24,6 +38,8 @@ interface CanvasState {
   centerOnShape: (shapeId: string) => void; // Add this
 }
 interface UnsplashImage {
+  name: string;
+  thumbnail_urls: unknown;
   id: string;
   urls: {
     regular: string;
@@ -60,6 +76,11 @@ export interface DrawerState {
   offset: Position;
   isLoading: boolean;
   shapes: Shape[];
+
+  //SourcePlus states
+  sourcePlusQuery: string;
+  sourcePlusImages: SourcePlusImage[] ;
+  sourcePlusLoading: boolean;
 }
 export interface DrawerSlice {
   activeDrawer: "none" | "assets" | "gallery" | "imageGenerate" | "unsplash";
@@ -95,6 +116,14 @@ export interface DrawerSlice {
   setUnsplashQuery: (query: string) => void;
   searchUnsplashImages: (query: string) => Promise<void>;
 
+  // Actions - SourcePlus
+  sourcePlusQuery: string;
+  sourcePlusImages: SourcePlusImage[]; 
+    sourcePlusLoading: boolean;
+  setSourcePlusQuery: (query: string) => void;
+  searchSourcePlusImages: (query: string) => Promise<void>;
+
+
   addImageToCanvas: (
     imageSource: {
       url: string;
@@ -116,7 +145,6 @@ const findRightmostBoundary = (shapes: Shape[]): number => {
 };
 const findOpenSpace = (
   shapes: Shape[],
-  width: number,
   height: number,
   center: Position
 ): Position => {
@@ -134,19 +162,50 @@ export const drawerSlice: StateCreator<
   [],
   [],
   DrawerSlice & Partial<CanvasState>
-> = (set, get: () => DrawerState & DrawerSlice & CanvasState) => ({
-  // Initial states
-  activeDrawer: "none",
-  galleryRefreshCounter: 0,
-  selectedGalleryImage: null,
-  generatedImages: [],
-  isGenerating: false,
-  assetsRefreshTrigger: 0,
-  uploadingAssets: [],
-  unsplashQuery: "",
-  unsplashImages: [],
-  unsplashLoading: false,
-  isLoading: false,
+> = (set, get: () => DrawerState & DrawerSlice & CanvasState) => {
+  // Create the debounced function with proper typing
+  const debouncedSourcePlusSearch = debounce(async (query: string) => {
+    set({ sourcePlusLoading: true });
+    try {
+      const response = await fetch(
+        `/.netlify/functions/sourceplus-search?query=${encodeURIComponent(query)}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      set({ 
+        sourcePlusImages: data.results,
+        sourcePlusLoading: false 
+      });
+      ;
+    } catch (error) {
+      console.error("Source.plus search error:", error);
+      set({ 
+        sourcePlusImages: [],
+        sourcePlusLoading: false 
+      });
+    }
+  }, 1000);
+
+  return {
+    // Initial states
+    activeDrawer: "none",
+    galleryRefreshCounter: 0,
+    selectedGalleryImage: null,
+    generatedImages: [],
+    isGenerating: false,
+    assetsRefreshTrigger: 0,
+    uploadingAssets: [],
+    unsplashQuery: "",
+    unsplashImages: [],
+    unsplashLoading: false,
+    isLoading: false,
+    sourcePlusQuery: "",
+    sourcePlusImages: [],
+    sourcePlusLoading: false,
 
   // Drawer visibility actions
   openDrawer: (drawer) => set({ activeDrawer: drawer }),
@@ -160,6 +219,56 @@ export const drawerSlice: StateCreator<
 
   setSelectedGalleryImage: (image) => set({ selectedGalleryImage: image }),
 
+  setSourcePlusQuery: (query: string) => {
+    set({ sourcePlusQuery: query });
+    if (query.trim()) {
+      debouncedSourcePlusSearch(query);
+    } else {
+      set({ sourcePlusImages: [] });
+    }
+  },
+
+
+  searchSourcePlusImages: async (query: string) => {
+    set({ sourcePlusLoading: true });
+    try {
+        const response = await fetch(
+            `/.netlify/functions/sourceplus-search?query=${encodeURIComponent(query)}`
+        );
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            console.error('Source.plus API error:', {
+                status: response.status,
+                data
+            });
+            throw new Error(data.details || 'Failed to fetch images');
+        }
+        
+        // Transform the API results to match our expected format
+        const transformedResults = data.results.map((item: SourcePlusImage) => ({
+            id: item.id,
+            url: item.url,
+            thumbnail_url: item.thumbnail_url || item.url,
+            width: item.width,
+            height: item.height,
+            description: item.description,
+            author: item.author
+        }));
+        
+        set({ 
+            sourcePlusImages: transformedResults,
+            sourcePlusLoading: false 
+        });
+    } catch (error) {
+        console.error("Source.plus search error:", error);
+        set({ 
+            sourcePlusImages: [],
+            sourcePlusLoading: false 
+        });
+    }
+},
   fetchGeneratedImages: async () => {
     try {
       set({ isLoading: true }); // Set loading true before fetch
@@ -385,7 +494,7 @@ export const drawerSlice: StateCreator<
 
       const position =
         options.position ||
-        findOpenSpace(shapes, width, height, {
+        findOpenSpace(shapes, height, {
           x: (window.innerWidth / 2 - offset.x) / zoom,
           y: (window.innerHeight / 2 - offset.y) / zoom,
         });
@@ -419,4 +528,5 @@ export const drawerSlice: StateCreator<
       return false;
     }
   },
-});
+}
+};

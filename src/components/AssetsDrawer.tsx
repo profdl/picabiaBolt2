@@ -29,11 +29,25 @@ interface Asset {
   remixStrength?: number;
 }
 
+export interface SourcePlusImage {
+  id: string;
+  url: string;
+  thumbnail_url?: string;
+  width?: number;
+  height?: number;
+  description?: string;
+  author?: {
+    name?: string;
+    username?: string;
+  };
+}
+
 interface AssetsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onAddShape: (shape: Shape) => void;
   getViewportCenter: () => { x: number; y: number };
+  sourcePlusImages?: SourcePlusImage[];
 }
 
 interface ArenaResults {
@@ -45,7 +59,6 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [fetchDefaultChannel] = useState<() => void>(() => () => {});
   const [onDefaultChannelLoad] = useState<() => void>(() => () => {
     if (!arenaQuery) {
       setArenaQuery("");
@@ -78,6 +91,10 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     assetsRefreshTrigger,
     unsplashQuery,
     setUnsplashQuery,
+    sourcePlusLoading,
+    sourcePlusQuery,
+    sourcePlusImages,
+    setSourcePlusQuery,
   } = useStore((state) => ({
     uploadAsset: state.uploadAsset,
     addImageToCanvas: state.addImageToCanvas,
@@ -85,6 +102,10 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     assetsRefreshTrigger: state.assetsRefreshTrigger,
     unsplashQuery: state.unsplashQuery,
     setUnsplashQuery: state.setUnsplashQuery,
+    sourcePlusImages: state.sourcePlusImages || [],
+    sourcePlusLoading: state.sourcePlusLoading,
+    sourcePlusQuery: state.sourcePlusQuery,
+    setSourcePlusQuery: state.setSourcePlusQuery,
   }));
 
   const { unsplashImages, unsplashLoading } = useStore((state) => ({
@@ -366,7 +387,6 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
           >
             Are.na
           </button>
-
           <button
             onClick={() => setActiveTab("stock")}
             className={`px-4 py-2 text-sm font-medium border-b-2 ${
@@ -377,9 +397,65 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
           >
             Stock Images
           </button>
+          <button
+            onClick={() => setActiveTab("source-plus")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === "source-plus"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Source.Plus
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
+        {activeTab === "source-plus" && (
+            <div className="p-4">
+              <div className="relative mb-3">
+                <input
+                  type="text"
+                  value={sourcePlusQuery}
+                  onChange={(e) => setSourcePlusQuery(e.target.value)}
+                  placeholder="Search within collection..."  // Updated placeholder
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              </div>
+
+              <ImageGrid
+                images={
+                  sourcePlusImages?.map((img) => ({
+                    id: img.id,
+                    url: `https://images.source.plus/images/${img.id}.png`,  // Updated URL construction
+                    thumbnailUrl: img.thumbnail_url,
+                    alt: img.description || "Source.plus image",
+                    status: "completed" as const,
+                  })) || []
+                }
+                loading={sourcePlusLoading}
+                emptyMessage="No images found in collection"  // Updated message
+                onImageClick={(image) => {
+                  const sourcePlusImage = sourcePlusImages.find(
+                    (img) => img.id === image.id
+                  );
+                  if (sourcePlusImage) {
+                    handleAssetClick({
+                      id: sourcePlusImage.id,
+                      url: `https://images.source.plus/images/${sourcePlusImage.id}.png`,  // Updated URL construction
+                      created_at: new Date().toISOString(),
+                      user_id: "",
+                      width: sourcePlusImage.width,
+                      height: sourcePlusImage.height,
+                    });
+                  }
+                }}
+                onImageDelete={() => {}}
+                showViewButton={false}
+                imageUrlKey="thumbnailUrl"
+              />
+            </div>
+          )}
           {activeTab === "my-assets" && (
             <div className="p-4">
               <input
