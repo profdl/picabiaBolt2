@@ -95,6 +95,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     sourcePlusQuery,
     sourcePlusImages,
     setSourcePlusQuery,
+    triggerAssetsRefresh
   } = useStore((state) => ({
     uploadAsset: state.uploadAsset,
     addImageToCanvas: state.addImageToCanvas,
@@ -106,6 +107,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     sourcePlusLoading: state.sourcePlusLoading,
     sourcePlusQuery: state.sourcePlusQuery,
     setSourcePlusQuery: state.setSourcePlusQuery,
+    triggerAssetsRefresh: state.triggerAssetsRefresh,
   }));
 
   const { unsplashImages, unsplashLoading } = useStore((state) => ({
@@ -172,8 +174,11 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   };
 
   const handleAssetClick = async (asset: Asset) => {
+    if (!asset) return;
+    
+    const fullSizeUrl = asset.url.replace("/thumbnails/", "/images/");
     const success = await addImageToCanvas({
-      url: asset.url,
+      url: fullSizeUrl,
       width: asset.width,
       height: asset.height,
       depthStrength: 0.25,
@@ -183,10 +188,83 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
       sketchStrength: 0.25,
       remixStrength: 0.25,
     });
+    
     if (success) {
       onClose();
     }
   };
+
+  const handleSourcePlusClick = async (sourcePlusImage: SourcePlusImage) => {
+    try {
+        console.log('Fetching image through proxy:', sourcePlusImage.url);
+        
+        // Use thumbnail URL initially to avoid Cloudflare blocking
+        const thumbnailUrl = sourcePlusImage.thumbnail_url || sourcePlusImage.url;
+        
+        // Fetch image through our proxy
+        const proxyResponse = await fetch(
+            `/.netlify/functions/sourceplus-proxy?url=${encodeURIComponent(thumbnailUrl)}`
+        );
+        
+        if (!proxyResponse.ok) {
+            const errorData = await proxyResponse.json();
+            throw new Error(errorData.error || 'Failed to fetch image through proxy');
+        }
+
+        const { data: base64Data } = await proxyResponse.json();
+        if (!base64Data) {
+            throw new Error('No image data received from proxy');
+        }
+
+        console.log('Successfully received base64 data, converting to blob...');
+        
+        // Convert base64 to blob
+        const response = await fetch(base64Data);
+        const blob = await response.blob();
+
+        console.log('Converting to WebP...');
+        const webpBlob = await convertToWebP(blob);
+
+        console.log('Uploading to Supabase...');
+        // Upload to Supabase storage
+        const { publicUrl } = await uploadAssetToSupabase(webpBlob);
+
+        // Get actual image dimensions
+        const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                resolve({
+                    width: img.naturalWidth,
+                    height: img.naturalHeight
+                });
+            };
+            img.onerror = () => reject(new Error('Failed to load image for dimensions'));
+            img.src = URL.createObjectURL(webpBlob);
+        });
+
+        console.log('Adding to canvas...');
+        // Add to canvas
+        const success = await addImageToCanvas({
+            url: publicUrl,
+            width: dimensions.width,
+            height: dimensions.height,
+            depthStrength: 0.25,
+            edgesStrength: 0.25,
+            contentStrength: 0.25,
+            poseStrength: 0.25,
+            sketchStrength: 0.25,
+            remixStrength: 0.25,
+        });
+
+        if (success) {
+            console.log('Successfully added to canvas');
+            triggerAssetsRefresh();
+            onClose();
+        }
+    } catch (err) {
+        console.error("Error processing Source.plus image:", err);
+    }
+};
 
   const handleArenaAssetClick = (block: ArenaBlock) => {
     if (block.image?.original?.url) {
@@ -410,14 +488,19 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-        {activeTab === "source-plus" && (
+          {activeTab === "source-plus" && (
             <div className="p-4">
               <div className="relative mb-3">
                 <input
                   type="text"
                   value={sourcePlusQuery}
-                  onChange={(e) => setSourcePlusQuery(e.target.value)}
-                  placeholder="Search within collection..."  // Updated placeholder
+                  onChange={(e) => {
+                    // Only trigger search when user types
+                    if (e.target.value.trim() !== sourcePlusQuery) {
+                      setSourcePlusQuery(e.target.value);
+                    }
+                  }}
+                  placeholder="Search within collection..."
                   className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -427,27 +510,20 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
                 images={
                   sourcePlusImages?.map((img) => ({
                     id: img.id,
-                    url: `https://images.source.plus/images/${img.id}.png`,  // Updated URL construction
+                    url: img.url,
                     thumbnailUrl: img.thumbnail_url,
                     alt: img.description || "Source.plus image",
                     status: "completed" as const,
                   })) || []
                 }
                 loading={sourcePlusLoading}
-                emptyMessage="No images found in collection"  // Updated message
+                emptyMessage="No images found in collection"
                 onImageClick={(image) => {
                   const sourcePlusImage = sourcePlusImages.find(
                     (img) => img.id === image.id
                   );
                   if (sourcePlusImage) {
-                    handleAssetClick({
-                      id: sourcePlusImage.id,
-                      url: `https://images.source.plus/images/${sourcePlusImage.id}.png`,  // Updated URL construction
-                      created_at: new Date().toISOString(),
-                      user_id: "",
-                      width: sourcePlusImage.width,
-                      height: sourcePlusImage.height,
-                    });
+                    handleSourcePlusClick(sourcePlusImage);
                   }
                 }}
                 onImageDelete={() => {}}
