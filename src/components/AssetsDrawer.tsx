@@ -61,7 +61,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
 }) => {
   const [onDefaultChannelLoad] = useState<() => void>(() => () => {
     if (!arenaQuery) {
-      setArenaQuery("");
+      setArenaQuery("terraform");
     }
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -393,12 +393,14 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     };
   }, [arenaQuery]);
 
+
   // Unsplash search
   useEffect(() => {
     if (!unsplashQuery.trim()) {
       useStore.setState({ unsplashImages: [] });
       return;
     }
+
 
     // Clear previous timeout
     if (searchDebounceRef.current) {
@@ -435,6 +437,16 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     };
   }, [unsplashQuery]);
 
+
+  useEffect(() => {
+    // Fetch images when the Source.plus tab is selected
+    if (activeTab === "source-plus") {
+      // Trigger search with empty query to get all images
+      setSourcePlusQuery("flowers");
+    }
+  }, [activeTab, setSourcePlusQuery]);
+
+
   return (
     <Drawer title="Assets" isOpen={isOpen} onClose={onClose} position="left">
       <div className="flex flex-col h-full">
@@ -453,7 +465,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
             onClick={() => {
               setActiveTab("arena");
               if (!arenaQuery) {
-                setArenaQuery("");
+                setArenaQuery("terraform");
                 onDefaultChannelLoad();
               }
             }}
@@ -465,16 +477,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
           >
             Are.na
           </button>
-          <button
-            onClick={() => setActiveTab("stock")}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${
-              activeTab === "stock"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Stock Images
-          </button>
+         
           <button
             onClick={() => setActiveTab("source-plus")}
             className={`px-4 py-2 text-sm font-medium border-b-2 ${
@@ -488,50 +491,45 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {activeTab === "source-plus" && (
-            <div className="p-4">
-              <div className="relative mb-3">
-                <input
-                  type="text"
-                  value={sourcePlusQuery}
-                  onChange={(e) => {
-                    // Only trigger search when user types
-                    if (e.target.value.trim() !== sourcePlusQuery) {
-                      setSourcePlusQuery(e.target.value);
-                    }
-                  }}
-                  placeholder="Search within collection..."
-                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              </div>
+{activeTab === "source-plus" && (
+        <div className="p-4">
+          <div className="relative mb-3">
+            <input
+              type="text"
+              value={sourcePlusQuery}
+              onChange={(e) => setSourcePlusQuery(e.target.value)}
+              placeholder="Search within collection..."
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+          </div>
 
-              <ImageGrid
-                images={
-                  sourcePlusImages?.map((img) => ({
-                    id: img.id,
-                    url: img.url,
-                    thumbnailUrl: img.thumbnail_url,
-                    alt: img.description || "Source.plus image",
-                    status: "completed" as const,
-                  })) || []
-                }
-                loading={sourcePlusLoading}
-                emptyMessage="No images found in collection"
-                onImageClick={(image) => {
-                  const sourcePlusImage = sourcePlusImages.find(
-                    (img) => img.id === image.id
-                  );
-                  if (sourcePlusImage) {
-                    handleSourcePlusClick(sourcePlusImage);
-                  }
-                }}
-                onImageDelete={() => {}}
-                showViewButton={false}
-                imageUrlKey="thumbnailUrl"
-              />
-            </div>
-          )}
+          <ImageGrid
+            images={
+              sourcePlusImages?.map((img) => ({
+                id: img.id,
+                url: img.url,
+                thumbnailUrl: img.thumbnail_url,
+                alt: img.description || "Source.plus image",
+                status: "completed" as const,
+              })) || []
+            }
+            loading={sourcePlusLoading}
+            emptyMessage="No images found in collection"
+            onImageClick={(image) => {
+              const sourcePlusImage = sourcePlusImages.find(
+                (img) => img.id === image.id
+              );
+              if (sourcePlusImage) {
+                handleSourcePlusClick(sourcePlusImage);
+              }
+            }}
+            onImageDelete={() => {}}
+            showViewButton={false}
+            imageUrlKey="thumbnailUrl"
+          />
+        </div>
+      )}
           {activeTab === "my-assets" && (
             <div className="p-4">
               <input
