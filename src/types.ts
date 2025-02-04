@@ -144,10 +144,57 @@ export interface Shape {
 }
 
 export interface SavedImage {
+  id: string;
   user_id: string;
+  prompt: string;
+  aspect_ratio: string;
+  created_at: string;
   prediction_id: string;
+  status: "generating" | "completed" | "failed";
   updated_at: string;
   image_index: number;
+  originalUrl: string;
+  depthMapUrl: string;
+  edgeMapUrl: string;
+  poseMapUrl: string;
+  generated_01: string;
+  generated_02: string;
+  generated_03: string;
+  generated_04: string;
+  num_inference_steps: number;
+  prompt_negative: string;
+  width: number;
+  height: number;
+  num_outputs: number;
+  scheduler: string;
+  guidance_scale: number;
+  prompt_strength: number;
+  seed: number;
+  refine: boolean;
+  refine_steps: number;
+  lora_scale: number;
+  lora_weights: string;
+  depth_scale: number;
+  edge_scale: number;
+  pose_scale: number;
+  sketchMapUrl: string;
+  sketch_scale: number;
+  remixMapUrl: string;
+  remix_scale: number;
+  logs: string;
+}
+
+export interface SourcePlusImage {
+  id: string;
+  url: string;
+  thumbnail_url?: string;
+  width?: number;
+  height?: number;
+  description?: string;
+  author?: {
+    name?: string;
+    username?: string;
+  };
 }
 
 export interface DetailedSavedImage {

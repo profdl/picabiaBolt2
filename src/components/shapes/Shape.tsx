@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createShapeContextMenu } from "../../utils/shapeContextMenu";
 import { useStore } from "../../store";
-import { Shape, DragStart } from "../../types";
+import { Shape,  } from "../../types";
 import { useBrush } from "../layout/toolbars/BrushTool";
 import { ShapeControls } from "./ShapeControls";
 import { getShapeStyles } from "../../utils/shapeStyles";
@@ -13,6 +13,7 @@ import { SketchpadShape } from "./shapetypes/SketchpadShape";
 import { LoadingPlaceholder } from "../shared/LoadingPlaceholder";
 import { ThreeJSShape, ThreeJSShapeRef } from "./shapetypes/ThreeJSShape";
 import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
+import { useShapeDrag } from "../../hooks/useShapeDrag";
 
 interface ShapeProps {
   shape: Shape;
@@ -42,11 +43,14 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const threeJSRef = useRef<ThreeJSShapeRef>(null);
 
   const [isEditing, setIsEditing] = useState(false);
+  const { initDragStart } = useShapeDrag({
+    shape,
+    isEditing,
+    zoom
+  });
   const textRef = useRef<HTMLTextAreaElement>(null);
   const sketchPadRef = useRef<HTMLCanvasElement>(null);
-  const [dragStart, setDragStart] = useState<DragStart | null>(null);
-  const group_padding = 20;
-  const { handleResizeStart, setResizeStart } = useShapeResize(
+  const { handleResizeStart,  } = useShapeResize(
     shape,
     zoom,
     updateShape,
@@ -96,9 +100,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
       e.stopPropagation();
       return;
     }
-
+  
     if (tool === "pan" || (isEditing && !shape.isNew)) return;
-
+  
     // Prevent drag when clicking controls panel
     const controlsPanel = document.querySelector(
       `[data-controls-panel="${shape.id}"]`
@@ -110,21 +114,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
       }
       return;
     }
-
+  
     e.stopPropagation();
     handleStickyInteraction();
-
-    // Store initial positions of all shapes at drag start
-    const initialPositions = new Map(
-      shapes.map((s) => [s.id, { ...s.position }])
-    );
-
-    setDragStart({
-      x: e.clientX,
-      y: e.clientY,
-      initialPositions,
-    });
-
+  
+    // Initialize drag
+    initDragStart(e);
+  
     if (e.shiftKey) {
       const newSelection = selectedShapes.includes(shape.id)
         ? selectedShapes.filter((id) => id !== shape.id)
@@ -134,7 +130,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
       setSelectedShapes([shape.id]);
     }
   };
-
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -157,89 +152,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     });
   };
 
-  useEffect(() => {
-    if (!dragStart || isEditing) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const totalDx = (e.clientX - dragStart.x) / zoom;
-      const totalDy = (e.clientY - dragStart.y) / zoom;
-
-      // Get all shapes that should move together
-      let shapesToMove = selectedShapes;
-
-      // If dragging a group, include all shapes in that group
-      if (shape.type === "group") {
-        const groupedShapeIds = shapes
-          .filter((s) => s.groupId === shape.id)
-          .map((s) => s.id);
-        shapesToMove = [...new Set([...selectedShapes, ...groupedShapeIds])];
-      }
-
-      // Update positions of all affected shapes
-      shapesToMove.forEach((id) => {
-        const initialPos = dragStart.initialPositions.get(id);
-        if (initialPos) {
-          updateShape(id, {
-            position: {
-              x: initialPos.x + totalDx,
-              y: initialPos.y + totalDy,
-            },
-          });
-        }
-      });
-    };
-
-    const handleMouseUp = () => {
-      // In the handleMouseUp effect
-      if (dragStart && shape.groupId) {
-        const groupShape = shapes.find((s) => s.id === shape.groupId);
-        if (groupShape) {
-          const groupedShapes = shapes.filter(
-            (s) => s.groupId === shape.groupId
-          );
-          const minX = Math.min(...groupedShapes.map((s) => s.position.x));
-          const minY = Math.min(...groupedShapes.map((s) => s.position.y));
-          const maxX = Math.max(
-            ...groupedShapes.map((s) => s.position.x + s.width)
-          );
-          const maxY = Math.max(
-            ...groupedShapes.map((s) => s.position.y + s.height)
-          );
-
-          updateShape(shape.groupId, {
-            position: {
-              x: minX - group_padding,
-              y: minY - group_padding,
-            },
-            width: maxX - minX + group_padding * 2,
-            height: maxY - minY + group_padding * 2,
-          });
-        }
-      }
-
-      setDragStart(null);
-      setResizeStart(null);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [
-    dragStart,
-    selectedShapes,
-    updateShape,
-    zoom,
-    shapes,
-    shape.type,
-    shape.id,
-    shape.groupId,
-    isEditing,
-    setResizeStart,
-  ]);
 
   useEffect(() => {
     if (isEditing && textRef.current) {

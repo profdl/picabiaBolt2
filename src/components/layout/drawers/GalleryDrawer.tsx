@@ -4,14 +4,17 @@ import ImageGrid from "../../shared/ImageGrid";
 import { ImageItem } from "../../shared/ImageGrid";
 import { ImageDetailsModal } from "../../layout/modals/ImageDetailsModal";
 import { useStore } from "../../../store";
-import { SavedImage } from '../../../store/slices/drawerSlice';
+import { SavedImage } from '../../../types';
 
 interface GalleryDrawerProps {
   setViewingImage: Dispatch<SetStateAction<SavedImage | null>>;
   isOpen: boolean;
   onClose: () => void;
   viewingImage: SavedImage | null;
+
 }
+
+
 
 
 export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
@@ -71,21 +74,23 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
       }
     };
 
-  const handleNext = () => {
-    const nextIndex = currentImageIndex + 1;
-    if (nextIndex < generatedImages.length) {
-      setCurrentImageIndex(nextIndex);
-      setViewingImage(generatedImages[nextIndex]);
-    }
-  };
-
+    const handleNext = () => {
+      const nextIndex = currentImageIndex + 1;
+      if (nextIndex < generatedImages.length) {
+        setCurrentImageIndex(nextIndex);
+        setViewingImage(generatedImages[nextIndex] as SavedImage);
+      }
+    };
+  
   const handlePrevious = () => {
-    const prevIndex = currentImageIndex - 1;
-    if (prevIndex >= 0) {
-      setCurrentImageIndex(prevIndex);
-      setViewingImage(generatedImages[prevIndex]);
-    }
-  };
+      const prevIndex = currentImageIndex - 1;
+      if (prevIndex >= 0) {
+        setCurrentImageIndex(prevIndex);
+        setViewingImage(generatedImages[prevIndex] as SavedImage);
+      }
+    };
+
+  
 
   return (
     <>
