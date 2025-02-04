@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Edit2, Trash2, X, Check, Image as ImageIcon } from "lucide-react";
-import { Project } from "../types";
+import { Project } from "../../types";
 
 interface ProjectCardProps {
   project: Project;

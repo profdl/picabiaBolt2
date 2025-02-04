@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react';
 import { useProjects } from '../hooks/useProjects';
-import { ProjectCard } from '../components/ProjectCard';
+import { ProjectCard } from '../components/shared/ProjectCard';
 import { useNavigate } from 'react-router-dom';
 
 export function Dashboard() {
