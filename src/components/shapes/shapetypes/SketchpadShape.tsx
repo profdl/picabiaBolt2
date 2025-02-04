@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Shape } from "../../../types";
 import { useStore } from "../../../store";
+import { useSketchpadShapeEvents } from "../../../hooks/sketchpadShapeEvents";
 
 interface SketchpadShapeProps {
   shape: Shape & { assetId?: string };
@@ -24,6 +25,23 @@ export const SketchpadShape: React.FC<SketchpadShapeProps> = ({
 }) => {
   const { addShape, deleteShape, setTool } = useStore();
   const { updateShape } = useStore();
+
+
+  // In SketchpadShape.tsx
+const { handleClear, initializeCanvas } = useSketchpadShapeEvents({ 
+  shape, 
+  sketchPadRef 
+});
+
+useEffect(() => {
+  updateShape(shape.id, { onClear: handleClear });
+}, [shape.id, updateShape, handleClear]);
+
+useEffect(() => {
+  initializeCanvas();
+}, [initializeCanvas, shape.canvasData]);
+
+
 
   useEffect(() => {
     const handleClear = () => {

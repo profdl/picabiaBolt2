@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createShapeContextMenu } from "../../utils/shapeContextMenu";
 import { useStore } from "../../store";
-import { Shape,  } from "../../types";
+import { Shape } from "../../types";
 import { useBrush } from "../layout/toolbars/BrushTool";
 import { ShapeControls } from "./ShapeControls";
 import { getShapeStyles } from "../../utils/shapeStyles";
@@ -15,6 +15,7 @@ import { ThreeJSShape, ThreeJSShapeRef } from "./shapetypes/ThreeJSShape";
 import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
 import { useShapeDrag } from "../../hooks/useShapeDrag";
 import { useSketchpadEvents } from "../../hooks/useSketchpadEvents";
+import { useSketchpadShapeEvents } from "../../hooks/sketchpadShapeEvents";
 
 interface ShapeProps {
   shape: Shape;
@@ -47,20 +48,22 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const { initDragStart } = useShapeDrag({
     shape,
     isEditing,
-    zoom
+    zoom,
   });
   const textRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sketchpad
   const sketchPadRef = useRef<HTMLCanvasElement>(null);
-  const { handleResizeStart,  } = useShapeResize(
+  useSketchpadShapeEvents({ shape, sketchPadRef });
+
+
+  
+  const { handleResizeStart } = useShapeResize(
     shape,
     zoom,
     updateShape,
     updateShapes
   );
-
-
-  
-
 
   const handleStickyInteraction = () => {
     if (shape.type === "sticky" && shape.isNew) {
@@ -75,15 +78,15 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } =
     useBrush(sketchPadRef);
-    const { 
-      handleSketchpadPointerDown,
-      handleSketchpadPointerMove,
-      handleSketchpadPointerUpOrLeave
-    } = useSketchpadEvents({
-      handlePointerDown,
-      handlePointerMove,
-      handlePointerUpOrLeave
-    });
+  const {
+    handleSketchpadPointerDown,
+    handleSketchpadPointerMove,
+    handleSketchpadPointerUpOrLeave,
+  } = useSketchpadEvents({
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUpOrLeave,
+  });
   const isSelected = selectedShapes.includes(shape.id);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -92,9 +95,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
       e.stopPropagation();
       return;
     }
-  
+
     if (tool === "pan" || (isEditing && !shape.isNew)) return;
-  
+
     // Prevent drag when clicking controls panel
     const controlsPanel = document.querySelector(
       `[data-controls-panel="${shape.id}"]`
@@ -106,13 +109,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
       }
       return;
     }
-  
+
     e.stopPropagation();
     handleStickyInteraction();
-  
+
     // Initialize drag
     initDragStart(e);
-  
+
     if (e.shiftKey) {
       const newSelection = selectedShapes.includes(shape.id)
         ? selectedShapes.filter((id) => id !== shape.id)
@@ -143,8 +146,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
       items: menuItems,
     });
   };
-
-
 
   useEffect(() => {
     if (isEditing && textRef.current) {
@@ -182,17 +183,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     };
   }, [rotateStart, shape.id, updateShape]);
 
-  useEffect(() => {
-    if (shape.type === "sketchpad" && sketchPadRef.current) {
-      const updateCanvasImage = () => {
-        const canvas = sketchPadRef.current;
-        if (!canvas) return undefined;
-        return canvas.toDataURL("image/png");
-      };
 
-      updateShape(shape.id, { getCanvasImage: updateCanvasImage });
-    }
-  }, [shape.id, shape.type, updateShape]);
 
   if (shape.type === "image" && shape.isUploading) {
     const isGenerating = generatingPredictions.has(shape.id);
@@ -361,19 +352,19 @@ export function ShapeComponent({ shape }: ShapeProps) {
           isEditing ? "ring-2 ring-blue-500 ring-opacity-50" : ""
         }`}
       >
-{shape.type === "sketchpad" && (
-  <SketchpadShape
-    shape={shape}
-    sketchPadRef={sketchPadRef}
-    handlePointerDown={handleSketchpadPointerDown}
-    handlePointerMove={handleSketchpadPointerMove}
-    handlePointerUpOrLeave={handleSketchpadPointerUpOrLeave}
-    handleContextMenu={handleContextMenu}
-    tool={tool}
-    uploadCanvasToSupabase={uploadCanvasToSupabase}
-    onClear={() => shape.onClear?.()}
-  />
-)}
+        {shape.type === "sketchpad" && (
+          <SketchpadShape
+            shape={shape}
+            sketchPadRef={sketchPadRef}
+            handlePointerDown={handleSketchpadPointerDown}
+            handlePointerMove={handleSketchpadPointerMove}
+            handlePointerUpOrLeave={handleSketchpadPointerUpOrLeave}
+            handleContextMenu={handleContextMenu}
+            tool={tool}
+            uploadCanvasToSupabase={uploadCanvasToSupabase}
+            onClear={() => shape.onClear?.()}
+          />
+        )}
 
         {shape.type === "diffusionSettings" && (
           <DiffusionSettingsPanel
