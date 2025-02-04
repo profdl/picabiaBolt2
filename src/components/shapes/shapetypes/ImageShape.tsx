@@ -64,16 +64,70 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
 
   // Handle visibility changes
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === "visible") {
-        fetchCurrentState();
+        try {
+          // Fetch all preprocessed images for this shape
+          const { data, error } = await supabase
+            .from("preprocessed_images")
+            .select("*")
+            .eq("shapeId", shape.id)
+            .order('created_at', { ascending: false });
+  
+          if (error) throw error;
+  
+          if (data) {
+            // Process each record and update the UI accordingly
+            data.forEach((record) => {
+              if (record.status === "completed" && record.processType) {
+                const urlKey = `${record.processType}Url`;
+                const previewUrlKey = `${record.processType}PreviewUrl`;
+  
+                // Update shape with the processed image URL
+                updateShape(shape.id, {
+                  [previewUrlKey]: record[urlKey],
+                });
+  
+                // Clear the processing state
+                useStore.setState((state) => ({
+                  preprocessingStates: {
+                    ...state.preprocessingStates,
+                    [shape.id]: {
+                      ...state.preprocessingStates[shape.id],
+                      [record.processType]: false,
+                    },
+                  },
+                }));
+              } else if (record.status === "failed") {
+                // Handle failed processing
+                useStore.setState((state) => ({
+                  preprocessingStates: {
+                    ...state.preprocessingStates,
+                    [shape.id]: {
+                      ...state.preprocessingStates[shape.id],
+                      [record.processType]: false,
+                    },
+                  },
+                }));
+              }
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching preprocessed images:", error);
+        }
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
+  
+    // Immediately check current state on mount
+    handleVisibilityChange();
+
+
+    return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [fetchCurrentState, shape.id]);
+    };
+  }, [shape.id, updateShape]);
 
   // Set up subscriptions for each process type
   useEffect(() => {
