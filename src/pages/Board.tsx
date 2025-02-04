@@ -61,22 +61,26 @@ export const Board = () => {
   const [viewingImage, setViewingImage] = useState<DetailedSavedImage | null>(null);
 
   // Memoize the auto-save debounce function// Update the debouncedSave function signature to use proper typing
+  const LOCAL_STORAGE_KEY = `board_${id}`; // Use board ID to keep separate states
+
+  // Inside the Board component, modify the debouncedSave function
   const debouncedSave = useMemo(() => {
     return async (shapes: Shape[]) => {
-      // Change unknown[] to Shape[]
       if (!id || !user) return;
-
+  
       const shapesString = JSON.stringify(shapes);
-
       if (shapesString === lastSavedRef.current) return;
-
+  
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
-
+  
+      // Save to localStorage immediately
+      localStorage.setItem(LOCAL_STORAGE_KEY, shapesString);
+  
       saveTimeoutRef.current = setTimeout(async () => {
         if (isSaving) return;
-
+  
         try {
           setIsSaving(true);
           await updateProject(id, {
@@ -91,7 +95,61 @@ export const Board = () => {
         }
       }, 2000);
     };
-  }, [id, user, updateProject, isSaving]);
+  }, [id, user, LOCAL_STORAGE_KEY, isSaving, updateProject]);
+  
+  // Modify the loadProject function to check localStorage first
+  const loadProject = useCallback(async () => {
+    if (!id || !user) {
+      console.log("Missing id or user:", { id, userId: user?.id });
+      return;
+    }
+  
+    try {
+      setLoading(true);
+      setError(null);
+  
+      // Try to load from localStorage first
+      const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (localData) {
+        try {
+          const localShapes = JSON.parse(localData);
+          setShapes(localShapes);
+          console.log("Loaded from localStorage");
+        } catch (e) {
+          console.warn("Error parsing localStorage data:", e);
+        }
+      }
+  
+      // Load from Supabase
+      console.log("Fetching project data...");
+      const project = await fetchProject(id);
+      console.log("Project data received:", project);
+  
+      if (!project) {
+        setError("Project not found...");
+        return;
+      }
+  
+      // Compare timestamps if available and use the most recent version
+      if (Array.isArray(project.shapes)) {
+        const serverShapes = project.shapes;
+        if (!localData || project.updated_at > JSON.parse(localData).updated_at) {
+          setShapes(serverShapes);
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+            shapes: serverShapes,
+            updated_at: project.updated_at
+          }));
+        }
+        lastSavedRef.current = JSON.stringify(serverShapes);
+      }
+  
+      initialFitDone.current = false;
+    } catch (err) {
+      console.error("Project load error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [id, user, LOCAL_STORAGE_KEY, fetchProject, setShapes]);
 
   const fitShapesToView = useCallback(() => {
     if (!containerRef.current || !shapes?.length) return;
@@ -102,56 +160,6 @@ export const Board = () => {
     setZoom(zoom);
     setOffset(offset);
   }, [shapes, setZoom, setOffset]);
-
-  const loadProject = useCallback(async () => {
-    console.log("Loading project, ID:", id);
-    if (!id || !user) {
-      console.log("Missing id or user:", { id, userId: user?.id });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log("Fetching project data...");
-      const project = await fetchProject(id);
-      console.log("Project data received:", project);
-
-      if (!project) {
-        setError("Project not found...");
-        return;
-      }
-
-      // Check if shapes is already an array
-      if (Array.isArray(project.shapes)) {
-        setShapes(project.shapes);
-        lastSavedRef.current = JSON.stringify(project.shapes);
-      } else if (project.shapes) {
-        // Only try to parse if shapes exists and is a string
-        try {
-          const parsedShapes = JSON.parse(project.shapes);
-          setShapes(parsedShapes);
-          lastSavedRef.current = project.shapes;
-        } catch (e) {
-          console.warn("Shape parsing error:", e);
-          // Set empty array as fallback
-          setShapes([]);
-          lastSavedRef.current = "[]";
-        }
-      } else {
-        // Handle case where shapes is null/undefined
-        setShapes([]);
-        lastSavedRef.current = "[]";
-      }
-
-      initialFitDone.current = false;
-    } catch (err) {
-      console.error("Project load error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [id, user, fetchProject, setShapes]);
 
   useEffect(() => {
     console.log("Board mounted, triggering loadProject");
@@ -164,8 +172,9 @@ export const Board = () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
+      localStorage.removeItem(LOCAL_STORAGE_KEY); // Clean up localStorage when unmounting
     };
-  }, [resetState]);
+  }, [resetState, id, LOCAL_STORAGE_KEY]);
 
   // Fit shapes to view after loading
   useEffect(() => {
@@ -181,6 +190,24 @@ export const Board = () => {
       debouncedSave(shapes);
     }
   }, [shapes, loading, debouncedSave]);
+
+  useEffect(() => {
+    // Add visibility change listener
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab became visible, reloading project');
+        loadProject();
+      }
+    };
+  
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  
+    // Cleanup
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [loadProject]);
+
 
   if (error) {
     return (
