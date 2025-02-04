@@ -1,4 +1,4 @@
-import { useStore } from '../store';
+import { useStore } from '../../store';
 
 export const ShortcutsPanel = () => {
   const showShortcuts = useStore(state => state.showShortcuts);

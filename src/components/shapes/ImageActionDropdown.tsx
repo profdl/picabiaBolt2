@@ -11,10 +11,10 @@ import {
   Trash2,
   Box,
 } from "lucide-react";
-import { useStore } from "../store";
+import { useStore } from "../../store";
+import { Shape } from "../../types";
 
 import { useState } from "react";
-import { Shape } from "../types";
 
 interface ImageActionDropdownProps {
   shape: Shape;

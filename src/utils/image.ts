@@ -13,6 +13,13 @@ export const getImageDimensions = (
   });
 };
 
+export interface SavedImage {
+  user_id?: string;
+  prediction_id?: string;
+  updated_at?: string;
+  image_index?: number;
+}
+
 export async function convertToWebP(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();

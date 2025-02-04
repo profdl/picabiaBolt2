@@ -1,10 +1,10 @@
 import { useState, useRef } from "react";
 import ReactCrop, { Crop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import { Shape } from "../../types";
-import { Button } from "../ui/Button";
+import { Button } from "../../shared/Button";
 import ReactDOM from "react-dom";
-import { useStore } from "../../store";
+import { useStore } from "../../../store";
+import { Shape } from "../../../types";
 
 interface ImageEditorProps {
   shape: Shape;
@@ -65,17 +65,18 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   const handleSave = async () => {
     const croppedImageUrl = getCroppedImg();
     if (!croppedImageUrl) return;
-
+  
     const response = await fetch(croppedImageUrl);
     const blob = await response.blob();
     const file = new File([blob], "cropped-image.jpg", { type: "image/jpeg" });
-
+  
     try {
-      const asset = await uploadAsset(file);
-      if (asset) {
+      const asset = await uploadAsset(file) as unknown as Asset | null;
+      if (asset && asset.url) {  // Check for both asset and asset.url
         const cropAspectRatio = crop.width / crop.height;
         let newWidth = shape.width;
         let newHeight = shape.height;
+  
 
         if (cropAspectRatio > 1) {
           newHeight = shape.width / cropAspectRatio;
@@ -96,14 +97,14 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
         // Add the new shape
         const newShape = {
           id: Math.random().toString(36).substr(2, 9),
-          type: "image",
+          type: "image" as const, 
           position: newShapePosition,
           width: newWidth,
           height: newHeight,
           color: "#ffffff",
           rotation: 0,
-          imageUrl: asset.url,
-          model: "",
+          imageUrl: asset.url as string,
+                    model: "",
           useSettings: false,
           isUploading: false,
           isEditing: false,

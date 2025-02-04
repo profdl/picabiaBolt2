@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { useStore } from "../store";
-import { ShapeComponent } from "./Shape";
-import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
-import { useCanvasMouseHandlers } from "../hooks/useCanvasMouseHandlers";
-import { useCanvasDragAndDrop } from "../hooks/useCanvasDragAndDrop";
-import { useCanvasZoom } from "../hooks/useCanvasZoom";
+import { useStore } from "../../store";
+import { ShapeComponent } from "../shapes/Shape";
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { useCanvasMouseHandlers } from "../../hooks/useCanvasMouseHandlers";
+import { useCanvasDragAndDrop } from "../../hooks/useCanvasDragAndDrop";
+import { useCanvasZoom } from "../../hooks/useCanvasZoom";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);

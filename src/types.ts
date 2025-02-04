@@ -129,6 +129,26 @@ export interface Shape {
   lastUpdated?: string;
 }
 
+export interface SavedImage {
+  user_id: string;
+  prediction_id: string;
+  updated_at: string;
+  image_index: number;
+}
+
+export interface DetailedSavedImage {
+  id: string;
+  generated_01: string;
+  prompt: string;
+  created_at: string;
+  status: "generating" | "completed" | "failed";
+  aspect_ratio: string;
+  user_id?: string;
+  prediction_id?: string;
+  image_index?: number;
+}
+
+
 export interface CanvasState {
   shapes: Shape[];
   selectedShapes: string[];

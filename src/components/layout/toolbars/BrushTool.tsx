@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { useStore } from "../store";
+import { useStore } from "../../../store";
 const brushTextures = new Map<string, HTMLImageElement>();
 
 interface Point {

@@ -9,11 +9,11 @@ import {
   Grid,
   BookImageIcon,
 } from "lucide-react";
-import { useStore } from "../store";
+import { useStore } from "../../../store";
 import { useMemo } from "react";
 import { useEffect } from "react";
-import { Tooltip } from "./ui/Tooltip";
-import { UploadButton } from "./ui/UploadButton";
+import { Tooltip } from "../../shared/Tooltip";
+import { UploadButton } from "../../shared/UploadButton";
 
 import { BrushShapeSelector } from "./BrushShapeSelector";
 

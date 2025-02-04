@@ -20,8 +20,7 @@ const WEBHOOK_URL = process.env.PREPROCESS_WEBHOOK || process.env.WEBHOOK_URL;
 export const handler: Handler = async (event) => {
   console.log("Preprocess Image Function Details:", {
     timestamp: new Date().toISOString(),
-    requestId:
-      event?.requestContext?.requestId || event?.headers["x-request-id"],
+    requestId: event?.headers["x-request-id"],
     webhook: process.env.WEBHOOK_URL,
     modelVersion: MODEL_VERSION,
     // Add payload logging

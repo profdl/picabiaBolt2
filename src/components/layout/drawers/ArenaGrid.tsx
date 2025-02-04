@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Loader2, ArrowLeft, Link as LinkIcon } from "lucide-react";
-import { ArenaBlock } from "../types";
+import { ArenaBlock } from "../../../types";
 
 export interface ArenaChannel {
   id: number;

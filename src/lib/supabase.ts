@@ -81,7 +81,7 @@ export async function saveGeneratedImage(imageUrls: string[], prompt: string, as
     const imageData = new Uint8Array(arrayBuffer)
     const filename = `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}.png`
 
-    const { data: uploadData, error: uploadError } = await supabase
+    const { error: uploadError } = await supabase
       .storage
       .from('generated-images')
       .upload(filename, imageData, {
@@ -242,7 +242,8 @@ export const getPublicImageUrl = (imageUrl: string | undefined): string => {
 export const handleAuthError = (error: unknown): string => {
   if (typeof error === 'string') return error;
 
-  if (error?.message) return error.message;
+  const errorObj = error as { message?: string };
+  if (errorObj.message) return errorObj.message;
 
   return 'An unexpected error occurred';
 };

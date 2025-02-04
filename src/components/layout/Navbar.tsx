@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useStore } from "../store";
+import { useStore } from "../../store";
 import { Link, useLocation } from "react-router-dom";
 import { Save, EyeOff, Eye } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
-import { ProjectsSidebar } from "./ProjectsSidebar";
-import { useProjects } from "../hooks/useProjects";
-import { generateThumbnail } from "../utils/thumbnail";
+import { useAuth } from "../../contexts/AuthContext";
+import { ProjectsSidebar } from "../ProjectsSidebar";
+import { useProjects } from "../../hooks/useProjects";
+import { generateThumbnail } from "../../utils/thumbnail";
 import { Menu } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../../lib/supabase";
 import { useNavigate } from "react-router-dom";
 
 export const Navbar = () => {
@@ -199,7 +199,7 @@ export const Navbar = () => {
 
                         <Link
                           to="#"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          className="flex px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                           onClick={handleDuplicateProject}
                         >
                           Duplicate Project
@@ -207,7 +207,7 @@ export const Navbar = () => {
 
                         <Link
                           to="#"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between"
+                          className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between"
                           onClick={(e) => {
                             e.preventDefault();
                             toggleTooltips();

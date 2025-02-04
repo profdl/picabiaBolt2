@@ -1,19 +1,19 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Upload, Loader2, Search } from "lucide-react";
-import { useStore } from "../store";
-import { Drawer } from "./Drawer";
-import ImageGrid from "./ui/ImageGrid";
+import { useStore } from "../../../store";
+import { Drawer } from "../../shared/Drawer";
+import ImageGrid from "../../shared/ImageGrid";
 import {
   supabase,
   convertToWebP,
   uploadAssetToSupabase,
-} from "../lib/supabase";
-import { Shape, ArenaBlock } from "../types";
+} from "../../../lib/supabase";
+import { Shape, ArenaBlock } from "../../../types";
 import { ArenaGrid, ArenaChannel } from "./ArenaGrid";
 import {
   DEFAULT_CONTROL_STRENGTHS,
   DEFAULT_CONTROL_STATES,
-} from "../constants/shapeControlSettings";
+} from "../../../constants/shapeControlSettings";
 
 interface Asset {
   id: string;

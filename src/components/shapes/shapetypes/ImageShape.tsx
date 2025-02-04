@@ -1,8 +1,8 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Loader2 } from "lucide-react";
-import { Shape } from "../../types";
-import { useStore } from "../../store";
-import { supabase } from "../../lib/supabase";
+import { useStore } from "../../../store";
+import { Shape } from "../../../types";
+import { supabase } from "../../../lib/supabase";
 import { ImageEditor } from "./ImageEditor";
 
 interface ImageShapeProps {

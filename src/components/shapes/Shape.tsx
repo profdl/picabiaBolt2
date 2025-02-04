@@ -1,18 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
-import { createShapeContextMenu } from "../utils/shapeContextMenu";
-import { useStore } from "../store";
-import { Shape, DragStart } from "../types";
-import { useBrush } from "./BrushTool";
+import { createShapeContextMenu } from "../../utils/shapeContextMenu";
+import { useStore } from "../../store";
+import { Shape, DragStart } from "../../types";
+import { useBrush } from "../layout/toolbars/BrushTool";
 import { ShapeControls } from "./ShapeControls";
-import { getShapeStyles } from "../utils/shapeStyles";
+import { getShapeStyles } from "../../utils/shapeStyles";
 import { DiffusionSettingsPanel } from "./shapetypes/DiffusionSettingsPanel";
 import { ImageShape } from "./shapetypes/ImageShape";
-import { useShapeResize } from "../hooks/useShapeResize";
+import { useShapeResize } from "../../hooks/useShapeResize";
 import { DrawingShape } from "./shapetypes/DrawingShape";
 import { SketchpadShape } from "./shapetypes/SketchpadShape";
-import { LoadingPlaceholder } from "./ui/LoadingPlaceholder";
+import { LoadingPlaceholder } from "../shared/LoadingPlaceholder";
 import { ThreeJSShape, ThreeJSShapeRef } from "./shapetypes/ThreeJSShape";
-import { uploadCanvasToSupabase } from "../utils/canvasUtils";
+import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
 
 interface ShapeProps {
   shape: Shape;

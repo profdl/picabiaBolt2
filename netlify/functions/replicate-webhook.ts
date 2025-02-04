@@ -1,10 +1,9 @@
 import { Handler } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
-import { error } from "console";
 
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
 export const handler: Handler = async (event) => {
@@ -48,7 +47,7 @@ export const handler: Handler = async (event) => {
         const filename = `${id}-${index}-${Date.now()}.png`;
 
         // Upload to Supabase bucket
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from("generated-images")
           .upload(filename, imageData, {
             contentType: "image/png",

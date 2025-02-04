@@ -2,9 +2,9 @@ import { forwardRef, useImperativeHandle, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
-import { Shape } from "../../types";
-import { useStore } from "../../store";
-import { setupScene, createSceneSetup } from "../../lib/sceneSetup";
+import { useStore } from "../../../store";
+import { Shape } from "../../../types";
+import { setupScene, createSceneSetup } from "../../../lib/sceneSetup";
 
 interface MeshWithUniforms extends THREE.Mesh {
   updateUniforms?: () => void;

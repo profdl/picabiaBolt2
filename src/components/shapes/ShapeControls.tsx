@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { useStore } from "../store";
-import { Shape } from "../types";
+import { useStore } from "../../store";
+import { Shape } from "../../types";
 import { ImageActionDropdown } from "./ImageActionDropdown";
-import { generatePrompt } from "../utils/prompt-generator";
-import { Tooltip } from "./ui/Tooltip";
-import { getControlDescription, ControlType } from "../utils/tooltips";
+import { generatePrompt } from "../../utils/prompt-generator";
+import { Tooltip } from "../shared/Tooltip";
+import { getControlDescription, ControlType } from "../../utils/tooltips";
 import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
 import { Brush, Eraser, Trash2 } from "lucide-react";
 

@@ -1,14 +1,18 @@
-import React, { useEffect, useState } from "react";
-import { Drawer } from "./Drawer";
-import ImageGrid from "./ui/ImageGrid";
-import { ImageItem } from "./ui/ImageGrid";
-import { ImageDetailsModal, SavedImage } from "./ImageDetailsModal";
-import { useStore } from "../store";
+import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Drawer } from "../../shared/Drawer";
+import ImageGrid from "../../shared/ImageGrid";
+import { ImageItem } from "../../shared/ImageGrid";
+import { ImageDetailsModal } from "../../layout/modals/ImageDetailsModal";
+import { useStore } from "../../../store";
+import { SavedImage } from '../../../store/slices/drawerSlice';
 
 interface GalleryDrawerProps {
-  isOpen?: boolean;
-  onClose?: () => void;
+  setViewingImage: Dispatch<SetStateAction<SavedImage | null>>;
+  isOpen: boolean;
+  onClose: () => void;
+  viewingImage: SavedImage | null;
 }
+
 
 export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
@@ -59,13 +63,13 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
   }));
 
   const handleImageViewClick = (image: ImageItem) => {
-    const fullImage = generatedImages.find((img) => img.id === image.id);
-    if (fullImage) {
-      const index = generatedImages.indexOf(fullImage);
-      setCurrentImageIndex(index);
-      setViewingImage(fullImage);
-    }
-  };
+      const fullImage = generatedImages.find((img) => img.id === image.id) as SavedImage;
+      if (fullImage) {
+        const index = generatedImages.indexOf(fullImage);
+        setCurrentImageIndex(index);
+        setViewingImage(fullImage);
+      }
+    };
 
   const handleNext = () => {
     const nextIndex = currentImageIndex + 1;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Plus, Edit2, Trash2, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProjects } from '../hooks/useProjects';
@@ -57,7 +57,7 @@ export function ProjectsSidebar({ isOpen, onClose }: ProjectsSidebarProps) {
               <div className="mt-4">
                 <button
                   onClick={async () => {
-                    const newProject = await createProject();
+                    const newProject = await createProject({ name: 'New Project', shapes: [] });
                     handleProjectClick(newProject.id);
                   }}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"

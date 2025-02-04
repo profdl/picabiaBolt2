@@ -1,19 +1,17 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
-import { Canvas } from "../components/Canvas";
-import { Toolbar } from "../components/Toolbar";
-import { GalleryDrawer } from "../components/GalleryDrawer";
+import { Canvas } from "../components/layout/Canvas";
+import { Toolbar } from "../components/layout/toolbars/Toolbar";
+import { GalleryDrawer } from "../components/layout/drawers/GalleryDrawer";
 import { useStore } from "../store";
 import { useAuth } from "../contexts/AuthContext";
 import { useProjects } from "../hooks/useProjects";
 import { calculateViewportFit } from "../utils/canvas";
-import { ShortcutsPanel } from "../components/ShortcutsPanel";
-import { AssetsDrawer } from "../components/AssetsDrawer";
-import { ContextMenu } from "../components/ContextMenu";
-import { ImageDetailsModal } from "../components/ImageDetailsModal";
-import { SavedImage } from "../store/slices/drawerSlice";
-import { Shape } from "../types";
+import { ShortcutsPanel } from "../components/shared/ShortcutsPanel";
+import { AssetsDrawer } from "../components/layout/drawers/AssetsDrawer";
+import { ContextMenu } from "../components/shared/ContextMenu";
+import { Shape, DetailedSavedImage } from "../types";
 
 export const Board = () => {
   const { id } = useParams<{ id: string }>();
@@ -60,7 +58,7 @@ export const Board = () => {
   const resetState = useStore((state) => state.resetState);
 
   const maxRetries = 3;
-  const [viewingImage, setViewingImage] = useState<SavedImage | null>(null);
+  const [viewingImage, setViewingImage] = useState<DetailedSavedImage | null>(null);
 
   // Memoize the auto-save debounce function// Update the debouncedSave function signature to use proper typing
   const debouncedSave = useMemo(() => {
@@ -244,6 +242,7 @@ export const Board = () => {
           getViewportCenter={getViewportCenter}
         />
         {showGallery && (
+
           <GalleryDrawer
             setViewingImage={setViewingImage}
             isOpen={showGallery}
@@ -259,12 +258,16 @@ export const Board = () => {
         )}
       </div>
       <ShortcutsPanel />
-      {viewingImage && (
+      {/* {viewingImage && (
         <ImageDetailsModal
           image={viewingImage}
           onClose={() => setViewingImage(null)}
+          onNext={() => {}}
+          onPrevious={() => {}}
+          hasNext={false}
+          hasPrevious={false}
         />
-      )}
+      )} */}
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}
