@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { createShapeContextMenu } from "../../utils/shapeContextMenu";
+// src/components/shapes/Shape.tsx
+import { useEffect, useRef, useState } from "react";
 import { useStore } from "../../store";
 import { Shape } from "../../types";
 import { useBrush } from "../layout/toolbars/BrushTool";
@@ -16,6 +16,7 @@ import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
 import { useShapeDrag } from "../../hooks/useShapeDrag";
 import { useSketchpadEvents } from "../../hooks/useSketchpadEvents";
 import { useSketchpadShapeEvents } from "../../hooks/sketchpadShapeEvents";
+import { useShapeEvents } from "../../hooks/useShapeEvents";
 
 interface ShapeProps {
   shape: Shape;
@@ -24,40 +25,26 @@ interface ShapeProps {
 export function ShapeComponent({ shape }: ShapeProps) {
   const {
     selectedShapes,
-    setSelectedShapes,
+    shapes,
     updateShape,
     updateShapes,
-    deleteShape,
     tool,
     zoom,
-    shapes,
-    sendBackward,
-    sendForward,
-    sendToBack,
-    sendToFront,
-    duplicate,
-    createGroup,
-    ungroup,
-    setContextMenu,
-    setIsEditingText,
     generatingPredictions,
+    setIsEditingText,
   } = useStore();
-  const threeJSRef = useRef<ThreeJSShapeRef>(null);
 
   const [isEditing, setIsEditing] = useState(false);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const threeJSRef = useRef<ThreeJSShapeRef>(null);
+  const sketchPadRef = useRef<HTMLCanvasElement>(null);
+
   const { initDragStart } = useShapeDrag({
     shape,
     isEditing,
     zoom,
   });
-  const textRef = useRef<HTMLTextAreaElement>(null);
 
-  // Sketchpad
-  const sketchPadRef = useRef<HTMLCanvasElement>(null);
-  useSketchpadShapeEvents({ shape, sketchPadRef });
-
-
-  
   const { handleResizeStart } = useShapeResize(
     shape,
     zoom,
@@ -65,19 +52,26 @@ export function ShapeComponent({ shape }: ShapeProps) {
     updateShapes
   );
 
-  const handleStickyInteraction = () => {
-    if (shape.type === "sticky" && shape.isNew) {
-      updateShape(shape.id, { isNew: false });
-    }
-  };
+  useSketchpadShapeEvents({ shape, sketchPadRef });
 
-  const [rotateStart, setRotateStart] = useState<{
-    angle: number;
-    startRotation: number;
-  } | null>(null);
+  const {
+    handleMouseDown,
+    handleContextMenu,
+    handleDoubleClick,
+    handleKeyDown,
+    handleRotateStart,
+  } = useShapeEvents({
+    shape,
+    isEditing,
+    isSelected: selectedShapes.includes(shape.id),
+    zoom,
+    textRef,
+    initDragStart,
+  });
 
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } =
     useBrush(sketchPadRef);
+
   const {
     handleSketchpadPointerDown,
     handleSketchpadPointerMove,
@@ -87,64 +81,12 @@ export function ShapeComponent({ shape }: ShapeProps) {
     handlePointerMove,
     handlePointerUpOrLeave,
   });
+
   const isSelected = selectedShapes.includes(shape.id);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    // Prevent shape dragging if the shape is in orbit mode
-    if (shape.type === "3d" && shape.isOrbiting) {
-      e.stopPropagation();
-      return;
-    }
-
-    if (tool === "pan" || (isEditing && !shape.isNew)) return;
-
-    // Prevent drag when clicking controls panel
-    const controlsPanel = document.querySelector(
-      `[data-controls-panel="${shape.id}"]`
-    );
-    if (controlsPanel?.contains(e.target as Node)) {
-      e.stopPropagation();
-      if (!selectedShapes.includes(shape.id)) {
-        setSelectedShapes([shape.id]);
-      }
-      return;
-    }
-
-    e.stopPropagation();
-    handleStickyInteraction();
-
-    // Initialize drag
-    initDragStart(e);
-
-    if (e.shiftKey) {
-      const newSelection = selectedShapes.includes(shape.id)
-        ? selectedShapes.filter((id) => id !== shape.id)
-        : [...selectedShapes, shape.id];
-      setSelectedShapes(newSelection);
-    } else if (!selectedShapes.includes(shape.id)) {
-      setSelectedShapes([shape.id]);
-    }
-  };
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const menuItems = createShapeContextMenu(shape, selectedShapes, {
-      sendBackward,
-      sendForward,
-      sendToBack,
-      sendToFront,
-      duplicate,
-      deleteShape,
-      createGroup,
-      ungroup,
-    });
-
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      items: menuItems,
-    });
+  const handleBlur = () => {
+    setIsEditing(false);
+    setIsEditingText(false);
   };
 
   useEffect(() => {
@@ -154,36 +96,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
       textRef.current.setSelectionRange(length, length);
     }
   }, [isEditing]);
-  useEffect(() => {
-    if (!rotateStart) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = document.getElementById(shape.id)?.getBoundingClientRect();
-      if (!rect) return;
-
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-      const angleDiff = (currentAngle - rotateStart.angle) * (180 / Math.PI);
-      const newRotation = (rotateStart.startRotation + angleDiff) % 360;
-
-      updateShape(shape.id, { rotation: newRotation });
-    };
-
-    const handleMouseUp = () => {
-      setRotateStart(null);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [rotateStart, shape.id, updateShape]);
-
-
 
   if (shape.type === "image" && shape.isUploading) {
     const isGenerating = generatingPredictions.has(shape.id);
@@ -199,9 +111,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
           transform: `rotate(${shape.rotation}deg)`,
           cursor: tool === "select" ? "move" : "default",
           pointerEvents: tool === "select" ? "all" : "none",
-          zIndex: isSelected
-            ? 1000
-            : shapes.findIndex((s) => s.id === shape.id),
+          zIndex: isSelected ? 1000 : shapes.findIndex((s) => s.id === shape.id),
         }}
         className="bg-gray-200 rounded-lg flex items-center justify-center"
         onMouseDown={handleMouseDown}
@@ -219,65 +129,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
       </div>
     );
   }
-
-  const handleRotateStart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-
-    setRotateStart({
-      angle: startAngle,
-      startRotation: shape.rotation || 0,
-    });
-  };
-
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    if (shape.type === "3d") {
-      e.stopPropagation();
-      updateShape(shape.id, { isOrbiting: true });
-      setIsEditingText(true);
-      return;
-    }
-
-    if (shape.type === "text" || shape.type === "sticky") {
-      e.stopPropagation();
-      setIsEditing(true);
-      setIsEditingText(true);
-      handleStickyInteraction();
-
-      // Clear default text on first edit
-      if (shape.content === "Double-Click to Edit...") {
-        updateShape(shape.id, { content: "" });
-      }
-
-      if (textRef.current) {
-        textRef.current.focus();
-        textRef.current.select();
-      }
-    } else if (shape.type === "image") {
-      e.stopPropagation();
-      updateShape(shape.id, { isImageEditing: true });
-    }
-  };
-
-  const handleBlur = () => {
-    setIsEditing(false);
-    setIsEditingText(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (selectedShapes.includes(shape.id)) {
-      if (e.key === "Delete") {
-        deleteShape(shape.id);
-      } else if (e.shiftKey && e.key === "Enter") {
-        setIsEditing(false);
-        setIsEditingText(false);
-        setSelectedShapes([]);
-      }
-    }
-  };
 
   if (shape.type === "drawing") {
     return (
@@ -305,9 +156,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
           transform: `rotate(${shape.rotation}deg)`,
           cursor: tool === "select" ? "move" : "default",
           pointerEvents: tool === "select" ? "all" : "none",
-          zIndex: isSelected
-            ? 1000
-            : shapes.findIndex((s) => s.id === shape.id),
+          zIndex: isSelected ? 1000 : shapes.findIndex((s) => s.id === shape.id),
         }}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
