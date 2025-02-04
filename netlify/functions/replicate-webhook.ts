@@ -35,71 +35,108 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    // Update status immediately to ensure we track failed generations
+    if (status === "failed" || status === "canceled") {
+      const { error: statusError } = await supabase
+        .from("generated_images")
+        .update({
+          status: status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("prediction_id", id);
+
+      if (statusError) throw statusError;
+    }
+
     if (status === "succeeded" && Array.isArray(output) && output.length > 0) {
       // First upload all images to Supabase storage
       const uploadPromises = output.map(async (imageUrl, index) => {
-        // Fetch image from Replicate URL
-        const response = await fetch(imageUrl);
-        const imageBuffer = await response.arrayBuffer();
-        const imageData = new Uint8Array(imageBuffer);
+        try {
+          // Fetch image from Replicate URL
+          const response = await fetch(imageUrl);
+          if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+          
+          const imageBuffer = await response.arrayBuffer();
+          const imageData = new Uint8Array(imageBuffer);
 
-        // Generate unique filename
-        const filename = `${id}-${index}-${Date.now()}.png`;
+          // Generate unique filename
+          const filename = `${id}-${index}-${Date.now()}.png`;
 
-        // Upload to Supabase bucket
-        const { error: uploadError } = await supabase.storage
-          .from("generated-images")
-          .upload(filename, imageData, {
-            contentType: "image/png",
-            cacheControl: "3600",
-          });
+          // Upload to Supabase bucket
+          const { error: uploadError } = await supabase.storage
+            .from("generated-images")
+            .upload(filename, imageData, {
+              contentType: "image/png",
+              cacheControl: "3600",
+            });
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        // Get public URL
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("generated-images").getPublicUrl(filename);
+          // Get public URL
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("generated-images").getPublicUrl(filename);
 
-        return publicUrl;
+          return publicUrl;
+        } catch (error) {
+          console.error(`Failed to process image ${index}:`, error);
+          return null;
+        }
       });
 
       const publicUrls = await Promise.all(uploadPromises);
+      const validUrls = publicUrls.filter(url => url !== null);
 
-      const { data: updateData, error } = await supabase
+      if (validUrls.length === 0) {
+        throw new Error("No images were successfully processed");
+      }
+
+      const { error } = await supabase
         .from("generated_images")
         .update({
-          generated_01: publicUrls[0],
+          generated_01: validUrls[0],
           status: "completed",
           updated_at: new Date().toISOString(),
         })
         .eq("prediction_id", id);
 
-      console.log("Update operation details:", {
-        prediction_id: id,
-        success: !error,
-        rowsAffected: updateData?.length,
-        error: error?.message,
-      });
-
       if (error) throw error;
-      // Trigger gallery refresh after successful update
     }
+
     return {
       statusCode: 200,
       body: JSON.stringify({
         success: true,
-        message: "Webhook received but no update required",
+        message: "Webhook processed successfully",
         data: { id, status },
       }),
     };
   } catch (error) {
     console.error("Error processing webhook:", error);
+    
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    try {
+      // Only attempt database update if we have an ID from the original payload
+      const parsedBody = event.body ? JSON.parse(event.body) : null;
+      if (parsedBody?.id) {
+        await supabase
+          .from("generated_images")
+          .update({
+            status: "error",
+            error_message: errorMessage,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("prediction_id", parsedBody.id);
+      }
+    } catch (dbError) {
+      console.error("Failed to update error state in database:", dbError);
+    }
+
     return {
       statusCode: 500,
       body: JSON.stringify({
         success: false,
-        error: "Error processing webhook",
+        error: errorMessage,
       }),
     };
   }

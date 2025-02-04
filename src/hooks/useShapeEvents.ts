@@ -104,32 +104,36 @@ export function useShapeEvents({
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  
+    if (tool === "pan") return;
+  
     if (shape.type === "3d") {
-      e.stopPropagation();
       updateShape(shape.id, { isOrbiting: true });
       setIsEditingText(true);
       return;
     }
-
+  
     if (shape.type === "text" || shape.type === "sticky") {
-      e.stopPropagation();
+      // Set editing state immediately to prevent interference
+      updateShape(shape.id, {
+        isEditing: true,
+        content: shape.content === "Double-Click to Edit..." ? "" : shape.content,
+      });
       setIsEditingText(true);
-      handleStickyInteraction();
-
-      if (shape.content === "Double-Click to Edit...") {
-        updateShape(shape.id, { content: "" });
-      }
-
+  
+      // Focus the textarea without delay
       if (textRef.current) {
         textRef.current.focus();
         textRef.current.select();
       }
+  
+      handleStickyInteraction();
     } else if (shape.type === "image") {
-      e.stopPropagation();
       updateShape(shape.id, { isImageEditing: true });
     }
   };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (selectedShapes.includes(shape.id)) {
       if (e.key === "Delete") {

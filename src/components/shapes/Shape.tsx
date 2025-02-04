@@ -85,8 +85,19 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const isSelected = selectedShapes.includes(shape.id);
 
   const handleBlur = () => {
-    setIsEditing(false);
-    setIsEditingText(false);
+    if (shape.type === "sticky" || shape.type === "text") {
+      // Only update if there's actual content
+      if (!shape.content?.trim()) {
+        updateShape(shape.id, { 
+          content: "Double-Click to Edit...",
+          isEditing: false 
+        });
+      } else {
+        updateShape(shape.id, { isEditing: false });
+      }
+      setIsEditing(false);
+      setIsEditingText(false);
+    }
   };
 
   useEffect(() => {
@@ -111,7 +122,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
           transform: `rotate(${shape.rotation}deg)`,
           cursor: tool === "select" ? "move" : "default",
           pointerEvents: tool === "select" ? "all" : "none",
-          zIndex: isSelected ? 1000 : shapes.findIndex((s) => s.id === shape.id),
+          zIndex: isSelected
+            ? 1000
+            : shapes.findIndex((s) => s.id === shape.id),
         }}
         className="bg-gray-200 rounded-lg flex items-center justify-center"
         onMouseDown={handleMouseDown}
@@ -156,7 +169,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
           transform: `rotate(${shape.rotation}deg)`,
           cursor: tool === "select" ? "move" : "default",
           pointerEvents: tool === "select" ? "all" : "none",
-          zIndex: isSelected ? 1000 : shapes.findIndex((s) => s.id === shape.id),
+          zIndex: isSelected
+            ? 1000
+            : shapes.findIndex((s) => s.id === shape.id),
         }}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
@@ -227,27 +242,34 @@ export function ShapeComponent({ shape }: ShapeProps) {
           />
         )}
         {shape.type === "image" && <ImageShape shape={shape} />}
-        <textarea
-          ref={textRef}
-          value={shape.content || ""}
-          onChange={(e) => updateShape(shape.id, { content: e.target.value })}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          onMouseDown={(e) => {
-            if (!isEditing) {
-              e.stopPropagation();
-            }
-          }}
-          className={`w-full h-full bg-transparent resize-none outline-none text-left ${
-            isEditing ? "cursor-text" : "cursor-default pointer-events-none"
-          }`}
-          style={{
-            fontSize: shape.fontSize || 16,
-            scrollbarWidth: "thin",
-            cursor: isEditing ? "text" : "move",
-          }}
-          readOnly={!isEditing}
-        />
+        {/* Update the textarea section */}
+        {(shape.type === "text" || shape.type === "sticky") && (
+  <textarea
+    ref={textRef}
+    value={shape.content || ""}
+    onChange={(e) => updateShape(shape.id, { content: e.target.value })}
+    onBlur={handleBlur}
+    onKeyDown={handleKeyDown}
+    onClick={(e) => {
+      e.stopPropagation();
+      if (shape.type === "sticky" && !isEditing) {
+        setIsEditing(true);
+        setIsEditingText(true);
+        updateShape(shape.id, { isEditing: true });
+      }
+    }}
+    className={`w-full h-full bg-transparent resize-none outline-none text-left p-2 ${
+      isEditing ? "cursor-text" : "cursor-move"
+    }`}
+    style={{
+      fontSize: shape.fontSize || 16,
+      scrollbarWidth: "thin",
+      pointerEvents: "all", // Change this to always allow interaction
+    }}
+    readOnly={!isEditing}
+    spellCheck={false}
+  />
+)}
       </div>
       {/* Controls layer */}
       {(tool === "select" ||

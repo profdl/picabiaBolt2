@@ -454,6 +454,7 @@ export const generationHandlerSlice: StateCreator<
               generated_01: string; 
               prediction_id: string;
               updated_at: string;
+              error_message?: string;
             };
           };
           
@@ -465,11 +466,19 @@ export const generationHandlerSlice: StateCreator<
               lastUpdated: typedPayload.new.updated_at
             });
             get().removeGeneratingPrediction(typedPayload.new.prediction_id);
+          } else if (typedPayload.new.status === 'error' || typedPayload.new.status === 'failed') {
+            // Handle error states
+            get().updateShape(typedPayload.new.prediction_id, {
+              isUploading: false,
+              lastUpdated: typedPayload.new.updated_at,
+              color: '#ffcccb' // Add a visual indicator for error
+            });
+            get().removeGeneratingPrediction(typedPayload.new.prediction_id);
+            get().setError(typedPayload.new.error_message || 'Generation failed');
           }
         }
       )
       .subscribe();
-    
 
       const insertData = {
         id: crypto.randomUUID(),

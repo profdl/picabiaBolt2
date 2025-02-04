@@ -258,7 +258,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           useSettings: false,
           model: "",
           isNew: true,
-          isEditing: false,
+          isEditing: true,
           depthStrength: 0,
           edgesStrength: 0,
           contentStrength: 0,
