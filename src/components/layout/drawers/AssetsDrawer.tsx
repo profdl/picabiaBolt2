@@ -1,94 +1,54 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Upload, Loader2, Search } from "lucide-react";
 import { useStore } from "../../../store";
 import { Drawer } from "../../shared/Drawer";
 import ImageGrid from "../../shared/ImageGrid";
-import {
-  supabase,
-  convertToWebP,
-  uploadAssetToSupabase,
-} from "../../../lib/supabase";
 import { Asset, Shape } from "../../../types";
 import { useFileUpload } from "../../../hooks/useFileUpload";
-
-export interface SourcePlusImage {
-  id: string;
-  url: string;
-  thumbnail_url?: string;
-  width?: number;
-  height?: number;
-  description?: string;
-  author?: {
-    name?: string;
-    username?: string;
-  };
-}
+import { usePersonalAssets } from "../../../hooks/usePersonalAssets";
+import { useSourcePlus } from "../../../hooks/useSourcePlus";
 
 interface AssetsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onAddShape: (shape: Shape) => void;
   getViewportCenter: () => { x: number; y: number };
-  sourcePlusImages?: SourcePlusImage[];
 }
 
 export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = React.useState("my-assets");
-  const [assets, setAssets] = React.useState<Asset[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  const [activeTab, setActiveTab] = useState("my-assets");
+  const { addImageToCanvas, assetsRefreshTrigger } = useStore((state) => ({
+    addImageToCanvas: state.addImageToCanvas,
+    assetsRefreshTrigger: state.assetsRefreshTrigger,
+  }));
+
+  // Custom hooks
   const {
-    addImageToCanvas,
-    deleteAsset,
-    assetsRefreshTrigger,
+    assets,
+    loading,
+    fetchAssets,
+    handleDeleteAsset,
+    mapAssetsToImageItems,
+  } = usePersonalAssets();
+
+  const { fileInputRef, uploading, handleFileSelect } = useFileUpload(fetchAssets);
+
+  const {
     sourcePlusLoading,
     sourcePlusQuery,
     sourcePlusImages,
     setSourcePlusQuery,
-    triggerAssetsRefresh
-  } = useStore((state) => ({
-    addImageToCanvas: state.addImageToCanvas,
-    deleteAsset: state.deleteAsset,
-    assetsRefreshTrigger: state.assetsRefreshTrigger,
-    sourcePlusImages: state.sourcePlusImages || [],
-    sourcePlusLoading: state.sourcePlusLoading,
-    sourcePlusQuery: state.sourcePlusQuery,
-    setSourcePlusQuery: state.setSourcePlusQuery,
-    triggerAssetsRefresh: state.triggerAssetsRefresh,
-  }));
-
-  const fetchAssets = async () => {
-    setLoading(true);
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("assets")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setAssets(data || []);
-    } catch (err) {
-      console.error("Error fetching assets:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const { fileInputRef, uploading, handleFileSelect } = useFileUpload(fetchAssets);
+    handleSourcePlusClick,
+  } = useSourcePlus(onClose);
 
   useEffect(() => {
     if (isOpen) {
       fetchAssets();
     }
-  }, [isOpen, assetsRefreshTrigger]);
+  }, [isOpen, assetsRefreshTrigger, fetchAssets]);
 
   const handleAssetClick = async (asset: Asset) => {
     if (!asset) return;
@@ -109,82 +69,6 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     if (success) {
       onClose();
     }
-  };
-
-  const handleSourcePlusClick = async (sourcePlusImage: SourcePlusImage) => {
-    try {
-        console.log('Fetching image through proxy:', sourcePlusImage.url);
-        
-        const thumbnailUrl = sourcePlusImage.thumbnail_url || sourcePlusImage.url;
-        
-        const proxyResponse = await fetch(
-            `/.netlify/functions/sourceplus-proxy?url=${encodeURIComponent(thumbnailUrl)}`
-        );
-        
-        if (!proxyResponse.ok) {
-            const errorData = await proxyResponse.json();
-            throw new Error(errorData.error || 'Failed to fetch image through proxy');
-        }
-
-        const { data: base64Data } = await proxyResponse.json();
-        if (!base64Data) {
-            throw new Error('No image data received from proxy');
-        }
-
-        const response = await fetch(base64Data);
-        const blob = await response.blob();
-        const file = new File([blob], "image.jpg", { type: blob.type });
-        const webpBlob = await convertToWebP(file);
-        const { publicUrl } = await uploadAssetToSupabase(webpBlob);
-
-        const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => {
-                resolve({
-                    width: img.naturalWidth,
-                    height: img.naturalHeight
-                });
-            };
-            img.onerror = () => reject(new Error('Failed to load image for dimensions'));
-            img.src = URL.createObjectURL(webpBlob);
-        });
-
-        const success = await addImageToCanvas({
-            url: publicUrl,
-            width: dimensions.width,
-            height: dimensions.height,
-            depthStrength: 0.25,
-            edgesStrength: 0.25,
-            contentStrength: 0.25,
-            poseStrength: 0.25,
-            sketchStrength: 0.25,
-            remixStrength: 0.25,
-        });
-
-        if (success) {
-            triggerAssetsRefresh();
-            onClose();
-        }
-    } catch (err) {
-        console.error("Error processing Source.plus image:", err);
-    }
-  };
-
-  const handleDeleteAsset = async (assetId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const asset = assets.find((a) => a.id === assetId);
-    if (asset) {
-      await deleteAsset(assetId, asset.url);
-      setAssets((prevAssets) => prevAssets.filter((a) => a.id !== assetId));
-    }
-  };
-
-  const mapAssetsToImageItems = (assets: Asset[]) => {
-    return assets.map((asset) => ({
-      id: asset.id,
-      url: asset.url,
-      status: "completed" as const,
-    }));
   };
 
   useEffect(() => {
