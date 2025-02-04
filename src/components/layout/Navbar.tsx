@@ -3,7 +3,6 @@ import { useStore } from "../../store";
 import { Link, useLocation } from "react-router-dom";
 import { Save, EyeOff, Eye } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { ProjectsSidebar } from "../ProjectsSidebar";
 import { useProjects } from "../../hooks/useProjects";
 import { generateThumbnail } from "../../utils/thumbnail";
 import { Menu } from "lucide-react";
@@ -12,7 +11,6 @@ import { useNavigate } from "react-router-dom";
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const location = useLocation();
   const { updateProject } = useProjects();
@@ -284,10 +282,7 @@ export const Navbar = () => {
           </div>
         </div>
       </nav>
-      <ProjectsSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
+
     </>
   );
 };
