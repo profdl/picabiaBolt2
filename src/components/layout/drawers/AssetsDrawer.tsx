@@ -25,16 +25,17 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     assetsRefreshTrigger: state.assetsRefreshTrigger,
   }));
 
-  // Custom hooks
   const {
     assets,
     loading,
+    hasMore,
     fetchAssets,
+    loadMore,
     handleDeleteAsset,
     mapAssetsToImageItems,
   } = usePersonalAssets();
 
-  const { fileInputRef, uploading, handleFileSelect } = useFileUpload(fetchAssets);
+  const { fileInputRef, uploading, handleFileSelect } = useFileUpload(() => fetchAssets(1));
 
   const {
     sourcePlusLoading,
@@ -46,7 +47,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      fetchAssets();
+      fetchAssets(1);
     }
   }, [isOpen, assetsRefreshTrigger, fetchAssets]);
 
@@ -77,6 +78,13 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     }
   }, [activeTab, setSourcePlusQuery]);
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop <= clientHeight * 1.5) {
+      loadMore();
+    }
+  };
+
   return (
     <Drawer title="Assets" isOpen={isOpen} onClose={onClose} position="left">
       <div className="flex flex-col h-full">
@@ -103,7 +111,10 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div 
+          className="flex-1 overflow-y-auto"
+          onScroll={handleScroll}
+        >
           {activeTab === "source-plus" && (
             <div className="p-4">
               <div className="relative mb-3">
@@ -167,13 +178,30 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
               </button>
               <ImageGrid
                 images={mapAssetsToImageItems(assets)}
-                loading={loading}
+                loading={loading && assets.length === 0} // Only show loading on initial load
                 emptyMessage="No uploaded assets yet"
                 onImageClick={(image) =>
                   handleAssetClick(assets.find((a) => a.id === image.id)!)
                 }
                 onImageDelete={handleDeleteAsset}
               />
+              {/* Loading spinner for pagination */}
+              {loading && assets.length > 0 && (
+                <div className="py-4 flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                </div>
+              )}
+              {/* Load more button */}
+              {!loading && hasMore && (
+                <div className="py-4 flex justify-center">
+                  <button
+                    onClick={() => loadMore()}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                  >
+                    Load More
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -6,11 +6,13 @@ import { useStore } from "../store";
 export const usePersonalAssets = () => {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const ASSETS_PER_PAGE = 20;
   
-  // Move store selector outside of hook body
   const deleteAsset = useStore(state => state.deleteAsset);
 
-  const fetchAssets = useCallback(async () => {
+  const fetchAssets = useCallback(async (pageNumber = 1) => {
     setLoading(true);
     try {
       const {
@@ -18,20 +20,26 @@ export const usePersonalAssets = () => {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      const from = (pageNumber - 1) * ASSETS_PER_PAGE;
+      const to = from + ASSETS_PER_PAGE - 1;
+
+      const { data, error, count } = await supabase
         .from("assets")
-        .select("*")
+        .select("*", { count: 'exact' })
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      setAssets(data || []);
+
+      setAssets(prev => pageNumber === 1 ? data || [] : [...prev, ...(data || [])]);
+      setHasMore(count ? from + ASSETS_PER_PAGE < count : false);
     } catch (err) {
       console.error("Error fetching assets:", err);
     } finally {
       setLoading(false);
     }
-  }, []); // Empty dependency array since it doesn't depend on any props or state
+  }, []); 
 
   const handleDeleteAsset = useCallback(async (assetId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -41,6 +49,13 @@ export const usePersonalAssets = () => {
       setAssets((prevAssets) => prevAssets.filter((a) => a.id !== assetId));
     }
   }, [assets, deleteAsset]);
+
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      setPage(prev => prev + 1);
+      fetchAssets(page + 1);
+    }
+  }, [loading, hasMore, page, fetchAssets]);
 
   const mapAssetsToImageItems = useCallback((assets: Asset[]) => {
     return assets.map((asset) => ({
@@ -53,7 +68,9 @@ export const usePersonalAssets = () => {
   return {
     assets,
     loading,
+    hasMore,
     fetchAssets,
+    loadMore,
     handleDeleteAsset,
     mapAssetsToImageItems,
   };

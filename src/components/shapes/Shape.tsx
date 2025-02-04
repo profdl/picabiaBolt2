@@ -88,9 +88,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
     if (shape.type === "sticky" || shape.type === "text") {
       // Only update if there's actual content
       if (!shape.content?.trim()) {
-        updateShape(shape.id, { 
+        updateShape(shape.id, {
           content: "Double-Click to Edit...",
-          isEditing: false 
+          isEditing: false,
         });
       } else {
         updateShape(shape.id, { isEditing: false });
@@ -244,32 +244,32 @@ export function ShapeComponent({ shape }: ShapeProps) {
         {shape.type === "image" && <ImageShape shape={shape} />}
         {/* Update the textarea section */}
         {(shape.type === "text" || shape.type === "sticky") && (
-  <textarea
-    ref={textRef}
-    value={shape.content || ""}
-    onChange={(e) => updateShape(shape.id, { content: e.target.value })}
-    onBlur={handleBlur}
-    onKeyDown={handleKeyDown}
-    onClick={(e) => {
-      e.stopPropagation();
-      if (shape.type === "sticky" && !isEditing) {
-        setIsEditing(true);
-        setIsEditingText(true);
-        updateShape(shape.id, { isEditing: true });
-      }
-    }}
-    className={`w-full h-full bg-transparent resize-none outline-none text-left p-2 ${
-      isEditing ? "cursor-text" : "cursor-move"
-    }`}
-    style={{
-      fontSize: shape.fontSize || 16,
-      scrollbarWidth: "thin",
-      pointerEvents: "all", // Change this to always allow interaction
-    }}
-    readOnly={!isEditing}
-    spellCheck={false}
-  />
-)}
+          <textarea
+            ref={textRef}
+            value={shape.content || ""}
+            onChange={(e) => updateShape(shape.id, { content: e.target.value })}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (shape.type === "sticky" && !isEditing) {
+                setIsEditing(true);
+                setIsEditingText(true);
+                updateShape(shape.id, { isEditing: true });
+              }
+            }}
+            className={`w-full h-full bg-transparent resize-none outline-none text-left p-2 ${
+              isEditing ? "cursor-text" : "cursor-move"
+            }`}
+            style={{
+              fontSize: shape.fontSize || 16,
+              scrollbarWidth: "thin",
+              pointerEvents: "all", 
+            }}
+            readOnly={!isEditing}
+            spellCheck={false}
+          />
+        )}
       </div>
       {/* Controls layer */}
       {(tool === "select" ||

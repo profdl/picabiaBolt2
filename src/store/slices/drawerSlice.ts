@@ -35,8 +35,11 @@ interface CanvasState {
   shapes: Shape[];
   setOffset: (offset: Position) => void;
   addShape: (shape: Shape) => void;
-  centerOnShape: (shapeId: string) => void; // Add this
+  centerOnShape: (shapeId: string) => void; 
+  hasMore: boolean;
 }
+
+
 interface UnsplashImage {
   name: string;
   thumbnail_urls: unknown;
@@ -56,6 +59,7 @@ interface UnsplashImage {
 export interface DrawerState {
   // Drawer visibility states
   activeDrawer: "none" | "assets" | "gallery" | "imageGenerate" | "unsplash";
+  hasMore: boolean;
 
   // Gallery states
   galleryRefreshCounter: number;
@@ -101,7 +105,7 @@ export interface DrawerSlice {
   // Actions - Gallery
   refreshGallery: () => void;
   setSelectedGalleryImage: (image: SavedImage | null) => void;
-  fetchGeneratedImages: () => Promise<void>;
+  fetchGeneratedImages: (page?: number, perPage?: number) => Promise<void>;
   deleteGeneratedImage: (imageId: string) => Promise<boolean>;
   setIsGenerating: (isGenerating: boolean) => void;
 
@@ -269,28 +273,36 @@ export const drawerSlice: StateCreator<
         });
     }
 },
-  fetchGeneratedImages: async () => {
-    try {
-      set({ isLoading: true }); // Set loading true before fetch
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+fetchGeneratedImages: async (page = 1, perPage = 20) => {
+  try {
+    set({ isLoading: true });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
 
-      const { data, error } = await supabase
-        .from("generated_images")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+    const from = (page - 1) * perPage;
+    const to = from + perPage - 1;
 
-      if (error) throw error;
-      set({ generatedImages: data || [] });
-    } catch (err) {
-      console.error("Error fetching generated images:", err);
-    } finally {
-      set({ isLoading: false }); // Set loading false after fetch
-    }
-  },
+    const { data, error, count } = await supabase
+      .from("generated_images")
+      .select("*", { count: 'exact' })
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+
+    set((state) => ({
+      generatedImages: page === 1 ? data || [] : [...state.generatedImages, ...(data || [])],
+      hasMore: count ? from + perPage < count : false
+    }));
+  } catch (err) {
+    console.error("Error fetching generated images:", err);
+  } finally {
+    set({ isLoading: false });
+  }
+},
 
   deleteGeneratedImage: async (imageId: string) => {
     try {
