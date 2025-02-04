@@ -14,6 +14,8 @@ import {
   DEFAULT_CONTROL_STRENGTHS,
   DEFAULT_CONTROL_STATES,
 } from "../../../constants/shapeControlSettings";
+import { useFileUpload } from "../../../hooks/useFileUpload";
+
 
 interface Asset {
   id: string;
@@ -64,11 +66,9 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
       setArenaQuery("terraform");
     }
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = React.useState("my-assets");
   const [assets, setAssets] = React.useState<Asset[]>([]);
   const [loading, setLoading] = React.useState(false);
-  const [uploading, setUploading] = React.useState(false);
   const searchDebounceRef = useRef<NodeJS.Timeout>();
   const [arenaQuery, setArenaQuery] = React.useState("");
   const [arenaResults, setArenaResults] = React.useState<ArenaResults>({
@@ -115,6 +115,8 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     unsplashLoading: state.unsplashLoading,
   }));
 
+
+
   const fetchAssets = async () => {
     setLoading(true);
     try {
@@ -138,40 +140,15 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     }
   };
 
+  const { fileInputRef, uploading, handleFileSelect } = useFileUpload(fetchAssets);
+
+
   useEffect(() => {
     if (isOpen) {
       fetchAssets();
     }
   }, [isOpen, assetsRefreshTrigger]);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const webpBlob = await convertToWebP(file);
-      const { publicUrl } = await uploadAssetToSupabase(webpBlob);
-
-      // Add to local assets state and refresh
-      const newAsset: Asset = {
-        id: Math.random().toString(36).substr(2, 9),
-        url: publicUrl,
-        created_at: new Date().toISOString(),
-        user_id: "",
-      };
-
-      setAssets((prev) => [newAsset, ...prev]);
-      fetchAssets();
-    } catch (err) {
-      console.error("Error uploading asset:", err);
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
 
   const handleAssetClick = async (asset: Asset) => {
     if (!asset) return;
@@ -223,7 +200,8 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
         const blob = await response.blob();
 
         console.log('Converting to WebP...');
-        const webpBlob = await convertToWebP(blob);
+        const file = new File([blob], "image.jpg", { type: blob.type });
+        const webpBlob = await convertToWebP(file);
 
         console.log('Uploading to Supabase...');
         // Upload to Supabase storage

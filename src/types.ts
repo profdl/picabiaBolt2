@@ -1,3 +1,17 @@
+export interface Asset {
+  id: string;
+  url: string;
+  created_at: string;
+  user_id: string;
+  width?: number;
+  height?: number;
+  depthStrength?: number;
+  edgesStrength?: number;
+  poseStrength?: number;
+  sketchStrength?: number;
+  remixStrength?: number;
+}
+
 export interface Position {
   x: number;
   y: number;
