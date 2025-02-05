@@ -344,42 +344,61 @@ return (
                     {control.strengthKey &&
                       control.showKey &&
                       shape[control.showKey as keyof Shape] && (
-                        <div
-                          className={`mt-0.5 pl-1 pr-2 relative ${
-                            shape[control.showKey as keyof Shape]
-                              ? "block"
-                              : "hidden"
-                          }`}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="relative">
-                            {isHovering && (
-                              <div className={styles.controls.tooltip}>
-                                {(shape[control.strengthKey as keyof Shape] as number)?.toFixed(2) ?? "0.25"}
-                              </div>
-                            )}
-                            <input
-                              type="range"
-                              min="0.05"
-                              max="1.00"
-                              step="0.05"
-                              value={
-                                typeof shape[control.strengthKey as keyof Shape] === "number"
-                                  ? (shape[control.strengthKey as keyof Shape] as number)
-                                  : 0.25
-                              }
-                              onMouseEnter={() => setIsHovering(true)}
-                              onMouseLeave={() => setIsHovering(false)}
-                              onChange={(e) => {
-                                updateShape(shape.id, {
-                                  [control.strengthKey]: parseFloat(e.target.value),
-                                });
-                              }}
-                              className={styles.controls.slider}
-                              style={{ pointerEvents: "all" }}
-                            />
-                          </div>
-                        </div>
+<div
+  className={`mt-0.5 pl-1 pr-2 relative ${
+    shape[control.showKey as keyof Shape]
+      ? "block"
+      : "hidden"
+  }`}
+  onClick={(e) => e.stopPropagation()}
+>
+  <div className="relative">
+    {isHovering && (
+      <div 
+        className={styles.controls.tooltip}
+        style={{
+          position: 'absolute',
+          top: '-25px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+          zIndex: 1000
+        }}
+      >
+        {(shape[control.strengthKey as keyof Shape] as number)?.toFixed(2) ?? "0.25"}
+      </div>
+    )}
+    <div className="relative" style={{ height: '18px', width: '80px' }}> {/* Removed fixed width here */}
+      <input
+        type="range"
+        min="0.05"
+        max="1.00"
+        step="0.05"
+        value={
+          typeof shape[control.strengthKey as keyof Shape] === "number"
+            ? (shape[control.strengthKey as keyof Shape] as number)
+            : 0.25
+        }
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        onChange={(e) => {
+          updateShape(shape.id, {
+            [control.strengthKey]: parseFloat(e.target.value),
+          });
+        }}
+        className={styles.controls.slider}
+        style={{ 
+          position: 'absolute',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          pointerEvents: "all",
+          width: 'calc(100% - 8px)' // Subtract padding to fit container
+        }}
+      />
+    </div>
+  </div>
+</div>
                     )}
                   </div>
                 </div>

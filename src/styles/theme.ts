@@ -65,12 +65,12 @@ export const theme = {
     selected: "ring-2 ring-neutral-500 dark:ring-[#0d99ff]",
     container: "absolute inset-0",
     controls: {
-      panel: "absolute left-full ml-2 top-0 z-[101]",
+      panel: "absolute left-full ml-0 top-0 z-[101]",
       group: "bg-neutral-50 dark:bg-[#2c2c2c] rounded-md mb-1 p-1 border border-neutral-200 dark:border-[#404040] shadow-sm",
       checkbox: "w-3 h-3 rounded border-neutral-300 dark:border-[#404040] text-neutral-600 dark:text-[#999999] focus:ring-0",
       label: "text-xs text-neutral-700 dark:text-[#999999] whitespace-nowrap",
-      slider: "mini-slider w-24",
-      tooltip: "bg-neutral-500 dark:bg-[#2c2c2c] text-neutral-50 dark:text-white px-2 py-1 rounded text-xs",
+      slider: "mini-slider",
+      tooltip: "bg-neutral-500 dark:bg-[#2c2c2c] text-neutral-50 dark:text-white px-2 py-1 rounded text-xs shadow-sm",
       button: "p-2 bg-neutral-50 dark:bg-[#2c2c2c] border border-neutral-200 dark:border-[#404040] rounded-lg hover:bg-neutral-100 dark:hover:bg-[#3e3e3e]",
       buttonActive: "bg-neutral-100 dark:bg-[#3e3e3e] border-neutral-500 dark:border-[#0d99ff]"
     },
