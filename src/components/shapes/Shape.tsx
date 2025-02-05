@@ -63,6 +63,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     zoom,
     generatingPredictions,
     setIsEditingText,
+    setSelectedShapes,
   } = useStore();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -128,8 +129,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
       }
       setIsEditing(false);
       setIsEditingText(false);
+      // Deselect the shape when losing focus
+      setSelectedShapes([]);
     }
   };
+
 
   useEffect(() => {
     if (isEditing && textRef.current) {

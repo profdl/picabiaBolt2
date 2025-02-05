@@ -463,27 +463,46 @@ return (
       )}
 
 {shape.type === "sticky" && isSelected && (
-  <Tooltip content="Add a random text prompt" side="bottom">
-    <div
-      className="absolute -left-0 -bottom-7 w-6 h-6 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-center shadow-sm"
-      style={{ zIndex: 101, pointerEvents: "all" }}
-      onClick={(e) => {
-        e.stopPropagation();
-        const randomPrompt = generatePrompt();
-        updateShape(shape.id, {
-          content: randomPrompt,
-        });
-      }}
-    >
-      <img
-        src="/dice-outline.svg"
-        alt="Random prompt"
-        className="w-5 h-5 text-neutral-600 dark:text-neutral-300"
-      />
-    </div>
-  </Tooltip>
+  <div 
+    className="absolute -left-0 -bottom-7"
+    style={{ 
+      zIndex: 1000, // Increased z-index
+      pointerEvents: "auto" // Ensure pointer events work
+    }}
+  >
+    <Tooltip content="Add a random text prompt" side="bottom">
+      <button
+        type="button"
+        className="w-6 h-6 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-center shadow-sm action-dropdown"
+        style={{ 
+          pointerEvents: "all",
+          position: "relative" // Ensure proper stacking context
+        }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const randomPrompt = generatePrompt();
+          updateShape(shape.id, {
+            content: randomPrompt,
+            isEditing: true
+          });
+          setSelectedShapes([shape.id]);
+        }}
+      >
+        <img
+          src="/dice-outline.svg"
+          alt="Random prompt"
+          className="w-5 h-5 text-neutral-600 dark:text-neutral-300"
+          style={{ pointerEvents: "none" }} // Prevent img from interfering with clicks
+        />
+      </button>
+    </Tooltip>
+  </div>
 )}
-
 {shape.type === "sticky" && (
   <div
     className={`absolute left-1/2 top-full mt-1 transform -translate-x-1/2 ${styles.sidePanel.container}`}

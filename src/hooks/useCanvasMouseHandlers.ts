@@ -28,6 +28,8 @@ export function useCanvasMouseHandlers() {
     setSelectedShapes,
     selectedShapes,
     setTool,
+    updateShape,
+    setIsEditingText
   } = useStore();
 
   function getCanvasPoint(
@@ -77,6 +79,29 @@ export function useCanvasMouseHandlers() {
         return;
       }
     }
+
+    // Check if clicking on a shape or its controls
+    const clickedShape = (e.target as Element).closest("[id]");
+    const controlsPanel = (e.target as Element)?.closest("[data-controls-panel]");
+    const isTextArea = (e.target as Element).tagName.toLowerCase() === 'textarea';
+    
+    if (isTextArea) {
+      return;
+    }
+
+    
+    // If clicking outside shapes and controls, clear selection immediately
+    if (!clickedShape && !controlsPanel && tool === "select") {
+      setSelectedShapes([]);
+      // Also clear any editing states
+      shapes.forEach(shape => {
+        if (shape.type === "sticky" && shape.isEditing) {
+          updateShape(shape.id, { isEditing: false });
+          setIsEditingText(false);
+        }
+      });
+      return;
+    }
     const isOrbiting = shapes.some(
       (shape) =>
         shape.type === "3d" &&
@@ -84,10 +109,7 @@ export function useCanvasMouseHandlers() {
         shape.isOrbiting
     );
     if (isOrbiting) return;
-    // Check if clicking on shape controls
-    const controlsPanel = (e.target as Element)?.closest(
-      "[data-controls-panel]"
-    );
+
     if (controlsPanel) {
       return;
     }
@@ -103,6 +125,7 @@ export function useCanvasMouseHandlers() {
       e.preventDefault();
       setStartPan({ x: e.clientX - offset.x, y: e.clientY - offset.y });
       setIsDragging(true);
+
     } else if (tool === "pen") {
       const point = getCanvasPoint(e, canvasRef);
       setCurrentPath([point]);
@@ -134,7 +157,7 @@ export function useCanvasMouseHandlers() {
       setSelectedShapes([]);
     }
 
-    if (tool !== "select" || isEditingSticky) return;
+  if (tool !== "select" || isEditingSticky) return;
 
     const point = getCanvasPoint(e, canvasRef);
     setSelectionBox({
@@ -144,6 +167,7 @@ export function useCanvasMouseHandlers() {
       height: 0,
     });
   };
+  
   const handleMouseMove = (
     e: React.MouseEvent,
     canvasRef: React.RefObject<HTMLDivElement>
