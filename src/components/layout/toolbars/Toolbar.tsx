@@ -24,8 +24,8 @@ const AssetsButton = () => {
   return (
     <button
       onClick={toggleAssets}
-      className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${
-        showAssets ? "bg-gray-100" : ""
+      className={`p-2 bg-gray-100 hover:bg-gray-150 rounded-lg flex items-center gap-1 ${
+        showAssets ? "bg-gray-300" : ""
       }`}
       title="Asset Library"
     >
@@ -135,7 +135,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         useSettings: false,
         isUploading: false,
         isEditing: false,
-        showSketch: true, 
+        showSketch: true,
         depthStrength: 0.25,
         edgesStrength: 0.25,
         contentStrength: 0.25,
@@ -431,16 +431,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           )}
 
           {/* Sketchpad  */}
-          <button
-            onClick={() => handleAddShape("sketchpad")}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Add sketchpad"
+          <Tooltip
+            content="Create a sketch pad and guide the AI image generation by drawing."
+            side="bottom"
           >
-            <span className="flex items-center gap-1">
-              <BookImageIcon className="w-5 h-5" />
-              <span className="text-sm font-medium">Sketch Prompt</span>
-            </span>
-          </button>
+            <button
+              onClick={() => handleAddShape("sketchpad")}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+              title="Add sketchpad"
+            >
+              <span className="flex items-center gap-1">
+                <BookImageIcon className="w-5 h-5" />
+                <span className="text-sm font-medium">Sketch Prompt</span>
+              </span>
+            </button>
+          </Tooltip>
           <div className="w-px bg-gray-200 mx-2" />
 
           {/* Image Generation Tools */}
@@ -485,15 +490,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             </button>
           </Tooltip>
 
-          {/* <SettingsButton /> */}
-          <button
-            onClick={() => handleAddShape("diffusionSettings")}
-            className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
-            title="Add Diffusion Settings"
-          >
-            <Settings className="w-5 h-5" />
-            {/* <span className="text-sm font-medium"> Settings</span> */}
-          </button>
+{/* Settings Button */}
+<Tooltip
+  content="Add settings to customize the image generation process. Control parameters like quality, size, and model type."
+  side="bottom"
+>
+  <button
+    onClick={() => handleAddShape("diffusionSettings")}
+    className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
+    title="Add Diffusion Settings"
+  >
+    <Settings className="w-5 h-5" />
+  </button>
+</Tooltip>
+
+
           {/* Select, Pan Zoom */}
           <div className="w-px bg-gray-200 mx-4" />
 
@@ -515,15 +526,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           >
             <Hand className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-1">
-  </div>
+          <div className="flex items-center gap-1"></div>
         </div>
         {/* Right-aligned Gallery button */}
         <div>
           <button
             onClick={toggleGallery}
-            className={`p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1 ${
-              showGallery ? "bg-gray-100" : ""
+            className={`p-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center gap-1 ${
+              showGallery ? "bg-gray-300" : ""
             }`}
             title="Generated Images Gallery"
           >

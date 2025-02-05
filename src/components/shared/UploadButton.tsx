@@ -3,6 +3,7 @@ import { Upload, Loader2 } from "lucide-react";
 import { useStore } from "../../store";
 import { supabase } from "../../lib/supabase/client";
 import { Button } from "./Button";
+import { Tooltip } from "./Tooltip";
 
 interface UploadButtonProps {
   className?: string;
@@ -125,18 +126,23 @@ export const UploadButton = ({ className }: UploadButtonProps) => {
         onChange={handleFileSelect}
         className="hidden"
       />
-      <Button
-        variant="ghost"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={uploading}
-        className={`gap-2 ${className}`} // Added gap-2 here
+      <Tooltip 
+        content="Upload an image to the canvas"
+        side="bottom"
       >
-        {uploading ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
-        ) : (
-          <Upload className="w-5 h-5" />
-        )}
-      </Button>
+        <Button
+          variant="ghost"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className={`gap-2 ${className}`}
+        >
+          {uploading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <Upload className="w-5 h-5" />
+          )}
+        </Button>
+      </Tooltip>
     </>
   );
 };
