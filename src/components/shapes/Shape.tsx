@@ -17,12 +17,43 @@ import { useShapeDrag } from "../../hooks/useShapeDrag";
 import { useSketchpadEvents } from "../../hooks/useSketchpadEvents";
 import { useSketchpadShapeEvents } from "../../hooks/sketchpadShapeEvents";
 import { useShapeEvents } from "../../hooks/useShapeEvents";
+import { useThemeClass } from "../../styles/useThemeClass";
 
 interface ShapeProps {
   shape: Shape;
 }
 
 export function ShapeComponent({ shape }: ShapeProps) {
+
+
+  const styles = {
+    base: useThemeClass(['shape', 'base']),
+    selected: useThemeClass(['shape', 'selected']),
+    container: useThemeClass(['shape', 'container']),
+    controls: {
+      panel: useThemeClass(['shape', 'controls', 'panel']),
+      group: useThemeClass(['shape', 'controls', 'group']),
+      checkbox: useThemeClass(['shape', 'controls', 'checkbox']),
+      label: useThemeClass(['shape', 'controls', 'label']),
+      slider: useThemeClass(['shape', 'controls', 'slider']),
+      tooltip: useThemeClass(['shape', 'controls', 'tooltip'])
+    },
+    resizeHandle: useThemeClass(['shape', 'resizeHandle']),
+    colorPicker: useThemeClass(['shape', 'colorPicker']),
+    textArea: useThemeClass(['shape', 'textArea']),
+    newOverlay: {
+      container: useThemeClass(['shape', 'newOverlay', 'container']),
+      text: useThemeClass(['shape', 'newOverlay', 'text'])
+    },
+    sidePanel: {
+      container: useThemeClass(['shape', 'sidePanel', 'container']),
+      group: useThemeClass(['shape', 'sidePanel', 'group']),
+      checkbox: useThemeClass(['shape', 'sidePanel', 'checkbox']),
+      label: useThemeClass(['shape', 'sidePanel', 'label'])
+    }
+  };
+
+
   const {
     selectedShapes,
     shapes,
@@ -199,7 +230,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
   );
 
   return (
-    <div style={{ position: "absolute", width: 0, height: 0 }}>
+    <div
+      style={{ position: "absolute", width: 0, height: 0 }}
+    >
       <div
         id={shape.id}
         style={{
@@ -212,9 +245,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
         tabIndex={0}
-        className={`group transition-shadow hover:shadow-xl relative ${
-          isEditing ? "ring-2 ring-blue-500 ring-opacity-50" : ""
-        }`}
+        className={`${styles.base} ${isEditing ? styles.selected : ''}`}
       >
         {shape.type === "sketchpad" && (
           <SketchpadShape
@@ -229,7 +260,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
             onClear={() => shape.onClear?.()}
           />
         )}
-
+  
         {shape.type === "diffusionSettings" && (
           <DiffusionSettingsPanel
             shape={shape}
@@ -241,36 +272,47 @@ export function ShapeComponent({ shape }: ShapeProps) {
             }}
           />
         )}
+        
         {shape.type === "image" && <ImageShape shape={shape} />}
-        {/* Update the textarea section */}
+  
         {(shape.type === "text" || shape.type === "sticky") && (
-          <textarea
-            ref={textRef}
-            value={shape.content || ""}
-            onChange={(e) => updateShape(shape.id, { content: e.target.value })}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (shape.type === "sticky" && !isEditing) {
-                setIsEditing(true);
-                setIsEditingText(true);
-                updateShape(shape.id, { isEditing: true });
-              }
-            }}
-            className={`w-full h-full bg-transparent resize-none outline-none text-left p-2 ${
-              isEditing ? "cursor-text" : "cursor-move"
-            }`}
-            style={{
-              fontSize: shape.fontSize || 16,
-              scrollbarWidth: "thin",
-              pointerEvents: "all", 
-            }}
-            readOnly={!isEditing}
-            spellCheck={false}
-          />
-        )}
+    <textarea
+      ref={textRef}
+      value={shape.content || ""}
+      onChange={(e) => updateShape(shape.id, { content: e.target.value })}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (shape.type === "sticky" && !isEditing) {
+          setIsEditing(true);
+          setIsEditingText(true);
+          updateShape(shape.id, { isEditing: true });
+        }
+      }}
+      className={`${styles.textArea} ${isEditing ? "cursor-text" : "cursor-move"} ${
+        shape.type === "sticky" ? "text-neutral-800" : "text-neutral-800 dark:text-neutral-100"
+      }`}
+      style={{
+        fontSize: shape.fontSize || 16,
+        scrollbarWidth: "thin",
+        pointerEvents: "all",
+      }}
+      readOnly={!isEditing}
+      spellCheck={false}
+    />
+  )}
       </div>
+  
+      {/* New Sticky Note Overlay */}
+      {shape.type === "sticky" && shape.isNew && (
+        <div className={styles.newOverlay.container}>
+          <div className={styles.newOverlay.text}>
+            Double-click to edit
+          </div>
+        </div>
+      )}
+  
       {/* Controls layer */}
       {(tool === "select" ||
         (shape.type === "sketchpad" &&
@@ -287,6 +329,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
             zIndex: isSelected ? 101 : 2,
             pointerEvents: "none",
           }}
+          className={styles.container}
         >
           <ShapeControls
             shape={shape}

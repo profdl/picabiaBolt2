@@ -1,5 +1,6 @@
 import React from "react";
 import { X } from "lucide-react";
+import { useThemeClass } from '../../styles/useThemeClass';
 
 interface DrawerProps {
   title: string;
@@ -16,6 +17,20 @@ export const Drawer: React.FC<DrawerProps> = ({
   onClose,
   position = 'right'
 }) => {
+  const styles = {
+    base: useThemeClass(['drawer', 'base']),
+    header: {
+      base: useThemeClass(['drawer', 'header', 'base']),
+      title: useThemeClass(['drawer', 'header', 'title']),
+      close: useThemeClass(['drawer', 'header', 'close'])
+    },
+    content: useThemeClass(['drawer', 'content']),
+    border: {
+      left: useThemeClass(['drawer', 'border', 'left']),
+      right: useThemeClass(['drawer', 'border', 'right'])
+    }
+  };
+
   const handleDrawerClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
@@ -24,9 +39,9 @@ export const Drawer: React.FC<DrawerProps> = ({
 
   return (
     <>
-      {/* Semi-transparent overlay */}
+      {/* Invisible overlay for click handling only */}
       <div 
-        className="fixed inset-0 bg-black/0 z-30"
+        className="fixed inset-0 bg-transparent z-30"
         onClick={onClose}
       />
       
@@ -34,9 +49,8 @@ export const Drawer: React.FC<DrawerProps> = ({
       <div 
         onClick={handleDrawerClick}
         className={`
-          fixed bg-white shadow-lg transition-transform duration-300 ease-in-out z-40
-          w-80 ${position === 'left' ? 'border-r' : 'border-l'} border-gray-200
-          flex flex-col
+          ${styles.base}
+          ${position === 'left' ? styles.border.right : styles.border.left}
         `}
         style={{
           top: '4rem', // 64px navbar height
@@ -54,18 +68,18 @@ export const Drawer: React.FC<DrawerProps> = ({
         }}
       >
         {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center bg-white">
-          <h3 className="font-medium text-gray-700">{title}</h3>
+        <div className={styles.header.base}>
+          <h3 className={styles.header.title}>{title}</h3>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg"
+            className={styles.header.close}
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className={styles.content}>
           {children}
         </div>
       </div>

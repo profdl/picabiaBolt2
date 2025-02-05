@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 import { useStore } from "../../store";
 import { Shape } from "../../types";
-
 import { useState } from "react";
+import { useThemeClass } from '../../styles/useThemeClass';
 
 interface ImageActionDropdownProps {
   shape: Shape;
@@ -43,7 +43,18 @@ export function ImageActionDropdown({
   deleteShape,
   shape,
 }: ImageActionDropdownProps) {
+  const styles = {
+    button: useThemeClass(['dropdown', 'button']),
+    menu: useThemeClass(['dropdown', 'menu']),
+    item: useThemeClass(['dropdown', 'item']),
+    submenu: useThemeClass(['dropdown', 'submenu']),
+    icon: useThemeClass(['dropdown', 'icon']),
+    deleteButton: useThemeClass(['dropdown', 'deleteButton']),
+    deleteIcon: useThemeClass(['dropdown', 'deleteIcon'])
+  };
+
   const [showArrangeMenu, setShowArrangeMenu] = useState(false);
+  
   const handleAction = (action: (e: React.MouseEvent) => void) => {
     action(new MouseEvent("click") as unknown as React.MouseEvent);
     setIsDropdownOpen(false);
@@ -67,60 +78,57 @@ export function ImageActionDropdown({
   return (
     <div className="relative">
       <button
-        className="flex items-center gap-1 px-2 h-6 bg-white border border-gray-200 rounded hover:bg-gray-50 shadow-sm cursor-pointer"
+        className={styles.button}
         onClick={(e) => {
           e.stopPropagation();
           setIsDropdownOpen(!isDropdownOpen);
         }}
       >
-        <span className="text-xs text-gray-600">ACTIONS...</span>
-        <ChevronDown className="w-3 h-3 text-gray-500" />
+        <span className="text-xs">ACTIONS...</span>
+        <ChevronDown className="w-3 h-3" />
       </button>
 
       {isDropdownOpen && (
-        <div
-          className="absolute left-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded shadow-lg py-1"
-          style={{ zIndex: 1002 }}
-        >
+        <div className={styles.menu} style={{ zIndex: 1002 }}>
           <div
-            className="relative w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center justify-between group"
+            className={`${styles.item} justify-between`}
             onMouseEnter={() => setShowArrangeMenu(true)}
             onMouseLeave={() => setShowArrangeMenu(false)}
           >
             <span className="flex items-center gap-2">
-              <MoveUp className="w-3 h-3 text-gray-500" />
+              <MoveUp className={styles.icon} />
               Arrange
             </span>
-            <ChevronRight className="w-3 h-3 text-gray-500" />
+            <ChevronRight className={styles.icon} />
 
             {showArrangeMenu && (
-              <div className="absolute left-full top-0 w-36 bg-white border border-gray-200 rounded shadow-lg py-1 -ml-1">
+              <div className={styles.submenu}>
                 <button
-                  className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+                  className={styles.item}
                   onClick={() => handleAction(sendForward)}
                 >
-                  <ArrowUp className="w-3 h-3 text-gray-500" />
+                  <ArrowUp className={styles.icon} />
                   Send Forward
                 </button>
                 <button
-                  className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+                  className={styles.item}
                   onClick={() => handleAction(sendBackward)}
                 >
-                  <ArrowDown className="w-3 h-3 text-gray-500" />
+                  <ArrowDown className={styles.icon} />
                   Send Backward
                 </button>
                 <button
-                  className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+                  className={styles.item}
                   onClick={() => handleAction(sendToFront)}
                 >
-                  <MoveUp className="w-3 h-3 text-gray-500" />
+                  <MoveUp className={styles.icon} />
                   Send to Front
                 </button>
                 <button
-                  className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+                  className={styles.item}
                   onClick={() => handleAction(sendToBack)}
                 >
-                  <MoveDown className="w-3 h-3 text-gray-500" />
+                  <MoveDown className={styles.icon} />
                   Send to Back
                 </button>
               </div>
@@ -128,38 +136,38 @@ export function ImageActionDropdown({
           </div>
 
           <button
-            className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+            className={styles.item}
             onClick={() => handleAction(onSelectSubject)}
           >
-            <Eraser className="w-3 h-3 text-gray-500" />
+            <Eraser className={styles.icon} />
             Remove Background
           </button>
           <button
-            className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+            className={styles.item}
             onClick={() => handleAction(() => onSelect3DDepth(shape))}
           >
-            <Box className="w-3 h-3 text-gray-500" />
+            <Box className={styles.icon} />
             3D Depth
           </button>
           <button
-            className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+            className={styles.item}
             onClick={() => handleAction(onCrop)}
           >
-            <Crop className="w-3 h-3 text-gray-500" />
+            <Crop className={styles.icon} />
             Crop
           </button>
           <button
-            className="w-full px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+            className={styles.item}
             onClick={() => handleAction(onDownload)}
           >
-            <Download className="w-3 h-3 text-gray-500" />
+            <Download className={styles.icon} />
             Download
           </button>
           <button
-            className="w-full px-3 py-1.5 text-xs text-left text-red-600 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+            className={styles.deleteButton}
             onClick={() => handleAction(deleteShape)}
           >
-            <Trash2 className="w-3 h-3 text-red-500" />
+            <Trash2 className={styles.deleteIcon} />
             Delete
           </button>
         </div>

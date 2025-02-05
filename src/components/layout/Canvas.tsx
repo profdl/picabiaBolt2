@@ -6,8 +6,24 @@ import { useCanvasMouseHandlers } from "../../hooks/useCanvasMouseHandlers";
 import { useCanvasDragAndDrop } from "../../hooks/useCanvasDragAndDrop";
 import { useCanvasZoom } from "../../hooks/useCanvasZoom";
 import { ZoomControl } from './ZoomControl';
+import { useThemeClass } from '../../styles/useThemeClass';
+
 
 export function Canvas() {
+
+
+   // Theme styles
+   const styles = {
+    container: useThemeClass(['canvas', 'container']),
+    grid: {
+      major: useThemeClass(['canvas', 'grid', 'major']),
+      minor: useThemeClass(['canvas', 'grid', 'minor'])
+    },
+    dropZone: 'absolute inset-0 bg-blue-500/10 border-2 border-blue-500 border-dashed z-50 pointer-events-none flex items-center justify-center',
+    dropMessage: 'bg-neutral-50 dark:bg-neutral-800 px-4 py-2 rounded-lg shadow-lg text-neutral-700 dark:text-neutral-200 font-medium',
+    selectionBox: 'border border-dotted border-neutral-500 bg-neutral-500/10 pointer-events-none z-[1000]'
+  };
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const [spacePressed] = useState(false);
 
@@ -52,6 +68,7 @@ useEffect(() => {
 
     const rect = canvasRef.current.getBoundingClientRect();
 
+
     const visibleStartX = -offset.x / zoom;
     const visibleStartY = -offset.y / zoom;
     const visibleEndX = (rect.width - offset.x) / zoom;
@@ -74,7 +91,7 @@ useEffect(() => {
           y1={0}
           x2={x * zoom + offset.x}
           y2={rect.height}
-          stroke={isMajorLine ? "#E2E8F0" : "#F1F5F9"}
+          className={isMajorLine ? styles.grid.major : styles.grid.minor}
           strokeWidth={isMajorLine ? 1 : 0.5}
         />
       );
@@ -89,7 +106,7 @@ useEffect(() => {
           y1={y * zoom + offset.y}
           x2={rect.width}
           y2={y * zoom + offset.y}
-          stroke={isMajorLine ? "#E2E8F0" : "#F1F5F9"}
+          className={isMajorLine ? styles.grid.major : styles.grid.minor}
           strokeWidth={isMajorLine ? 1 : 0.5}
         />
       );
@@ -101,10 +118,7 @@ useEffect(() => {
         width={rect.width}
         height={rect.height}
       >
-        <g>
-          {verticalLines}
-          {horizontalLines}
-        </g>
+        <g>{verticalLines}{horizontalLines}</g>
       </svg>
     );
   };
@@ -154,81 +168,61 @@ useEffect(() => {
 
 
 
-  return (
-    <div
-      ref={canvasRef}
-      id="canvas-container" 
-      className={`w-full h-full overflow-hidden bg-white relative ${
-        shapes.some((s) => s.type === "3d" && s.isOrbiting)
-          ? "cursor-move"
-          : tool === "pan" || spacePressed
-          ? "cursor-grab"
-          : tool === "pen"
-          ? "cursor-crosshair"
-          : "cursor-default"
-      } ${isDragging ? "cursor-grabbing" : ""}`}
-      style={{ touchAction: 'none' }} 
-      onMouseDown={(e) => handleMouseDown(e, canvasRef, spacePressed)}
-      onMouseMove={(e) => handleMouseMove(e, canvasRef)}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={(e) => handleDrop(e, canvasRef, getCanvasPoint)}
-    >
-      {isDraggingFile && (
-        <div className="absolute inset-0 bg-blue-500/10 border-2 border-blue-500 border-dashed z-50 pointer-events-none flex items-center justify-center">
-          <div className="bg-white px-4 py-2 rounded-lg shadow-lg">
-            <p className="text-blue-600 font-medium">Drop images here</p>
-          </div>
-        </div>
-      )}
-      {renderGrid()}
+    return (
       <div
-        className="relative w-full h-full"
-        style={{
-          transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${
-            offset.y / zoom
-          }px)`,
-          transformOrigin: "0 0",
-        }}
+        ref={canvasRef}
+        id="canvas-container" 
+        className={`${styles.container} ${
+          shapes.some((s) => s.type === "3d" && s.isOrbiting)
+            ? "cursor-move"
+            : tool === "pan" || spacePressed
+            ? "cursor-grab"
+            : tool === "pen"
+            ? "cursor-crosshair"
+            : "cursor-default"
+        } ${isDragging ? "cursor-grabbing" : ""}`}
+        style={{ touchAction: 'none' }} 
+        onMouseDown={(e) => handleMouseDown(e, canvasRef, spacePressed)}
+        onMouseMove={(e) => handleMouseMove(e, canvasRef)}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, canvasRef, getCanvasPoint)}
       >
-        {shapes?.map((shape) => (
-          <ShapeComponent key={shape.id} shape={shape} />
-        )) || null}
-        {drawingShape && <ShapeComponent shape={drawingShape} />}
-      </div>
-      {selectionBox && (
+        {isDraggingFile && (
+          <div className={styles.dropZone}>
+            <div className={styles.dropMessage}>
+              <p>Drop images here</p>
+            </div>
+          </div>
+        )}
+        {renderGrid()}
         <div
+          className="relative w-full h-full"
           style={{
-            position: "absolute",
-            left:
-              Math.min(
-                selectionBox.startX,
-                selectionBox.startX + selectionBox.width
-              ) *
-                zoom +
-              offset.x,
-            top:
-              Math.min(
-                selectionBox.startY,
-                selectionBox.startY + selectionBox.height
-              ) *
-                zoom +
-              offset.y,
-            width: Math.abs(selectionBox.width) * zoom,
-            height: Math.abs(selectionBox.height) * zoom,
-            border: "1px dotted #2196f3",
-            backgroundColor: "rgba(33, 150, 243, 0.1)",
-            pointerEvents: "none",
-            zIndex: 1000,
+            transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${offset.y / zoom}px)`,
+            transformOrigin: "0 0",
           }}
-          
-        />
-        
-      )}
-            <ZoomControl />
-
-    </div>
-  );
-}
+        >
+          {shapes?.map((shape) => (
+            <ShapeComponent key={shape.id} shape={shape} />
+          )) || null}
+          {drawingShape && <ShapeComponent shape={drawingShape} />}
+        </div>
+        {selectionBox && (
+          <div
+            className={styles.selectionBox}
+            style={{
+              position: "absolute",
+              left: Math.min(selectionBox.startX, selectionBox.startX + selectionBox.width) * zoom + offset.x,
+              top: Math.min(selectionBox.startY, selectionBox.startY + selectionBox.height) * zoom + offset.y,
+              width: Math.abs(selectionBox.width) * zoom,
+              height: Math.abs(selectionBox.height) * zoom,
+            }}
+          />
+        )}
+        <ZoomControl />
+      </div>
+    );
+  }

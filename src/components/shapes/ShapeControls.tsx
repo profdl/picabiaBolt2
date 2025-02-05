@@ -7,6 +7,7 @@ import { Tooltip } from "../shared/Tooltip";
 import { getControlDescription, ControlType } from "../../utils/tooltips";
 import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
 import { Brush, Eraser, Trash2 } from "lucide-react";
+import { useThemeClass } from '../../styles/useThemeClass';
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -24,6 +25,33 @@ export function ShapeControls({
   isSelected,
   handleResizeStart,
 }: ShapeControlsProps) {
+
+  const styles = {
+    controls: {
+      panel: useThemeClass(['shape', 'controls', 'panel']),
+      group: useThemeClass(['shape', 'controls', 'group']),
+      checkbox: useThemeClass(['shape', 'controls', 'checkbox']),
+      label: useThemeClass(['shape', 'controls', 'label']),
+      slider: useThemeClass(['shape', 'controls', 'slider']),
+      tooltip: useThemeClass(['shape', 'controls', 'tooltip']),
+      button: useThemeClass(['shape', 'controls', 'button']),
+      buttonActive: useThemeClass(['shape', 'controls', 'buttonActive'])
+    },
+    sidePanel: {
+      container: useThemeClass(['shape', 'sidePanel', 'container']),
+      group: useThemeClass(['shape', 'sidePanel', 'group']),
+      checkbox: useThemeClass(['shape', 'sidePanel', 'checkbox']),
+      label: useThemeClass(['shape', 'sidePanel', 'label'])
+    },
+    resizeHandle: useThemeClass(['shape', 'resizeHandle']),
+    colorPicker: useThemeClass(['shape', 'colorPicker']),
+    newOverlay: {
+      container: useThemeClass(['shape', 'newOverlay', 'container']),
+      text: useThemeClass(['shape', 'newOverlay', 'text'])
+    }
+  };
+
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { sendToBack, sendToFront, sendBackward, sendForward, deleteShape } =
     useStore();
@@ -259,80 +287,55 @@ export function ShapeControls({
 
   if (!showControlPanel && !shape.isNew) return null;
 
-  return (
+return (
     <div
       className="absolute inset-0"
       style={{
         pointerEvents: "none",
         ...(isSelected && shape.type === "3d"
           ? {
-              border: "2px solid #3b82f6", // Blue border matching other selected shapes
+              border: "2px solid rgb(var(--neutral-500))",
               borderRadius: "4px",
             }
           : {}),
       }}
     >
-      {" "}
-      {/* New Sticky Note Overlay Message */}
       {shape.type === "sticky" && shape.isNew && (
-        <div
-          className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-white/90 px-2 py-1 rounded-md shadow-sm"
-          style={{ pointerEvents: "none" }}
-        >
-          <div className="text-sm text-gray-600 whitespace-nowrap">
+        <div className={styles.newOverlay.container}>
+          <div className={styles.newOverlay.text}>
             Double-click to edit
           </div>
         </div>
       )}
-      {/* Side Controls Panel */}
+
       {(shape.type === "image" || shape.type === "sketchpad") &&
         showControlPanel && (
-          <div
-            className="absolute left-full ml-2 top-0"
-            style={{
-              zIndex: 101,
-              pointerEvents: "all",
-              width: "max-content",
-            }}
-          >
+          <div className={styles.controls.panel}>
             {controls
               .filter((control) => control.processType)
               .map((control) => (
-                <div
-                  key={control.type}
-                  className="bg-gray-50 rounded-md mb-1 p-1 border border-gray-200 shadow-sm"
-                >
-                  <div
-                    className={`group relative py-0.5 ${
-                      control.showKey && shape[control.showKey as keyof Shape]
-                        ? "w-max"
-                        : "w-max"
-                    }`}
-                  >
+                <div key={control.type} className={styles.controls.group}>
+                  <div className={`group relative py-0.5 ${
+                    control.showKey && shape[control.showKey as keyof Shape]
+                      ? "w-max"
+                      : "w-max"
+                  }`}>
                     {control.showKey && (
-                      <Tooltip
-                        content={
-                          <div>
-                            <h4 className="font-medium mb-1">{control.type}</h4>
-                            <p>
-                              {getControlDescription(
-                                control.type as ControlType
-                              )}
-                            </p>
-                          </div>
-                        }
-                      >
-                        <div className="flex items-center gap-1.5">
+                      <Tooltip content={
+                        <div>
+                          <h4 className="font-medium mb-1">{control.type}</h4>
+                          <p>{getControlDescription(control.type as ControlType)}</p>
+                        </div>
+                      }>
+                        <div className={styles.sidePanel.group}>
                           <input
                             type="checkbox"
-                            checked={Boolean(
-                              shape[control.showKey as keyof Shape]
-                            )}
+                            checked={Boolean(shape[control.showKey as keyof Shape])}
                             onChange={(e) => handleCheckboxChange(control, e)}
-                            className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-0"
+                            className={styles.controls.checkbox}
                             style={{ pointerEvents: "all" }}
                           />
-                          <span className="text-xs text-gray-700 whitespace-nowrap">
+                          <span className={styles.controls.label}>
                             {control.type}
                           </span>
                         </div>
@@ -351,12 +354,8 @@ export function ShapeControls({
                         >
                           <div className="relative">
                             {isHovering && (
-                              <div className="absolute left-3/4 -top-6   bg-gray-500 text-white px-2 py-1 rounded text-xs">
-                                {(
-                                  shape[
-                                    control.strengthKey as keyof Shape
-                                  ] as number
-                                )?.toFixed(2) ?? "0.25"}
+                              <div className={styles.controls.tooltip}>
+                                {(shape[control.strengthKey as keyof Shape] as number)?.toFixed(2) ?? "0.25"}
                               </div>
                             )}
                             <input
@@ -365,35 +364,29 @@ export function ShapeControls({
                               max="1.00"
                               step="0.05"
                               value={
-                                typeof shape[
-                                  control.strengthKey as keyof Shape
-                                ] === "number"
-                                  ? (shape[
-                                      control.strengthKey as keyof Shape
-                                    ] as number)
+                                typeof shape[control.strengthKey as keyof Shape] === "number"
+                                  ? (shape[control.strengthKey as keyof Shape] as number)
                                   : 0.25
                               }
                               onMouseEnter={() => setIsHovering(true)}
                               onMouseLeave={() => setIsHovering(false)}
                               onChange={(e) => {
                                 updateShape(shape.id, {
-                                  [control.strengthKey]: parseFloat(
-                                    e.target.value
-                                  ),
+                                  [control.strengthKey]: parseFloat(e.target.value),
                                 });
                               }}
-                              className="mini-slider w-24"
+                              className={styles.controls.slider}
                               style={{ pointerEvents: "all" }}
                             />
                           </div>
                         </div>
-                      )}
+                    )}
                   </div>
                 </div>
               ))}
           </div>
         )}
-      {/* Image Controls – Action Dropdown */}
+
       {shape.type === "image" && shape.imageUrl && isSelected && (
         <div
           className="absolute -left-0 -bottom-7 action-dropdown"
@@ -414,15 +407,15 @@ export function ShapeControls({
           />
         </div>
       )}
-      {/* Resize handle */}
+
       {showManipulationControls && (
         <div
-          className="absolute -right-1.5 -bottom-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-se-resize"
+          className={styles.resizeHandle}
           style={{ zIndex: 101, pointerEvents: "all" }}
           onMouseDown={handleResizeStart}
         />
       )}
-      {/* Color picker for non-image/canvas/sticky shapes */}
+
       {shape.type !== "image" &&
         shape.type !== "sketchpad" &&
         shape.type !== "group" &&
@@ -432,24 +425,20 @@ export function ShapeControls({
             type="color"
             value={shape.color}
             onChange={(e) => updateShape(shape.id, { color: e.target.value })}
-            className="absolute -left-6 top-1/2 w-4 h-4 cursor-pointer transform -translate-y-1/2"
+            className={styles.colorPicker}
             style={{ zIndex: 101, pointerEvents: "all" }}
           />
-        )}
-      {/* Diffusion Settings controls */}
+      )}
+
       {shape.type === "diffusionSettings" && (
-        <div
-          className="absolute left-1/2 top-full mt-1 bg-white p-1.5 rounded border border-gray-200 transform -translate-x-1/2"
-          style={{ zIndex: 101, pointerEvents: "all", width: "160px" }}
-        >
-          <div className="flex items-center gap-1.5">
+        <div className={styles.sidePanel.container} style={{ zIndex: 101, pointerEvents: "all", width: "160px" }}>
+          <div className={styles.sidePanel.group}>
             <input
               type="checkbox"
               id={`use-settings-${shape.id}`}
               checked={shape.useSettings || false}
               onChange={(e) => {
                 if (e.target.checked) {
-                  // Uncheck other diffusionSettings shapes
                   shapes.forEach((otherShape) => {
                     if (
                       otherShape.type === "diffusionSettings" &&
@@ -461,46 +450,45 @@ export function ShapeControls({
                 }
                 updateShape(shape.id, { useSettings: e.target.checked });
               }}
-              className="w-3 h-3 cursor-pointer"
+              className={styles.sidePanel.checkbox}
             />
             <label
               htmlFor={`use-settings-${shape.id}`}
-              className="text-xs text-gray-700 cursor-pointer whitespace-nowrap"
+              className={styles.sidePanel.label}
             >
               Use Settings
             </label>
           </div>
         </div>
       )}
-      {/* Dice button for sticky notes */}
-      {shape.type === "sticky" && isSelected && (
-        <Tooltip content="Add a random text prompt" side="bottom">
-          <div
-            className="absolute -left-0 -bottom-7 w-6 h-6 bg-white border border-gray-200 rounded-2px cursor-pointer hover:bg-gray-50 flex items-center justify-center shadow-sm"
-            style={{ zIndex: 101, pointerEvents: "all" }}
-            onClick={(e) => {
-              e.stopPropagation();
-              const randomPrompt = generatePrompt();
-              updateShape(shape.id, {
-                content: randomPrompt,
-              });
-            }}
-          >
-            <img
-              src="/dice-outline.svg"
-              alt="Random prompt"
-              className="w-5 h-5 text-gray-200"
-            />
-          </div>
-        </Tooltip>
-      )}
-      {/* Sticky note controls */}
-      {shape.type === "sticky" && (
-        <div
-          className="absolute left-1/2 top-full mt-1 bg-white p-1.5 rounded border border-gray-200 transform -translate-x-1/2"
-          style={{ zIndex: 101, pointerEvents: "all", width: "160px" }}
-        >
-          <div className="flex flex-col gap-1.5">
+
+{shape.type === "sticky" && isSelected && (
+  <Tooltip content="Add a random text prompt" side="bottom">
+    <div
+      className="absolute -left-0 -bottom-7 w-6 h-6 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-center shadow-sm"
+      style={{ zIndex: 101, pointerEvents: "all" }}
+      onClick={(e) => {
+        e.stopPropagation();
+        const randomPrompt = generatePrompt();
+        updateShape(shape.id, {
+          content: randomPrompt,
+        });
+      }}
+    >
+      <img
+        src="/dice-outline.svg"
+        alt="Random prompt"
+        className="w-5 h-5 text-neutral-600 dark:text-neutral-300"
+      />
+    </div>
+  </Tooltip>
+)}
+
+{shape.type === "sticky" && (
+  <div
+    className={`absolute left-1/2 top-full mt-1 transform -translate-x-1/2 ${styles.sidePanel.container}`}
+    style={{ zIndex: 101, pointerEvents: "all", width: "160px" }}
+  >        <div className="flex flex-col gap-1.5">
             <Tooltip
               side="bottom"
               content={
@@ -511,12 +499,11 @@ export function ShapeControls({
                     image generation. The AI will create an image based on your
                     written description. Only one note at a time can be used as
                     a prompt.
-                    <br />
                   </p>
                 </div>
               }
             >
-              <div className="flex items-center gap-1.5">
+              <div className={styles.sidePanel.group}>
                 <input
                   type="checkbox"
                   id={`prompt-${shape.id}`}
@@ -550,11 +537,11 @@ export function ShapeControls({
                       });
                     }
                   }}
-                  className="w-3 h-3 cursor-pointer"
+                  className={styles.sidePanel.checkbox}
                 />
                 <label
                   htmlFor={`prompt-${shape.id}`}
-                  className="text-xs text-gray-700 cursor-pointer whitespace-nowrap"
+                  className={styles.sidePanel.label}
                 >
                   Text Prompt
                 </label>
@@ -574,7 +561,7 @@ export function ShapeControls({
                 </div>
               }
             >
-              <div className="flex items-center gap-1.5">
+              <div className={styles.sidePanel.group}>
                 <input
                   type="checkbox"
                   id={`negative-${shape.id}`}
@@ -608,11 +595,11 @@ export function ShapeControls({
                       });
                     }
                   }}
-                  className="w-3 h-3 cursor-pointer"
+                  className={styles.sidePanel.checkbox}
                 />
                 <label
                   htmlFor={`negative-${shape.id}`}
-                  className="text-xs text-gray-700 cursor-pointer whitespace-nowrap"
+                  className={styles.sidePanel.label}
                 >
                   Negative Prompt
                 </label>
@@ -621,36 +608,27 @@ export function ShapeControls({
           </div>
         </div>
       )}
-      {shape.type === "3d" && isSelected && (
-        <div>
-          <ThreeJSShape ref={threeJSRef} shape={shape} />
-          <Tooltip content="Download 3D Scene" side="bottom">
-            <div
-              className="absolute -left-0 -bottom-8 w-6 h-6 bg-white border border-gray-200 rounded-2px cursor-pointer hover:bg-gray-50 flex items-center justify-center shadow-sm"
-              style={{ zIndex: 101, pointerEvents: "all" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (threeJSRef.current) {
-                  threeJSRef.current.exportToGLTF();
-                }
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-            </div>
-          </Tooltip>
-        </div>
-      )}
+
+{shape.type === "3d" && isSelected && (
+  <div>
+    <ThreeJSShape ref={threeJSRef} shape={shape} />
+    <Tooltip content="Download 3D Scene" side="bottom">
+      <div
+        className={`absolute -left-0 -bottom-8 w-6 h-6 ${styles.controls.button}`}
+        style={{ zIndex: 101, pointerEvents: "all" }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (threeJSRef.current) {
+            threeJSRef.current.exportToGLTF();
+          }
+        }}
+      >
+        // ... svg icon
+      </div>
+    </Tooltip>
+  </div>
+)}
+
       {shape.type === "sketchpad" && (
         <>
           <div
@@ -663,8 +641,8 @@ export function ShapeControls({
                   setTool("brush");
                   setCurrentColor("#ffffff");
                 }}
-                className={`p-2 bg-white border border-gray-200 rounded-lg ${
-                  tool === "brush" ? "bg-blue-100 border-blue-500" : ""
+                className={`${styles.controls.button} ${
+                  tool === "brush" ? styles.controls.buttonActive : ""
                 }`}
               >
                 <Brush className="w-5 h-5" />
@@ -676,8 +654,8 @@ export function ShapeControls({
                   setTool("eraser");
                   setCurrentColor("#000000");
                 }}
-                className={`p-2 bg-white border border-gray-200 rounded-lg ${
-                  tool === "eraser" ? "bg-blue-100 border-blue-500" : ""
+                className={`${styles.controls.button} ${
+                  tool === "eraser" ? styles.controls.buttonActive : ""
                 }`}
               >
                 <Eraser className="w-5 h-5" />
@@ -689,40 +667,39 @@ export function ShapeControls({
             style={{ zIndex: 101, pointerEvents: "all" }}
           >
             <Tooltip content="Clear Canvas" side="bottom">
-<button
-  onClick={() => {
-    const newId = Math.random().toString(36).substr(2, 9);
-    const newShape: Shape = {
-      id: newId,
-      type: "sketchpad",
-      position: shape.position,
-      width: shape.width,
-      height: shape.height,
-      color: "#ffffff",
-      rotation: shape.rotation,
-      locked: true,
-      isUploading: false,
-      isEditing: false,
-      model: "",
-      useSettings: false,
-      depthStrength: 0.25,
-      edgesStrength: 0.25,
-      contentStrength: 0.25,
-      poseStrength: 0.25,
-      sketchStrength: 0.25,
-      remixStrength: 0.25,
-      canvasData: undefined,
-      showSketch: true
-    };
-    deleteShape(shape.id);
-    addShape(newShape);
-    setTool("brush");
-  }}
-  className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-500"
->
-  <Trash2 className="w-4 h-5" />
-</button>
-
+              <button
+                onClick={() => {
+                  const newId = Math.random().toString(36).substr(2, 9);
+                  const newShape: Shape = {
+                    id: newId,
+                    type: "sketchpad",
+                    position: shape.position,
+                    width: shape.width,
+                    height: shape.height,
+                    color: "#ffffff",
+                    rotation: shape.rotation,
+                    locked: true,
+                    isUploading: false,
+                    isEditing: false,
+                    model: "",
+                    useSettings: false,
+                    depthStrength: 0.25,
+                    edgesStrength: 0.25,
+                    contentStrength: 0.25,
+                    poseStrength: 0.25,
+                    sketchStrength: 0.25,
+                    remixStrength: 0.25,
+                    canvasData: undefined,
+                    showSketch: true
+                  };
+                  deleteShape(shape.id);
+                  addShape(newShape);
+                  setTool("brush");
+                }}
+                className={`${styles.controls.button} hover:text-neutral-700 dark:hover:text-neutral-200`}
+              >
+                <Trash2 className="w-4 h-5" />
+              </button>
             </Tooltip>
           </div>
         </>

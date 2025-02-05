@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store';
+import { useThemeClass } from '../../styles/useThemeClass';
 
 export function ZoomControl() {
+  const styles = {
+    container: useThemeClass(['zoomControl', 'container']),
+    button: useThemeClass(['zoomControl', 'button']),
+    input: useThemeClass(['zoomControl', 'input'])
+  };
+
   const { zoom, setZoom, offset, setOffset, showGallery } = useStore();
   const [inputValue, setInputValue] = useState(Math.round(zoom * 100).toString());
 
@@ -51,13 +58,13 @@ export function ZoomControl() {
 
   return (
     <div 
-      className={`absolute top-1 text-gray-500 flex items-center gap-1 bg-white/50 rounded-md border border-gray-100 px-2 py-1 transition-[right] duration-300 ease-in-out ${
+      className={`absolute top-1 transition-[right] duration-300 ease-in-out ${
         showGallery ? 'right-[321px]' : 'right-1'
-      }`}
+      } ${styles.container}`}
     >
       <button
         onClick={() => handleZoomButton('out')}
-        className="hover:bg-gray-100 p-1 rounded"
+        className={styles.button}
         title="Zoom out"
       >
         <svg
@@ -78,14 +85,14 @@ export function ZoomControl() {
           value={inputValue}
           onChange={handleZoomChange}
           onBlur={handleBlur}
-          className="w-7 text-xs border-none focus:outline-none focus:ring-0 bg-transparent text-right px-0"
+          className={styles.input}
         />
-        <span className="text-xs text-gray-500">%</span>
+        <span className="text-xs text-neutral-500 dark:text-neutral-400">%</span>
       </div>
 
       <button
         onClick={() => handleZoomButton('in')}
-        className="hover:bg-gray-100 p-1 rounded"
+        className={styles.button}
         title="Zoom in"
       >
         <svg
