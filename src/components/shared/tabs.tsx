@@ -1,9 +1,15 @@
 import React from 'react'
+import { useThemeClass } from '../../styles/useThemeClass';
 
 interface TabsProps {
   defaultValue: string
   children: React.ReactNode
   className?: string
+}
+
+interface TabsChildProps {
+  currentValue?: string;
+  onSelect?: (value: string) => void;
 }
 
 interface TabsListProps {
@@ -26,12 +32,18 @@ interface TabsContentProps {
 
 export const Tabs: React.FC<TabsProps> = ({ defaultValue, children, className }) => {
   const [value, setValue] = React.useState(defaultValue)
+  const styles = {
+    base: useThemeClass(['tabs', 'base'])
+  };
 
   return (
-    <div className={className}>
+    <div className={`${styles.base} ${className}`}>
       {React.Children.map(children, child => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(child, { currentValue: value, onSelect: setValue })
+        if (React.isValidElement<TabsChildProps>(child)) {
+          return React.cloneElement(child, {
+            currentValue: value,
+            onSelect: setValue
+          })
         }
         return child
       })}

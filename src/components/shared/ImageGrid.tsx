@@ -1,5 +1,6 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
+import { useThemeClass } from '../../styles/useThemeClass';
 
 export interface ImageItem {
   id: string;
@@ -24,6 +25,8 @@ interface ImageGridProps {
   imageUrlKey?: "url" | "thumbnailUrl";
 }
 
+
+
 const ImageGrid = ({
   images,
   loading = false,
@@ -35,72 +38,89 @@ const ImageGrid = ({
   showViewButton = false,
   imageUrlKey = "url",
 }: ImageGridProps) => {
+  const styles = {
+    loader: {
+      container: useThemeClass(['imageGrid', 'loader', 'container']),
+      spinner: useThemeClass(['imageGrid', 'loader', 'spinner']),
+      text: useThemeClass(['imageGrid', 'loader', 'text'])
+    },
+    empty: useThemeClass(['imageGrid', 'empty']),
+    grid: useThemeClass(['imageGrid', 'grid']),
+    imageContainer: useThemeClass(['imageGrid', 'imageContainer']),
+    generatingContainer: useThemeClass(['imageGrid', 'generating', 'container']),
+    generatingText: useThemeClass(['imageGrid', 'generating', 'text']),
+    imageGroup: useThemeClass(['imageGrid', 'image', 'group']),
+    addButtonSpan: useThemeClass(['imageGrid', 'button', 'addText']), 
+    addButton: useThemeClass(['imageGrid', 'button', 'add']),
+    buttonGroup: useThemeClass(['imageGrid', 'button', 'group']),
+    viewButton: useThemeClass(['imageGrid', 'button', 'view']),
+    deleteButton: useThemeClass(['imageGrid', 'button', 'delete'])
+  };
+
   if (loading) {
     return (
-      <div className="text-center py-8">
-        <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
-        <p className="mt-2 text-gray-600">{loadingMessage}</p>
+      <div className={styles.loader.container}>
+        <Loader2 className={styles.loader.spinner} />
+        <p className={styles.loader.text}>{loadingMessage}</p>
       </div>
     );
   }
 
   if (images.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className={styles.empty}>
         <p>{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2 p-4">
+    <div className={styles.grid}>
       {images.map((image) => (
         <div
           key={image.id}
-          className="relative aspect-square bg-gray-50 rounded-lg overflow-hidden"
+          className={styles.imageContainer}
         >
           {image.status === "generating" ? (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className={styles.generatingContainer}>
               <div className="flex flex-col items-center gap-2">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                <p className="text-sm font-medium text-gray-600">
+                <Loader2 className={styles.loader.spinner} />
+                <p className={styles.generatingText}>
                   Generating...
                 </p>
               </div>
             </div>
           ) : (
-            <div className="absolute inset-0 group">
+            <div className={styles.imageGroup}>
               <img
                 src={image[imageUrlKey as keyof ImageItem] as string}
                 alt={image.prompt || "Image"}
                 className="w-full h-full object-cover"
                 draggable="true"
-                // In ImageGrid.tsx, when setting drag data:
                 onDragStart={(e) => {
                   e.dataTransfer.setData(
                     "application/json",
                     JSON.stringify({
                       type: "drawer-image",
-                      source: "asset", // or 'gallery' depending on where it's used
+                      source: "asset",
                       image,
                     })
                   );
                 }}
               />
-              <button
+ <button
                 onClick={() => onImageClick(image)}
-                className="absolute inset-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                className={styles.addButton}
               >
-                <span className="bg-black/50 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-black/70 whitespace-nowrap">
+                <span className={styles.addButtonSpan}>
                   Add to Board
                 </span>
               </button>
-
-              <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div className={styles.buttonGroup}>
                 {showViewButton && onViewDetails && (
                   <button
                     onClick={() => onViewDetails(image)}
-                    className="p-2 bg-black/50 text-white rounded-full hover:bg-black/70"
+                    className={styles.viewButton}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -118,7 +138,7 @@ const ImageGrid = ({
                 )}
                 <button
                   onClick={(e) => onImageDelete(image.id, e)}
-                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                  className={styles.deleteButton}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -137,7 +157,7 @@ const ImageGrid = ({
             </div>
           )}
         </div>
-      ))}{" "}
+      ))}
     </div>
   );
 };
