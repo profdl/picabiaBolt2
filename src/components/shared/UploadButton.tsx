@@ -136,7 +136,6 @@ export const UploadButton = ({ className }: UploadButtonProps) => {
         ) : (
           <Upload className="w-5 h-5" />
         )}
-        <span className="text-sm font-medium">Add Image</span>
       </Button>
     </>
   );

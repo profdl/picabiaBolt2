@@ -5,6 +5,7 @@ import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { useCanvasMouseHandlers } from "../../hooks/useCanvasMouseHandlers";
 import { useCanvasDragAndDrop } from "../../hooks/useCanvasDragAndDrop";
 import { useCanvasZoom } from "../../hooks/useCanvasZoom";
+import { ZoomControl } from './ZoomControl';
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -32,6 +33,18 @@ export function Canvas() {
       });
     }
   }, [setOffset]);
+
+// trackpad controls
+useEffect(() => {
+  const preventDefault = (e: Event) => e.preventDefault();
+  document.addEventListener('gesturestart', preventDefault);
+  document.addEventListener('gesturechange', preventDefault);
+
+  return () => {
+    document.removeEventListener('gesturestart', preventDefault);
+    document.removeEventListener('gesturechange', preventDefault);
+  };
+}, []);
 
   // Render the grid
   const renderGrid = () => {
@@ -116,7 +129,8 @@ export function Canvas() {
           : tool === "pen"
           ? "cursor-crosshair"
           : "cursor-default"
-      } ${isDragging ? "!cursor-grabbing" : ""}`}
+      } ${isDragging ? "cursor-grabbing" : ""}`}
+      style={{ touchAction: 'none' }} 
       onMouseDown={(e) => handleMouseDown(e, canvasRef, spacePressed)}
       onMouseMove={(e) => handleMouseMove(e, canvasRef)}
       onMouseUp={handleMouseUp}
@@ -172,8 +186,12 @@ export function Canvas() {
             pointerEvents: "none",
             zIndex: 1000,
           }}
+          
         />
+        
       )}
+            <ZoomControl />
+
     </div>
   );
 }

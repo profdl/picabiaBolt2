@@ -53,7 +53,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
   const {
     zoom,
-    setZoom,
     addShape,
     tool,
     setTool,
@@ -136,7 +135,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         useSettings: false,
         isUploading: false,
         isEditing: false,
-        showSketch: true, // Add this line
+        showSketch: true, 
         depthStrength: 0.25,
         edgesStrength: 0.25,
         contentStrength: 0.25,
@@ -517,28 +516,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             <Hand className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-1">
-            <input
-              type="number"
-              value={Math.round(zoom * 100)}
-              onChange={(e) => {
-                const newZoom = Math.max(
-                  0.1,
-                  Math.min(5, Number(e.target.value) / 100)
-                );
-                const rect = document
-                  .querySelector(".canvas-container")
-                  ?.getBoundingClientRect();
-                if (!rect) return;
-
-                setZoom(newZoom);
-              }}
-              className="w-16 px-2 py-1 text-sm border rounded"
-              min="10"
-              max="500"
-              step="10"
-            />
-            <span className="text-sm text-gray-600">%</span>
-          </div>
+  </div>
         </div>
         {/* Right-aligned Gallery button */}
         <div>
