@@ -26,21 +26,24 @@ export default {
           900: '#171717',
           950: '#0a0a0a',
         },
-        // Replace existing color system with neutral-based theme
         primary: {
-          light: '#fafafa', // neutral-50
-          dark: '#171717',  // neutral-900
+          light: '#fafafa',
+          dark: '#171717',
         },
         secondary: {
-          light: '#f5f5f5', // neutral-100
-          dark: '#262626',  // neutral-800
+          light: '#f5f5f5',
+          dark: '#262626',
         },
         text: {
-          light: '#262626', // neutral-800
-          dark: '#f5f5f5',  // neutral-100
+          light: '#262626',
+          dark: '#f5f5f5',
         }
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms')({
+      strategy: 'class'
+    })
+  ],
 };

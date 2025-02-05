@@ -30,7 +30,7 @@ export function ShapeControls({
     controls: {
       panel: useThemeClass(['shape', 'controls', 'panel']),
       group: useThemeClass(['shape', 'controls', 'group']),
-      checkbox: useThemeClass(['shape', 'controls', 'checkbox']),
+      checkbox: useThemeClass(['forms', 'checkbox']), // Update to use forms.checkbox directly
       label: useThemeClass(['shape', 'controls', 'label']),
       slider: useThemeClass(['shape', 'controls', 'slider']),
       tooltip: useThemeClass(['shape', 'controls', 'tooltip']),
@@ -40,7 +40,7 @@ export function ShapeControls({
     sidePanel: {
       container: useThemeClass(['shape', 'sidePanel', 'container']),
       group: useThemeClass(['shape', 'sidePanel', 'group']),
-      checkbox: useThemeClass(['shape', 'sidePanel', 'checkbox']),
+      checkbox: useThemeClass(['forms', 'checkbox']), // Update to use forms.checkbox directly
       label: useThemeClass(['shape', 'sidePanel', 'label'])
     },
     resizeHandle: useThemeClass(['shape', 'resizeHandle']),
@@ -336,13 +336,13 @@ export function ShapeControls({
                         </div>
                       }>
                         <div className={styles.sidePanel.group}>
-                          <input
-                            type="checkbox"
-                            checked={Boolean(shape[control.showKey as keyof Shape])}
-                            onChange={(e) => handleCheckboxChange(control, e)}
-                            className={styles.controls.checkbox}
-                            style={{ pointerEvents: "all" }}
-                          />
+                        <input
+  type="checkbox"
+  checked={Boolean(shape[control.showKey as keyof Shape])}
+  onChange={(e) => handleCheckboxChange(control, e)}
+  className={styles.controls.checkbox}
+  style={{ pointerEvents: "all" }}
+/>
                           <span className={styles.controls.label}>
                             {control.type}
                           </span>
@@ -481,8 +481,8 @@ export function ShapeControls({
           }
           updateShape(shape.id, { useSettings: e.target.checked });
         }}
-        className={styles.sidePanel.checkbox}
-      />
+        className={styles.controls.checkbox}
+        />
       <label
         htmlFor={`use-settings-${shape.id}`}
         className={`${styles.sidePanel.label} whitespace-nowrap`}
@@ -586,8 +586,8 @@ export function ShapeControls({
                       });
                     }
                   }}
-                  className={styles.sidePanel.checkbox}
-                />
+                  className={styles.controls.checkbox}
+                  />
                 <label
                   htmlFor={`prompt-${shape.id}`}
                   className={styles.sidePanel.label}
@@ -644,8 +644,8 @@ export function ShapeControls({
                       });
                     }
                   }}
-                  className={styles.sidePanel.checkbox}
-                />
+                  className={styles.controls.checkbox}
+                  />
                 <label
                   htmlFor={`negative-${shape.id}`}
                   className={styles.sidePanel.label}

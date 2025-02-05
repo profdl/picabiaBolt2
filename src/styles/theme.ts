@@ -1,10 +1,23 @@
 export const theme = {
+  forms: {
+    checkbox: `form-checkbox 
+      w-3 h-3 rounded 
+      border-neutral-300 dark:border-[#000000]
+      text-blue-600 dark:text-blue-500
+      bg-white dark:bg-[#a3a3a3]
+      focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500
+      focus:ring-offset-0
+      checked:bg-blue-600 dark:checked:bg-blue-500
+      checked:hover:bg-blue-700 dark:checked:hover:bg-blue-600
+      transition-colors`
+  },
   nav: {
     base: "bg-neutral-50 dark:bg-[#1e1e1e] shadow z-50 relative",
     container: "mx-auto px-4 sm:px-6 lg:px-8 w-full",
     header: "flex justify-between w-full h-16",
     logo: "text-xl font-bold text-neutral-900 dark:text-white",
     menuButton: "p-2 hover:bg-neutral-100 dark:hover:bg-[#3e3e3e] rounded-lg",
+  
     dropdown: {
       container: "absolute left-0 mt-0 w-48 rounded-md shadow-lg bg-neutral-50 dark:bg-[#2c2c2c] ring-1 ring-neutral-900/5 ring-opacity-5 z-50",
       item: "block px-4 py-2 text-sm text-neutral-700 dark:text-[#999999] hover:bg-neutral-100 dark:hover:bg-[#3e3e3e]"
@@ -68,12 +81,13 @@ export const theme = {
     controls: {
       panel: "absolute left-full ml-1.5 top-0 z-[101]",
       group: "bg-neutral-50 dark:bg-[#2c2c2c] rounded-md mb-1 p-1 border border-neutral-200 dark:border-[#404040] shadow-sm",
-      checkbox: "w-3 h-3 rounded border-neutral-300 dark:border-[#404040] text-neutral-600 dark:text-[#999999] focus:ring-0",
-      label: "text-xs text-neutral-700 dark:text-[#999999] whitespace-nowrap",
+     checkbox: "forms.checkbox",
+        label: "text-xs text-neutral-700 dark:text-[#999999] whitespace-nowrap",
       slider: "mini-slider",
       tooltip: "bg-neutral-500 dark:bg-[#2c2c2c] text-neutral-50 dark:text-white px-2 py-1 rounded text-xs shadow-sm",
       button: "p-2 bg-neutral-50 dark:bg-[#2c2c2c] border border-neutral-200 dark:border-[#404040] rounded-lg hover:bg-neutral-100 dark:hover:bg-[#3e3e3e]",
-      buttonActive: "bg-neutral-100 dark:bg-[#3e3e3e] border-neutral-500 dark:border-[#0d99ff]"
+      buttonActive: "bg-neutral-100 dark:bg-[#3e3e3e] border-neutral-500 dark:border-[#0d99ff]",
+      
     },
     resizeHandle: "absolute -right-1.5 -bottom-1.5 w-3 h-3 bg-neutral-50 dark:bg-[#2c2c2c] border border-neutral-500 dark:border-[#0d99ff] rounded-full cursor-se-resize",
     colorPicker: "absolute -left-6 top-1/2 w-4 h-4 cursor-pointer transform -translate-y-1/2",
@@ -85,8 +99,8 @@ export const theme = {
     sidePanel: {
       container: "bg-neutral-50 dark:bg-[#2c2c2c] p-1.5 rounded border border-neutral-200 dark:border-[#404040]",
       group: "flex items-center gap-1.5",
-      checkbox: "w-3 h-3 cursor-pointer",
-      label: "text-xs text-neutral-700 dark:text-[#999999] cursor-pointer whitespace-nowrap"
+      checkbox: "forms.checkbox",
+            label: "text-xs text-neutral-700 dark:text-[#999999] cursor-pointer whitespace-nowrap"
     }
   },
   drawer: {
@@ -140,7 +154,6 @@ export const theme = {
       delete: "p-2 bg-red-500/90 text-neutral-50 rounded-full hover:bg-red-600/95"
     }
   },
-  
   textArea: {
     base: "w-full h-full resize-none outline-none text-left p-2",
     sticky: "w-full h-full resize-none outline-none text-left p-2 text-neutral-800",

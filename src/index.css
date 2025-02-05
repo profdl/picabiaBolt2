@@ -12,6 +12,19 @@
     user-select: none;
     @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
   }
+  input[type="checkbox"] {
+    @apply form-checkbox 
+      w-3 h-3 rounded 
+      border-neutral-300 dark:border-[#000000]
+      text-blue-600 dark:text-blue-500
+      bg-white dark:bg-[#a3a3a3]
+      focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500
+      focus:ring-offset-0
+      checked:bg-blue-600 dark:checked:bg-blue-500
+      checked:hover:bg-blue-700 dark:checked:hover:bg-blue-600
+      transition-colors;
+  }
+
 }
 
 #root {
