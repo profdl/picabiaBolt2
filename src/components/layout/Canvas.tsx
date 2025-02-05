@@ -118,9 +118,46 @@ useEffect(() => {
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
+
+    // Prevent browser back/forward gestures
+    useEffect(() => {
+      const preventDefaultBrowserGestures = (e: TouchEvent) => {
+        // Check if more than one finger is used (to still allow single-finger scrolling)
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      };
+  
+      // Prevent horizontal swipe navigation
+      const preventHorizontalSwipe = (e: TouchEvent) => {
+        // Only prevent if it's a horizontal swipe
+        if (Math.abs(e.touches[0].clientX - e.touches[0].screenX) > 10) {
+          e.preventDefault();
+        }
+      };
+  
+      const options = { passive: false };
+  
+      document.addEventListener('touchstart', preventDefaultBrowserGestures, options);
+      document.addEventListener('touchmove', preventDefaultBrowserGestures, options);
+      document.addEventListener('touchend', preventDefaultBrowserGestures, options);
+      document.addEventListener('touchmove', preventHorizontalSwipe, options);
+  
+      return () => {
+        document.removeEventListener('touchstart', preventDefaultBrowserGestures);
+        document.removeEventListener('touchmove', preventDefaultBrowserGestures);
+        document.removeEventListener('touchend', preventDefaultBrowserGestures);
+        document.removeEventListener('touchmove', preventHorizontalSwipe);
+      };
+    }, []);
+  
+
+
+
   return (
     <div
       ref={canvasRef}
+      id="canvas-container" 
       className={`w-full h-full overflow-hidden bg-white relative ${
         shapes.some((s) => s.type === "3d" && s.isOrbiting)
           ? "cursor-move"

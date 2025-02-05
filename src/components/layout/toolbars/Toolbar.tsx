@@ -14,26 +14,10 @@ import { useMemo } from "react";
 import { useEffect } from "react";
 import { Tooltip } from "../../shared/Tooltip";
 import { UploadButton } from "../../shared/UploadButton";
-
 import { BrushShapeSelector } from "./BrushShapeSelector";
+import { ToolbarButton } from "../../shared/ToolbarButton";
 
-const AssetsButton = () => {
-  const toggleAssets = useStore((state) => state.toggleAssets);
-  const showAssets = useStore((state) => state.showAssets);
 
-  return (
-    <button
-      onClick={toggleAssets}
-      className={`p-2 bg-gray-100 hover:bg-gray-150 rounded-lg flex items-center gap-1 ${
-        showAssets ? "bg-gray-300" : ""
-      }`}
-      title="Asset Library"
-    >
-      <ImageIcon className="w-5 h-5" />
-      <span className="text-sm font-medium">Assets</span>
-    </button>
-  );
-};
 
 interface ToolbarProps {
   onShowImageGenerate: () => void;
@@ -65,7 +49,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     setIsEditingText,
     updateShape,
     currentColor,
-
     brushTexture,
     setBrushTexture,
     setBrushSize,
@@ -77,6 +60,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     brushFollowPath,
     setBrushSpacing,
     brushSpacing,
+    showAssets, 
+    toggleAssets 
   } = useStore();
 
   const hasActivePrompt = useMemo(
@@ -105,8 +90,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
   };
 
   useEffect(() => {
-    console.log("Current tool:", tool);
-  }, [tool]);
+    if (tool === "brush") {
+      setCurrentColor("#ffffff");
+    }
+  }, [setCurrentColor, tool]);
+
+
+
 
   const handleAddShape = (
     type:
@@ -308,240 +298,200 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
   return (
     <div className="absolute bottom-0 left-0 right-0 bg-white shadow-lg px-4 py-2 border-t border-gray-200">
       <div className="max-w-screen-2xl mx-auto relative flex items-center justify-between">
-        {/* Left-aligned buttons */}
+        {/* Left section */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2">
-            <AssetsButton />
-            <UploadButton />
-            <div className="w-px bg-gray-200 mx-2" />
-          </div>
+          <Tooltip content="Asset Library" side="bottom">
+            <ToolbarButton
+              icon={<ImageIcon />}
+              label="Assets"
+              active={showAssets}
+              onClick={toggleAssets}
+            />
+          </Tooltip>
+          <UploadButton />
+          <div className="w-px bg-gray-200 mx-2" />
         </div>
-
-        {/* Center-aligned toolbar buttons */}
+  
+        {/* Center section */}
         <div className="flex items-center gap-4">
-          {/* Sticky Note Button */}
+          {/* Text Prompt */}
           <Tooltip
             content="Create a new sticky note. Use the text to guide the AI image generation."
             side="bottom"
           >
-            <button
+            <ToolbarButton
+              icon={<StickyNote />}
+              label="Text Prompt"
               onClick={() => handleAddShape("sticky")}
-              className="p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <span className="flex items-center gap-1">
-                <StickyNote className="w-5 h-5" />
-                <span className="text-sm font-medium">Text Prompt</span>
-              </span>
-            </button>
+            />
           </Tooltip>
-
+  
+          {/* Brush Controls Overlay */}
           {(tool === "brush" || tool === "eraser") && (
             <div className="absolute bottom-full mb-4 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg px-4 py-2 flex items-center gap-4">
-              {(tool === "brush" || tool === "eraser") && (
-                <div className="flex items-center gap-4">
+              <input
+                type="color"
+                value={currentColor}
+                onChange={(e) => setCurrentColor(e.target.value)}
+                className="w-8 h-8 p-0 cursor-pointer"
+                title="Brush Color"
+              />
+  
+              <BrushShapeSelector
+                currentTexture={brushTexture}
+                onTextureSelect={setBrushTexture}
+              />
+  
+              {/* Brush Size */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Size</label>
+                <input
+                  type="range"
+                  value={brushSize}
+                  onChange={(e) => setBrushSize(Number(e.target.value))}
+                  min="1"
+                  max="100"
+                  className="w-full"
+                  title="Brush Size"
+                />
+              </div>
+  
+              {/* Brush Opacity */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Opacity</label>
+                <input
+                  type="range"
+                  value={brushOpacity}
+                  onChange={(e) => setBrushOpacity(Number(e.target.value))}
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  className="w-full"
+                  title="Brush Opacity"
+                />
+              </div>
+  
+              {/* Brush Rotation */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Rotation</label>
+                <input
+                  type="range"
+                  value={brushRotation}
+                  onChange={(e) => setBrushRotation(Number(e.target.value))}
+                  min="0"
+                  max="360"
+                  className="w-full"
+                  title="Brush Rotation"
+                />
+              </div>
+  
+              {/* Follow Path */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
                   <input
-                    type="color"
-                    value={currentColor}
-                    onChange={(e) => setCurrentColor(e.target.value)}
-                    className="w-8 h-8 p-0 cursor-pointer"
-                    title="Brush Color"
+                    type="checkbox"
+                    id="brushFollowPath"
+                    checked={brushFollowPath}
+                    onChange={(e) => useStore.getState().setBrushFollowPath(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                   />
-
-                  <BrushShapeSelector
-                    currentTexture={brushTexture}
-                    onTextureSelect={setBrushTexture}
-                  />
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-gray-500">Size</label>
-                    <input
-                      type="range"
-                      value={brushSize}
-                      onChange={(e) => setBrushSize(Number(e.target.value))}
-                      min="1"
-                      max="100"
-                      title="Brush Size"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-gray-500">Opacity</label>
-                    <input
-                      type="range"
-                      value={brushOpacity}
-                      onChange={(e) => setBrushOpacity(Number(e.target.value))}
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      title="Brush Opacity"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-gray-500">Rotation</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="range"
-                        value={brushRotation}
-                        onChange={(e) =>
-                          setBrushRotation(Number(e.target.value))
-                        }
-                        min="0"
-                        max="360"
-                        title="Brush Rotation"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="brushFollowPath"
-                        checked={brushFollowPath}
-                        onChange={(e) =>
-                          useStore
-                            .getState()
-                            .setBrushFollowPath(e.target.checked)
-                        }
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                      />
-                      <label
-                        htmlFor="brushFollowPath"
-                        className="text-xs text-gray-500"
-                      >
-                        Follow
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-gray-500">Spacing</label>
-                    <input
-                      type="range"
-                      value={brushSpacing * 100}
-                      onChange={(e) =>
-                        setBrushSpacing(Number(e.target.value) / 100)
-                      }
-                      min="5"
-                      max="100"
-                      title="Brush Spacing"
-                    />
-                  </div>
+                  <label htmlFor="brushFollowPath" className="text-xs text-gray-500">
+                    Follow
+                  </label>
                 </div>
-              )}
+              </div>
+  
+              {/* Brush Spacing */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Spacing</label>
+                <input
+                  type="range"
+                  value={brushSpacing * 100}
+                  onChange={(e) => setBrushSpacing(Number(e.target.value) / 100)}
+                  min="5"
+                  max="100"
+                  className="w-full"
+                  title="Brush Spacing"
+                />
+              </div>
             </div>
           )}
-
-          {/* Sketchpad  */}
+  
+          {/* Sketchpad */}
           <Tooltip
             content="Create a sketch pad and guide the AI image generation by drawing."
             side="bottom"
           >
-            <button
+            <ToolbarButton
+              icon={<BookImageIcon />}
+              label="Sketch Prompt"
               onClick={() => handleAddShape("sketchpad")}
-              className="p-2 hover:bg-gray-100 rounded-lg"
-              title="Add sketchpad"
-            >
-              <span className="flex items-center gap-1">
-                <BookImageIcon className="w-5 h-5" />
-                <span className="text-sm font-medium">Sketch Prompt</span>
-              </span>
-            </button>
+            />
           </Tooltip>
+  
           <div className="w-px bg-gray-200 mx-2" />
-
-          {/* Image Generation Tools */}
+  
+          {/* Generate Button */}
           <Tooltip
             content={
-              !hasActivePrompt || generatingPredictions.size > 0 ? (
-                "Add a text or image prompt to activate. Make sure Text Prompt is checked on a Sticky Note that has a prompt written. Or add an image and check a control type such as Remix"
-              ) : (
-                <div>
-                  <p>
-                    All checked notes and images will effect the generated
-                    image.
-                  </p>
-                  <p>
-                    The first image may take up to 3 minutes to generate. After
-                    that it should only take a few seconds.
-                  </p>
-                </div>
-              )
+              !hasActivePrompt || generatingPredictions.size > 0 
+                ? "Add a text or image prompt to activate. Make sure Text Prompt is checked on a Sticky Note that has a prompt written. Or add an image and check a control type such as Remix"
+                : <div>
+                    <p>All checked notes and images will effect the generated image.</p>
+                    <p>The first image may take up to 3 minutes to generate. After that it should only take a few seconds.</p>
+                  </div>
             }
             side="top"
           >
-            <button
-              onClick={async () => {
-                await handleGenerate();
-              }}
+            <ToolbarButton
+              icon={generatingPredictions.size > 0 ? <Loader2 className="animate-spin" /> : <Sparkles />}
+              label={generatingPredictions.size > 0 ? "Generating..." : "Generate"}
+              variant="primary"
               disabled={!hasActivePrompt || generatingPredictions.size > 0}
-              className={`p-2 rounded-lg flex items-center gap-1 ${
-                hasActivePrompt && generatingPredictions.size === 0
-                  ? "bg-blue-600 hover:bg-blue-700 text-white"
-                  : "opacity-50 cursor-not-allowed text-gray-400"
-              }`}
-            >
-              {generatingPredictions.size > 0 ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Sparkles className="w-5 h-5" />
-              )}
-              <span className="text-sm font-medium">
-                {generatingPredictions.size > 0 ? "Generating..." : "Generate"}
-              </span>
-            </button>
+              onClick={handleGenerate}
+            />
           </Tooltip>
-
-{/* Settings Button */}
-<Tooltip
-  content="Add settings to customize the image generation process. Control parameters like quality, size, and model type."
-  side="bottom"
->
-  <button
-    onClick={() => handleAddShape("diffusionSettings")}
-    className="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
-    title="Add Diffusion Settings"
-  >
-    <Settings className="w-5 h-5" />
-  </button>
-</Tooltip>
-
-
-          {/* Select, Pan Zoom */}
-          <div className="w-px bg-gray-200 mx-4" />
-
-          <button
+  
+          {/* Settings Button */}
+          <Tooltip
+            content="Add settings to customize the image generation process. Control parameters like quality, size, and model type."
+            side="bottom"
+          >
+            <ToolbarButton
+              icon={<Settings />}
+              onClick={() => handleAddShape("diffusionSettings")}
+            />
+          </Tooltip>
+  
+          {/* Tools Section */}
+          <div className="w-px bg-gray-200 mx-2" />
+          
+          <ToolbarButton
+            icon={<MousePointer />}
+            active={tool === "select"}
             onClick={() => setTool("select")}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${
-              tool === "select" ? "bg-gray-100" : ""
-            }`}
             title="Select Tool (V)"
-          >
-            <MousePointer className="w-5 h-5" />
-          </button>
-          <button
+          />
+  
+          <ToolbarButton
+            icon={<Hand />}
+            active={tool === "pan"}
             onClick={() => setTool("pan")}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${
-              tool === "pan" ? "bg-gray-100" : ""
-            }`}
             title="Pan Tool (Space)"
-          >
-            <Hand className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-1"></div>
+          />
         </div>
-        {/* Right-aligned Gallery button */}
+  
+        {/* Right section */}
         <div>
-          <button
+          <ToolbarButton
+            icon={<Grid />}
+            label="Gallery"
+            active={showGallery}
             onClick={toggleGallery}
-            className={`p-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center gap-1 ${
-              showGallery ? "bg-gray-300" : ""
-            }`}
-            title="Generated Images Gallery"
-          >
-            <Grid className="w-5 h-5" />
-            <span className="text-sm font-medium">Gallery</span>
-          </button>
+          />
         </div>
       </div>
     </div>
+
   );
-};
+}

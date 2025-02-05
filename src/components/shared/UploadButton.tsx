@@ -1,9 +1,10 @@
+
 import { useRef, useState } from "react";
 import { Upload, Loader2 } from "lucide-react";
 import { useStore } from "../../store";
 import { supabase } from "../../lib/supabase/client";
-import { Button } from "./Button";
 import { Tooltip } from "./Tooltip";
+import { ToolbarButton } from "./ToolbarButton";
 
 interface UploadButtonProps {
   className?: string;
@@ -12,6 +13,7 @@ interface UploadButtonProps {
 export const UploadButton = ({ className }: UploadButtonProps) => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+ 
   const toggleAssets = useStore((state) => state.toggleAssets);
   const addShape = useStore((state) => state.addShape);
   const { zoom, offset } = useStore();
@@ -130,18 +132,13 @@ export const UploadButton = ({ className }: UploadButtonProps) => {
         content="Upload an image to the canvas"
         side="bottom"
       >
-        <Button
+        <ToolbarButton
           variant="ghost"
+          icon={uploading ? <Loader2 className="animate-spin" /> : <Upload />}
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className={`gap-2 ${className}`}
-        >
-          {uploading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <Upload className="w-5 h-5" />
-          )}
-        </Button>
+          className={className}
+        />
       </Tooltip>
     </>
   );
