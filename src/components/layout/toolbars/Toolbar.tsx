@@ -74,11 +74,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     }
   }, [setCurrentColor, tool]);
 
-  useEffect(() => {
-    if (tool === "brush") {
-      setCurrentColor("#ffffff");
-    }
-  }, [setCurrentColor, tool]);
 
   return (
     <div className="absolute bottom-0 left-0 right-0 bg-white shadow-lg px-4 py-2 border-t border-gray-200">
