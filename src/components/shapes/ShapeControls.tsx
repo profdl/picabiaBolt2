@@ -287,7 +287,7 @@ export function ShapeControls({
 
   if (!showControlPanel && !shape.isNew) return null;
 
-return (
+  return (
     <div
       className="absolute inset-0"
       style={{
@@ -298,6 +298,14 @@ return (
               borderRadius: "4px",
             }
           : {}),
+        ...(isSelected && shape.type === "diffusionSettings"
+          ? {
+              border: "2px solid rgb(var(--neutral-500))",
+              borderRadius: "8px",
+              backgroundColor: "transparent",
+              backgroundImage: "none"
+            }
+          : {})
       }}
     >
       {shape.type === "sticky" && shape.isNew && (
@@ -345,7 +353,7 @@ return (
                       control.showKey &&
                       shape[control.showKey as keyof Shape] && (
 <div
-  className={`mt-0.5 pl-1 pr-2 relative ${
+  className={`mt-0.5 pl-4 pr-2 relative ${
     shape[control.showKey as keyof Shape]
       ? "block"
       : "hidden"
@@ -435,11 +443,12 @@ return (
         />
       )}
 
-      {shape.type !== "image" &&
+{shape.type !== "image" &&
         shape.type !== "sketchpad" &&
         shape.type !== "group" &&
         shape.type !== "sticky" &&
-        shape.type !== "3d" && (
+        shape.type !== "3d" &&
+        shape.type !== "diffusionSettings" && ( 
           <input
             type="color"
             value={shape.color}
@@ -449,38 +458,40 @@ return (
           />
       )}
 
-      {shape.type === "diffusionSettings" && (
-        <div className={styles.sidePanel.container} style={{ zIndex: 101, pointerEvents: "all", width: "160px" }}>
-          <div className={styles.sidePanel.group}>
-            <input
-              type="checkbox"
-              id={`use-settings-${shape.id}`}
-              checked={shape.useSettings || false}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  shapes.forEach((otherShape) => {
-                    if (
-                      otherShape.type === "diffusionSettings" &&
-                      otherShape.id !== shape.id
-                    ) {
-                      updateShape(otherShape.id, { useSettings: false });
-                    }
-                  });
-                }
-                updateShape(shape.id, { useSettings: e.target.checked });
-              }}
-              className={styles.sidePanel.checkbox}
-            />
-            <label
-              htmlFor={`use-settings-${shape.id}`}
-              className={styles.sidePanel.label}
-            >
-              Use Settings
-            </label>
-          </div>
-        </div>
-      )}
-
+{shape.type === "diffusionSettings" && (
+  <div 
+    className={`absolute left-1/2 -bottom-10 transform -translate-x-1/2 ${styles.sidePanel.container}`}
+    style={{ zIndex: 101, pointerEvents: "all", width: "160px" }}
+  >
+    <div className={styles.sidePanel.group}>
+      <input
+        type="checkbox"
+        id={`use-settings-${shape.id}`}
+        checked={shape.useSettings || false}
+        onChange={(e) => {
+          if (e.target.checked) {
+            shapes.forEach((otherShape) => {
+              if (
+                otherShape.type === "diffusionSettings" &&
+                otherShape.id !== shape.id
+              ) {
+                updateShape(otherShape.id, { useSettings: false });
+              }
+            });
+          }
+          updateShape(shape.id, { useSettings: e.target.checked });
+        }}
+        className={styles.sidePanel.checkbox}
+      />
+      <label
+        htmlFor={`use-settings-${shape.id}`}
+        className={`${styles.sidePanel.label} whitespace-nowrap`}
+      >
+        Use Settings
+      </label>
+    </div>
+  </div>
+)}
 {shape.type === "sticky" && isSelected && (
   <div 
     className="absolute -left-0 -bottom-7"

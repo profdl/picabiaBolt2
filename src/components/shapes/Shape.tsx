@@ -231,26 +231,34 @@ export function ShapeComponent({ shape }: ShapeProps) {
     shapes,
     tool,
     isEditing
-  );
+);
 
-  return (
+return (
+  <div
+    style={{ position: "absolute", width: 0, height: 0 }}
+  >
     <div
-      style={{ position: "absolute", width: 0, height: 0 }}
+      id={shape.id}
+      style={{
+        ...shapeStyles,
+        overflow: "hidden",
+        pointerEvents: tool === "select" ? "all" : "none",
+        ...(shape.type === "diffusionSettings" && {
+          backgroundColor: "transparent",
+          border: "none",
+          backgroundImage: "none", // Remove any background image
+          boxShadow: "none" // Remove any shadow
+        })
+      }}
+      onMouseDown={handleMouseDown}
+      onDoubleClick={handleDoubleClick}
+      onKeyDown={handleKeyDown}
+      onContextMenu={handleContextMenu}
+      tabIndex={0}
+      className={`${styles.base} ${isEditing ? styles.selected : ''} ${
+        shape.type === "diffusionSettings" ? "bg-none" : ""
+      }`}
     >
-      <div
-        id={shape.id}
-        style={{
-          ...shapeStyles,
-          overflow: "hidden",
-          pointerEvents: tool === "select" ? "all" : "none",
-        }}
-        onMouseDown={handleMouseDown}
-        onDoubleClick={handleDoubleClick}
-        onKeyDown={handleKeyDown}
-        onContextMenu={handleContextMenu}
-        tabIndex={0}
-        className={`${styles.base} ${isEditing ? styles.selected : ''}`}
-      >
         {shape.type === "sketchpad" && (
           <SketchpadShape
             shape={shape}
@@ -317,8 +325,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
         </div>
       )}
   
-      {/* Controls layer */}
-      {(tool === "select" ||
+     {/* Controls layer */}
+     {(tool === "select" ||
         (shape.type === "sketchpad" &&
           (tool === "brush" || tool === "eraser"))) && (
         <div
@@ -332,8 +340,14 @@ export function ShapeComponent({ shape }: ShapeProps) {
             transform: `rotate(${shape.rotation || 0}deg)`,
             zIndex: isSelected ? 101 : 2,
             pointerEvents: "none",
+            ...(shape.type === "diffusionSettings" && {
+              backgroundImage: "none",
+              backgroundColor: "transparent"
+            })
           }}
-          className={styles.container}
+          className={`${styles.container} ${
+            shape.type === "diffusionSettings" ? "bg-none" : ""
+          }`}
         >
           <ShapeControls
             shape={shape}
@@ -344,5 +358,5 @@ export function ShapeComponent({ shape }: ShapeProps) {
         </div>
       )}
     </div>
-  );
-}
+);
+};

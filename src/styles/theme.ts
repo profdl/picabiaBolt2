@@ -64,8 +64,9 @@ export const theme = {
     base: "transition-shadow hover:shadow-xl relative",
     selected: "ring-2 ring-neutral-500 dark:ring-[#0d99ff]",
     container: "absolute inset-0",
+    diffusionPanel: "bg-neutral-200 dark:bg-[#262626]", 
     controls: {
-      panel: "absolute left-full ml-0 top-0 z-[101]",
+      panel: "absolute left-full ml-1.5 top-0 z-[101]",
       group: "bg-neutral-50 dark:bg-[#2c2c2c] rounded-md mb-1 p-1 border border-neutral-200 dark:border-[#404040] shadow-sm",
       checkbox: "w-3 h-3 rounded border-neutral-300 dark:border-[#404040] text-neutral-600 dark:text-[#999999] focus:ring-0",
       label: "text-xs text-neutral-700 dark:text-[#999999] whitespace-nowrap",

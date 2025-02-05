@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Shape } from '../../../types';
 import { ModelName, modelDefaults, SCHEDULER_OPTIONS } from '../../../constants/diffusionModels';
+import { useThemeClass } from '../../../styles/useThemeClass';
 
 interface DiffusionSettingsPanelProps {
     shape: Shape;
     updateShape: (id: string, updates: Partial<Shape>) => void;
     onAdvancedToggle: (isExpanded: boolean) => void;
-
 }
 
 export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
@@ -28,15 +28,24 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
         'Portrait Large Format (4:5)': { width: 912, height: 1144 },
         'Portrait Social Video (9:16)': { width: 768, height: 1360 },
     };
+    const diffusionPanelClass = useThemeClass(['shape', 'diffusionPanel']);
 
     return (
         <div className="relative w-full h-full">
-            <div className="absolute inset-0 overflow-hidden">
-                <div className="h-full overflow-y-auto">
-                    {/* Basic Settings */}
+            <div className={`absolute inset-0 ${diffusionPanelClass} border border-neutral-200 dark:border-neutral-700 rounded-lg`}>
+                <div className="absolute inset-0 overflow-hidden">
+                   <div 
+                        className="h-full p-3 text-neutral-900 dark:text-neutral-100 overflow-y-auto"
+                        style={{
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                            WebkitOverflowScrolling: 'touch'
+                        }}
+          
+                    >  {/* Basic Settings */}
                     <div className="space-y-2 mb-3">
                         <div>
-                            <label className="text-xs text-gray-600">Model</label>
+                            <label className="text-xs text-neutral-600 dark:text-neutral-400">Model</label>
                             <select
                                 value={shape.model || 'juggernautXL_v9'}
                                 onChange={(e) => {
@@ -49,7 +58,7 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                                         scheduler: defaults.scheduler
                                     });
                                 }}
-                                className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                                className="w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block"
                             >
                                 <option value="juggernautXL_v9">Juggernaut XL v9</option>
                                 <option value="RealVisXL_V4.0">RealVis XL V4.0</option>
@@ -63,14 +72,14 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                         </div>
 
                         <div>
-                            <label className="text-xs text-gray-600">Image Dimensions</label>
+                            <label className="text-xs text-neutral-600 dark:text-neutral-400">Image Dimensions</label>
                             <select
                                 value={`${shape.outputWidth}x${shape.outputHeight}`}
                                 onChange={(e) => {
                                     const [width, height] = e.target.value.split('x').map(Number);
                                     updateShape(shape.id, { outputWidth: width, outputHeight: height });
                                 }}
-                                className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                                className="w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block"
                             >
                                 {Object.entries(aspectRatios).map(([label, dims]) => (
                                     <option key={label} value={`${dims.width}x${dims.height}`}>
@@ -87,7 +96,7 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                             setShowAdvanced(!showAdvanced);
                             onAdvancedToggle(!showAdvanced);
                         }}
-                        className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800 mb-2"
+                        className="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 mb-2"
                     >
                         <ChevronRight className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} />
                         Advanced Settings
@@ -97,33 +106,36 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                     {showAdvanced && (
                         <div className="space-y-2">
                             <div>
-                                <label className="text-xs text-gray-600">Steps</label>
+                                <label className="text-xs text-neutral-600 dark:text-neutral-400">Steps</label>
                                 <input
                                     type="number"
                                     value={shape.steps?.toString() || '20'}
                                     onChange={(e) => updateShape(shape.id, { steps: Number(e.target.value) })}
                                     min="1"
                                     max="100"
-                                    className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                                    className="w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block"
                                 />
                             </div>
 
                             <div>
-                                <label className="text-xs text-gray-600">Guidance Scale</label>
+                                <label className="text-xs text-neutral-600 dark:text-neutral-400">Guidance Scale</label>
                                 <input
                                     type="number"
                                     value={shape.guidanceScale?.toString() || '7.5'}
                                     onChange={(e) => updateShape(shape.id, { guidanceScale: Number(e.target.value) })}
-                                    className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                                    step="0.1"
+                                    min="1"
+                                    max="20"
+                                    className="w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block"
                                 />
                             </div>
 
                             <div>
-                                <label className="text-xs text-gray-600">Scheduler</label>
+                                <label className="text-xs text-neutral-600 dark:text-neutral-400">Scheduler</label>
                                 <select
                                     value={shape.scheduler || 'dpmpp_2m_sde'}
                                     onChange={(e) => updateShape(shape.id, { scheduler: e.target.value })}
-                                    className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                                    className="w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block"
                                 >
                                     {SCHEDULER_OPTIONS.map(option => (
                                         <option key={option.value} value={option.value}>
@@ -134,12 +146,12 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                             </div>
 
                             <div>
-                                <label className="text-xs text-gray-600">Seed</label>
+                                <label className="text-xs text-neutral-600 dark:text-neutral-400">Seed</label>
                                 <input
                                     type="number"
                                     value={shape.seed?.toString() || '-1'}
                                     onChange={(e) => updateShape(shape.id, { seed: Number(e.target.value) })}
-                                    className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                                    className="w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block"
                                 />
                             </div>
 
@@ -149,19 +161,19 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                                     id={`randomize-${shape.id}`}
                                     checked={shape.randomiseSeeds || false}
                                     onChange={(e) => updateShape(shape.id, { randomiseSeeds: e.target.checked })}
-                                    className="w-3 h-3 text-blue-600 rounded border-gray-300"
+                                    className="w-3 h-3 text-blue-600 bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 rounded"
                                 />
-                                <label htmlFor={`randomize-${shape.id}`} className="text-xs text-gray-600">
+                                <label htmlFor={`randomize-${shape.id}`} className="text-xs text-neutral-600 dark:text-neutral-400">
                                     Randomize Seeds
                                 </label>
                             </div>
 
                             <div>
-                                <label className="text-xs text-gray-600">Output Format</label>
+                                <label className="text-xs text-neutral-600 dark:text-neutral-400">Output Format</label>
                                 <select
                                     value={shape.outputFormat || 'png'}
                                     onChange={(e) => updateShape(shape.id, { outputFormat: e.target.value })}
-                                    className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                                    className="w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block"
                                 >
                                     <option value="png">PNG</option>
                                     <option value="jpg">JPG</option>
@@ -169,14 +181,14 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                             </div>
 
                             <div>
-                                <label className="text-xs text-gray-600">Output Quality</label>
+                                <label className="text-xs text-neutral-600 dark:text-neutral-400">Output Quality</label>
                                 <input
                                     type="number"
                                     value={shape.outputQuality?.toString() || '100'}
                                     onChange={(e) => updateShape(shape.id, { outputQuality: Number(e.target.value) })}
                                     min="1"
                                     max="100"
-                                    className="w-full py-1 px-2 text-xs border rounded bg-white block"
+                                    className="w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block"
                                 />
                             </div>
                         </div>
@@ -184,5 +196,7 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                 </div>
             </div>
         </div>
+        </div>
+
     );
 };
