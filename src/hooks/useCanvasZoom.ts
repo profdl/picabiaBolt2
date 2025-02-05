@@ -16,13 +16,29 @@ export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
   // Block browser's default zoom behavior
   useEffect(() => {
     const preventDefaultZoom = (e: WheelEvent) => {
-      if (e.ctrlKey) {
+      if (e.ctrlKey || Math.abs(e.deltaY) !== 0) {
         e.preventDefault();
       }
     };
-
+  
+    // Add touchmove handler to prevent unwanted gestures
+    const preventDefaultGestures = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+      }
+    };
+  
     window.addEventListener("wheel", preventDefaultZoom, { passive: false });
-    return () => window.removeEventListener("wheel", preventDefaultZoom);
+    window.addEventListener("touchmove", preventDefaultGestures, { passive: false });
+    window.addEventListener("gesturestart", (e) => e.preventDefault());
+    window.addEventListener("gesturechange", (e) => e.preventDefault());
+  
+    return () => {
+      window.removeEventListener("wheel", preventDefaultZoom);
+      window.removeEventListener("touchmove", preventDefaultGestures);
+      window.removeEventListener("gesturestart", (e) => e.preventDefault());
+      window.removeEventListener("gesturechange", (e) => e.preventDefault());
+    };
   }, []);
 
   const handleMouseDown = useCallback((e: MouseEvent) => {

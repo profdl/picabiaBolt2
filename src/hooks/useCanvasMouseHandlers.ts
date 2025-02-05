@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "../store";
 import { Position, Shape } from "../types";
 
@@ -45,6 +45,24 @@ export function useCanvasMouseHandlers() {
       y: (mouseY - offset.y) / zoom,
     };
   }
+
+
+  useEffect(() => {
+    const preventDefault = (e: Event) => {
+      e.preventDefault();
+    };
+
+    // Prevent all browser gestures on the document level
+    document.addEventListener('gesturestart', preventDefault);
+    document.addEventListener('gesturechange', preventDefault);
+    document.addEventListener('gesturend', preventDefault);
+
+    return () => {
+      document.removeEventListener('gesturestart', preventDefault);
+      document.removeEventListener('gesturechange', preventDefault);
+      document.removeEventListener('gesturend', preventDefault);
+    };
+  }, []);
 
   const handleMouseDown = (
     e: React.MouseEvent,
