@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { Edit2, Trash2, X, Check, Image as ImageIcon } from "lucide-react";
 import { Project } from "../../types";
+import { useThemeClass } from '../../styles/useThemeClass';
 
 interface ProjectCardProps {
   project: Project;
@@ -15,6 +17,27 @@ export function ProjectCard({
   onRename,
   onDelete,
 }: ProjectCardProps) {
+  const styles = {
+    container: useThemeClass(['projectCard', 'container']),
+    preview: {
+      container: useThemeClass(['projectCard', 'preview', 'container']),
+      placeholder: {
+        icon: useThemeClass(['projectCard', 'preview', 'placeholder', 'icon']),
+        text: useThemeClass(['projectCard', 'preview', 'placeholder', 'text'])
+      }
+    },
+    content: {
+      container: useThemeClass(['projectCard', 'content', 'container']),
+      header: useThemeClass(['projectCard', 'content', 'header']),
+      title: useThemeClass(['projectCard', 'content', 'title']),
+      actions: useThemeClass(['projectCard', 'content', 'actions']),
+      button: {
+        edit: useThemeClass(['projectCard', 'content', 'button', 'edit']),
+        delete: useThemeClass(['projectCard', 'content', 'button', 'delete'])
+      },
+      date: useThemeClass(['projectCard', 'content', 'date'])
+    }
+  };
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(project.name);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -67,9 +90,9 @@ export function ProjectCard({
   };
 
   return (
-    <div className="relative bg-white rounded-lg shadow-md hover:shadow-md transition-shadow group border border-gray-200">
+    <div className={styles.container}>
       <div className="cursor-pointer" onClick={isRenaming ? undefined : onOpen}>
-        <div className="aspect-video bg-white rounded-t-lg flex items-center justify-center overflow-hidden">
+        <div className={styles.preview.container}>
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}
@@ -78,25 +101,20 @@ export function ProjectCard({
             />
           ) : (
             <div className="flex flex-col items-center justify-center w-full h-full">
-              <ImageIcon className="w-12 h-12 text-gray-300" />
-              <span className="text-sm text-gray-400 mt-2">
-                No preview available
-              </span>
+              <ImageIcon className={styles.preview.placeholder.icon} />
+              <span className={styles.preview.placeholder.text}>No preview available</span>
             </div>
           )}
         </div>
-        <div className="p-4 bg-gray-50 border-t border-gray-200">
-          <div className="flex items-center justify-between">
+        <div className={styles.content.container}>
+          <div className={styles.content.header}>
             {isRenaming ? (
-              <div
-                className="flex items-center gap-2 flex-1"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="flex items-center gap-2 flex-1" onClick={(e) => e.stopPropagation()}>
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="flex-1 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:bg-neutral-700 dark:text-neutral-50 dark:border-neutral-600"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleRename();
@@ -108,7 +126,7 @@ export function ProjectCard({
                 />
                 <button
                   onClick={handleRename}
-                  className="p-1 text-green-600 hover:bg-green-50 rounded"
+                  className="p-1 text-green-600 dark:text-green-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded"
                 >
                   <Check className="w-4 h-4" />
                 </button>
@@ -117,23 +135,21 @@ export function ProjectCard({
                     setNewName(project.name);
                     setIsRenaming(false);
                   }}
-                  className="p-1 text-gray-600 hover:bg-gray-50 rounded"
+                  className="p-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             ) : (
               <>
-                <h3 className="text-lg font-medium text-gray-900 truncate flex-1">
-                  {project.name}
-                </h3>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <h3 className={styles.content.title}>{project.name}</h3>
+                <div className={styles.content.actions}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsRenaming(true);
                     }}
-                    className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                    className={styles.content.button.edit}
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -142,7 +158,7 @@ export function ProjectCard({
                       e.stopPropagation();
                       handleDelete();
                     }}
-                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                    className={styles.content.button.delete}
                     disabled={isDeleting}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -151,11 +167,11 @@ export function ProjectCard({
               </>
             )}
           </div>
-          <div className="mt-2 flex items-center text-sm text-gray-500">
+          <div className={styles.content.date}>
             <span>{formatDate(project.updated_at)}</span>
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
