@@ -160,7 +160,7 @@ export const theme = {
     default: "w-full h-full resize-none outline-none text-left p-2 text-neutral-800 dark:text-white"
   },
   zoomControl: {
-    container: "flex items-center gap-1 bg-neutral-50 dark:bg-[#2c2c2c] rounded-md border border-neutral-200 dark:border-[#404040] px-2 py-1 shadow-sm",
+    container: "flex items-center gap-1 bg-neutral-10 dark:bg-[#121212] rounded-md border border-neutral-100 dark:border-[#202020] px-2 py-1 shadow-sm",
     button: "hover:bg-neutral-100 dark:hover:bg-[#3e3e3e] p-1 rounded-md text-neutral-600 dark:text-[#999999]",
     input: "w-7 text-xs text-neutral-600 dark:text-[#999999] border-none focus:outline-none focus:ring-0 bg-transparent text-right px-0"
   },
