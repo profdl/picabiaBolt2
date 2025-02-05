@@ -127,98 +127,104 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             />
           </Tooltip>
 
+
           {/* Brush Controls Overlay */}
           {(tool === "brush" || tool === "eraser") && (
-            <div className={`absolute bottom-full mb-4 left-1/2 transform -translate-x-1/2 ${styles.container}`}>
-              <div className="flex items-center gap-4">
-                <input
-                  type="color"
-                  value={currentColor}
-                  onChange={(e) => setCurrentColor(e.target.value)}
-                  className={`w-8 h-8 p-0 cursor-pointer ${styles.controls.input}`}
-                  title="Brush Color"
-                />
+            <div className={`absolute bottom-full mb-4 left-1/2 transform -translate-x-1/2 ${styles.container} min-w-max`}>
+              <div className="flex items-center gap-3 px-3">
+                <div className="relative">
+                  <input
+                    type="color"
+                    value={currentColor}
+                    onChange={(e) => setCurrentColor(e.target.value)}
+                    className="w-8 h-8 !p-0 bg-transparent rounded cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded [&::-webkit-color-swatch]:border-none border border-gray-300 dark:border-gray-600"
+                    title="Brush Color"
+                  />
+                </div>
 
                 <BrushShapeSelector
                   currentTexture={brushTexture}
                   onTextureSelect={setBrushTexture}
                 />
 
-                {/* Brush Size */}
-                <div className={styles.controls.container}>
-                  <label className={styles.controls.label}>Size</label>
-                  <input
-                    type="range"
-                    value={brushSize}
-                    onChange={(e) => setBrushSize(Number(e.target.value))}
-                    min="1"
-                    max="100"
-                    className={styles.controls.input}
-                    title="Brush Size"
-                  />
-                </div>
-
-                {/* Brush Opacity */}
-                <div className={styles.controls.container}>
-                  <label className={styles.controls.label}>Opacity</label>
-                  <input
-                    type="range"
-                    value={brushOpacity}
-                    onChange={(e) => setBrushOpacity(Number(e.target.value))}
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    className={styles.controls.input}
-                    title="Brush Opacity"
-                  />
-                </div>
-
-                {/* Brush Rotation */}
-                <div className={styles.controls.container}>
-                  <label className={styles.controls.label}>Rotation</label>
-                  <input
-                    type="range"
-                    value={brushRotation}
-                    onChange={(e) => setBrushRotation(Number(e.target.value))}
-                    min="0"
-                    max="360"
-                    className={styles.controls.input}
-                    title="Brush Rotation"
-                  />
-                </div>
-
-                {/* Follow Path */}
-                <div className={styles.controls.container}>
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 flex-nowrap">
+                  {/* Brush Size */}
+                  <div className={`${styles.controls.container} w-[80px]`}>
+                    <label className={styles.controls.label}>Size</label>
                     <input
-                      type="checkbox"
-                      id="brushFollowPath"
-                      checked={brushFollowPath}
-                      onChange={(e) => useStore.getState().setBrushFollowPath(e.target.checked)}
-                      className="w-4 h-4 text-neutral-600 dark:text-neutral-400 rounded border-neutral-300 dark:border-neutral-700"
+                      type="range"
+                      value={brushSize}
+                      onChange={(e) => setBrushSize(Number(e.target.value))}
+                      min="1"
+                      max="100"
+                      className="w-full h-0.5 bg-gray-200 rounded-full appearance-none cursor-pointer hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-neutral-600 [&::-webkit-slider-thumb]:dark:bg-neutral-400"
+                      title="Brush Size"
                     />
-                    <label htmlFor="brushFollowPath" className={styles.controls.label}>
-                      Follow
-                    </label>
                   </div>
-                </div>
 
-                {/* Brush Spacing */}
-                <div className={styles.controls.container}>
-                  <label className={styles.controls.label}>Spacing</label>
-                  <input
-                    type="range"
-                    value={brushSpacing * 100}
-                    onChange={(e) => setBrushSpacing(Number(e.target.value) / 100)}
-                    min="5"
-                    max="100"
-                    className={styles.controls.input}
-                    title="Brush Spacing"
-                  />
+                  {/* Brush Opacity */}
+                  <div className={`${styles.controls.container} w-[80px]`}>
+                    <label className={styles.controls.label}>Opacity</label>
+                    <input
+                      type="range"
+                      value={brushOpacity}
+                      onChange={(e) => setBrushOpacity(Number(e.target.value))}
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      className="w-full h-0.5 bg-gray-200 rounded-full appearance-none cursor-pointer hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-neutral-600 [&::-webkit-slider-thumb]:dark:bg-neutral-400"
+                      title="Brush Opacity"
+                    />
+                  </div>
+
+                  {/* Brush Rotation */}
+                  <div className={`${styles.controls.container} w-[80px]`}>
+                    <label className={styles.controls.label}>Rotation</label>
+                    <input
+                      type="range"
+                      value={brushRotation}
+                      onChange={(e) => setBrushRotation(Number(e.target.value))}
+                      min="0"
+                      max="360"
+                      className="w-full h-0.5 bg-gray-200 rounded-full appearance-none cursor-pointer hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-neutral-600 [&::-webkit-slider-thumb]:dark:bg-neutral-400"
+                      title="Brush Rotation"
+                    />
+                  </div>
+
+                  {/* Follow Path */}
+                  <div className={`${styles.controls.container} px-1`}>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        id="brushFollowPath"
+                        checked={brushFollowPath}
+                        onChange={(e) => useStore.getState().setBrushFollowPath(e.target.checked)}
+                        className="w-3 h-3 text-neutral-600 dark:text-neutral-400 rounded border-neutral-300 dark:border-neutral-700"
+                      />
+                      <label htmlFor="brushFollowPath" className={styles.controls.label}>
+                        Follow
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Brush Spacing */}
+                  <div className={`${styles.controls.container} w-[80px]`}>
+                    <label className={styles.controls.label}>Spacing</label>
+                    <input
+                      type="range"
+                      value={brushSpacing * 100}
+                      onChange={(e) => setBrushSpacing(Number(e.target.value) / 100)}
+                      min="5"
+                      max="100"
+                      className="w-full h-0.5 bg-gray-200 rounded-full appearance-none cursor-pointer hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-neutral-600 [&::-webkit-slider-thumb]:dark:bg-neutral-400"
+                      title="Brush Spacing"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           )}
+
 
           {/* Sketchpad */}
           <Tooltip

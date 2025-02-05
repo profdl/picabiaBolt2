@@ -17,18 +17,28 @@ export const BrushShapeSelector: React.FC<BrushShapeSelectorProps> = ({
     onTextureSelect,
 }) => {
     return (
-        <div className="flex gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-0">
+        <div className="inline-flex items-center rounded-md p-1 gap-1">
             {BRUSH_TEXTURES.map((texture) => (
                 <button
                     key={texture}
-                    className={`w-8 h-8 rounded hover:bg-gray-100 flex items-center justify-center ${currentTexture === texture ? 'bg-gray-100 ring-2 ring-blue-500' : ''
-                        }`}
+                    className={`
+                        w-7 h-7 
+                        rounded-md 
+                        transition-all 
+                        flex items-center justify-center
+                        bg-black
+                        hover:bg-neutral-700
+                        ${currentTexture === texture 
+                            ? 'bg-blue-600 hover:bg-blue-700' 
+                            : ''
+                        }
+                    `}
                     onClick={() => onTextureSelect(texture)}
                 >
                     <img
                         src={`/brushes/${texture}.png`}
                         alt={`${texture} brush`}
-                        className="w-6 h-6 object-contain invert"
+                        className="w-5 h-5 object-contain opacity-75"
                     />
                 </button>
             ))}
