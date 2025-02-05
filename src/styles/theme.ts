@@ -35,8 +35,8 @@ export const theme = {
   canvas: {
     container: "w-full h-full overflow-hidden bg-neutral-50 dark:bg-[#121212] relative",
     grid: {
-      major: "stroke-neutral-200/40 dark:stroke-[#404040]/40",
-      minor: "stroke-neutral-100/30 dark:stroke-[#404040]/25"
+      major: "stroke-neutral-200/40 dark:stroke-[#404040]/20",
+      minor: "stroke-neutral-100/30 dark:stroke-[#404040]/10"
     }
   },
   button: {
