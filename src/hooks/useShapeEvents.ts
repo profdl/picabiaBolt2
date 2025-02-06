@@ -105,9 +105,9 @@ export function useShapeEvents({
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-  
+
     if (tool === "pan") return;
-  
+
     if (shape.type === "sticky" || shape.type === "text") {
       // Update both store states
       updateShape(shape.id, {
@@ -117,7 +117,7 @@ export function useShapeEvents({
       setIsEditingText(true);
       // Update selection
       setSelectedShapes([shape.id]);
-  
+
       // Focus the textarea
       if (textRef.current) {
         requestAnimationFrame(() => {
@@ -127,9 +127,16 @@ export function useShapeEvents({
           }
         });
       }
-  
+
       handleStickyInteraction();
+    } else if (shape.type === "3d") {
+      // Toggle orbiting for 3D shapes
+      updateShape(shape.id, {
+        isOrbiting: !shape.isOrbiting
+      });
+      setSelectedShapes([shape.id]);
     }
+
   };
 
 
