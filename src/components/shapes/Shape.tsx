@@ -169,8 +169,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
           <ShapeControls
             shape={shape}
             isSelected={isSelected}
-            isEditing={isEditing}
             handleResizeStart={handleResizeStart}
+            threeJSRef={threeJSRef} 
           />
         )}
       </div>
@@ -214,11 +214,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
         <ThreeJSShape ref={threeJSRef} shape={shape} />
         {isSelected && tool === "select" && (
           <ShapeControls
-            shape={shape}
-            isSelected={isSelected}
-            isEditing={isEditing}
-            handleResizeStart={handleResizeStart}
-          />
+  shape={shape}
+  isSelected={isSelected}
+  handleResizeStart={handleResizeStart}
+  threeJSRef={threeJSRef}
+/>
         )}
       </div>
     );
@@ -339,7 +339,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
           <ShapeControls
             shape={shape}
             isSelected={isSelected}
-            isEditing={isEditing}
             handleResizeStart={handleResizeStart}
           />
         </div>

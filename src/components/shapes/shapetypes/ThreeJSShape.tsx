@@ -235,6 +235,38 @@ const loadTexture = (url: string): Promise<THREE.Texture> => {
   });
 };
 
+// Expose the export method on the DOM element
+if (mountRef.current) {
+  (mountRef.current as unknown as { exportToGLTF: () => void }).exportToGLTF = () => {
+    if (!sceneRef.current) return;
+
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      sceneRef.current,
+      (gltf) => {
+        const output = JSON.stringify(gltf, null, 2);
+        const blob = new Blob([output], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `scene-${shape.id}.gltf`;
+        link.click();
+
+        URL.revokeObjectURL(url);
+      },
+      (error) => {
+        console.error("An error occurred during GLTF export:", error);
+      },
+      {
+        binary: false,
+        includeCustomExtensions: true,
+        embedImages: true,
+      }
+    );
+  };
+}
+
     useEffect(() => {
       if (!mountRef.current || !shape.imageUrl) return;
 
@@ -470,8 +502,9 @@ const loadTexture = (url: string): Promise<THREE.Texture> => {
     return (
       <div
         ref={mountRef}
+        data-threejs={shape.id}
         className="w-full h-full"
-        onDoubleClick={handleDoubleClick} // Add this line to connect the handler
+        onDoubleClick={handleDoubleClick}
         style={{
           cursor: shape.isOrbiting ? "grab" : "default",
           pointerEvents: "all",

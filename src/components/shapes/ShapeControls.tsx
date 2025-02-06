@@ -1,19 +1,18 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "../../store";
 import { Shape } from "../../types";
 import { ImageActionDropdown } from "./ImageActionDropdown";
 import { generatePrompt } from "../../utils/prompt-generator";
 import { Tooltip } from "../shared/Tooltip";
 import { getControlDescription, ControlType } from "../../utils/tooltips";
-import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
 import { Brush, Eraser, Trash2 } from "lucide-react";
 import { useThemeClass } from '../../styles/useThemeClass';
 
 interface ShapeControlsProps {
   shape: Shape;
   isSelected: boolean;
-  isEditing: boolean;
   handleResizeStart: (e: React.MouseEvent<HTMLDivElement>) => void;
+  threeJSRef?: React.RefObject<ThreeJSShapeRef>; 
 }
 
 interface ThreeJSShapeRef {
@@ -24,6 +23,7 @@ export function ShapeControls({
   shape,
   isSelected,
   handleResizeStart,
+  threeJSRef,
 }: ShapeControlsProps) {
 
   const styles = {
@@ -55,7 +55,6 @@ export function ShapeControls({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { sendToBack, sendToFront, sendBackward, sendForward, deleteShape } =
     useStore();
-  const threeJSRef = useRef<ThreeJSShapeRef>(null);
   const { tool, setTool, setCurrentColor } = useStore((state) => ({
     tool: state.tool,
     setTool: state.setTool,
@@ -658,22 +657,43 @@ export function ShapeControls({
         </div>
       )}
 
+
 {shape.type === "3d" && isSelected && (
-  <div>
-    <ThreeJSShape ref={threeJSRef} shape={shape} />
+  <div 
+    className="absolute -left-0 -bottom-7"
+    style={{ 
+      zIndex: 101,
+      pointerEvents: "all"
+    }}
+  >
     <Tooltip content="Download 3D Scene" side="bottom">
-      <div
-        className={`absolute -left-0 -bottom-8 w-6 h-6 ${styles.controls.button}`}
-        style={{ zIndex: 101, pointerEvents: "all" }}
+      <button
+        type="button"
+        className={`w-6 h-6 ${styles.controls.button} flex items-center justify-center`}
         onClick={(e) => {
           e.stopPropagation();
-          if (threeJSRef.current) {
+          // Call the ref's exportToGLTF method directly
+          if (threeJSRef && threeJSRef.current) {
             threeJSRef.current.exportToGLTF();
           }
         }}
       >
-        // ... svg icon
-      </div>
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          width="14" 
+          height="14" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="2" 
+          strokeLinecap="round" 
+          strokeLinejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      </button>
     </Tooltip>
   </div>
 )}
