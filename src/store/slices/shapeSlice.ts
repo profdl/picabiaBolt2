@@ -101,29 +101,29 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       };
     }),
 
-  addShape: (shape: Shape) =>
-    set((state) => ({
-      shapes: [
-        {
-          ...shape,
-          depthStrength: 0.25,
-          edgesStrength: 0.25,
-          contentStrength: 0.25,
-          poseStrength: 0.25,
-          sketchStrength: 0.25,
-          remixStrength: 0.25,
-          isEditing: shape.type === "sticky", // Set editing mode for sticky
-        },
-        ...state.shapes,
-      ],
-      history: [
-        ...state.history.slice(0, state.historyIndex + 1),
-        [...state.shapes, shape],
-      ],
-      historyIndex: state.historyIndex + 1,
-      selectedShapes: [shape.id], // Ensure shape is selected
-      isEditingText: shape.type === "sticky", // Set global editing state
-    })),
+    addShape: (shape: Shape) =>
+      set((state) => ({
+        shapes: [
+          {
+            ...shape,
+            depthStrength: 0.25,
+            edgesStrength: 0.25,
+            contentStrength: 0.25,
+            poseStrength: 0.25,
+            sketchStrength: 0.25,
+            remixStrength: 0.25,
+            isEditing: shape.type === "sticky", // Set editing mode for sticky
+          },
+          ...state.shapes,
+        ],
+        history: [
+          ...state.history.slice(0, state.historyIndex + 1),
+          [...state.shapes, shape],
+        ],
+        historyIndex: state.historyIndex + 1,
+        selectedShapes: [shape.id], // Ensure shape is selected
+        isEditingText: shape.type === "sticky", // Set global editing state
+      })),
   addShapes: (newShapes) =>
     set((state) => {
       const updatedShapes = [...state.shapes, ...newShapes];

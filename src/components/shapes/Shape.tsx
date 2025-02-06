@@ -1,5 +1,5 @@
 // src/components/shapes/Shape.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useStore } from "../../store";
 import { Shape } from "../../types";
 import { useBrush } from "../layout/toolbars/BrushTool";
@@ -24,35 +24,32 @@ interface ShapeProps {
 }
 
 export function ShapeComponent({ shape }: ShapeProps) {
-
-
   const styles = {
-    base: useThemeClass(['shape', 'base']),
-    selected: useThemeClass(['shape', 'selected']),
-    container: useThemeClass(['shape', 'container']),
+    base: useThemeClass(["shape", "base"]),
+    selected: useThemeClass(["shape", "selected"]),
+    container: useThemeClass(["shape", "container"]),
     controls: {
-      panel: useThemeClass(['shape', 'controls', 'panel']),
-      group: useThemeClass(['shape', 'controls', 'group']),
-      checkbox: useThemeClass(['shape', 'controls', 'checkbox']),
-      label: useThemeClass(['shape', 'controls', 'label']),
-      slider: useThemeClass(['shape', 'controls', 'slider']),
-      tooltip: useThemeClass(['shape', 'controls', 'tooltip'])
+      panel: useThemeClass(["shape", "controls", "panel"]),
+      group: useThemeClass(["shape", "controls", "group"]),
+      checkbox: useThemeClass(["shape", "controls", "checkbox"]),
+      label: useThemeClass(["shape", "controls", "label"]),
+      slider: useThemeClass(["shape", "controls", "slider"]),
+      tooltip: useThemeClass(["shape", "controls", "tooltip"]),
     },
-    resizeHandle: useThemeClass(['shape', 'resizeHandle']),
-    colorPicker: useThemeClass(['shape', 'colorPicker']),
-    textArea: useThemeClass(['shape', 'textArea']),
+    resizeHandle: useThemeClass(["shape", "resizeHandle"]),
+    colorPicker: useThemeClass(["shape", "colorPicker"]),
+    textArea: useThemeClass(["shape", "textArea"]),
     newOverlay: {
-      container: useThemeClass(['shape', 'newOverlay', 'container']),
-      text: useThemeClass(['shape', 'newOverlay', 'text'])
+      container: useThemeClass(["shape", "newOverlay", "container"]),
+      text: useThemeClass(["shape", "newOverlay", "text"]),
     },
     sidePanel: {
-      container: useThemeClass(['shape', 'sidePanel', 'container']),
-      group: useThemeClass(['shape', 'sidePanel', 'group']),
-      checkbox: useThemeClass(['shape', 'sidePanel', 'checkbox']),
-      label: useThemeClass(['shape', 'sidePanel', 'label'])
-    }
+      container: useThemeClass(["shape", "sidePanel", "container"]),
+      group: useThemeClass(["shape", "sidePanel", "group"]),
+      checkbox: useThemeClass(["shape", "sidePanel", "checkbox"]),
+      label: useThemeClass(["shape", "sidePanel", "label"]),
+    },
   };
-
 
   const {
     selectedShapes,
@@ -64,10 +61,12 @@ export function ShapeComponent({ shape }: ShapeProps) {
     generatingPredictions,
     setIsEditingText,
     setSelectedShapes,
+    isEditingText, 
   } = useStore();
 
-  const [isEditing, setIsEditing] = useState(false);
+  const isEditing = shape.isEditing && isEditingText;
   const textRef = useRef<HTMLTextAreaElement>(null);
+
   const threeJSRef = useRef<ThreeJSShapeRef>(null);
   const sketchPadRef = useRef<HTMLCanvasElement>(null);
 
@@ -99,6 +98,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     zoom,
     textRef,
     initDragStart,
+    
   });
 
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } =
@@ -127,13 +127,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
       } else {
         updateShape(shape.id, { isEditing: false });
       }
-      setIsEditing(false);
       setIsEditingText(false);
       // Deselect the shape when losing focus
       setSelectedShapes([]);
     }
   };
-
 
   useEffect(() => {
     if (isEditing && textRef.current) {
@@ -231,34 +229,35 @@ export function ShapeComponent({ shape }: ShapeProps) {
     shapes,
     tool,
     isEditing
-);
+  );
 
-return (
-  <div
-    style={{ position: "absolute", width: 0, height: 0 }}
-  >
-    <div
-      id={shape.id}
-      style={{
-        ...shapeStyles,
-        overflow: "hidden",
-        pointerEvents: tool === "select" ? "all" : "none",
-        ...(shape.type === "diffusionSettings" && {
-          backgroundColor: "transparent",
-          border: "none",
-          backgroundImage: "none", // Remove any background image
-          boxShadow: "none" // Remove any shadow
-        })
-      }}
-      onMouseDown={handleMouseDown}
-      onDoubleClick={handleDoubleClick}
-      onKeyDown={handleKeyDown}
-      onContextMenu={handleContextMenu}
-      tabIndex={0}
-      className={`${styles.base} ${isEditing ? styles.selected : ''} ${
-        shape.type === "diffusionSettings" ? "bg-none" : ""
-      }`}
-    >
+  return (
+    <div style={{ position: "absolute", width: 0, height: 0 }}>
+      <div
+        id={shape.id}
+        style={{
+          ...shapeStyles,
+          overflow: "hidden",
+          pointerEvents: tool === "select" ? "all" : "none",
+          ...(shape.type === "diffusionSettings" && {
+            backgroundColor: "transparent",
+            border: "none",
+            backgroundImage: "none", // Remove any background image
+            boxShadow: "none", // Remove any shadow
+          }),
+        }}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={(e) => {
+          console.log("Double click detected"); // Add debugging
+          handleDoubleClick(e);
+        }}
+        onKeyDown={handleKeyDown}
+        onContextMenu={handleContextMenu}
+        tabIndex={0}
+        className={`${styles.base} ${isEditing ? styles.selected : ""} ${
+          shape.type === "diffusionSettings" ? "bg-none" : ""
+        }`}
+      >
         {shape.type === "sketchpad" && (
           <SketchpadShape
             shape={shape}
@@ -272,7 +271,7 @@ return (
             onClear={() => shape.onClear?.()}
           />
         )}
-  
+
         {shape.type === "diffusionSettings" && (
           <DiffusionSettingsPanel
             shape={shape}
@@ -284,49 +283,43 @@ return (
             }}
           />
         )}
-        
+
         {shape.type === "image" && <ImageShape shape={shape} />}
-  
+
         {(shape.type === "text" || shape.type === "sticky") && (
-    <textarea
-      ref={textRef}
-      value={shape.content || ""}
-      onChange={(e) => updateShape(shape.id, { content: e.target.value })}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (shape.type === "sticky" && !isEditing) {
-          setIsEditing(true);
-          setIsEditingText(true);
-          updateShape(shape.id, { isEditing: true });
-        }
-      }}
-      className={`${styles.textArea} ${isEditing ? "cursor-text" : "cursor-move"} ${
-        shape.type === "sticky" ? "text-neutral-800" : "text-neutral-800 dark:text-neutral-100"
-      }`}
-      style={{
-        fontSize: shape.fontSize || 16,
-        scrollbarWidth: "thin",
-        pointerEvents: "all",
-      }}
-      readOnly={!isEditing}
-      spellCheck={false}
-    />
-  )}
+          <textarea
+            ref={textRef}
+            value={shape.content || ""}
+            onChange={(e) => updateShape(shape.id, { content: e.target.value })}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            className={`${styles.textArea} ${
+              isEditing ? "cursor-text" : "cursor-move"
+            } ${
+              shape.type === "sticky"
+                ? "text-neutral-800"
+                : "text-neutral-800 dark:text-neutral-100"
+            }`}
+            style={{
+              fontSize: shape.fontSize || 16,
+              scrollbarWidth: "thin",
+              pointerEvents: "all",
+            }}
+            readOnly={!isEditing}
+            spellCheck={false}
+          />
+        )}
       </div>
-  
+
       {/* New Sticky Note Overlay */}
       {shape.type === "sticky" && shape.isNew && (
         <div className={styles.newOverlay.container}>
-          <div className={styles.newOverlay.text}>
-            Double-click to edit
-          </div>
+          <div className={styles.newOverlay.text}>Double-click to edit</div>
         </div>
       )}
-  
-     {/* Controls layer */}
-     {(tool === "select" ||
+
+      {/* Controls layer */}
+      {(tool === "select" ||
         (shape.type === "sketchpad" &&
           (tool === "brush" || tool === "eraser"))) && (
         <div
@@ -342,8 +335,8 @@ return (
             pointerEvents: "none",
             ...(shape.type === "diffusionSettings" && {
               backgroundImage: "none",
-              backgroundColor: "transparent"
-            })
+              backgroundColor: "transparent",
+            }),
           }}
           className={`${styles.container} ${
             shape.type === "diffusionSettings" ? "bg-none" : ""
@@ -358,5 +351,5 @@ return (
         </div>
       )}
     </div>
-);
-};
+  );
+}

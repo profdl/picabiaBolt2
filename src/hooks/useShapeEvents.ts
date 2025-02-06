@@ -16,7 +16,6 @@ interface UseShapeEventsProps {
 export function useShapeEvents({
   shape,
   isEditing,
-
   textRef,
   initDragStart,
 }: UseShapeEventsProps) {
@@ -109,31 +108,31 @@ export function useShapeEvents({
   
     if (tool === "pan") return;
   
-    if (shape.type === "3d") {
-      updateShape(shape.id, { isOrbiting: true });
-      setIsEditingText(true);
-      return;
-    }
-  
-    if (shape.type === "text" || shape.type === "sticky") {
-      // Set editing state immediately to prevent interference
+    if (shape.type === "sticky" || shape.type === "text") {
+      // Update both store states
       updateShape(shape.id, {
         isEditing: true,
         content: shape.content === "Double-Click to Edit..." ? "" : shape.content,
       });
       setIsEditingText(true);
+      // Update selection
+      setSelectedShapes([shape.id]);
   
-      // Focus the textarea without delay
+      // Focus the textarea
       if (textRef.current) {
-        textRef.current.focus();
-        textRef.current.select();
+        requestAnimationFrame(() => {
+          if (textRef.current) {
+            textRef.current.focus();
+            textRef.current.select();
+          }
+        });
       }
   
       handleStickyInteraction();
-    } else if (shape.type === "image") {
-      updateShape(shape.id, { isImageEditing: true });
     }
   };
+
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (selectedShapes.includes(shape.id)) {
       if (e.key === "Delete") {
