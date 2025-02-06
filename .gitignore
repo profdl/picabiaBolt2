@@ -26,3 +26,13 @@ dist-ssr
 
 # Local Netlify folder
 .netlify
+
+
+# BFG report files
+secrets.txt
+.git.bfg-report/
+*.git.bfg-report/
+cache-stats.txt
+changed-files.txt
+object-id-map.old-new.txt
+deleted-files.txt
