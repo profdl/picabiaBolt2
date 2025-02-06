@@ -33,27 +33,50 @@ An AI image generation whiteboard app for artists and designers. The app is focu
   - Uses comfyUI json workflows set to Replicate.com
   - https://replicate.com/fofr/any-comfyui-workflow-a100
 
-
 ## Development Setup
 
-1. Clone the repository:
+1. Create a fork of the repository and clone it:
 
-    git clone [repository-url]
+    git clone [your-fork-url]
     cd picabiaBolt2
 
 2. Install dependencies:
 
     npm install
 
-3. Set up environment variables:
-   Create a `.env` file with the following variables:
+3. Get environment variables from project admin:
+   You will need a `.env` file with the following:
+   - Supabase configuration
+   - Replicate API keys
+   - Storage bucket info
+   - Other API credentials
 
-    VITE_SUPABASE_URL=your_supabase_url
-    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+4. Set up local webhook testing:
+   - Install ngrok: https://ngrok.com/
+   - Start ngrok pointing to port 8888:
 
-4. Start the development server:
+        ngrok http 8888
 
-    npm run dev
+   - Copy the ngrok URL (e.g., https://1234-56-78-910.ngrok.io)
+   - Add to your .env file:
+
+        WEBHOOK_URL=your_ngrok_url
+
+5. Start the development environment:
+   - In one terminal window keep ngrok running
+   - In another terminal, start Netlify dev:
+
+        netlify dev
+   
+   The development server will run at http://localhost:8888. The ngrok URL is required for testing image generation locally since Replicate.com needs to be able to reach your webhook endpoints.
+
+6. Create a new branch for your changes:
+
+    git checkout -b feature/your-feature-name
+
+7. Make your changes and test thoroughly. For image generation features, ensure webhook endpoints are working correctly through ngrok.
+
+8. Submit a pull request against the main repository with a clear description of your changes.
 
 ## Project Structure
 
@@ -63,6 +86,7 @@ An AI image generation whiteboard app for artists and designers. The app is focu
   - `/lib` - Utility functions and Supabase client configuration
   - `/types` - TypeScript type definitions
   - `/store` - State management
+
 ## Database Schema
 
 The application uses the following main tables:
@@ -90,21 +114,11 @@ The application uses the following main tables:
 
 Note: All tables implement Row Level Security (RLS) to ensure users can only access their own data.
 
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ## Testing
 
 Run the test suite using:
 
     npm test
-
 
 ## Contact
 
@@ -112,7 +126,6 @@ Daniel Lefcourt
 dlefcour@risd.edu
 Professor, Art & Computation
 The Rhode Island School of Design
-
 
 
 +++++++++++++++++++
