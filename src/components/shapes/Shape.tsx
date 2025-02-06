@@ -18,6 +18,8 @@ import { useSketchpadEvents } from "../../hooks/useSketchpadEvents";
 import { useSketchpadShapeEvents } from "../../hooks/sketchpadShapeEvents";
 import { useShapeEvents } from "../../hooks/useShapeEvents";
 import { useThemeClass } from "../../styles/useThemeClass";
+import { StickyNoteShape } from "./shapetypes/StickyNoteShape";
+import {TextShape} from "./shapetypes/TextShape"
 
 interface ShapeProps {
   shape: Shape;
@@ -61,7 +63,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     generatingPredictions,
     setIsEditingText,
     setSelectedShapes,
-    isEditingText, 
+    isEditingText,
   } = useStore();
 
   const isEditing = shape.isEditing && isEditingText;
@@ -98,7 +100,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     zoom,
     textRef,
     initDragStart,
-    
   });
 
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } =
@@ -242,15 +243,12 @@ export function ShapeComponent({ shape }: ShapeProps) {
           ...(shape.type === "diffusionSettings" && {
             backgroundColor: "transparent",
             border: "none",
-            backgroundImage: "none", // Remove any background image
-            boxShadow: "none", // Remove any shadow
+            backgroundImage: "none",
+            boxShadow: "none",
           }),
         }}
         onMouseDown={handleMouseDown}
-        onDoubleClick={(e) => {
-          console.log("Double click detected"); // Add debugging
-          handleDoubleClick(e);
-        }}
+        onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
         tabIndex={0}
@@ -271,7 +269,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
             onClear={() => shape.onClear?.()}
           />
         )}
-
+  
         {shape.type === "diffusionSettings" && (
           <DiffusionSettingsPanel
             shape={shape}
@@ -283,41 +281,37 @@ export function ShapeComponent({ shape }: ShapeProps) {
             }}
           />
         )}
-
+  
         {shape.type === "image" && <ImageShape shape={shape} />}
-
-        {(shape.type === "text" || shape.type === "sticky") && (
-          <textarea
-            ref={textRef}
-            value={shape.content || ""}
-            onChange={(e) => updateShape(shape.id, { content: e.target.value })}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            className={`${styles.textArea} ${
-              isEditing ? "cursor-text" : "cursor-move"
-            } ${
-              shape.type === "sticky"
-                ? "text-neutral-800"
-                : "text-neutral-800 dark:text-neutral-100"
-            }`}
-            style={{
-              fontSize: shape.fontSize || 16,
-              scrollbarWidth: "thin",
-              pointerEvents: "all",
-            }}
-            readOnly={!isEditing}
-            spellCheck={false}
+  
+        {shape.type === "sticky" && (
+          <StickyNoteShape
+            shape={shape}
+            isEditing={isEditing}
+            textRef={textRef}
+            handleKeyDown={handleKeyDown}
+            handleBlur={handleBlur}
+          />
+        )}
+  
+        {shape.type === "text" && (
+          <TextShape
+            shape={shape}
+            isEditing={isEditing}
+            textRef={textRef}
+            handleKeyDown={handleKeyDown}
+            handleBlur={handleBlur}
           />
         )}
       </div>
-
+  
       {/* New Sticky Note Overlay */}
       {shape.type === "sticky" && shape.isNew && (
         <div className={styles.newOverlay.container}>
           <div className={styles.newOverlay.text}>Double-click to edit</div>
         </div>
       )}
-
+  
       {/* Controls layer */}
       {(tool === "select" ||
         (shape.type === "sketchpad" &&
