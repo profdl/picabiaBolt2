@@ -1,6 +1,8 @@
 import { StateCreator } from "zustand";
 import { Position, Shape } from "../../types";
 import { supabase } from "../../lib/supabase";
+import { shapeManagement } from '../../utils/shapeManagement';
+
 
 const MAX_HISTORY = 50;
 
@@ -23,6 +25,8 @@ interface ShapeState {
 }
 
 interface ShapeSlice extends ShapeState {
+  zoom: number;
+  offset: Position;
   setShapes: (shapes: Shape[]) => void;
   addShape: (shape: Shape) => void;
   addShapes: (shapes: Shape[]) => void;
@@ -46,6 +50,7 @@ interface ShapeSlice extends ShapeState {
   redo: () => void;
   setIsEditingText: (isEditing: boolean) => void;
   create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
+
 }
 
 const updateAssetInSupabase = async (
@@ -71,6 +76,8 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
   set,
   get
 ) => ({
+  zoom: 1,
+  offset: { x: 0, y: 0 },
   shapes: [],
   selectedShapes: [],
   clipboard: [],
@@ -102,41 +109,120 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
     }),
 
     addShape: (shape: Shape) =>
-      set((state) => ({
-        shapes: [
+      set((state) => {
+        // Get standardized dimensions and position
+        const { position, width, height } = shapeManagement.prepareShapeAddition(
+          state.shapes,
           {
-            ...shape,
-            depthStrength: 0.25,
-            edgesStrength: 0.25,
-            contentStrength: 0.25,
-            poseStrength: 0.25,
-            sketchStrength: 0.25,
-            remixStrength: 0.25,
-            isEditing: shape.type === "sticky", // Set editing mode for sticky
-          },
-          ...state.shapes,
-        ],
-        history: [
-          ...state.history.slice(0, state.historyIndex + 1),
-          [...state.shapes, shape],
-        ],
-        historyIndex: state.historyIndex + 1,
-        selectedShapes: [shape.id], // Ensure shape is selected
-        isEditingText: shape.type === "sticky", // Set global editing state
-      })),
-  addShapes: (newShapes) =>
-    set((state) => {
-      const updatedShapes = [...state.shapes, ...newShapes];
-      return {
-        shapes: updatedShapes,
-        history: [
-          ...state.history.slice(0, state.historyIndex + 1),
-          updatedShapes,
-        ].slice(-MAX_HISTORY),
-        historyIndex: state.historyIndex + 1,
-        selectedShapes: newShapes.map((shape) => shape.id),
+            width: shape.width,
+            height: shape.height,
+            aspectRatio: shape.aspectRatio,
+            position: shape.position
+          }
+        );
+  
+        // Create new shape with standardized positioning and existing properties
+        const newShape: Shape = {
+          ...shape,
+          position,
+          width,
+          height,
+          depthStrength: shape.depthStrength ?? 0.25,
+          edgesStrength: shape.edgesStrength ?? 0.25,
+          contentStrength: shape.contentStrength ?? 0.25,
+          poseStrength: shape.poseStrength ?? 0.25,
+          sketchStrength: shape.sketchStrength ?? 0.25,
+          remixStrength: shape.remixStrength ?? 0.25,
+          isEditing: shape.type === "sticky",
+        };
+  
+        // Special handling for sticky notes
+        if (shape.type === "sticky") {
+          newShape.content = shape.content || "Double-Click to Edit...";
+          newShape.isNew = true;
+        }
+  
+  
+        // Calculate centering offset for the new shape
+        const centeringOffset = shapeManagement.calculateCenteringOffset(newShape, state.zoom);
+        const updatedShapes = [newShape, ...state.shapes];
+  
+  
+        // Animate to the new center position
+      const startOffset = state.offset;
+      const duration = 500;
+      const start = performance.now();
+
+      const animate = (currentTime: number) => {
+        const progress = Math.min((currentTime - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        const currentOffset = {
+          x: startOffset.x + (centeringOffset.x - startOffset.x) * eased,
+          y: startOffset.y + (centeringOffset.y - startOffset.y) * eased
+        };
+
+        set(state => ({ ...state, offset: currentOffset }));
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
       };
-    }),
+  
+        requestAnimationFrame(animate);
+  
+        return {
+          shapes: updatedShapes,
+          selectedShapes: [newShape.id],
+          history: [
+            ...state.history.slice(0, state.historyIndex + 1),
+            updatedShapes,
+          ].slice(-MAX_HISTORY),
+          historyIndex: state.historyIndex + 1,
+          isEditingText: shape.type === "sticky",
+        };
+      }),
+  
+    addShapes: (newShapes) =>
+      set((state) => {
+        const processedShapes = newShapes.map((shape) => {
+          const { position, width, height } = shapeManagement.prepareShapeAddition(
+            state.shapes,
+            {
+              width: shape.width,
+              height: shape.height,
+              aspectRatio: shape.aspectRatio,
+              position: shape.position
+            }
+          );
+  
+          return {
+            ...shape,
+            position,
+            width,
+            height,
+          };
+        });
+  
+        const updatedShapes = [...state.shapes, ...processedShapes];
+  
+        // Center on the last added shape
+        if (processedShapes.length > 0) {
+          const lastShape = processedShapes[processedShapes.length - 1];
+          const centeringOffset = shapeManagement.calculateCenteringOffset(lastShape, state.zoom);
+          set(state => ({ ...state, offset: centeringOffset }));
+        }
+  
+        return {
+          shapes: updatedShapes,
+          history: [
+            ...state.history.slice(0, state.historyIndex + 1),
+            updatedShapes,
+          ].slice(-MAX_HISTORY),
+          historyIndex: state.historyIndex + 1,
+          selectedShapes: processedShapes.map((shape) => shape.id),
+        };
+      }),
 
   updateShapes: (updates: { id: string; shape: Partial<Shape> }[]) =>
     set((state) => {

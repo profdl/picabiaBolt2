@@ -1,18 +1,18 @@
+// src/components/layout/drawers/AssetsDrawer.tsx
 import React, { useEffect, useState } from "react";
 import { Upload, Loader2, Search } from "lucide-react";
 import { useStore } from "../../../store";
 import { Drawer } from "../../shared/Drawer";
 import ImageGrid from "../../shared/ImageGrid";
-import { Asset, Shape } from "../../../types";
+import { Asset } from "../../../types";
 import { useFileUpload } from "../../../hooks/useFileUpload";
 import { usePersonalAssets } from "../../../hooks/usePersonalAssets";
 import { useSourcePlus } from "../../../hooks/useSourcePlus";
+import { useShapeAdder } from "../../../hooks/useShapeAdder";
 
 interface AssetsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddShape: (shape: Shape) => void;
-  getViewportCenter: () => { x: number; y: number };
 }
 
 export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
@@ -20,10 +20,11 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   onClose,
 }) => {
   const [activeTab, setActiveTab] = useState("my-assets");
-  const { addImageToCanvas, assetsRefreshTrigger } = useStore((state) => ({
-    addImageToCanvas: state.addImageToCanvas,
+  const { assetsRefreshTrigger } = useStore((state) => ({
     assetsRefreshTrigger: state.assetsRefreshTrigger,
   }));
+
+  const { addNewShape } = useShapeAdder();
 
   const {
     assets,
@@ -55,16 +56,21 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     if (!asset) return;
     
     const fullSizeUrl = asset.url.replace("/thumbnails/", "/images/");
-    const success = await addImageToCanvas({
-      url: fullSizeUrl,
-      width: asset.width,
-      height: asset.height,
-      depthStrength: 0.25,
-      edgesStrength: 0.25,
-      contentStrength: 0.25,
-      poseStrength: 0.25,
-      sketchStrength: 0.25,
-      remixStrength: 0.25,
+    
+    const success = await addNewShape('image', {
+      imageUrl: fullSizeUrl,
+      originalWidth: asset.width,
+      originalHeight: asset.height,
+      aspectRatio: asset.height ? (asset.width ?? 1) / asset.height : 1,
+      depthStrength: asset.depthStrength || 0.25,
+      edgesStrength: asset.edgesStrength || 0.25,
+      poseStrength: asset.poseStrength || 0.25,
+      sketchStrength: asset.sketchStrength || 0.25,
+      remixStrength: asset.remixStrength || 0.25,
+    }, {
+      defaultWidth: 300,
+      centerOnShape: true,
+      setSelected: true
     });
     
     if (success) {
@@ -178,20 +184,18 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
               </button>
               <ImageGrid
                 images={mapAssetsToImageItems(assets)}
-                loading={loading && assets.length === 0} // Only show loading on initial load
+                loading={loading && assets.length === 0}
                 emptyMessage="No uploaded assets yet"
                 onImageClick={(image) =>
                   handleAssetClick(assets.find((a) => a.id === image.id)!)
                 }
                 onImageDelete={handleDeleteAsset}
               />
-              {/* Loading spinner for pagination */}
               {loading && assets.length > 0 && (
                 <div className="py-4 flex justify-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                 </div>
               )}
-              {/* Load more button */}
               {!loading && hasMore && (
                 <div className="py-4 flex justify-center">
                   <button

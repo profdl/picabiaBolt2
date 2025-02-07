@@ -1,3 +1,4 @@
+// src/components/layout/drawers/GalleryDrawer.tsx
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Drawer } from "../../shared/Drawer";
 import ImageGrid from "../../shared/ImageGrid";
@@ -5,6 +6,7 @@ import { ImageItem } from "../../shared/ImageGrid";
 import { ImageDetailsModal } from "../../layout/modals/ImageDetailsModal";
 import { useStore } from "../../../store";
 import { SavedImage } from '../../../types';
+import { useShapeAdder } from "../../../hooks/useShapeAdder";
 
 interface GalleryDrawerProps {
   setViewingImage: Dispatch<SetStateAction<SavedImage | null>>;
@@ -19,11 +21,12 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
   const [page, setPage] = useState(1);
   const IMAGES_PER_PAGE = 20;
 
+  const { addNewShape } = useShapeAdder();
+
   const {
     generatedImages,
     fetchGeneratedImages,
     deleteGeneratedImage,
-    addImageToCanvas,
     isLoading,
     showGallery,
     toggleGallery,
@@ -32,7 +35,6 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
     generatedImages: state.generatedImages,
     fetchGeneratedImages: state.fetchGeneratedImages,
     deleteGeneratedImage: state.deleteGeneratedImage,
-    addImageToCanvas: state.addImageToCanvas,
     isLoading: state.isLoading,
     showGallery: state.showGallery,
     toggleGallery: state.toggleGallery,
@@ -52,31 +54,49 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
   };
 
   const handleImageClick = async (image: ImageItem) => {
-    const success = await addImageToCanvas(
-      { url: image.url },
-      { defaultWidth: 512 }
-    );
+    // Get image dimensions from aspect ratio if available
+    const width = 512; // Default width
+    let height = 512;
+    if (image.aspect_ratio) {
+      const aspectRatio = parseFloat(image.aspect_ratio);
+      if (!isNaN(aspectRatio)) {
+        height = width / aspectRatio;
+      }
+    }
+
+    const success = await addNewShape('image', {
+      imageUrl: image.url,
+      width,
+      height,
+      aspectRatio: width / height,
+    }, {
+      defaultWidth: width,
+      centerOnShape: true,
+      setSelected: true
+    });
+
     if (success) {
       toggleGallery();
     }
   };
 
   const displayImages: ImageItem[] = generatedImages
-  .filter(img => img.generated_01) // Filter out images with no URL
-  .map((img) => ({
-    id: img.id,
-    url: img.generated_01,
-    prompt: img.prompt,
-    status: img.status,
-    created_at: img.created_at,
-    aspect_ratio: img.aspect_ratio,
-    alt: img.prompt || "Generated image",
-    onError: (e: React.SyntheticEvent<HTMLImageElement>) => {
-      // Hide the broken image container
-      const target = e.currentTarget;
-      target.parentElement?.style.setProperty('display', 'none');
-    }
-  }));
+    .filter(img => img.generated_01) // Filter out images with no URL
+    .map((img) => ({
+      id: img.id,
+      url: img.generated_01,
+      prompt: img.prompt,
+      status: img.status,
+      created_at: img.created_at,
+      aspect_ratio: img.aspect_ratio,
+      alt: img.prompt || "Generated image",
+      onError: (e: React.SyntheticEvent<HTMLImageElement>) => {
+        // Hide the broken image container
+        const target = e.currentTarget;
+        target.parentElement?.style.setProperty('display', 'none');
+      }
+    }));
+
   const handleImageViewClick = (image: ImageItem) => {
     const fullImage = generatedImages.find((img) => img.id === image.id) as SavedImage;
     if (fullImage) {
@@ -134,12 +154,13 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
                 showViewButton={true}
                 imageUrlKey="url"
               />
-              {/* Loading spinner or Load More button rendered directly after the grid */}
+              {/* Loading spinner for pagination */}
               {isLoading && page > 1 && (
                 <div className="py-4 flex justify-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                 </div>
               )}
+              {/* Load more button */}
               {!isLoading && hasMore && (
                 <div className="py-4 flex justify-center">
                   <button

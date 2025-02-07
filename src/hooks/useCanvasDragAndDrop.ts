@@ -1,15 +1,21 @@
+// src/hooks/useCanvasDragAndDrop.ts
 import { useState } from "react";
-import { useImageUpload } from "./useImageUpload";
-import { Position } from "../types";
 import { useStore } from "../store";
+import { Position } from "../types";
+import { useShapeAdder } from "./useShapeAdder";
+import { useImageUpload } from "./useImageUpload";
+
 interface ImageDimensions {
   width: number;
   height: number;
   aspectRatio: number;
 }
+
 export function useCanvasDragAndDrop() {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const { handleImageUpload } = useImageUpload();
+  const { addNewShape } = useShapeAdder();
+  const { addImageToCanvas } = useStore();
 
   const handleDrop = async (
     e: React.DragEvent,
@@ -29,9 +35,7 @@ export function useCanvasDragAndDrop() {
       try {
         const { image } = JSON.parse(drawerImageData);
         if (image && image.url) {
-          await useStore
-            .getState()
-            .addImageToCanvas({ url: image.url }, { position: point });
+          await addImageToCanvas({ url: image.url }, { position: point });
           return;
         }
       } catch (err) {
@@ -47,16 +51,45 @@ export function useCanvasDragAndDrop() {
       const img = new Image();
       const url = URL.createObjectURL(file);
 
-      img.onload = async () => {
-        const aspectRatio = img.naturalWidth / img.naturalHeight;
-        await handleImageUpload(file, point, {
-          width: img.naturalWidth,
-          height: img.naturalHeight,
-          aspectRatio,
-        } as ImageDimensions);
+      try {
+        // Create a promise to handle image loading
+        const dimensions: ImageDimensions = await new Promise((resolve, reject) => {
+          img.onload = () => {
+            resolve({
+              width: img.naturalWidth,
+              height: img.naturalHeight,
+              aspectRatio: img.naturalWidth / img.naturalHeight,
+            });
+          };
+          img.onerror = () => reject(new Error("Failed to load image"));
+          img.src = url;
+        });
+
+        // First, add a placeholder shape with the local URL
+        await addNewShape(
+          "image",
+          {
+            imageUrl: url,
+            isUploading: true,
+            aspectRatio: dimensions.aspectRatio,
+            originalWidth: dimensions.width,
+            originalHeight: dimensions.height,
+          },
+          {
+            position: point,
+            setSelected: true,
+            centerOnShape: true,
+          }
+        );
+
+        // Then start the upload process
+        await handleImageUpload(file, point, dimensions);
+
+      } catch (err) {
+        console.error("Error processing dropped image:", err);
+      } finally {
         URL.revokeObjectURL(url);
-      };
-      img.src = url;
+      }
     }
   };
 

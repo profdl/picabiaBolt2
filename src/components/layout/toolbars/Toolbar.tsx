@@ -24,6 +24,8 @@ import { useToolbarBrush } from "../../../hooks/useToolbarBrush";
 import { useToolbarShapes } from "../../../hooks/useToolbarShapes";
 import { useToolbarGenerate } from "../../../hooks/useToolbarGenerate";
 import { useThemeClass } from "../../../styles/useThemeClass";
+import { useShapeAdder } from "../../../hooks/useShapeAdder";
+
 
 interface ToolbarProps {
   onShowImageGenerate: () => void;
@@ -51,6 +53,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     divider: "w-px bg-neutral-200 dark:bg-neutral-700 mx-2",
   };
 
+  const { addNewShape } = useShapeAdder(); // Add this hook
+
+
   const {
     currentColor,
     setCurrentColor,
@@ -70,7 +75,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
   } = useToolbarBrush();
 
   const {
-    handleAddShape,
     showAssets,
     toggleAssets,
   } = useToolbarShapes();
@@ -93,6 +97,42 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
       setCurrentColor("#ffffff");
     }
   }, [setCurrentColor, tool]);
+
+
+  const handleAddSticky = async () => {
+    await addNewShape('sticky', {}, {
+      centerOnShape: true,
+      setSelected: true,
+      startEditing: true
+    });
+  };
+
+  const handleAddSketchpad = async () => {
+    await addNewShape('sketchpad', {
+      locked: true,
+      showSketch: true
+    }, {
+      centerOnShape: true,
+      setSelected: true
+    });
+  };
+
+  const handleAddDiffusionSettings = async () => {
+    await addNewShape('diffusionSettings', {}, {
+      centerOnShape: true,
+      setSelected: true
+    });
+  };
+
+  const handleAddImagePlaceholder = async () => {
+    await addNewShape('image', {
+      isUploading: true
+    }, {
+      centerOnShape: true,
+      setSelected: true
+    });
+  };
+
 
   return (
     <div className={styles.container}>
@@ -124,7 +164,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             <ToolbarButton
               icon={<StickyNote />}
               label="Text Prompt"
-              onClick={() => handleAddShape("sticky")}
+              onClick={handleAddSticky}
               className={styles.button.base}
             />
           </Tooltip>
@@ -132,7 +172,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           {/* Brush Controls Overlay */}
           {(tool === "brush" || tool === "eraser") && (
             <div
-            className={`absolute bottom-full mb-2.5 left-1/2 transform -translate-x-1/2 ${styles.container} min-w-max rounded-lg ` }
+              className={`absolute bottom-full mb-2.5 left-1/2 transform -translate-x-1/2 ${styles.container} min-w-max rounded-lg `}
             >
               <div className="p-0 flex items-center gap-3 ">
                 <div className="relative">
@@ -300,7 +340,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             <ToolbarButton
               icon={<BookImageIcon />}
               label="Sketch Prompt"
-              onClick={() => handleAddShape("sketchpad")}
+              onClick={handleAddSketchpad}
               className={styles.button.base}
             />
           </Tooltip>
@@ -333,7 +373,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 ? "Generating..."
                 : "Generate"}
               disabled={!hasActivePrompt || generatingPredictions.size > 0}
-              onClick={handleGenerate}
+              onClick={async () => {
+                if (!hasActivePrompt) {
+                  await handleAddImagePlaceholder();
+                }
+                handleGenerate();
+              }}
               className={`${styles.button.base} ${styles.button.primary} ${
                 (!hasActivePrompt || generatingPredictions.size > 0)
                   ? "opacity-50"
@@ -349,7 +394,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           >
             <ToolbarButton
               icon={<Settings />}
-              onClick={() => handleAddShape("diffusionSettings")}
+              onClick={handleAddDiffusionSettings}
               className={styles.button.base}
             />
           </Tooltip>
@@ -393,4 +438,4 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
       </div>
     </div>
   );
-};
+}
