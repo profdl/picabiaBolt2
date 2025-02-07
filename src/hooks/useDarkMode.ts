@@ -39,7 +39,7 @@ export const useDarkMode = () => {
       html.classList.remove('dark');
       html.style.setProperty('--sticky-green', '#90EE90');
       html.style.setProperty('--sticky-red', '#ffcccb');
-      html.style.setProperty('--sticky-yellow', '#fff9c4');
+      html.style.setProperty('--sticky-yellow', '#857341');
     }
   }, [isDark]);
 
