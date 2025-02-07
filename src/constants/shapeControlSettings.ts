@@ -5,6 +5,7 @@ export const DEFAULT_CONTROL_STRENGTHS = {
   poseStrength: 0.5,
   sketchStrength: 0.75,
   remixStrength: 0.4,
+  useSettings: true,
 } as const;
 
 export const DEFAULT_CONTROL_STATES = {
@@ -15,4 +16,5 @@ export const DEFAULT_CONTROL_STATES = {
   showRemix: false,
   showPrompt: false,
   showNegativePrompt: false,
+  useSettings: true,
 } as const;

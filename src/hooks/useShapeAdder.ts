@@ -20,7 +20,8 @@ export function useShapeAdder() {
     setSelectedShapes,
     setIsEditingText,
     shapes,
-    setOffset // Add this from store
+    setOffset,
+    updateShape
   } = useStore();
 
   const getViewportCenter = (): Position => {
@@ -130,6 +131,33 @@ export function useShapeAdder() {
       ...DEFAULT_CONTROL_STRENGTHS,
       ...shapeData,
     };
+
+    
+      // Special handling for sketchpad
+      if (shapeType === 'sketchpad' && shapeData.showSketch) {
+        // Uncheck sketch control on all other shapes
+        shapes.forEach(shape => {
+          if ((shape.type === 'image' || shape.type === 'sketchpad') && shape.showSketch) {
+            updateShape(shape.id, { 
+              showSketch: false,
+              sketchPreviewUrl: undefined
+            });
+          }
+        });
+      }
+
+       // Special handling for diffusion settings
+       if (shapeType === 'diffusionSettings') {
+        // First uncheck useSettings on all other diffusion settings shapes
+        shapes.forEach(shape => {
+          if (shape.type === 'diffusionSettings' && shape.useSettings) {
+            updateShape(shape.id, { 
+              useSettings: false 
+            });
+          }
+        });
+
+  }
 
     // Special handling for sticky notes
     if (shapeType === 'sticky') {

@@ -235,12 +235,26 @@ export function ShapeControls({
 
     // For sketch control, use the original image as preview
     if (control.processType === "sketch") {
+      // Uncheck sketch on all other shapes first
+      shapes.forEach((otherShape) => {
+        if (otherShape.id !== shape.id && (otherShape.type === "image" || otherShape.type === "sketchpad")) {
+          if (otherShape.showSketch) {
+            updateShape(otherShape.id, { 
+              showSketch: false,
+              sketchPreviewUrl: undefined
+            });
+          }
+        }
+      });
+      
+      // Then update current shape
       updateShape(shape.id, {
         [control.showKey]: isChecked,
         sketchPreviewUrl: isChecked ? shape.imageUrl : undefined,
       });
       return;
     }
+  
 
     // For remix control, set remixPreviewUrl
     if (control.processType === "remix") {
@@ -458,7 +472,9 @@ export function ShapeControls({
         id={`use-settings-${shape.id}`}
         checked={shape.useSettings || false}
         onChange={(e) => {
-          if (e.target.checked) {
+          const isChecked = e.target.checked;
+          if (isChecked) {
+            // Uncheck all other diffusion settings shapes
             shapes.forEach((otherShape) => {
               if (
                 otherShape.type === "diffusionSettings" &&
@@ -468,10 +484,10 @@ export function ShapeControls({
               }
             });
           }
-          updateShape(shape.id, { useSettings: e.target.checked });
+          updateShape(shape.id, { useSettings: isChecked });
         }}
         className={styles.controls.checkbox}
-        />
+      />
       <label
         htmlFor={`use-settings-${shape.id}`}
         className={`${styles.sidePanel.label} whitespace-nowrap`}
