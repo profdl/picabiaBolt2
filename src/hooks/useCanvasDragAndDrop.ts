@@ -1,9 +1,8 @@
 // src/hooks/useCanvasDragAndDrop.ts
 import { useState } from "react";
 import { useStore } from "../store";
-import { Position } from "../types";
-import { useShapeAdder } from "./useShapeAdder";
 import { useImageUpload } from "./useImageUpload";
+import { Position } from "../types";
 
 interface ImageDimensions {
   width: number;
@@ -14,20 +13,30 @@ interface ImageDimensions {
 export function useCanvasDragAndDrop() {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const { handleImageUpload } = useImageUpload();
-  const { addNewShape } = useShapeAdder();
-  const { addImageToCanvas } = useStore();
+  const { addImageToCanvas, zoom, offset } = useStore();
 
-  const handleDrop = async (
-    e: React.DragEvent,
-    canvasRef: React.RefObject<HTMLDivElement>,
-    getCanvasPoint: (
-      e: React.DragEvent,
-      canvasRef: React.RefObject<HTMLDivElement>
-    ) => Position
-  ) => {
+  const getCanvasPoint = (
+    e: React.DragEvent<HTMLDivElement>,
+    rect: DOMRect
+  ): Position => {
+    // Calculate the mouse position relative to the canvas
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Convert to canvas coordinates considering zoom and offset
+    return {
+      x: (mouseX - offset.x) / zoom,
+      y: (mouseY - offset.y) / zoom,
+    };
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.stopPropagation();
     e.preventDefault();
     setIsDraggingFile(false);
-    const point = getCanvasPoint(e, canvasRef);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const point = getCanvasPoint(e, rect);
 
     // Handle drawer image drops
     const drawerImageData = e.dataTransfer.getData("application/json");
@@ -53,38 +62,22 @@ export function useCanvasDragAndDrop() {
 
       try {
         // Create a promise to handle image loading
-        const dimensions: ImageDimensions = await new Promise((resolve, reject) => {
-          img.onload = () => {
-            resolve({
-              width: img.naturalWidth,
-              height: img.naturalHeight,
-              aspectRatio: img.naturalWidth / img.naturalHeight,
-            });
-          };
-          img.onerror = () => reject(new Error("Failed to load image"));
-          img.src = url;
-        });
-
-        // First, add a placeholder shape with the local URL
-        await addNewShape(
-          "image",
-          {
-            imageUrl: url,
-            isUploading: true,
-            aspectRatio: dimensions.aspectRatio,
-            originalWidth: dimensions.width,
-            originalHeight: dimensions.height,
-          },
-          {
-            position: point,
-            setSelected: true,
-            centerOnShape: true,
+        const dimensions: ImageDimensions = await new Promise(
+          (resolve, reject) => {
+            img.onload = () => {
+              resolve({
+                width: img.naturalWidth,
+                height: img.naturalHeight,
+                aspectRatio: img.naturalWidth / img.naturalHeight,
+              });
+            };
+            img.onerror = () => reject(new Error("Failed to load image"));
+            img.src = url;
           }
         );
 
-        // Then start the upload process
+        // Let useImageUpload handle the shape creation and upload
         await handleImageUpload(file, point, dimensions);
-
       } catch (err) {
         console.error("Error processing dropped image:", err);
       } finally {
@@ -94,11 +87,15 @@ export function useCanvasDragAndDrop() {
   };
 
   const handleDragOver = (e: React.DragEvent) => {
+    e.stopPropagation();
     e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
     setIsDraggingFile(true);
   };
 
-  const handleDragLeave = () => {
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     setIsDraggingFile(false);
   };
 

@@ -188,7 +188,9 @@ useEffect(() => {
         onMouseLeave={handleMouseUp}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onDrop={(e) => handleDrop(e, canvasRef, getCanvasPoint)}
+        onDrop={handleDrop}
+        onDragEnter={(e) => e.preventDefault()}
+        onDragStart={(e) => e.preventDefault()}
       >
         {isDraggingFile && (
           <div className={styles.dropZone}>
