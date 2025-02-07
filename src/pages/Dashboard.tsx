@@ -74,8 +74,8 @@ export function Dashboard() {
 
         {projects.length === 0 ? (
           <div className={styles.emptyState.container}>
-            <h3 className={styles.emptyState.title}>No boards yet</h3>
-            <p className={styles.emptyState.text}>Create your first board to get started</p>
+            <h3 className={styles.emptyState.title}>Loading template projects...</h3>
+            <p className={styles.emptyState.text}>You'll see some template projects here in a moment</p>
           </div>
         ) : (
           <div className={styles.grid}>
@@ -83,6 +83,7 @@ export function Dashboard() {
               <ProjectCard
                 key={project.id}
                 project={project}
+                isTemplate={project.is_template}
                 onOpen={() => navigate(`/board/${project.id}`)}
                 onRename={async (newName) => {
                   await updateProject(project.id, {

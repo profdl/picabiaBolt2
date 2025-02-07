@@ -9,6 +9,7 @@ interface ProjectCardProps {
   onOpen: () => void;
   onRename: (newName: string) => Promise<void>;
   onDelete: () => Promise<void>;
+  isTemplate?: boolean;
 }
 
 export function ProjectCard({
@@ -16,6 +17,7 @@ export function ProjectCard({
   onOpen,
   onRename,
   onDelete,
+  isTemplate = false,
 }: ProjectCardProps) {
   const styles = {
     container: useThemeClass(['projectCard', 'container']),
@@ -142,8 +144,14 @@ export function ProjectCard({
               </div>
             ) : (
               <>
-                <h3 className={styles.content.title}>{project.name}</h3>
-                <div className={styles.content.actions}>
+<h3 className={styles.content.title}>
+  {project.name}
+  {isTemplate && (
+    <span className="ml-2 text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900 dark:text-blue-100">
+      Template
+    </span>
+  )}
+</h3>                <div className={styles.content.actions}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

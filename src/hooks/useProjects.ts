@@ -5,7 +5,6 @@ import { Project } from '../types';
 
 
 
-
 export function useProjects() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -17,20 +16,55 @@ export function useProjects() {
       setLoading(false);
       return;
     }
-
+  
     try {
       setLoading(true);
       setError(null);
-
-      const { data: fetchedProjects, error: fetchError } = await supabase
+  
+      // First, fetch user's projects
+      const { data: userProjects, error: userProjectsError } = await supabase
         .from('projects')
         .select('*')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-
-      setProjects(fetchedProjects || []);
+  
+      if (userProjectsError) throw userProjectsError;
+  
+      // If user has no projects at all, clone the templates
+      if (userProjects?.length === 0) {
+        const { data: templateProjects, error: templateError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('is_template', true)
+          .order('updated_at', { ascending: false });
+  
+        if (templateError) throw templateError;
+  
+        // Check if we have templates to clone
+        if (templateProjects && templateProjects.length > 0) {
+          // Create one transaction for all template clones
+          const clonedProjects = templateProjects.map(template => ({
+            name: template.name,
+            user_id: user.id,
+            shapes: template.shapes,
+            thumbnail: template.thumbnail,
+            is_template: false,
+            cloned_from: template.id  // Add this to track which template it was cloned from
+          }));
+  
+          const { data: insertedProjects, error: insertError } = await supabase
+            .from('projects')
+            .insert(clonedProjects)
+            .select();
+  
+          if (insertError) throw insertError;
+          setProjects(insertedProjects || []);
+        } else {
+          setProjects([]);
+        }
+      } else {
+        setProjects(userProjects);
+      }
     } catch (err) {
       const errorMessage = handleSupabaseError(err);
       console.error('Error fetching projects:', errorMessage);
@@ -40,7 +74,6 @@ export function useProjects() {
       setLoading(false);
     }
   }, [user]);
-
   const fetchProject = useCallback(async (id: string) => {
     if (!user) {
       throw new Error('User not authenticated');
