@@ -15,6 +15,7 @@ export function useKeyboardShortcuts() {
     setSelectedShapes,
     updateShape,
     setIsEditingText,
+    isEditingText, // Add this from store
   } = useStore();
 
   const handleKeyDown = useCallback(
@@ -22,7 +23,9 @@ export function useKeyboardShortcuts() {
       const isInput =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
-      if (isInput) return;
+
+      // Only return early if we're in an input AND editing text
+      if (isInput && isEditingText) return;
 
       const isPrintableKey = e.key.length === 1 && !e.ctrlKey && !e.metaKey;
       const selectedShape = shapes.find((s) => selectedShapes.includes(s.id));
@@ -78,7 +81,7 @@ export function useKeyboardShortcuts() {
 
           case "x": // Cut
             e.preventDefault();
-            if (selectedShapes.length > 0) {
+            if (selectedShapes.length > 0 && !isEditingText) {
               cutShapes();
             }
             break;
@@ -88,7 +91,7 @@ export function useKeyboardShortcuts() {
             pasteShapes();
             break;
 
-          case 'z': // Undo/Redo
+          case "z": // Undo/Redo
             e.preventDefault();
             if (e.shiftKey) {
               redo();
@@ -106,16 +109,18 @@ export function useKeyboardShortcuts() {
         }
       }
 
-      // Delete/Backspace
+      // Delete/Backspace - only if not editing text
       if (
         (e.key === "Delete" || e.key === "Backspace") &&
-        selectedShapes.length > 0
+        selectedShapes.length > 0 &&
+        !isEditingText
       ) {
         e.preventDefault();
         deleteShapes(selectedShapes);
       }
     },
     [
+      isEditingText,
       shapes,
       selectedShapes,
       setIsEditingText,
@@ -125,6 +130,8 @@ export function useKeyboardShortcuts() {
       pasteShapes,
       copyShapes,
       cutShapes,
+      redo,
+      undo,
       deleteShapes,
     ]
   );
