@@ -2,6 +2,7 @@ import { StateCreator } from "zustand";
 import { Shape, Position, StoreState } from "../../types";
 import getSubjectWorkflow from "../../lib/getSubject_workflow.json";
 import { supabase } from "../../lib/supabase";
+import { trimTransparentPixels } from "../../utils/imageUtils"; // We'll create this
 
 interface SubjectGenerationSlice {
   handleGenerateSubject: (shape: Shape) => Promise<void>;
@@ -97,36 +98,52 @@ export const subjectGenerationSlice: StateCreator<
 
       // After creating placeholder shape
       const subscription = supabase
-        .channel(`generation_${prediction_id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "generated_images",
-            filter: `prediction_id=eq.${prediction_id}`,
-          },
-          (payload: unknown) => {
-            const typedPayload = payload as {
-              new: { status: string; generated_01: string };
+      .channel(`generation_${prediction_id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "generated_images",
+          filter: `prediction_id=eq.${prediction_id}`,
+        },
+        async (payload: unknown) => {
+          const typedPayload = payload as {
+            new: { status: string; generated_01: string };
+          };
+          if (typedPayload.new.status === "completed") {
+            // Get the trimmed dimensions of the processed image
+            const { url: trimmedUrl, bounds } = await trimTransparentPixels(typedPayload.new.generated_01);
+            
+            // Calculate new position to keep image centered relative to original position
+            const xOffset = (sourceShape.width - bounds.width) / 2;
+            const yOffset = (sourceShape.height - bounds.height) / 2;
+            const newPosition = {
+              x: sourceShape.position.x + sourceShape.width + 20 + xOffset,
+              y: sourceShape.position.y + yOffset
             };
-            if (typedPayload.new.status === "completed") {
-              get().updateShape(prediction_id, {
-                isUploading: false,
-                imageUrl: typedPayload.new.generated_01,
-              });
-              get().removeGeneratingPrediction(prediction_id);
-              subscription.unsubscribe();
-            }
+
+            // Update shape with trimmed image and new dimensions
+            get().updateShape(prediction_id, {
+              isUploading: false,
+              imageUrl: trimmedUrl,
+              width: bounds.width,
+              height: bounds.height,
+              position: newPosition
+            });
+            
+            get().removeGeneratingPrediction(prediction_id);
+            subscription.unsubscribe();
           }
-        )
-        .subscribe();
-    } catch (error) {
-      console.error("Failed to generate subject:", error);
-      set({
-        error:
-          error instanceof Error ? error.message : "Failed to generate subject",
-      });
-    }
-  },
+        }
+      )
+      .subscribe();
+
+  } catch (error) {
+    console.error("Failed to generate subject:", error);
+    set({
+      error: error instanceof Error ? error.message : "Failed to generate subject",
+    });
+  }
+},
 });
