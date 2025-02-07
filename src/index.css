@@ -11,6 +11,16 @@
   body {
     user-select: none;
     @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .toolbar,
+  .nav,
+  .canvas-container {
+    touch-action: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
   }
   input[type="checkbox"] {
     @apply form-checkbox 
@@ -24,7 +34,6 @@
       checked:hover:bg-blue-700 dark:checked:hover:bg-blue-600
       transition-colors;
   }
-
 }
 
 #root {
@@ -45,8 +54,8 @@
     @apply w-2.5 h-2.5 rounded-full bg-blue-500 border-none cursor-pointer;
   }
 }
-  .slider-tooltip {
-    @apply fixed bg-gray-800 text-white px-2 py-1 rounded text-xs pointer-events-none;
-    transform: translate(-50%, -100%);
-    margin-top: -8px;
-  }
+.slider-tooltip {
+  @apply fixed bg-gray-800 text-white px-2 py-1 rounded text-xs pointer-events-none;
+  transform: translate(-50%, -100%);
+  margin-top: -8px;
+}

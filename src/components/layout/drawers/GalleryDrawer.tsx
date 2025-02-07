@@ -1,5 +1,5 @@
 // src/components/layout/drawers/GalleryDrawer.tsx
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Drawer } from "../../shared/Drawer";
 import ImageGrid from "../../shared/ImageGrid";
 import { ImageItem } from "../../shared/ImageGrid";
@@ -9,8 +9,7 @@ import { SavedImage } from '../../../types';
 import { useShapeAdder } from "../../../hooks/useShapeAdder";
 
 interface GalleryDrawerProps {
-  setViewingImage: Dispatch<SetStateAction<SavedImage | null>>;
-  isOpen: boolean;
+
   onClose: () => void;
   viewingImage: SavedImage | null;
 }

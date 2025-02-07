@@ -11,54 +11,188 @@ import { calculateViewportFit } from "../utils/canvas";
 import { ShortcutsPanel } from "../components/shared/ShortcutsPanel";
 import { AssetsDrawer } from "../components/layout/drawers/AssetsDrawer";
 import { ContextMenu } from "../components/shared/ContextMenu";
-import { Shape, DetailedSavedImage } from "../types";
+import { Shape, SavedImage } from "../types";
+
+interface Delta {
+  deltaX: number;
+  deltaY: number;
+}
+
+
+
+
 
 export const Board = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { fetchProject, updateProject } = useProjects();
+  
+  // First, get all the state from useStore
+  const {
+    showGallery,
+    toggleGallery,
+    showAssets,
+    toggleAssets,
+    toggleImageGenerate,
+    toggleUnsplash,
+    contextMenu,
+    setContextMenu,
+    shapes,
+    setShapes,
+    setZoom,
+    setOffset,
+    resetState
+  } = useStore((state) => ({
+    showGallery: state.showGallery,
+    toggleGallery: state.toggleGallery,
+    showAssets: state.showAssets,
+    toggleAssets: state.toggleAssets,
+    toggleImageGenerate: state.toggleImageGenerate,
+    toggleUnsplash: state.toggleUnsplash,
+    contextMenu: state.contextMenu,
+    setContextMenu: state.setContextMenu,
+    shapes: state.shapes,
+    setShapes: state.setShapes,
+    setZoom: state.setZoom,
+    setOffset: state.setOffset,
+    resetState: state.resetState
+  }));
+
+  // Then declare all other state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const { showGallery, toggleImageGenerate, toggleUnsplash, toggleGallery } =
-    useStore();
-  const { showAssets, toggleAssets } = useStore((state) => ({
-    showAssets: state.showAssets,
-    toggleAssets: state.toggleAssets,
-  }));
-  const addShape = useStore((state) => state.addShape);
-  const zoom = useStore((state) => state.zoom);
-  const offset = useStore((state) => state.offset);
-  const contextMenu = useStore((state) => state.contextMenu);
-  const setContextMenu = useStore((state) => state.setContextMenu);
+  const [viewingImage, setViewingImage] = useState<SavedImage | null>(null);
 
-  const getViewportCenter = useCallback(() => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-
-    return {
-      x: (rect.width / 2 - offset.x) / zoom,
-      y: (rect.height / 2 - offset.y) / zoom,
-    };
-  }, [zoom, offset]);
-
+  // Then declare refs
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedRef = useRef<string>("");
 
-  const shapes = useStore((state) => state.shapes);
-  const { setShapes } = useStore((state) => ({
-    setShapes: state.setShapes,
-  }));
-  const setZoom = useStore((state) => state.setZoom);
-  const setOffset = useStore((state) => state.setOffset);
-  const resetState = useStore((state) => state.resetState);
+  // Then declare drawer props
+  const assetsDrawerProps = {
+    isOpen: showAssets,
+    onClose: toggleAssets
+  };
+
+  const galleryDrawerProps = {
+    isOpen: showGallery,
+    onClose: toggleGallery,
+    viewingImage,
+    setViewingImage
+  };
+
+
+  
 
   const maxRetries = 3;
-  const [viewingImage, setViewingImage] = useState<DetailedSavedImage | null>(null);
+
+  useEffect(() => {
+    const preventDefaultGestures = (e: Event) => {
+      e.preventDefault();
+    };
+
+    const preventBackForward = (e: TouchEvent | WheelEvent) => {
+      if (e instanceof TouchEvent) {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        } else if (e.touches.length === 1) {
+          const touch = e.touches[0];
+          const delta: Delta = {
+            deltaX: touch.clientX,
+            deltaY: touch.clientY,
+          };
+          if (Math.abs(delta.deltaX) > Math.abs(delta.deltaY)) {
+            e.preventDefault();
+          }
+        }
+      } else if (e instanceof WheelEvent) {
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const blockNavigationGestures = (e: Event) => {
+      e.preventDefault();
+      return false;
+    };
+
+    // Get all the elements that need gesture blocking
+    const container = containerRef.current;
+    const toolbar = document.querySelector(".toolbar");
+    const navbar = document.querySelector(".nav");
+    const elements = [container, toolbar, navbar, document.body].filter(
+      Boolean
+    ) as Element[];
+
+    elements.forEach((element) => {
+      element.addEventListener("wheel", preventDefaultGestures, {
+        passive: false,
+      });
+      element.addEventListener("touchstart", preventDefaultGestures, {
+        passive: false,
+      });
+      element.addEventListener(
+        "touchmove",
+        preventBackForward as EventListener,
+        { passive: false }
+      );
+      element.addEventListener("gesturestart", preventDefaultGestures, {
+        passive: false,
+      });
+      element.addEventListener("gesturechange", preventDefaultGestures, {
+        passive: false,
+      });
+    });
+
+    // Block navigation gestures at document level
+    document.addEventListener("wheel", preventBackForward as EventListener, {
+      passive: false,
+    });
+    document.addEventListener(
+      "touchmove",
+      preventBackForward as EventListener,
+      { passive: false }
+    );
+    window.addEventListener("swiperight", blockNavigationGestures, {
+      passive: false,
+    });
+    window.addEventListener("swipeleft", blockNavigationGestures, {
+      passive: false,
+    });
+
+    document.body.style.overscrollBehavior = "none";
+
+    return () => {
+      elements.forEach((element) => {
+        element.removeEventListener("wheel", preventDefaultGestures);
+        element.removeEventListener("touchstart", preventDefaultGestures);
+        element.removeEventListener(
+          "touchmove",
+          preventBackForward as EventListener
+        );
+        element.removeEventListener("gesturestart", preventDefaultGestures);
+        element.removeEventListener("gesturechange", preventDefaultGestures);
+      });
+
+      document.removeEventListener(
+        "wheel",
+        preventBackForward as EventListener
+      );
+      document.removeEventListener(
+        "touchmove",
+        preventBackForward as EventListener
+      );
+      window.removeEventListener("swiperight", blockNavigationGestures);
+      window.removeEventListener("swipeleft", blockNavigationGestures);
+
+      document.body.style.overscrollBehavior = "";
+    };
+  }, []);
 
   // Memoize the auto-save debounce function// Update the debouncedSave function signature to use proper typing
   const LOCAL_STORAGE_KEY = `board_${id}`; // Use board ID to keep separate states
@@ -67,20 +201,20 @@ export const Board = () => {
   const debouncedSave = useMemo(() => {
     return async (shapes: Shape[]) => {
       if (!id || !user) return;
-  
+
       const shapesString = JSON.stringify(shapes);
       if (shapesString === lastSavedRef.current) return;
-  
+
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
-  
+
       // Save to localStorage immediately
       localStorage.setItem(LOCAL_STORAGE_KEY, shapesString);
-  
+
       saveTimeoutRef.current = setTimeout(async () => {
         if (isSaving) return;
-  
+
         try {
           setIsSaving(true);
           await updateProject(id, {
@@ -96,18 +230,18 @@ export const Board = () => {
       }, 2000);
     };
   }, [id, user, LOCAL_STORAGE_KEY, isSaving, updateProject]);
-  
+
   // Modify the loadProject function to check localStorage first
   const loadProject = useCallback(async () => {
     if (!id || !user) {
       console.log("Missing id or user:", { id, userId: user?.id });
       return;
     }
-  
+
     try {
       setLoading(true);
       setError(null);
-  
+
       // Try to load from localStorage first
       const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (localData) {
@@ -119,30 +253,36 @@ export const Board = () => {
           console.warn("Error parsing localStorage data:", e);
         }
       }
-  
+
       // Load from Supabase
       console.log("Fetching project data...");
       const project = await fetchProject(id);
       console.log("Project data received:", project);
-  
+
       if (!project) {
         setError("Project not found...");
         return;
       }
-  
+
       // Compare timestamps if available and use the most recent version
       if (Array.isArray(project.shapes)) {
         const serverShapes = project.shapes;
-        if (!localData || project.updated_at > JSON.parse(localData).updated_at) {
+        if (
+          !localData ||
+          project.updated_at > JSON.parse(localData).updated_at
+        ) {
           setShapes(serverShapes);
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
-            shapes: serverShapes,
-            updated_at: project.updated_at
-          }));
+          localStorage.setItem(
+            LOCAL_STORAGE_KEY,
+            JSON.stringify({
+              shapes: serverShapes,
+              updated_at: project.updated_at,
+            })
+          );
         }
         lastSavedRef.current = JSON.stringify(serverShapes);
       }
-  
+
       initialFitDone.current = false;
     } catch (err) {
       console.error("Project load error:", err);
@@ -194,20 +334,19 @@ export const Board = () => {
   useEffect(() => {
     // Add visibility change listener
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log('Tab became visible, reloading project');
+      if (document.visibilityState === "visible") {
+        console.log("Tab became visible, reloading project");
         loadProject();
       }
     };
-  
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-  
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     // Cleanup
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [loadProject]);
-
 
   if (error) {
     return (
@@ -255,6 +394,11 @@ export const Board = () => {
       <div
         ref={containerRef}
         className="w-screen h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 dark:bg-gray-800 relative canvas-container"
+        style={{
+          touchAction: "none",
+          overscrollBehavior: "none",
+          WebkitOverflowScrolling: "touch",
+        }}
       >
         <Canvas />
         <Toolbar
@@ -262,21 +406,8 @@ export const Board = () => {
           onShowUnsplash={toggleUnsplash}
           onShowGallery={toggleGallery}
         />
-        <AssetsDrawer
-          isOpen={showAssets}
-          onClose={toggleAssets}
-          onAddShape={addShape}
-          getViewportCenter={getViewportCenter}
-        />
-        {showGallery && (
-
-          <GalleryDrawer
-            setViewingImage={setViewingImage}
-            isOpen={showGallery}
-            onClose={toggleGallery}
-            viewingImage={viewingImage}
-          />
-        )}
+        <AssetsDrawer {...assetsDrawerProps} />
+        {showGallery && <GalleryDrawer {...galleryDrawerProps} />}
 
         {isSaving && (
           <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/75 text-white px-3 py-1 rounded-full text-sm">
@@ -285,16 +416,6 @@ export const Board = () => {
         )}
       </div>
       <ShortcutsPanel />
-      {/* {viewingImage && (
-        <ImageDetailsModal
-          image={viewingImage}
-          onClose={() => setViewingImage(null)}
-          onNext={() => {}}
-          onPrevious={() => {}}
-          hasNext={false}
-          hasPrevious={false}
-        />
-      )} */}
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}
