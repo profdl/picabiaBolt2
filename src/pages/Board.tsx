@@ -92,10 +92,17 @@ export const Board = () => {
 
   useEffect(() => {
     const preventDefaultGestures = (e: Event) => {
+      // Only prevent if the event target is within the canvas
+      const isCanvas = (e.target as Element)?.closest('#canvas-container');
+      if (!isCanvas) return;
       e.preventDefault();
     };
-
+  
     const preventBackForward = (e: TouchEvent | WheelEvent) => {
+      // Only prevent if the event target is within the canvas
+      const isCanvas = (e.target as Element)?.closest('#canvas-container');
+      if (!isCanvas) return;
+  
       if (e instanceof TouchEvent) {
         if (e.touches.length > 1) {
           e.preventDefault();
@@ -115,41 +122,40 @@ export const Board = () => {
         }
       }
     };
-
+  
     const blockNavigationGestures = (e: Event) => {
+      // Only prevent if the event target is within the canvas
+      const isCanvas = (e.target as Element)?.closest('#canvas-container');
+      if (!isCanvas) return;
       e.preventDefault();
       return false;
     };
-
+  
     // Get all the elements that need gesture blocking
     const container = containerRef.current;
-    const toolbar = document.querySelector(".toolbar");
-    const navbar = document.querySelector(".nav");
-    const elements = [container, toolbar, navbar, document.body].filter(
-      Boolean
-    ) as Element[];
-
-    elements.forEach((element) => {
-      element.addEventListener("wheel", preventDefaultGestures, {
+  
+    // Only apply to canvas container
+    if (container) {
+      container.addEventListener("wheel", preventDefaultGestures, {
         passive: false,
       });
-      element.addEventListener("touchstart", preventDefaultGestures, {
+      container.addEventListener("touchstart", preventDefaultGestures, {
         passive: false,
       });
-      element.addEventListener(
+      container.addEventListener(
         "touchmove",
         preventBackForward as EventListener,
         { passive: false }
       );
-      element.addEventListener("gesturestart", preventDefaultGestures, {
+      container.addEventListener("gesturestart", preventDefaultGestures, {
         passive: false,
       });
-      element.addEventListener("gesturechange", preventDefaultGestures, {
+      container.addEventListener("gesturechange", preventDefaultGestures, {
         passive: false,
       });
-    });
-
-    // Block navigation gestures at document level
+    }
+  
+    // Block navigation gestures only on canvas
     document.addEventListener("wheel", preventBackForward as EventListener, {
       passive: false,
     });
@@ -164,21 +170,25 @@ export const Board = () => {
     window.addEventListener("swipeleft", blockNavigationGestures, {
       passive: false,
     });
-
-    document.body.style.overscrollBehavior = "none";
-
+  
+    // Only apply overscroll behavior to canvas
+    if (container) {
+      container.style.overscrollBehavior = "none";
+    }
+  
     return () => {
-      elements.forEach((element) => {
-        element.removeEventListener("wheel", preventDefaultGestures);
-        element.removeEventListener("touchstart", preventDefaultGestures);
-        element.removeEventListener(
+      if (container) {
+        container.removeEventListener("wheel", preventDefaultGestures);
+        container.removeEventListener("touchstart", preventDefaultGestures);
+        container.removeEventListener(
           "touchmove",
           preventBackForward as EventListener
         );
-        element.removeEventListener("gesturestart", preventDefaultGestures);
-        element.removeEventListener("gesturechange", preventDefaultGestures);
-      });
-
+        container.removeEventListener("gesturestart", preventDefaultGestures);
+        container.removeEventListener("gesturechange", preventDefaultGestures);
+        container.style.overscrollBehavior = "";
+      }
+  
       document.removeEventListener(
         "wheel",
         preventBackForward as EventListener
@@ -189,8 +199,6 @@ export const Board = () => {
       );
       window.removeEventListener("swiperight", blockNavigationGestures);
       window.removeEventListener("swipeleft", blockNavigationGestures);
-
-      document.body.style.overscrollBehavior = "";
     };
   }, []);
 

@@ -123,8 +123,8 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
         >
           {activeTab === "source-plus" && (
             <div className="p-4">
-              <div className="relative mb-3">
-                <input
+            <div className="relative mb-3 flex-shrink-0">
+            <input
                   type="text"
                   value={sourcePlusQuery}
                   onChange={(e) => setSourcePlusQuery(e.target.value)}
@@ -162,7 +162,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
           )}
 
           {activeTab === "my-assets" && (
-            <div className="p-4">
+          <div className="p-4">
               <input
                 ref={fileInputRef}
                 type="file"

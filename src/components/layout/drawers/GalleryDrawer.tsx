@@ -121,60 +121,46 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
     }
   };
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    // Load more when user scrolls near bottom
-    if (scrollHeight - scrollTop <= clientHeight * 1.5) {
-      loadMore();
-    }
-  };
+
 
   return (
     <>
-      <Drawer
+ <Drawer
         title="Generated Images"
         isOpen={showGallery}
         onClose={toggleGallery}
         position="right"
       >
-        <div className="flex flex-col h-full">
-          <div 
-            className="flex-1 overflow-y-auto"
-            onScroll={handleScroll}
-          >
-            <div className="p-2">
-              <ImageGrid
-                images={displayImages}
-                loading={isLoading && page === 1}
-                emptyMessage="No generated images yet"
-                onImageClick={handleImageClick}
-                onImageDelete={deleteGeneratedImage}
-                onViewDetails={handleImageViewClick}
-                showViewButton={true}
-                imageUrlKey="url"
-              />
-              {/* Loading spinner for pagination */}
-              {isLoading && page > 1 && (
-                <div className="py-4 flex justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                </div>
-              )}
-              {/* Load more button */}
-              {!isLoading && hasMore && (
-                <div className="py-4 flex justify-center">
-                  <button
-                    onClick={loadMore}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200"
-                  >
-                    Load More
-                  </button>
-                </div>
-              )}
+        <div className="p-2">
+          <ImageGrid
+            images={displayImages}
+            loading={isLoading && page === 1}
+            emptyMessage="No generated images yet"
+            onImageClick={handleImageClick}
+            onImageDelete={deleteGeneratedImage}
+            onViewDetails={handleImageViewClick}
+            showViewButton={true}
+            imageUrlKey="url"
+          />
+          {/* Loading spinner for pagination */}
+          {isLoading && page > 1 && (
+            <div className="py-4 flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
-          </div>
+          )}
+          {/* Load more button */}
+          {!isLoading && hasMore && (
+            <div className="py-4 flex justify-center">
+              <button
+                onClick={loadMore}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200"
+              >
+                Load More
+              </button>
+            </div>
+          )}
         </div>
       </Drawer>
-      
       {viewingImage && (
         <ImageDetailsModal
           image={viewingImage}

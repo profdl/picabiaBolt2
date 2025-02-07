@@ -136,27 +136,32 @@ useEffect(() => {
     // Prevent browser back/forward gestures
     useEffect(() => {
       const preventDefaultBrowserGestures = (e: TouchEvent) => {
-        // Check if more than one finger is used (to still allow single-finger scrolling)
+        // Only prevent if the event target is within the canvas
+        const isCanvas = (e.target as Element)?.closest('#canvas-container');
+        if (!isCanvas) return;
+    
         if (e.touches.length > 1) {
           e.preventDefault();
         }
       };
-  
-      // Prevent horizontal swipe navigation
+    
       const preventHorizontalSwipe = (e: TouchEvent) => {
-        // Only prevent if it's a horizontal swipe
+        // Only prevent if the event target is within the canvas
+        const isCanvas = (e.target as Element)?.closest('#canvas-container');
+        if (!isCanvas) return;
+    
         if (Math.abs(e.touches[0].clientX - e.touches[0].screenX) > 10) {
           e.preventDefault();
         }
       };
-  
+    
       const options = { passive: false };
-  
+    
       document.addEventListener('touchstart', preventDefaultBrowserGestures, options);
       document.addEventListener('touchmove', preventDefaultBrowserGestures, options);
       document.addEventListener('touchend', preventDefaultBrowserGestures, options);
       document.addEventListener('touchmove', preventHorizontalSwipe, options);
-  
+    
       return () => {
         document.removeEventListener('touchstart', preventDefaultBrowserGestures);
         document.removeEventListener('touchmove', preventDefaultBrowserGestures);

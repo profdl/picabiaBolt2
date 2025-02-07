@@ -10,6 +10,7 @@ interface DrawerProps {
   position?: "left" | "right";
 }
 
+
 export const Drawer: React.FC<DrawerProps> = ({ 
   title, 
   children, 
@@ -39,22 +40,22 @@ export const Drawer: React.FC<DrawerProps> = ({
 
   return (
     <>
-      {/* Invisible overlay for click handling only */}
       <div 
         className="fixed inset-0 bg-transparent z-30"
         onClick={onClose}
       />
       
-      {/* Drawer */}
       <div 
         onClick={handleDrawerClick}
         className={`
+          fixed flex flex-col
           ${styles.base}
           ${position === 'left' ? styles.border.right : styles.border.left}
         `}
         style={{
-          top: '4rem', // 64px navbar height
-          bottom: '4rem', // toolbar height
+          top: '4rem',
+          bottom: '4rem',
+          width: '400px',
           ...(position === 'left' 
             ? {
                 left: 0,
@@ -67,8 +68,7 @@ export const Drawer: React.FC<DrawerProps> = ({
           )
         }}
       >
-        {/* Header */}
-        <div className={styles.header.base}>
+        <div className={`${styles.header.base} flex-shrink-0`}>
           <h3 className={styles.header.title}>{title}</h3>
           <button
             onClick={onClose}
@@ -78,8 +78,7 @@ export const Drawer: React.FC<DrawerProps> = ({
           </button>
         </div>
 
-        {/* Content */}
-        <div className={styles.content}>
+        <div className={`${styles.content} flex-1 overflow-y-auto`}>
           {children}
         </div>
       </div>

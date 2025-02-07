@@ -16,6 +16,10 @@ export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
   // Block browser's default zoom behavior
   useEffect(() => {
     const preventDefaultZoom = (e: WheelEvent) => {
+      // Only prevent if the event target is within the canvas
+      const isCanvas = (e.target as Element)?.closest('#canvas-container');
+      if (!isCanvas) return;
+  
       if (e.ctrlKey || Math.abs(e.deltaY) !== 0) {
         e.preventDefault();
       }
@@ -23,6 +27,10 @@ export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
   
     // Add touchmove handler to prevent unwanted gestures
     const preventDefaultGestures = (e: TouchEvent) => {
+      // Only prevent if the event target is within the canvas
+      const isCanvas = (e.target as Element)?.closest('#canvas-container');
+      if (!isCanvas) return;
+  
       if (e.touches.length === 2) {
         e.preventDefault();
       }
@@ -30,8 +38,16 @@ export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
   
     window.addEventListener("wheel", preventDefaultZoom, { passive: false });
     window.addEventListener("touchmove", preventDefaultGestures, { passive: false });
-    window.addEventListener("gesturestart", (e) => e.preventDefault());
-    window.addEventListener("gesturechange", (e) => e.preventDefault());
+    window.addEventListener("gesturestart", (e) => {
+      if ((e.target as Element)?.closest('#canvas-container')) {
+        e.preventDefault();
+      }
+    });
+    window.addEventListener("gesturechange", (e) => {
+      if ((e.target as Element)?.closest('#canvas-container')) {
+        e.preventDefault();
+      }
+    });
   
     return () => {
       window.removeEventListener("wheel", preventDefaultZoom);
