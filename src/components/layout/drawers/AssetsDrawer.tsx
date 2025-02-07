@@ -68,7 +68,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
       sketchStrength: asset.sketchStrength || 0.25,
       remixStrength: asset.remixStrength || 0.25,
     }, {
-      defaultWidth: 300,
+      defaultWidth: 512,
       centerOnShape: true,
       setSelected: true
     });
