@@ -44,11 +44,7 @@ export function ShapeControls({
       label: useThemeClass(['shape', 'sidePanel', 'label'])
     },
     resizeHandle: useThemeClass(['shape', 'resizeHandle']),
-    colorPicker: useThemeClass(['shape', 'colorPicker']),
-    newOverlay: {
-      container: useThemeClass(['shape', 'newOverlay', 'container']),
-      text: useThemeClass(['shape', 'newOverlay', 'text'])
-    }
+    colorPicker: useThemeClass(['shape', 'colorPicker'])
   };
 
 
@@ -307,13 +303,7 @@ export function ShapeControls({
           : {})
       }}
     >
-      {shape.type === "sticky" && shape.isNew && (
-        <div className={styles.newOverlay.container}>
-          <div className={styles.newOverlay.text}>
-            Double-click to edit
-          </div>
-        </div>
-      )}
+
 
       {(shape.type === "image" || shape.type === "sketchpad") &&
         showControlPanel && (
@@ -576,8 +566,7 @@ export function ShapeControls({
                       });
                       updateShape(shape.id, {
                         showPrompt: true,
-                        color: "#90EE90",
-                      });
+                        color: 'var(--sticky-green)',                      });
                     } else {
                       updateShape(shape.id, {
                         showPrompt: false,
@@ -626,15 +615,13 @@ export function ShapeControls({
                         ) {
                           updateShape(otherShape.id, {
                             showNegativePrompt: false,
-                            color: otherShape.showPrompt
-                              ? "#90EE90"
-                              : "#fff9c4",
+                            color: shape.showPrompt ? 'var(--sticky-green)' : 'var(--sticky-yellow)', // Instead of "#90EE90" : "#fff9c4"
                           });
                         }
                       });
                       updateShape(shape.id, {
                         showNegativePrompt: true,
-                        color: "#ffcccb",
+                        color: 'var(--sticky-red)',
                       });
                     } else {
                       updateShape(shape.id, {

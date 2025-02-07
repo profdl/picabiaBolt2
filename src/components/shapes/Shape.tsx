@@ -231,7 +231,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     tool,
     isEditing
   );
-
+  
   return (
     <div style={{ position: "absolute", width: 0, height: 0 }}>
       <div
@@ -285,14 +285,14 @@ export function ShapeComponent({ shape }: ShapeProps) {
         {shape.type === "image" && <ImageShape shape={shape} />}
   
         {shape.type === "sticky" && (
-          <StickyNoteShape
-            shape={shape}
-            isEditing={isEditing}
-            textRef={textRef}
-            handleKeyDown={handleKeyDown}
-            handleBlur={handleBlur}
-          />
-        )}
+        <StickyNoteShape
+          shape={shape}
+          isEditing={isEditing}
+          textRef={textRef}
+          handleKeyDown={handleKeyDown}
+          handleBlur={handleBlur}
+        />
+      )}
   
         {shape.type === "text" && (
           <TextShape
@@ -305,12 +305,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         )}
       </div>
   
-      {/* New Sticky Note Overlay */}
-      {shape.type === "sticky" && shape.isNew && (
-        <div className={styles.newOverlay.container}>
-          <div className={styles.newOverlay.text}>Double-click to edit</div>
-        </div>
-      )}
+
   
       {/* Controls layer */}
       {(tool === "select" ||

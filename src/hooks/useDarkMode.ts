@@ -1,3 +1,4 @@
+// src/hooks/useDarkMode.ts
 import { useEffect } from 'react';
 import { create } from 'zustand';
 
@@ -7,7 +8,6 @@ interface DarkModeStore {
 }
 
 export const useDarkModeStore = create<DarkModeStore>((set) => ({
-  // Default to false (light mode) explicitly
   isDark: false,
   toggleDarkMode: () => set((state) => {
     const newIsDark = !state.isDark;
@@ -20,12 +20,10 @@ export const useDarkMode = () => {
   const { isDark, toggleDarkMode } = useDarkModeStore();
 
   useEffect(() => {
-    // Always initialize to light mode (false) if no preference is set
     if (localStorage.getItem('darkMode') === null) {
       localStorage.setItem('darkMode', 'false');
     }
 
-    // Ensure light mode is applied by default
     const storedDarkMode = localStorage.getItem('darkMode') === 'true';
     if (storedDarkMode !== isDark) {
       useDarkModeStore.setState({ isDark: storedDarkMode });
@@ -34,8 +32,14 @@ export const useDarkMode = () => {
     const html = document.documentElement;
     if (isDark) {
       html.classList.add('dark');
+      html.style.setProperty('--sticky-green', '#2e7d32');
+      html.style.setProperty('--sticky-red', '#c62828');
+      html.style.setProperty('--sticky-yellow', '#f9a825');
     } else {
       html.classList.remove('dark');
+      html.style.setProperty('--sticky-green', '#90EE90');
+      html.style.setProperty('--sticky-red', '#ffcccb');
+      html.style.setProperty('--sticky-yellow', '#fff9c4');
     }
   }, [isDark]);
 
