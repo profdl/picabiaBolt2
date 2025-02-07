@@ -1,5 +1,8 @@
 import React from "react";
 import { format } from "date-fns";
+import { useThemeClass } from '../../../styles/useThemeClass';
+
+
 interface ImageDetailsModalProps {
   image: SavedImage | null;
   onClose: () => void;
@@ -64,7 +67,39 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
   hasNext,
   hasPrevious,
 }) => {
+
+  const styles = {
+    overlay: useThemeClass(['imageDetailsModal', 'overlay']),
+    container: useThemeClass(['imageDetailsModal', 'container']),
+    header: {
+      base: useThemeClass(['imageDetailsModal', 'header', 'base']),
+      title: useThemeClass(['imageDetailsModal', 'header', 'title']),
+      closeButton: useThemeClass(['imageDetailsModal', 'header', 'closeButton'])
+    },
+    imageContainer: useThemeClass(['imageDetailsModal', 'imageContainer']),
+    sidebar: {
+      base: useThemeClass(['imageDetailsModal', 'sidebar', 'base']),
+      sectionTitle: useThemeClass(['imageDetailsModal', 'sidebar', 'section', 'title']),
+      gridLabel: useThemeClass(['imageDetailsModal', 'sidebar', 'section', 'grid', 'label']),
+      gridValue: useThemeClass(['imageDetailsModal', 'sidebar', 'section', 'grid', 'value']),
+      promptText: useThemeClass(['imageDetailsModal', 'sidebar', 'prompt', 'text']),
+      promptNegative: useThemeClass(['imageDetailsModal', 'sidebar', 'prompt', 'negative']),
+      thumbnailBorder: useThemeClass(['imageDetailsModal', 'sidebar', 'thumbnail', 'border']),
+      thumbnailLabel: useThemeClass(['imageDetailsModal', 'sidebar', 'thumbnail', 'label']),
+      metaText: useThemeClass(['imageDetailsModal', 'sidebar', 'meta', 'text']),
+      meta: {
+        status: {
+          completed: useThemeClass(['imageDetailsModal', 'sidebar', 'meta', 'status', 'completed']),
+          generating: useThemeClass(['imageDetailsModal', 'sidebar', 'meta', 'status', 'generating']),
+          failed: useThemeClass(['imageDetailsModal', 'sidebar', 'meta', 'status', 'failed']),
+        }
+      }
+    },
+    navigationButton: useThemeClass(['imageDetailsModal', 'navigationButton'])
+  };
+  
   if (!image) return null;
+
 
   const renderDataGrid = (data: DataGridItem) => (
     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
@@ -74,8 +109,10 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
           value !== undefined &&
           value !== "" && (
             <div key={key} className="flex justify-between py-0.5">
-              <span className="text-gray-500">{key}:</span>
-              <span className="font-mono text-right">{value.toString()}</span>
+              <span className={styles.sidebar.gridLabel}>{key}:</span>
+              <span className={`font-mono text-right ${styles.sidebar.gridValue}`}>
+                {value.toString()}
+              </span>
             </div>
           )
       )}
@@ -108,12 +145,11 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
-      {/* Navigation Buttons */}
+    <div className={`fixed inset-0 flex items-center justify-center z-50 ${styles.overlay}`}>
       {hasPrevious && (
         <button
           onClick={onPrevious}
-          className="absolute left-0 top-1/2 -translate-y-1/2 p-1 bg-black hover:bg-blue-600 text-white z-[60] shadow-lg transition-all h-32 flex items-center"
+          className={`absolute left-0 top-1/2 -translate-y-1/2 p-1 z-[60] shadow-lg transition-all h-32 flex items-center ${styles.navigationButton}`}
         >
           <svg
             width="32"
@@ -130,7 +166,7 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
       {hasNext && (
         <button
           onClick={onNext}
-          className="absolute right-0 top-1/2 -translate-y-1/2 p-1 bg-black hover:bg-blue-600 text-white z-[60] shadow-lg transition-all h-32 flex items-center"
+          className={`absolute right-0 top-1/2 -translate-y-1/2 p-1 z-[60] shadow-lg transition-all h-32 flex items-center ${styles.navigationButton}`}
         >
           <svg
             width="32"
@@ -145,16 +181,14 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
         </button>
       )}
 
-      <div className="bg-gray-900 rounded-lg w-[95vw] h-[90vh] flex flex-col overflow-hidden border border-gray-800">
-        <div className="p-3 border-b border-gray-800 flex justify-between items-center">
-          <h2 className="text-lg font-medium text-white">Image Details</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            ×
-          </button>
+      <div className={`rounded-lg w-[95vw] h-[90vh] flex flex-col overflow-hidden ${styles.container}`}>
+        <div className={`p-3 flex justify-between items-center ${styles.header.base}`}>
+          <h2 className={`text-lg font-medium ${styles.header.title}`}>Image Details</h2>
+          <button onClick={onClose} className={styles.header.closeButton}>×</button>
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          <div className="w-[70%] h-full bg-black flex items-center justify-center">
+          <div className={`w-[70%] h-full flex items-center justify-center ${styles.imageContainer}`}>
             <img
               src={image.generated_01}
               alt={image.prompt}
@@ -162,36 +196,36 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
             />
           </div>
 
-          <div className="w-[30%] p-4 overflow-y-auto space-y-4 bg-gray-900 text-gray-200">
+          <div className={`w-[30%] p-4 overflow-y-auto space-y-4 ${styles.sidebar.base}`}>
             <div className="space-y-4">
               <div>
-                <h3 className="font-medium text-sm mb-2 text-blue-400">
+                <h3 className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}>
                   Generation Settings
                 </h3>
                 {renderDataGrid(imageData)}
               </div>
 
               <div>
-                <h3 className="font-medium text-sm mb-2 text-blue-400">
+                <h3 className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}>
                   Scale Values
                 </h3>
                 {renderDataGrid(scaleData)}
               </div>
 
               <div>
-                <h3 className="font-medium text-sm mb-2 text-blue-400">
+                <h3 className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}>
                   Prompt
                 </h3>
-                <p className="text-sm text-gray-300">{image.prompt}</p>
+                <p className={`text-sm ${styles.sidebar.promptText}`}>{image.prompt}</p>
                 {image.prompt_negative && (
-                  <p className="text-sm text-gray-400 mt-1">
+                  <p className={`text-sm mt-1 ${styles.sidebar.promptNegative}`}>
                     Negative: {image.prompt_negative}
                   </p>
                 )}
               </div>
 
               <div>
-                <h3 className="font-medium text-sm mb-2 text-blue-400">
+                <h3 className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}>
                   Variations
                 </h3>
                 <div className="grid grid-cols-3 gap-1">
@@ -201,14 +235,14 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
                       <img
                         key={i}
                         src={url}
-                        className="aspect-square object-cover rounded border border-gray-800"
+                        className={`aspect-square object-cover rounded ${styles.sidebar.thumbnailBorder}`}
                       />
                     ))}
                 </div>
               </div>
 
               <div>
-                <h3 className="font-medium text-sm mb-2 text-blue-400">
+                <h3 className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}>
                   Control Maps
                 </h3>
                 <div className="grid grid-cols-5 gap-1">
@@ -224,9 +258,9 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
                       <div key={i} className="text-center">
                         <img
                           src={map.url}
-                          className="aspect-square object-cover rounded border border-gray-800"
+                          className={`aspect-square object-cover rounded ${styles.sidebar.thumbnailBorder}`}
                         />
-                        <span className="text-xs text-gray-400">
+                        <span className={`text-xs ${styles.sidebar.thumbnailLabel}`}>
                           {map.label}
                         </span>
                       </div>
@@ -234,20 +268,19 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
                 </div>
               </div>
 
-              <div className="text-xs text-gray-400 space-y-1">
+              <div className={`text-xs space-y-1 ${styles.sidebar.metaText}`}>
                 <div>ID: {image.id}</div>
                 <div>Created: {formatDate(image.created_at)}</div>
                 <div>Updated: {formatDate(image.updated_at)}</div>
                 <div>
                   Status:{" "}
                   <span
-                    className={`inline-px-1.5 py-0.5 rounded text-xs
-                    ${
+                    className={`inline-px-1.5 py-0.5 rounded text-xs ${
                       image.status === "completed"
-                        ? "text-green-400"
+                        ? styles.sidebar.meta.status.completed
                         : image.status === "generating"
-                        ? "text-yellow-400"
-                        : "text-red-400"
+                        ? styles.sidebar.meta.status.generating
+                        : styles.sidebar.meta.status.failed
                     }`}
                   >
                     {image.status}
@@ -260,4 +293,4 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
       </div>
     </div>
   );
-};
+}

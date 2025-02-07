@@ -216,7 +216,46 @@ export const theme = {
       },
       date: "mt-2 text-sm text-neutral-500 dark:text-[#999999]"
     }
+  },
+  imageDetailsModal: {
+    overlay: 'bg-neutral-900/90 dark:bg-neutral-950/90',
+    container: 'bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800',
+    header: {
+      base: 'border-b border-neutral-200 dark:border-neutral-800',
+      title: 'text-neutral-900 dark:text-neutral-50',
+      closeButton: 'text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200'
+    },
+    imageContainer: 'bg-neutral-100 dark:bg-neutral-950',
+    sidebar: {
+      base: 'bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50',
+      section: {
+        title: 'text-neutral-600 dark:text-neutral-300',
+        grid: {
+          label: 'text-neutral-500 dark:text-neutral-400',
+          value: 'text-neutral-700 dark:text-neutral-200'
+        }
+      },
+      prompt: {
+        text: 'text-neutral-700 dark:text-neutral-200',
+        negative: 'text-neutral-500 dark:text-neutral-400'
+      },
+      thumbnail: {
+        border: 'border-neutral-200 dark:border-neutral-800',
+        label: 'text-neutral-500 dark:text-neutral-400'
+      },
+      meta: {
+        text: 'text-neutral-500 dark:text-neutral-400',
+        status: {
+          completed: 'text-neutral-700 dark:text-neutral-200',
+          generating: 'text-neutral-600 dark:text-neutral-300',
+          failed: 'text-neutral-500 dark:text-neutral-400'
+        }
+      }
+    },
+    navigationButton: 'bg-neutral-900/50 hover:bg-neutral-800 dark:bg-neutral-950/50 dark:hover:bg-neutral-800'
   }
+
+
 };
 
 export type Theme = typeof theme;
