@@ -52,6 +52,20 @@ export const theme = {
       minor: "stroke-neutral-100/30 dark:stroke-[#404040]/10"
     }
   },
+  contextMenu: {
+    container: {
+        light: 'bg-white border border-gray-200',
+        dark: 'bg-[#1f1f1f] border border-neutral-700'
+    },
+    item: {
+        light: 'text-neutral-700 hover:bg-gray-100',
+        dark: 'text-neutral-200 hover:bg-neutral-700'
+    },
+    itemHover: {
+        light: 'bg-gray-100',
+        dark: 'bg-neutral-700'
+    }
+},
   button: {
     base: "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 disabled:pointer-events-none disabled:opacity-50",
     variant: {
