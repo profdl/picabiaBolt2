@@ -2,6 +2,7 @@ import { StateCreator } from "zustand";
 import { Position, Shape } from "../../types";
 import { supabase } from "../../lib/supabase";
 import { shapeManagement } from '../../utils/shapeManagement';
+import {mergeImages} from '../../utils/mergeImagesShapes';
 
 
 const MAX_HISTORY = 50;
@@ -45,6 +46,7 @@ interface ShapeSlice extends ShapeState {
   duplicate: () => void;
   createGroup: (shapeIds: string[]) => void;
   ungroup: (groupId: string) => void;
+  mergeImages: (shapeIds: string[]) => Promise<void>; 
   resetState: () => void;
   undo: () => void;
   redo: () => void;
@@ -719,13 +721,13 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           x: sourceShape.position.x + sourceShape.width + 20,
           y: sourceShape.position.y,
         },
-        color: "#ffffff",
         rotation: 0,
         model: "",
         useSettings: false,
         isUploading: false,
         isEditing: false,
-        isOrbiting: false, // Initialize isOrbiting to false
+        color: "#ffffff",
+        isOrbiting: false, 
         imageUrl: sourceShape.imageUrl,
         depthMap: sourceShape.depthPreviewUrl,
         displacementScale: 0.5,
@@ -786,4 +788,21 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         shape.id === id ? { ...shape, ...settings } : shape
       ),
     })),
+
+
+    mergeImages: async (shapeIds: string[]) => {
+      const { shapes, addShape } = get();
+      const imagesToMerge = shapes.filter(s => shapeIds.includes(s.id));
+      
+      try {
+        const newShape = await mergeImages(imagesToMerge);
+        addShape(newShape);
+        set({ selectedShapes: [newShape.id] });
+      } catch (error) {
+        console.error('Error merging images:', error);
+        // Here you might want to show a notification to the user
+      }
+    },
 });
+
+

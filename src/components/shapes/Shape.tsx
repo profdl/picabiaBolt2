@@ -64,6 +64,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     setIsEditingText,
     setSelectedShapes,
     isEditingText,
+    mergeImages
   } = useStore();
 
   const isEditing = shape.isEditing && isEditingText;
@@ -100,6 +101,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     zoom,
     textRef,
     initDragStart,
+    mergeImages,
   });
 
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } =

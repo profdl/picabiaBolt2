@@ -34,6 +34,8 @@ export function useShapeEvents({
     duplicate,
     createGroup,
     ungroup,
+    shapes,
+    mergeImages
   } = useStore();
 
   const [rotateStart, setRotateStart] = useState<{
@@ -93,7 +95,8 @@ export function useShapeEvents({
       deleteShape,
       createGroup,
       ungroup,
-    });
+      mergeImages
+    }, shapes);
 
     setContextMenu({
       x: e.clientX,
@@ -201,3 +204,4 @@ export function useShapeEvents({
     handleRotateStart,
   };
 }
+

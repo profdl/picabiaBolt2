@@ -121,6 +121,8 @@ export interface Shape {
   negativePrompt?: string;
   outputWidth?: number;
   outputHeight?: number;
+  mergedFrom?: string[];
+  isMerged?: boolean;  
   // 3D specific properties
   depthMap?: string;
   displacementScale?: number;
@@ -251,7 +253,9 @@ export interface CanvasState {
   toggleGrid: () => void;
   create3DDepth: (sourceShape: Shape) => void;
   isOrbiting?: boolean;
+  mergeImages: (shapeIds: string[]) => Promise<void>; 
 }
+
 export interface ArenaBlock {
   id: number;
   title: string;
@@ -329,4 +333,16 @@ export interface StoreState {
 
 export interface ThreeJSShapeRef {
   exportToGLTF: () => void;
+}
+
+export interface ContextMenuActions {
+  sendBackward: () => void;
+  sendForward: () => void;
+  sendToBack: () => void;
+  sendToFront: () => void;
+  duplicate: () => void;
+  deleteShape: (id: string) => void;
+  createGroup: (ids: string[]) => void;
+  ungroup: (id: string) => void;
+  mergeImages: (ids: string[]) => void; // Add this line
 }
