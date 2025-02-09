@@ -526,7 +526,6 @@ fetchGeneratedImages: async (page = 1, perPage = 20) => {
         rotation: 0,
         isUploading: false,
         model: "",
-        useSettings: false,
         isEditing: false,
         ...DEFAULT_CONTROL_STRENGTHS,
       });

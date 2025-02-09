@@ -23,7 +23,7 @@ export const warmupSlice: StateCreator<WarmupSlice, [], [], WarmupSlice> = (set)
       const data = await response.json();
       console.log("Warmup response:", data);
       set({ isWarmedUp: true });
-    } catch (error) {
+    } catch {
       console.log("Warmup completed");
     }
   }

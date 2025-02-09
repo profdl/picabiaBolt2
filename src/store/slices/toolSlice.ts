@@ -61,6 +61,6 @@ export const toolSlice: StateCreator<
   setBrushTexture: (texture) => set({ brushTexture: texture }),
   setBrushSpacing: (spacing) => set({ brushSpacing: spacing }),
   setBrushRotation: (rotation) => set({ brushRotation: rotation }),
-  setBrushFollowPath: (value) => set((state) => ({ brushFollowPath: value })),
+  setBrushFollowPath: (value) => set(() => ({ brushFollowPath: value })),
   setIsEraser: (isEraser) => set({ isEraser }),
 });

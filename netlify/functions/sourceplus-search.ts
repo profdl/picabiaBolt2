@@ -48,10 +48,11 @@ export const handler: Handler = async (event) => {
         const query = event.queryStringParameters?.query;
         console.log('Received query:', query);
 
+        // add as collection slug "flowers-7dgsgm20"
+
         const requestBody = {
             query_string: query || "",
-            collection_ids: [],
-            collection_slug: "flowers-7dgsgm20",
+            collection_ids: [1],
             skip: 0,
             limit: 50,
             run_semantic_search: false,

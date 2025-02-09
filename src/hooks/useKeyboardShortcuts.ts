@@ -58,10 +58,7 @@ export function useKeyboardShortcuts() {
             e.preventDefault();
             setTool("select");
             break;
-          case "p":
-            e.preventDefault();
-            setTool("pen");
-            break;
+         
           case "escape":
             e.preventDefault();
             setSelectedShapes([]);
