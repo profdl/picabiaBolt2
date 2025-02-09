@@ -48,6 +48,8 @@ export function ShapeControls({
   };
 
 
+
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { sendToBack, sendToFront, sendBackward, sendForward, deleteShape } =
     useStore();
@@ -212,6 +214,7 @@ export function ShapeControls({
     shape.showNegativePrompt ||
     shape.showSketch ||
     shape.showRemix;
+
   const showControlPanel =
     isSelected ||
     anyCheckboxChecked ||
@@ -319,14 +322,13 @@ export function ShapeControls({
     >
 
 
-      {(shape.type === "image" || shape.type === "sketchpad") &&
-        showControlPanel && (
-          <div className={styles.controls.panel}>
-            {controls
-              .filter((control) => control.processType)
-              .map((control) => (
-                <div key={control.type} className={styles.controls.group}>
-                  <div className={`group relative py-0.5 ${
+      {(shape.type === "image" || shape.type === "sketchpad") && (
+        <div className={styles.controls.panel}>
+          {controls
+            .filter((control) => control.processType)
+            .map((control) => (
+              <div key={control.type} className={styles.controls.group}>
+                <div className={`group relative py-0.5 ${
                     control.showKey && shape[control.showKey as keyof Shape]
                       ? "w-max"
                       : "w-max"
