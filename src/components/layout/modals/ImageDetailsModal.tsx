@@ -242,59 +242,40 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
     <div
       className={`fixed inset-0 flex items-center justify-center z-50 ${styles.overlay}`}
     >
-{hasPrevious && (
-  <button
-    onClick={onPrevious}
-    className={`
-      absolute left-4 top-1/2 -translate-y-1/2 
-      p-2 
-      z-[60] 
-      transition-all 
-      h-12 w-12
-      flex items-center justify-center
-      ${styles.navigationButton}
-    `}
-  >
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      className="text-white"
-    >
-      <path d="M15 18l-6-6 6-6" />
-    </svg>
-  </button>
-)}
-
-{hasNext && (
-  <button
-    onClick={onNext}
-    className={`
-      absolute right-4 top-1/2 -translate-y-1/2 
-      p-2 
-      z-[60] 
-      transition-all 
-      h-12 w-12
-      flex items-center justify-center
-      ${styles.navigationButton}
-    `}
-  >
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      className="text-white"
-    >
-      <path d="M9 18l6-6-6-6" />
-    </svg>
-  </button>
-)}
+      {hasPrevious && (
+        <button
+          onClick={onPrevious}
+          className={`absolute left-0 top-1/2 -translate-y-1/2 p-1 z-[60] shadow-lg transition-all h-32 flex items-center ${styles.navigationButton}`}
+        >
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+      )}
+      {hasNext && (
+        <button
+          onClick={onNext}
+          className={`absolute right-0 top-1/2 -translate-y-1/2 p-1 z-[60] shadow-lg transition-all h-32 flex items-center ${styles.navigationButton}`}
+        >
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+      )}
 
       <div
         className={`rounded-lg w-[95vw] h-[90vh] flex flex-col overflow-hidden ${styles.container}`}
@@ -402,8 +383,15 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
                     { url: image.edgeMapUrl, label: "Edge" },
                     { url: image.poseMapUrl, label: "Pose" },
                     { url: image.sketchMapUrl, label: "Sketch" },
-                    { url: image.remixMapUrl, label: "Remix" },
-                  ]
+                // Split originalUrl for remix images if remix_scale is present
+    ...(image.remix_scale > 0 
+      ? image.originalUrl.split(',')
+          .map((url, index) => ({
+            url: url.trim(),
+            label: `Remix ${index + 1}`
+          }))
+      : [])
+  ]
                     .filter((map) => map.url)
                     .map((map, i) => (
                       <div key={i} className="text-center">
@@ -448,24 +436,3 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
   );
 };
 
-function addNewShape(
-  arg0: string,
-  arg1: {
-    // Copy settings from the image
-    model: any;
-    steps: number;
-    guidanceScale: number;
-    scheduler: string;
-    seed: number;
-    outputWidth: number;
-    outputHeight: number;
-    outputFormat: any;
-    outputQuality: any;
-    randomiseSeeds: boolean;
-    useSettings: boolean;
-  },
-  arg2: string,
-  arg3: { centerOnShape: boolean; setSelected: boolean; defaultWidth: number }
-) {
-  throw new Error("Function not implemented.");
-}
