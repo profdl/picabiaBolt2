@@ -2,6 +2,7 @@
 import { useStore } from '../store';
 import { Position, Shape } from '../types';
 import { DEFAULT_CONTROL_STRENGTHS } from '../constants/shapeControlSettings';
+import { getImageDimensions } from '../utils/image'; 
 
 interface ShapeAddOptions {
   position?: Position;
@@ -21,7 +22,7 @@ export function useShapeAdder() {
     setIsEditingText,
     shapes,
     setOffset,
-    updateShape
+    
   } = useStore();
 
   const getViewportCenter = (): Position => {
@@ -33,8 +34,6 @@ export function useShapeAdder() {
       y: (rect.height / 2 - offset.y) / zoom,
     };
   };
-
-
 
   const animateToShape = (shape: Shape) => {
     const targetX = -(shape.position.x + shape.width / 2) * zoom + window.innerWidth / 2;
@@ -63,49 +62,25 @@ export function useShapeAdder() {
   };
 
   const addNewShape = async (
-    shapeType: Shape['type'],
-    shapeData: Partial<Shape>,
-    options: ShapeAddOptions = { animate: true } // Default to true
+    shapeType: Shape['type'], // This should be a string representing the type
+    shapeData: Partial<Shape>, // This should match the object data for shape properties
+    url: string, // Included URL as an argument for dimension retrieval
+    options: ShapeAddOptions = { animate: true } // Ensure options object is a valid type
   ) => {
+    const { width: originalWidth, height: originalHeight } = await getImageDimensions(url);
+    const aspectRatio = originalWidth / originalHeight;
+
     const center = getViewportCenter();
     const shapeId = Math.random().toString(36).substr(2, 9);
 
     // Default dimensions based on shape type
-    let width = options.defaultWidth;
-    let height: number;
-
-    switch (shapeType) {
-      case 'sticky':
-        width = width || 270; // 180 * 1.5
-        height = 180;
-        break;
-      case 'image':
-        width = width || 300;
-        if (shapeData.aspectRatio) {
-          height = width / shapeData.aspectRatio;
-        } else {
-          height = 200;
-        }
-        break;
-      case 'sketchpad':
-        width = 512;
-        height = 512;
-        break;
-      case 'diffusionSettings':
-        width = 250;
-        height = 180;
-        break;
-      default:
-        width = width || 40;
-        height = width;
-    }
-
-    // Calculate position
+    const width = options.defaultWidth || 300;
+    const height = width / aspectRatio;
 
     const findOpenSpace = (height: number, center: Position): Position => {
       const PADDING = 20;
       const rightBoundary = Math.max(...shapes.map(s => s.position.x + s.width), 0);
-      
+    
       return {
         x: rightBoundary + PADDING,
         y: center.y - height / 2,
@@ -114,8 +89,6 @@ export function useShapeAdder() {
 
     const position = options.position || findOpenSpace(height, center);
 
-
-    // Construct the new shape
     const newShape: Shape = {
       id: shapeId,
       type: shapeType,
@@ -125,53 +98,11 @@ export function useShapeAdder() {
       rotation: 0,
       isUploading: false,
       model: "",
-      useSettings: false,
       isEditing: Boolean(options.startEditing),
       color: shapeType === 'sticky' ? 'var(--sticky-green)' : 'transparent',
       ...DEFAULT_CONTROL_STRENGTHS,
       ...shapeData,
     };
-
-    
-      // Special handling for sketchpad
-      if (shapeType === 'sketchpad' && shapeData.showSketch) {
-        // Uncheck sketch control on all other shapes
-        shapes.forEach(shape => {
-          if ((shape.type === 'image' || shape.type === 'sketchpad') && shape.showSketch) {
-            updateShape(shape.id, { 
-              showSketch: false,
-              sketchPreviewUrl: undefined
-            });
-          }
-        });
-      }
-
-       // Special handling for diffusion settings
-       if (shapeType === 'diffusionSettings') {
-        // First uncheck useSettings on all other diffusion settings shapes
-        shapes.forEach(shape => {
-          if (shape.type === 'diffusionSettings' && shape.useSettings) {
-            updateShape(shape.id, { 
-              useSettings: false 
-            });
-          }
-        });
-
-  }
-
-    // Special handling for sticky notes
-    if (shapeType === 'sticky') {
-      newShape.content = shapeData.content || "Double-Click to Edit...";
-      newShape.showPrompt = true;
-      
-      // Uncheck other sticky notes
-      shapes.forEach(shape => {
-        if (shape.type === 'sticky' && shape.showPrompt) {
-          shape.showPrompt = false;
-          shape.color = shape.showNegativePrompt ? 'var(--sticky-red)' : 'var(--sticky-yellow)';
-        }
-      });
-    }
 
     // Add the shape
     addShape(newShape);

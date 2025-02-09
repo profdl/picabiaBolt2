@@ -9,6 +9,7 @@ import { useFileUpload } from "../../../hooks/useFileUpload";
 import { usePersonalAssets } from "../../../hooks/usePersonalAssets";
 import { useSourcePlus } from "../../../hooks/useSourcePlus";
 import { useShapeAdder } from "../../../hooks/useShapeAdder";
+import { getImageDimensions } from "../../../utils/image";
 
 interface AssetsDrawerProps {
   isOpen: boolean;
@@ -52,31 +53,45 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     }
   }, [isOpen, assetsRefreshTrigger, fetchAssets]);
 
+
+
   const handleAssetClick = async (asset: Asset) => {
     if (!asset) return;
-    
+  
     const fullSizeUrl = asset.url.replace("/thumbnails/", "/images/");
-    
-    const success = await addNewShape('image', {
-      imageUrl: fullSizeUrl,
-      originalWidth: asset.width,
-      originalHeight: asset.height,
-      aspectRatio: asset.height ? (asset.width ?? 1) / asset.height : 1,
-      depthStrength: asset.depthStrength || 0.25,
-      edgesStrength: asset.edgesStrength || 0.25,
-      poseStrength: asset.poseStrength || 0.25,
-      sketchStrength: asset.sketchStrength || 0.25,
-      remixStrength: asset.remixStrength || 0.25,
-    }, {
-      defaultWidth: 512,
-      centerOnShape: true,
-      setSelected: true
-    });
-    
-    if (success) {
-      onClose();
+  
+    try {
+      const { width: originalWidth, height: originalHeight } = await getImageDimensions(fullSizeUrl);
+      const aspectRatio = originalWidth / originalHeight;
+  
+      const success = await addNewShape(
+        'image',
+        {
+          imageUrl: fullSizeUrl,
+          originalWidth,
+          originalHeight,
+          aspectRatio,
+          depthStrength: asset.depthStrength || 0.25,
+          edgesStrength: asset.edgesStrength || 0.25,
+          poseStrength: asset.poseStrength || 0.25,
+          sketchStrength: asset.sketchStrength || 0.25,
+          remixStrength: asset.remixStrength || 0.25,
+        },
+        fullSizeUrl, 
+        {
+          animate: true,
+          setSelected: true
+        }
+      );
+  
+      if (success) {
+        onClose();
+      }
+    } catch (error) {
+      console.error("Failed to get image dimensions:", error);
     }
   };
+  
 
   useEffect(() => {
     if (activeTab === "source-plus") {
