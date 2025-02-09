@@ -20,7 +20,8 @@ import { useToolbarShapes } from "../../../hooks/useToolbarShapes";
 import { useToolbarGenerate } from "../../../hooks/useToolbarGenerate";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { useShapeAdder } from "../../../hooks/useShapeAdder";
-
+import { BrushPropertiesToolbar } from "./BrushPropertiesToolbar";
+import { ShapePropertiesToolbar } from "./ShapePropertiesToolbar";
 
 interface ToolbarProps {
   onShowImageGenerate: () => void;
@@ -48,9 +49,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     divider: "w-px bg-neutral-200 dark:bg-neutral-700 mx-2",
   };
 
-  const { addNewShape } = useShapeAdder(); 
-
-
+  const { addNewShape } = useShapeAdder();
 
   const {
     selectedShapes,
@@ -63,11 +62,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     deleteShape,
     createGroup,
     ungroup,
-    mergeImages
+    mergeImages,
   } = useStore();
-  
-  const selectedShape = shapes.find(s => selectedShapes.includes(s.id));
 
+  const selectedShape = shapes.find((s) => selectedShapes.includes(s.id));
 
   const {
     setBrushTexture,
@@ -88,30 +86,29 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
   const handlePropertyChange = (property: string, value: unknown) => {
     switch (property) {
-      case 'color':
+      case "color":
         setCurrentColor(value as string);
         break;
-      case 'texture':
+      case "texture":
         setBrushTexture(value as string);
         break;
-      case 'size':
+      case "size":
         setBrushSize(value as number);
         break;
-      case 'opacity':
+      case "opacity":
         setBrushOpacity(value as number);
         break;
-      case 'rotation':
+      case "rotation":
         setBrushRotation(value as number);
         break;
-      case 'followPath':
+      case "followPath":
         setBrushFollowPath(value as boolean);
         break;
-      case 'spacing':
+      case "spacing":
         setBrushSpacing(value as number);
         break;
     }
   };
-
 
   const {
     currentColor,
@@ -126,16 +123,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     setTool,
   } = useToolbarBrush();
 
-  const {
-    showAssets,
-    toggleAssets,
-  } = useToolbarShapes();
+  const { showAssets, toggleAssets } = useToolbarShapes();
 
-  const {
-    hasActivePrompt,
-    generatingPredictions,
-    handleGenerate,
-  } = useToolbarGenerate();
+  const { hasActivePrompt, generatingPredictions, handleGenerate } =
+    useToolbarGenerate();
 
   const { toggleGallery } = useStore();
 
@@ -150,70 +141,61 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     }
   }, [setCurrentColor, tool]);
 
-
   const handleAddSticky = async () => {
     await addNewShape(
-      'sticky',
+      "sticky",
       {
-        color: 'var(--sticky-green)',
-        isEditing: true
+        color: "var(--sticky-green)",
+        isEditing: true,
       },
-      '',
+      "",
       {
         centerOnShape: true,
         setSelected: true,
         startEditing: true,
-        defaultWidth: 200
+        defaultWidth: 200,
       }
     );
   };
 
   const handleAddSketchpad = async () => {
     await addNewShape(
-      'sketchpad',
+      "sketchpad",
       {
         locked: true,
-        showSketch: true
+        showSketch: true,
       },
-      '',
+      "",
       {
         centerOnShape: true,
         setSelected: true,
-        defaultWidth: 400
+        defaultWidth: 400,
       }
     );
   };
 
   const handleAddDiffusionSettings = async () => {
-    await addNewShape(
-      'diffusionSettings',
-      {},
-      '',
-      {
-        centerOnShape: true,
-        setSelected: true,
-        defaultWidth: 300
-      }
-    );
+    await addNewShape("diffusionSettings", {}, "", {
+      centerOnShape: true,
+      setSelected: true,
+      defaultWidth: 300,
+    });
   };
 
   const handleAddImagePlaceholder = async () => {
     await addNewShape(
-      'image',
+      "image",
       {
-        isUploading: true
+        isUploading: true,
       },
-      '',
+      "",
       {
         centerOnShape: true,
         setSelected: true,
-        defaultWidth: 300
+        defaultWidth: 300,
       }
     );
   };
-
-  
-
 
   return (
     <div className={styles.container}>
@@ -250,44 +232,43 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             />
           </Tooltip>
 
-   {/* Image Properties Toolbar */}
-   {tool === "select" && selectedShape?.type === "image" && (
-        <PropertiesToolbar
-          type="image"
-          shape={selectedShape}
-          selectedShapes={selectedShapes}
-          shapes={shapes}
-          actions={{
-            sendBackward,
-            sendForward,
-            sendToBack,
-            sendToFront,
-            duplicate,
-            deleteShape,
-            createGroup,
-            ungroup,
-            mergeImages
-          }}
-        />
-      )}
+          {/* Image Properties Toolbar */}
+          {tool === "select" && selectedShape?.type === "image" && (
+            <PropertiesToolbar
+              type="image"
+              shape={selectedShape}
+              selectedShapes={selectedShapes}
+              shapes={shapes}
+              actions={{
+                sendBackward,
+                sendForward,
+                sendToBack,
+                sendToFront,
+                duplicate,
+                deleteShape,
+                createGroup,
+                ungroup,
+                mergeImages,
+              }}
+            />
+          )}
 
-      {/* Existing Brush Properties Toolbar */}
-      {(tool === "brush" || tool === "eraser") && (
-        <PropertiesToolbar
-          type={tool}
-          properties={{
-            color: currentColor,
-            texture: brushTexture,
-            size: brushSize,
-            opacity: brushOpacity,
-            rotation: brushRotation,
-            followPath: brushFollowPath,
-            spacing: brushSpacing,
-          }}
-          onPropertyChange={handlePropertyChange}
-        />
-      )}
-
+          {/* Brush Properties Toolbar */}
+          {(tool === "brush" || tool === "eraser") && (
+            <PropertiesToolbar
+              type={tool}
+              properties={{
+                color: currentColor,
+                texture: brushTexture,
+                size: brushSize,
+                opacity: brushOpacity,
+                rotation: brushRotation,
+                followPath: brushFollowPath,
+                spacing: brushSpacing,
+              }}
+              onPropertyChange={handlePropertyChange}
+            />
+          )}
           {/* Sketchpad */}
           <Tooltip
             content="Create a sketch pad and guide the AI image generation by drawing."
@@ -305,9 +286,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
           {/* Generate Button */}
           <Tooltip
-            content={!hasActivePrompt || generatingPredictions.size > 0
-              ? "Add a text or image prompt to activate. Make sure Text Prompt is checked on a Sticky Note that has a prompt written. Or add an image and check a control type such as Remix"
-              : (
+            content={
+              !hasActivePrompt || generatingPredictions.size > 0 ? (
+                "Add a text or image prompt to activate. Make sure Text Prompt is checked on a Sticky Note that has a prompt written. Or add an image and check a control type such as Remix"
+              ) : (
                 <div>
                   <p>
                     All checked notes and images will effect the generated
@@ -318,16 +300,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                     that it should only take a few seconds.
                   </p>
                 </div>
-              )}
+              )
+            }
             side="top"
           >
             <ToolbarButton
-              icon={generatingPredictions.size > 0
-                ? <Loader2 className="animate-spin" />
-                : <Sparkles />}
-              label={generatingPredictions.size > 0
-                ? "Generating..."
-                : "Generate"}
+              icon={
+                generatingPredictions.size > 0 ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Sparkles />
+                )
+              }
+              label={
+                generatingPredictions.size > 0 ? "Generating..." : "Generate"
+              }
               disabled={!hasActivePrompt || generatingPredictions.size > 0}
               onClick={async () => {
                 if (!hasActivePrompt) {
@@ -336,7 +323,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 handleGenerate();
               }}
               className={`${styles.button.base} ${styles.button.primary} ${
-                (!hasActivePrompt || generatingPredictions.size > 0)
+                !hasActivePrompt || generatingPredictions.size > 0
                   ? "opacity-50"
                   : ""
               }`}
@@ -394,4 +381,4 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
       </div>
     </div>
   );
-}
+};
