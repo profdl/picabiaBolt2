@@ -2,95 +2,105 @@ import { Shape } from '../types';
 
 export async function mergeImages(images: Shape[]): Promise<Shape> {
   try {
+    // Find the top-left most position among all images
+    const minX = Math.min(...images.map(img => img.position.x));
+    const minY = Math.min(...images.map(img => img.position.y));
+
     // Create new canvases for each image
     const imagePromises = images.map(shape => {
       return new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => resolve(img);
-        img.onerror = reject;
+        img.onerror = (e) => {
+          console.error('Image load error:', e);
+          reject(new Error(`Failed to load image`));
+        };
         
-        const timestamp = new Date().getTime();
-        const imageUrl = shape.imageUrl || '';
-        const urlWithTimestamp = imageUrl.includes('?') 
-          ? `${imageUrl}&t=${timestamp}` 
-          : `${imageUrl}?t=${timestamp}`;
-        
-        img.src = urlWithTimestamp;
+        if (!shape.imageUrl) {
+          reject(new Error('Image URL is missing'));
+          return;
+        }
+
+        if (shape.imageUrl.startsWith('data:image')) {
+          img.src = shape.imageUrl;
+        } else {
+          const cleanUrl = shape.imageUrl.split('?')[0];
+          const timestamp = new Date().getTime();
+          const urlWithTimestamp = `${cleanUrl}?t=${timestamp}`;
+          img.src = urlWithTimestamp;
+        }
       });
     });
 
-    // Wait for all images to load
     const loadedImages = await Promise.all(imagePromises);
 
-    // Calculate dimensions of the merged image
-    const totalWidth = Math.max(...images.map(img => img.width));
-    const totalHeight = Math.max(...images.map(img => img.height));
+    // Calculate canvas dimensions based on the relative positions and sizes of all images
+    const maxRight = Math.max(...images.map(img => img.position.x + img.width)) - minX;
+    const maxBottom = Math.max(...images.map(img => img.position.y + img.height)) - minY;
 
-    // Create a canvas to merge the images
+    // Create a canvas large enough to fit all images
     const canvas = document.createElement('canvas');
-    canvas.width = totalWidth;
-    canvas.height = totalHeight;
+    canvas.width = maxRight;
+    canvas.height = maxBottom;
     const ctx = canvas.getContext('2d');
 
     if (!ctx) {
       throw new Error('Could not get canvas context');
     }
 
-    // Draw each image onto the canvas with full opacity
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw each image at its relative position
     loadedImages.forEach((img, index) => {
       const shape = images[index];
-      // Scale and position the image relative to its original dimensions
-      const scale = Math.min(
-        totalWidth / img.width,
-        totalHeight / img.height
-      );
       
-      const x = shape.position.x - images[0].position.x;
-      const y = shape.position.y - images[0].position.y;
+      // Calculate position relative to the top-left most image
+      const relativeX = shape.position.x - minX;
+      const relativeY = shape.position.y - minY;
       
-      // Remove the divided opacity, use full opacity instead
       ctx.globalAlpha = 1;
-      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+      ctx.drawImage(
+        img,
+        relativeX,
+        relativeY,
+        shape.width,
+        shape.height
+      );
     });
 
-    // Convert canvas to blob
     const blob = await new Promise<Blob>((resolve, reject) => {
-      try {
-        canvas.toBlob((blob) => {
+      canvas.toBlob(
+        (blob) => {
           if (blob) {
             resolve(blob);
           } else {
             reject(new Error('Failed to create blob'));
           }
-        }, 'image/png');
-      } catch (error) {
-        reject(error);
-      }
+        },
+        'image/png',
+        1.0
+      );
     });
 
-    // Create object URL for the merged image
     const mergedImageUrl = URL.createObjectURL(blob);
 
     // Calculate position for the new shape
-    // Find the rightmost edge of the selected shapes
     const rightmostEdge = Math.max(...images.map(img => img.position.x + img.width));
     const averageY = images.reduce((sum, img) => sum + img.position.y, 0) / images.length;
     
-    // Position the new shape to the right of the selected shapes
     const PADDING = 20;
     const newPosition = {
       x: rightmostEdge + PADDING,
       y: averageY,
     };
 
-    // Create new shape for the merged image
     const newShape: Shape = {
       id: Math.random().toString(36).substr(2, 9),
       type: 'image',
       position: newPosition,
-      width: totalWidth,
-      height: totalHeight,
+      width: maxRight,
+      height: maxBottom,
       rotation: 0,
       imageUrl: mergedImageUrl,
       isUploading: false,
