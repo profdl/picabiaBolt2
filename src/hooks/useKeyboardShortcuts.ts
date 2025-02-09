@@ -24,8 +24,12 @@ export function useKeyboardShortcuts() {
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
 
-      // Only return early if we're in an input AND editing text
-      if (isInput && isEditingText) return;
+   // Add check for assets drawer search input
+   const isAssetsSearch = (e.target as HTMLElement)?.classList?.contains('assets-drawer-search');
+      
+   // Return early if we're in the assets search or editing text in an input
+   if ((isInput && isEditingText) || isAssetsSearch) return;
+
 
       const isPrintableKey = e.key.length === 1 && !e.ctrlKey && !e.metaKey;
       const selectedShape = shapes.find((s) => selectedShapes.includes(s.id));

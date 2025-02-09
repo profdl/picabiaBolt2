@@ -154,10 +154,11 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
         value={sourcePlusQuery}
         onChange={(e) => setSourcePlusQuery(e.target.value)}
         placeholder="Search within collection..."
-        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="assets-drawer-search w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
       <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
     </div>
+
 
               <ImageGrid
                 images={
