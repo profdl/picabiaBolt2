@@ -23,9 +23,22 @@ export const usePersonalAssets = () => {
       const from = (pageNumber - 1) * ASSETS_PER_PAGE;
       const to = from + ASSETS_PER_PAGE - 1;
 
-      const { data, error, count } = await supabase
+      // First get the total count
+      const { count } = await supabase
         .from("assets")
-        .select("*", { count: 'exact' })
+        .select("*", { count: 'exact', head: true })
+        .eq("user_id", user.id);
+
+      // If we're trying to fetch beyond available data, stop
+      if (count && from >= count) {
+        setHasMore(false);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("assets")
+        .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .range(from, to);

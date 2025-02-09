@@ -101,7 +101,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollHeight - scrollTop <= clientHeight * 1.5) {
+    if (scrollHeight - scrollTop <= clientHeight * 1.5 && !loading && hasMore) {
       loadMore();
     }
   };
