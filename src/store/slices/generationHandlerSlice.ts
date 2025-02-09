@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import multiControlWorkflow from "../../lib/generateWorkflow.json";
 import { Shape, Position } from "../../types";
 import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -17,7 +17,7 @@ interface Workflow {
   };
 }
 
- interface StoreState {
+interface StoreState {
   shapes: Shape[];
   zoom: number;
   offset: Position;
@@ -251,7 +251,7 @@ export const generationHandlerSlice: StateCreator<
             tempCanvas.width = 512;
             tempCanvas.height = 512;
             const ctx = tempCanvas.getContext("2d");
-            
+
             if (ctx) {
               const img = new Image();
               img.src = controlShape.canvasData;
@@ -261,7 +261,7 @@ export const generationHandlerSlice: StateCreator<
                   resolve(null);
                 };
               });
-              
+
               const publicUrl = await uploadCanvasToSupabase(tempCanvas);
               if (publicUrl) {
                 // Set up workflow nodes
@@ -271,7 +271,7 @@ export const generationHandlerSlice: StateCreator<
                     image: publicUrl,
                     upload: "image",
                   },
-                  class_type: "LoadImage", 
+                  class_type: "LoadImage",
                 };
               }
             }
@@ -286,7 +286,7 @@ export const generationHandlerSlice: StateCreator<
               class_type: "LoadImage",
             };
           }
-        
+
           // Common workflow setup for both types
           currentWorkflow["39"] = workflow["39"];
           currentWorkflow["43"] = {
@@ -301,7 +301,6 @@ export const generationHandlerSlice: StateCreator<
           };
           currentPositiveNode = "43";
         }
-        
 
         let currentModelNode = "4"; // Start with the base model
         let ipAdapterCounter = 0;
@@ -439,46 +438,54 @@ export const generationHandlerSlice: StateCreator<
       get().addGeneratingPrediction(prediction_id);
 
       subscription = supabase
-      .channel('generated_images')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'generated_images',
-        },
-        (payload: unknown) => {
-          const typedPayload = payload as {
-            new: { 
-              status: string; 
-              generated_01: string; 
-              prediction_id: string;
-              updated_at: string;
-              error_message?: string;
+        .channel("generated_images")
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "generated_images",
+          },
+          (payload: unknown) => {
+            const typedPayload = payload as {
+              new: {
+                status: string;
+                generated_01: string;
+                prediction_id: string;
+                updated_at: string;
+                error_message?: string;
+              };
             };
-          };
-          
-          // Handle completion regardless of window focus
-          if (typedPayload.new.status === 'completed' && typedPayload.new.generated_01) {
-            get().updateShape(typedPayload.new.prediction_id, {
-              isUploading: false,
-              imageUrl: typedPayload.new.generated_01,
-              lastUpdated: typedPayload.new.updated_at
-            });
-            get().removeGeneratingPrediction(typedPayload.new.prediction_id);
-          } else if (typedPayload.new.status === 'error' || typedPayload.new.status === 'failed') {
-            // Handle error states
-            get().updateShape(typedPayload.new.prediction_id, {
-              isUploading: false,
-              lastUpdated: typedPayload.new.updated_at,
-              color: '#ffcccb' // Add a visual indicator for error
-            });
-            get().removeGeneratingPrediction(typedPayload.new.prediction_id);
-            get().setError(typedPayload.new.error_message || 'Generation failed');
+
+            // Handle completion regardless of window focus
+            if (
+              typedPayload.new.status === "completed" &&
+              typedPayload.new.generated_01
+            ) {
+              get().updateShape(typedPayload.new.prediction_id, {
+                isUploading: false,
+                imageUrl: typedPayload.new.generated_01,
+                lastUpdated: typedPayload.new.updated_at,
+              });
+              get().removeGeneratingPrediction(typedPayload.new.prediction_id);
+            } else if (
+              typedPayload.new.status === "error" ||
+              typedPayload.new.status === "failed"
+            ) {
+              // Handle error states
+              get().updateShape(typedPayload.new.prediction_id, {
+                isUploading: false,
+                lastUpdated: typedPayload.new.updated_at,
+                color: "#ffcccb", // Add a visual indicator for error
+              });
+              get().removeGeneratingPrediction(typedPayload.new.prediction_id);
+              get().setError(
+                typedPayload.new.error_message || "Generation failed"
+              );
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
       const insertData = {
         id: crypto.randomUUID(),
@@ -490,6 +497,11 @@ export const generationHandlerSlice: StateCreator<
         status: "generating",
         updated_at: new Date().toISOString(),
         image_index: 0,
+        model: activeSettings.model || "juggernautXL_v9",
+        output_format: activeSettings.outputFormat || "png",
+        output_quality: activeSettings.outputQuality || 100,
+        randomise_seeds: activeSettings.randomiseSeeds || false,
+
         originalUrl: controlShapes
           .map((shape) => shape.imageUrl)
           .filter(Boolean)
@@ -583,5 +595,5 @@ export const generationHandlerSlice: StateCreator<
       }
     }
     set({ subscription: subscription });
-  }
+  },
 });

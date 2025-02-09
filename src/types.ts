@@ -163,6 +163,11 @@ export interface SavedImage {
   generated_02: string;
   generated_03: string;
   generated_04: string;
+  model: string;
+  output_format: 'png' | 'jpg';
+  output_quality: number;
+  randomise_seeds: boolean;
+  error_message?: string;
   num_inference_steps: number;
   prompt_negative: string;
   width: number;
