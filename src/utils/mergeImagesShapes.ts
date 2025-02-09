@@ -1,4 +1,6 @@
 import { Shape } from '../types';
+import { supabase } from '../lib/supabase/client'
+
 
 export async function mergeImages(images: Shape[]): Promise<Shape> {
   try {
@@ -83,7 +85,39 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
       );
     });
 
-    const mergedImageUrl = URL.createObjectURL(blob);
+    // Upload merged image to Supabase
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const fileName = `merged_${Math.random().toString(36).substring(2)}.png`;
+    const arrayBuffer = await blob.arrayBuffer();
+    const fileData = new Uint8Array(arrayBuffer);
+
+    const { error: uploadError } = await supabase.storage
+      .from("assets")
+      .upload(fileName, fileData, {
+        contentType: 'image/png',
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("assets").getPublicUrl(fileName);
+
+    const { error: dbError } = await supabase.from("assets").insert([
+      {
+        url: publicUrl,
+        user_id: user.id,
+      },
+    ]);
+
+    if (dbError) throw dbError;
 
     // Calculate position for the new shape
     const rightmostEdge = Math.max(...images.map(img => img.position.x + img.width));
@@ -102,7 +136,7 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
       width: maxRight,
       height: maxBottom,
       rotation: 0,
-      imageUrl: mergedImageUrl,
+      imageUrl: publicUrl, // Use the Supabase public URL instead of Blob URL
       isUploading: false,
       model: '',
       useSettings: false,
@@ -123,4 +157,4 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
     console.error('Error merging images:', error);
     throw error;
   }
-}
+};
