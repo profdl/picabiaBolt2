@@ -17,6 +17,11 @@ export interface Position {
   y: number;
 }
 
+export interface ToolContext {
+  type: 'image' | 'brush' | 'eraser' | null;
+  shapeId?: string;
+}
+
 export interface DragStart {
   x: number;
   y: number;
@@ -218,6 +223,7 @@ export interface DetailedSavedImage {
 
 
 export interface CanvasState {
+  activeToolContext: ToolContext;
   shapes: Shape[];
   selectedShapes: string[];
   zoom: number;

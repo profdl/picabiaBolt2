@@ -50,6 +50,25 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
   const { addNewShape } = useShapeAdder(); 
 
+
+
+  const {
+    selectedShapes,
+    shapes,
+    sendBackward,
+    sendForward,
+    sendToBack,
+    sendToFront,
+    duplicate,
+    deleteShape,
+    createGroup,
+    ungroup,
+    mergeImages
+  } = useStore();
+  
+  const selectedShape = shapes.find(s => selectedShapes.includes(s.id));
+
+
   const {
     setBrushTexture,
     setBrushSize,
@@ -231,8 +250,29 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             />
           </Tooltip>
 
-          {/* Brush Controls Overlay */}
-          {(tool === "brush" || tool === "eraser") && (
+   {/* Image Properties Toolbar */}
+   {tool === "select" && selectedShape?.type === "image" && (
+        <PropertiesToolbar
+          type="image"
+          shape={selectedShape}
+          selectedShapes={selectedShapes}
+          shapes={shapes}
+          actions={{
+            sendBackward,
+            sendForward,
+            sendToBack,
+            sendToFront,
+            duplicate,
+            deleteShape,
+            createGroup,
+            ungroup,
+            mergeImages
+          }}
+        />
+      )}
+
+      {/* Existing Brush Properties Toolbar */}
+      {(tool === "brush" || tool === "eraser") && (
         <PropertiesToolbar
           type={tool}
           properties={{
