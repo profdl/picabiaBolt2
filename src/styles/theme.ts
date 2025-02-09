@@ -266,7 +266,15 @@ export const theme = {
         }
       }
     },
-    navigationButton: 'bg-neutral-900/50 hover:bg-neutral-800 dark:bg-neutral-950/50 dark:hover:bg-neutral-800'
+    navigationButton: `
+    bg-blue-500/70 hover:bg-blue-600/80 
+    text-white
+    backdrop-blur-sm
+    rounded-lg
+    transition-all
+    duration-200
+    shadow-lg
+  `
   }
 
 

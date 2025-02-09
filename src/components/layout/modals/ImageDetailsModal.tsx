@@ -1,7 +1,7 @@
 import React from "react";
 import { format } from "date-fns";
-import { useThemeClass } from '../../../styles/useThemeClass';
-
+import { useThemeClass } from "../../../styles/useThemeClass";
+import { useShapeAdder } from "../../../hooks/useShapeAdder";
 
 interface ImageDetailsModalProps {
   image: SavedImage | null;
@@ -19,6 +19,9 @@ interface DataGridItem {
   [key: string]: string | number | boolean | null | undefined;
 }
 export interface SavedImage {
+  output_quality: number;
+  output_format: string;
+  model: string;
   id: string;
   user_id: string;
   prompt: string;
@@ -67,39 +70,128 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
   hasNext,
   hasPrevious,
 }) => {
+  const { addNewShape } = useShapeAdder();
+
+  const handleReuseSettings = async () => {
+    if (!image) return;
+
+    await addNewShape(
+      "diffusionSettings",
+      {
+        model: image.model || "juggernautXL_v9",
+        steps: image.num_inference_steps,
+        guidanceScale: image.guidance_scale,
+        scheduler: image.scheduler || "dpmpp_2m_sde",
+        seed: image.seed,
+        outputWidth: image.width,
+        outputHeight: image.height,
+        outputFormat: image.output_format || "png",
+        outputQuality: image.output_quality || 100,
+        randomiseSeeds: false,
+        useSettings: true,
+      },
+      "",
+      {
+        centerOnShape: true,
+        setSelected: true,
+        defaultWidth: 300,
+      }
+    );
+
+    onClose();
+  };
 
   const styles = {
-    overlay: useThemeClass(['imageDetailsModal', 'overlay']),
-    container: useThemeClass(['imageDetailsModal', 'container']),
+    overlay: useThemeClass(["imageDetailsModal", "overlay"]),
+    container: useThemeClass(["imageDetailsModal", "container"]),
     header: {
-      base: useThemeClass(['imageDetailsModal', 'header', 'base']),
-      title: useThemeClass(['imageDetailsModal', 'header', 'title']),
-      closeButton: useThemeClass(['imageDetailsModal', 'header', 'closeButton'])
+      base: useThemeClass(["imageDetailsModal", "header", "base"]),
+      title: useThemeClass(["imageDetailsModal", "header", "title"]),
+      closeButton: useThemeClass([
+        "imageDetailsModal",
+        "header",
+        "closeButton",
+      ]),
     },
-    imageContainer: useThemeClass(['imageDetailsModal', 'imageContainer']),
+    imageContainer: useThemeClass(["imageDetailsModal", "imageContainer"]),
     sidebar: {
-      base: useThemeClass(['imageDetailsModal', 'sidebar', 'base']),
-      sectionTitle: useThemeClass(['imageDetailsModal', 'sidebar', 'section', 'title']),
-      gridLabel: useThemeClass(['imageDetailsModal', 'sidebar', 'section', 'grid', 'label']),
-      gridValue: useThemeClass(['imageDetailsModal', 'sidebar', 'section', 'grid', 'value']),
-      promptText: useThemeClass(['imageDetailsModal', 'sidebar', 'prompt', 'text']),
-      promptNegative: useThemeClass(['imageDetailsModal', 'sidebar', 'prompt', 'negative']),
-      thumbnailBorder: useThemeClass(['imageDetailsModal', 'sidebar', 'thumbnail', 'border']),
-      thumbnailLabel: useThemeClass(['imageDetailsModal', 'sidebar', 'thumbnail', 'label']),
-      metaText: useThemeClass(['imageDetailsModal', 'sidebar', 'meta', 'text']),
+      base: useThemeClass(["imageDetailsModal", "sidebar", "base"]),
+      sectionTitle: useThemeClass([
+        "imageDetailsModal",
+        "sidebar",
+        "section",
+        "title",
+      ]),
+      gridLabel: useThemeClass([
+        "imageDetailsModal",
+        "sidebar",
+        "section",
+        "grid",
+        "label",
+      ]),
+      gridValue: useThemeClass([
+        "imageDetailsModal",
+        "sidebar",
+        "section",
+        "grid",
+        "value",
+      ]),
+      promptText: useThemeClass([
+        "imageDetailsModal",
+        "sidebar",
+        "prompt",
+        "text",
+      ]),
+      promptNegative: useThemeClass([
+        "imageDetailsModal",
+        "sidebar",
+        "prompt",
+        "negative",
+      ]),
+      thumbnailBorder: useThemeClass([
+        "imageDetailsModal",
+        "sidebar",
+        "thumbnail",
+        "border",
+      ]),
+      thumbnailLabel: useThemeClass([
+        "imageDetailsModal",
+        "sidebar",
+        "thumbnail",
+        "label",
+      ]),
+      metaText: useThemeClass(["imageDetailsModal", "sidebar", "meta", "text"]),
+      button: useThemeClass(["imageDetailsModal", "sidebar", "button"]),
       meta: {
         status: {
-          completed: useThemeClass(['imageDetailsModal', 'sidebar', 'meta', 'status', 'completed']),
-          generating: useThemeClass(['imageDetailsModal', 'sidebar', 'meta', 'status', 'generating']),
-          failed: useThemeClass(['imageDetailsModal', 'sidebar', 'meta', 'status', 'failed']),
-        }
-      }
+          completed: useThemeClass([
+            "imageDetailsModal",
+            "sidebar",
+            "meta",
+            "status",
+            "completed",
+          ]),
+          generating: useThemeClass([
+            "imageDetailsModal",
+            "sidebar",
+            "meta",
+            "status",
+            "generating",
+          ]),
+          failed: useThemeClass([
+            "imageDetailsModal",
+            "sidebar",
+            "meta",
+            "status",
+            "failed",
+          ]),
+        },
+      },
     },
-    navigationButton: useThemeClass(['imageDetailsModal', 'navigationButton'])
+    navigationButton: useThemeClass(["imageDetailsModal", "navigationButton"]),
   };
-  
-  if (!image) return null;
 
+  if (!image) return null;
 
   const renderDataGrid = (data: DataGridItem) => (
     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
@@ -110,7 +202,9 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
           value !== "" && (
             <div key={key} className="flex justify-between py-0.5">
               <span className={styles.sidebar.gridLabel}>{key}:</span>
-              <span className={`font-mono text-right ${styles.sidebar.gridValue}`}>
+              <span
+                className={`font-mono text-right ${styles.sidebar.gridValue}`}
+              >
                 {value.toString()}
               </span>
             </div>
@@ -145,50 +239,81 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
   };
 
   return (
-    <div className={`fixed inset-0 flex items-center justify-center z-50 ${styles.overlay}`}>
-      {hasPrevious && (
-        <button
-          onClick={onPrevious}
-          className={`absolute left-0 top-1/2 -translate-y-1/2 p-1 z-[60] shadow-lg transition-all h-32 flex items-center ${styles.navigationButton}`}
-        >
-          <svg
-            width="32"
-            height="32"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-      )}
-      {hasNext && (
-        <button
-          onClick={onNext}
-          className={`absolute right-0 top-1/2 -translate-y-1/2 p-1 z-[60] shadow-lg transition-all h-32 flex items-center ${styles.navigationButton}`}
-        >
-          <svg
-            width="32"
-            height="32"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-          >
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </button>
-      )}
+    <div
+      className={`fixed inset-0 flex items-center justify-center z-50 ${styles.overlay}`}
+    >
+{hasPrevious && (
+  <button
+    onClick={onPrevious}
+    className={`
+      absolute left-4 top-1/2 -translate-y-1/2 
+      p-2 
+      z-[60] 
+      transition-all 
+      h-12 w-12
+      flex items-center justify-center
+      ${styles.navigationButton}
+    `}
+  >
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      className="text-white"
+    >
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  </button>
+)}
 
-      <div className={`rounded-lg w-[95vw] h-[90vh] flex flex-col overflow-hidden ${styles.container}`}>
-        <div className={`p-3 flex justify-between items-center ${styles.header.base}`}>
-          <h2 className={`text-lg font-medium ${styles.header.title}`}>Image Details</h2>
-          <button onClick={onClose} className={styles.header.closeButton}>×</button>
+{hasNext && (
+  <button
+    onClick={onNext}
+    className={`
+      absolute right-4 top-1/2 -translate-y-1/2 
+      p-2 
+      z-[60] 
+      transition-all 
+      h-12 w-12
+      flex items-center justify-center
+      ${styles.navigationButton}
+    `}
+  >
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      className="text-white"
+    >
+      <path d="M9 18l6-6-6-6" />
+    </svg>
+  </button>
+)}
+
+      <div
+        className={`rounded-lg w-[95vw] h-[90vh] flex flex-col overflow-hidden ${styles.container}`}
+      >
+        <div
+          className={`p-3 flex justify-between items-center ${styles.header.base}`}
+        >
+          <h2 className={`text-lg font-medium ${styles.header.title}`}>
+            Image Details
+          </h2>
+          <button onClick={onClose} className={styles.header.closeButton}>
+            ×
+          </button>
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          <div className={`w-[70%] h-full flex items-center justify-center ${styles.imageContainer}`}>
+          <div
+            className={`w-[70%] h-full flex items-center justify-center ${styles.imageContainer}`}
+          >
             <img
               src={image.generated_01}
               alt={image.prompt}
@@ -196,36 +321,60 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
             />
           </div>
 
-          <div className={`w-[30%] p-4 overflow-y-auto space-y-4 ${styles.sidebar.base}`}>
+          <div
+            className={`w-[30%] p-4 overflow-y-auto space-y-4 ${styles.sidebar.base}`}
+          >
             <div className="space-y-4">
               <div>
-                <h3 className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}>
+                <h3
+                  className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}
+                >
                   Generation Settings
                 </h3>
+                <button
+                  onClick={handleReuseSettings}
+                  className={`w-full py-2 px-4 mb-4 ${
+                    styles.sidebar.button ||
+                    "bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
+                  }`}
+                >
+                  Reuse These Settings
+                </button>
+                <div className="mt-4"></div>
                 {renderDataGrid(imageData)}
               </div>
 
               <div>
-                <h3 className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}>
+                <h3
+                  className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}
+                >
                   Scale Values
                 </h3>
                 {renderDataGrid(scaleData)}
               </div>
 
               <div>
-                <h3 className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}>
+                <h3
+                  className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}
+                >
                   Prompt
                 </h3>
-                <p className={`text-sm ${styles.sidebar.promptText}`}>{image.prompt}</p>
+                <p className={`text-sm ${styles.sidebar.promptText}`}>
+                  {image.prompt}
+                </p>
                 {image.prompt_negative && (
-                  <p className={`text-sm mt-1 ${styles.sidebar.promptNegative}`}>
+                  <p
+                    className={`text-sm mt-1 ${styles.sidebar.promptNegative}`}
+                  >
                     Negative: {image.prompt_negative}
                   </p>
                 )}
               </div>
 
               <div>
-                <h3 className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}>
+                <h3
+                  className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}
+                >
                   Variations
                 </h3>
                 <div className="grid grid-cols-3 gap-1">
@@ -242,7 +391,9 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
               </div>
 
               <div>
-                <h3 className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}>
+                <h3
+                  className={`font-medium text-sm mb-2 ${styles.sidebar.sectionTitle}`}
+                >
                   Control Maps
                 </h3>
                 <div className="grid grid-cols-5 gap-1">
@@ -260,7 +411,9 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
                           src={map.url}
                           className={`aspect-square object-cover rounded ${styles.sidebar.thumbnailBorder}`}
                         />
-                        <span className={`text-xs ${styles.sidebar.thumbnailLabel}`}>
+                        <span
+                          className={`text-xs ${styles.sidebar.thumbnailLabel}`}
+                        >
                           {map.label}
                         </span>
                       </div>
@@ -293,4 +446,26 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
       </div>
     </div>
   );
+};
+
+function addNewShape(
+  arg0: string,
+  arg1: {
+    // Copy settings from the image
+    model: any;
+    steps: number;
+    guidanceScale: number;
+    scheduler: string;
+    seed: number;
+    outputWidth: number;
+    outputHeight: number;
+    outputFormat: any;
+    outputQuality: any;
+    randomiseSeeds: boolean;
+    useSettings: boolean;
+  },
+  arg2: string,
+  arg3: { centerOnShape: boolean; setSelected: boolean; defaultWidth: number }
+) {
+  throw new Error("Function not implemented.");
 }
