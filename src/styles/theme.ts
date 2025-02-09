@@ -119,6 +119,21 @@ export const theme = {
   },
   drawer: {
     base: "fixed bg-neutral-50 dark:bg-[#1e1e1e] shadow-lg transition-transform duration-300 ease-in-out z-40 w-80 flex flex-col",
+    search: {
+      container: "relative mb-3 flex-shrink-0",
+      input: `w-full pl-9 pr-3 py-2 
+        text-neutral-900 dark:text-white
+        bg-white dark:bg-[#2c2c2c]
+        border border-neutral-200 dark:border-[#404040]
+        rounded-md
+        placeholder-neutral-500 dark:placeholder-neutral-400
+        focus:outline-none 
+        focus:ring-2 
+        focus:ring-blue-500 dark:focus:ring-[#0d99ff]
+        focus:border-transparent
+        transition-colors`,
+      icon: "w-4 h-4 text-neutral-400 dark:text-neutral-500 absolute left-3 top-1/2 transform -translate-y-1/2"
+    },
     header: {
       base: "px-4 py-3 border-b border-neutral-200 dark:border-[#404040] flex justify-between items-center bg-neutral-50 dark:bg-[#1e1e1e]",
       title: "font-medium text-neutral-700 dark:text-white",
