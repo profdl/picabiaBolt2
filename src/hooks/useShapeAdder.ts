@@ -90,7 +90,7 @@ export function useShapeAdder() {
         height = 400;
       } else if (shapeType === 'diffusionSettings') {
         width = 300;
-        height = 400;
+        height = 200;
       }
     }
 
@@ -109,20 +109,40 @@ export function useShapeAdder() {
 
     const position = options.position || findOpenSpace(height, center);
 
-    const newShape: Shape = {
-      id: shapeId,
-      type: shapeType,
-      position,
-      width,
-      height,
-      rotation: 0,
-      isUploading: false,
-      model: "",
-      isEditing: Boolean(options.startEditing),
-      color: shapeType === 'sticky' ? 'var(--sticky-green)' : 'transparent',
-      ...DEFAULT_CONTROL_STRENGTHS,
-      ...shapeData,
-    };
+    const stickyDefaults = shapeType === 'sticky' ? {
+      showPrompt: true,
+      color: 'var(--sticky-green)',
+      content: 'Double-Click to Edit...',
+      // Uncheck any existing sticky notes' text prompts
+      ...(() => {
+        const { updateShape } = useStore.getState(); // Get updateShape from the store state
+        shapes.forEach(shape => {
+          if (shape.type === 'sticky' && shape.showPrompt) {
+            updateShape(shape.id, {
+              showPrompt: false,
+              color: shape.showNegativePrompt ? 'var(--sticky-red)' : 'var(--sticky-yellow)'
+            });
+          }
+        });
+        return {};
+      })()
+    } : {};
+
+  const newShape: Shape = {
+    id: shapeId,
+    type: shapeType,
+    position,
+    width,
+    height,
+    rotation: 0,
+    isUploading: false,
+    model: "",
+    isEditing: Boolean(options.startEditing),
+    color: shapeType === 'sticky' ? 'var(--sticky-green)' : 'transparent',
+    ...DEFAULT_CONTROL_STRENGTHS,
+    ...stickyDefaults,
+    ...shapeData,
+  };
 
     // Add the shape
     addShape(newShape);
