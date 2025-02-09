@@ -1,15 +1,10 @@
 import {
-  ArrowLeftRight, // for Spacing
-  Blend, // for Opacity
   BookImageIcon,
-  Forward,
   Grid,
   Hand,
   Image as ImageIcon,
   Loader2,
-  Maximize2, // for Size
   MousePointer,
-  RotateCw, // for Rotation
   Settings,
   Sparkles,
   StickyNote,
@@ -18,7 +13,7 @@ import { useStore } from "../../../store";
 import { useEffect } from "react";
 import { Tooltip } from "../../shared/Tooltip";
 import { UploadButton } from "../../shared/UploadButton";
-import { BrushShapeSelector } from "./BrushShapeSelector";
+import { PropertiesToolbar } from "./PropertiesToolbar";
 import { ToolbarButton } from "../../shared/ToolbarButton";
 import { useToolbarBrush } from "../../../hooks/useToolbarBrush";
 import { useToolbarShapes } from "../../../hooks/useToolbarShapes";
@@ -53,23 +48,61 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     divider: "w-px bg-neutral-200 dark:bg-neutral-700 mx-2",
   };
 
-  const { addNewShape } = useShapeAdder(); // Add this hook
+  const { addNewShape } = useShapeAdder(); 
+
+  const {
+    setBrushTexture,
+    setBrushSize,
+    setBrushOpacity,
+    setBrushRotation,
+    setBrushFollowPath,
+    setBrushSpacing,
+  } = useStore((state) => ({
+    setCurrentColor: state.setCurrentColor,
+    setBrushTexture: state.setBrushTexture,
+    setBrushSize: state.setBrushSize,
+    setBrushOpacity: state.setBrushOpacity,
+    setBrushRotation: state.setBrushRotation,
+    setBrushFollowPath: state.setBrushFollowPath,
+    setBrushSpacing: state.setBrushSpacing,
+  }));
+
+  const handlePropertyChange = (property: string, value: unknown) => {
+    switch (property) {
+      case 'color':
+        setCurrentColor(value as string);
+        break;
+      case 'texture':
+        setBrushTexture(value as string);
+        break;
+      case 'size':
+        setBrushSize(value as number);
+        break;
+      case 'opacity':
+        setBrushOpacity(value as number);
+        break;
+      case 'rotation':
+        setBrushRotation(value as number);
+        break;
+      case 'followPath':
+        setBrushFollowPath(value as boolean);
+        break;
+      case 'spacing':
+        setBrushSpacing(value as number);
+        break;
+    }
+  };
 
 
   const {
     currentColor,
     setCurrentColor,
     brushTexture,
-    setBrushTexture,
     brushSize,
-    setBrushSize,
     brushOpacity,
-    setBrushOpacity,
     brushRotation,
-    setBrushRotation,
     brushFollowPath,
     brushSpacing,
-    setBrushSpacing,
     tool,
     setTool,
   } = useToolbarBrush();
@@ -160,6 +193,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     );
   };
 
+  
+
 
   return (
     <div className={styles.container}>
@@ -198,166 +233,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
           {/* Brush Controls Overlay */}
           {(tool === "brush" || tool === "eraser") && (
-            <div
-              className={`absolute bottom-full mb-2.5 left-1/2 transform -translate-x-1/2 ${styles.container} min-w-max rounded-lg `}
-            >
-              <div className="p-0 flex items-center gap-3 ">
-                <div className="relative">
-                  <input
-                    type="color"
-                    value={currentColor}
-                    onChange={(e) => setCurrentColor(e.target.value)}
-                    className="w-8 h-8 p-0 bg-transparent rounded cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded [&::-webkit-color-swatch]:border-none border border-gray-300 dark:border-gray-600"
-                    title="Brush Color"
-                  />
-                </div>
-
-                <BrushShapeSelector
-                  currentTexture={brushTexture}
-                  onTextureSelect={setBrushTexture}
-                />
-
-                <div className="p-0 flex items-center gap-4 flex-nowrap pl-2 ">
-                  {/* Brush Size */}
-                  <div className={`${styles.controls.container} w-[80px] `}>
-                    <div className="flex items-center gap-2 ">
-                      <Maximize2 className="w-3 h-3 text-neutral-500 dark:text-neutral-400 " />
-                      <div
-                        className="relative flex-1"
-                        style={{ height: "18px" }}
-                      >
-                        <input
-                          type="range"
-                          value={brushSize}
-                          onChange={(e) => setBrushSize(Number(e.target.value))}
-                          min="1"
-                          max="100"
-                          className="mini-slider absolute top-1/2 -translate-y-1/2 w-full"
-                          style={{
-                            pointerEvents: "all",
-                            height: "2px",
-                            backgroundColor: "rgb(229 231 235)",
-                            borderRadius: "9999px",
-                            appearance: "none",
-                            outline: "none",
-                          }}
-                          title="Brush Size"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Brush Opacity */}
-                  <div className={`${styles.controls.container} w-[80px]`}>
-                    <div className="flex items-center gap-2 ">
-                      <Blend className="w-3 h-3 text-neutral-500 dark:text-neutral-400" />
-                      <div
-                        className="relative flex-1"
-                        style={{ height: "18px" }}
-                      >
-                        <input
-                          type="range"
-                          value={brushOpacity}
-                          onChange={(e) =>
-                            setBrushOpacity(Number(e.target.value))}
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          className="mini-slider absolute top-1/2 -translate-y-1/2 w-full"
-                          style={{
-                            pointerEvents: "all",
-                            height: "2px",
-                            backgroundColor: "rgb(229 231 235)",
-                            borderRadius: "9999px",
-                            appearance: "none",
-                            outline: "none",
-                          }}
-                          title="Brush Opacity"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Brush Rotation */}
-                  <div className={`${styles.controls.container} w-[80px]`}>
-                    <div className="flex items-center gap-2">
-                      <RotateCw className="w-3 h-3 text-neutral-500 dark:text-neutral-400" />
-                      <div
-                        className="relative flex-1"
-                        style={{ height: "18px" }}
-                      >
-                        <input
-                          type="range"
-                          value={brushRotation}
-                          onChange={(e) =>
-                            setBrushRotation(Number(e.target.value))}
-                          min="0"
-                          max="360"
-                          className="mini-slider absolute top-1/2 -translate-y-1/2 w-full"
-                          style={{
-                            pointerEvents: "all",
-                            height: "2px",
-                            backgroundColor: "rgb(229 231 235)",
-                            borderRadius: "9999px",
-                            appearance: "none",
-                            outline: "none",
-                          }}
-                          title="Brush Rotation"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Follow Path */}
-                  <div className={styles.controls.container}>
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="checkbox"
-                        id="brushFollowPath"
-                        checked={brushFollowPath}
-                        onChange={(e) =>
-                          useStore.getState().setBrushFollowPath(
-                            e.target.checked,
-                          )}
-                        className="w-3 h-3 text-neutral-600 dark:text-neutral-400 rounded border-neutral-300 dark:border-neutral-700"
-                      />
-                      <Forward className="w-3 h-3 text-neutral-500 dark:text-neutral-400" />
-                    </div>
-                  </div>
-
-                  {/* Brush Spacing */}
-                  <div className={`${styles.controls.container} w-[80px]`}>
-                    <div className="flex items-center gap-2">
-                      <ArrowLeftRight className="w-3 h-3 text-neutral-500 dark:text-neutral-400" />
-                      <div
-                        className="relative flex-1"
-                        style={{ height: "18px" }}
-                      >
-                        <input
-                          type="range"
-                          value={brushSpacing * 100}
-                          onChange={(e) =>
-                            setBrushSpacing(Number(e.target.value) / 100)}
-                          min="5"
-                          max="100"
-                          className="mini-slider absolute top-1/2 -translate-y-1/2 w-full"
-                          style={{
-                            pointerEvents: "all",
-                            height: "2px",
-                            backgroundColor: "rgb(229 231 235)",
-                            borderRadius: "9999px",
-                            appearance: "none",
-                            outline: "none",
-                          }}
-                          title="Brush Spacing"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+        <PropertiesToolbar
+          type={tool}
+          properties={{
+            color: currentColor,
+            texture: brushTexture,
+            size: brushSize,
+            opacity: brushOpacity,
+            rotation: brushRotation,
+            followPath: brushFollowPath,
+            spacing: brushSpacing,
+          }}
+          onPropertyChange={handlePropertyChange}
+        />
+      )}
 
           {/* Sketchpad */}
           <Tooltip
