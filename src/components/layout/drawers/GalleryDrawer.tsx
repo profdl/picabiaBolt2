@@ -7,6 +7,7 @@ import { ImageDetailsModal } from "../../layout/modals/ImageDetailsModal";
 import { useStore } from "../../../store";
 import { SavedImage } from '../../../types';
 import { useShapeAdder } from "../../../hooks/useShapeAdder";
+import { getImageDimensions } from "../../../utils/image";
 
 interface GalleryDrawerProps {
 
@@ -53,29 +54,31 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
   };
 
   const handleImageClick = async (image: ImageItem) => {
-    // Get image dimensions from aspect ratio if available
-    const width = 512; // Default width
-    let height = 512;
-    if (image.aspect_ratio) {
-      const aspectRatio = parseFloat(image.aspect_ratio);
-      if (!isNaN(aspectRatio)) {
-        height = width / aspectRatio;
+    try {
+      const { width: originalWidth, height: originalHeight } = await getImageDimensions(image.url);
+      const aspectRatio = originalWidth / originalHeight;
+  
+      const success = await addNewShape(
+        'image',
+        {
+          imageUrl: image.url,
+          originalWidth,
+          originalHeight,
+          aspectRatio,
+        },
+        image.url,
+        {
+          centerOnShape: true,
+          setSelected: true,
+          animate: true
+        }
+      );
+  
+      if (success) {
+        toggleGallery();
       }
-    }
-
-    const success = await addNewShape('image', {
-      imageUrl: image.url,
-      width,
-      height,
-      aspectRatio: width / height,
-    }, {
-      defaultWidth: width,
-      centerOnShape: true,
-      setSelected: true
-    });
-
-    if (success) {
-      toggleGallery();
+    } catch (error) {
+      console.error("Failed to get image dimensions:", error);
     }
   };
 
