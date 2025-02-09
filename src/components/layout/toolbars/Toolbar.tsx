@@ -100,37 +100,64 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
 
   const handleAddSticky = async () => {
-    await addNewShape('sticky', {}, {
-      centerOnShape: true,
-      setSelected: true,
-      startEditing: true
-    });
+    await addNewShape(
+      'sticky',
+      {
+        color: 'var(--sticky-green)',
+        isEditing: true
+      },
+      '',
+      {
+        centerOnShape: true,
+        setSelected: true,
+        startEditing: true,
+        defaultWidth: 200
+      }
+    );
   };
 
   const handleAddSketchpad = async () => {
-    await addNewShape('sketchpad', {
-      locked: true,
-      showSketch: true
-    }, {
-      centerOnShape: true,
-      setSelected: true
-    });
+    await addNewShape(
+      'sketchpad',
+      {
+        locked: true,
+        showSketch: true
+      },
+      '',
+      {
+        centerOnShape: true,
+        setSelected: true,
+        defaultWidth: 400
+      }
+    );
   };
 
   const handleAddDiffusionSettings = async () => {
-    await addNewShape('diffusionSettings', {}, {
-      centerOnShape: true,
-      setSelected: true
-    });
+    await addNewShape(
+      'diffusionSettings',
+      {},
+      '',
+      {
+        centerOnShape: true,
+        setSelected: true,
+        defaultWidth: 300
+      }
+    );
   };
 
   const handleAddImagePlaceholder = async () => {
-    await addNewShape('image', {
-      isUploading: true
-    }, {
-      centerOnShape: true,
-      setSelected: true
-    });
+    await addNewShape(
+      'image',
+      {
+        isUploading: true
+      },
+      '',
+      {
+        centerOnShape: true,
+        setSelected: true,
+        defaultWidth: 300
+      }
+    );
   };
 
 

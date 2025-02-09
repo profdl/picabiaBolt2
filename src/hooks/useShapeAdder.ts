@@ -62,20 +62,40 @@ export function useShapeAdder() {
   };
 
   const addNewShape = async (
-    shapeType: Shape['type'], // This should be a string representing the type
-    shapeData: Partial<Shape>, // This should match the object data for shape properties
-    url: string, // Included URL as an argument for dimension retrieval
-    options: ShapeAddOptions = { animate: true } // Ensure options object is a valid type
+    shapeType: Shape['type'],
+    shapeData: Partial<Shape> = {},
+    url: string = '',
+    options: ShapeAddOptions = { animate: true }
   ) => {
-    const { width: originalWidth, height: originalHeight } = await getImageDimensions(url);
-    const aspectRatio = originalWidth / originalHeight;
+    let width = options.defaultWidth || 300;
+    let height = width;
+    let aspectRatio = 1;
+
+    // Only fetch image dimensions if it's an image type and has a URL
+    if (shapeType === 'image' && url) {
+      try {
+        const dimensions = await getImageDimensions(url);
+        aspectRatio = dimensions.width / dimensions.height;
+        height = width / aspectRatio;
+      } catch (error) {
+        console.error('Failed to get image dimensions:', error);
+      }
+    } else {
+      // For non-image shapes, use default dimensions
+      if (shapeType === 'sticky') {
+        width = 200;
+        height = 200;
+      } else if (shapeType === 'sketchpad') {
+        width = 400;
+        height = 400;
+      } else if (shapeType === 'diffusionSettings') {
+        width = 300;
+        height = 400;
+      }
+    }
 
     const center = getViewportCenter();
     const shapeId = Math.random().toString(36).substr(2, 9);
-
-    // Default dimensions based on shape type
-    const width = options.defaultWidth || 300;
-    const height = width / aspectRatio;
 
     const findOpenSpace = (height: number, center: Position): Position => {
       const PADDING = 20;
