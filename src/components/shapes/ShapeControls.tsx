@@ -572,39 +572,54 @@ export function ShapeControls({
                   id={`prompt-${shape.id}`}
                   checked={shape.showPrompt || false}
                   onChange={(e) => {
-                    if (e.target.checked) {
+                    e.stopPropagation(); // Add this to prevent event bubbling
+                    const isChecked = e.target.checked;
+                    if (isChecked) {
+                      // Uncheck negative prompt if it's checked
                       if (shape.showNegativePrompt) {
                         updateShape(shape.id, { showNegativePrompt: false });
                       }
+                      // Uncheck prompts on other sticky notes
                       shapes.forEach((otherShape) => {
                         if (
+                          otherShape.id !== shape.id &&
                           otherShape.type === "sticky" &&
                           otherShape.showPrompt
                         ) {
                           updateShape(otherShape.id, {
                             showPrompt: false,
                             color: otherShape.showNegativePrompt
-                              ? "#ffcccb"
-                              : "#fff9c4",
+                              ? "var(--sticky-red)"
+                              : "var(--sticky-yellow)",
                           });
                         }
                       });
+                      // Update current shape
                       updateShape(shape.id, {
                         showPrompt: true,
                         color: "var(--sticky-green)",
                       });
+                      // Keep the shape selected after checking the box
+                      setSelectedShapes([shape.id]);
                     } else {
+                      // When unchecking, just update current shape
                       updateShape(shape.id, {
                         showPrompt: false,
-                        color: shape.showNegativePrompt ? "#ffcccb" : "#fff9c4",
+                        color: shape.showNegativePrompt
+                          ? "var(--sticky-red)"
+                          : "var(--sticky-yellow)",
                       });
+                      // Keep the shape selected after unchecking the box
+                      setSelectedShapes([shape.id]);
                     }
                   }}
                   className={styles.controls.checkbox}
+                  style={{ pointerEvents: "all" }} // Add this to ensure clicks are registered
                 />
                 <label
                   htmlFor={`prompt-${shape.id}`}
                   className={styles.sidePanel.label}
+                  onClick={(e) => e.stopPropagation()} // Add this to prevent event bubbling
                 >
                   Text Prompt
                 </label>

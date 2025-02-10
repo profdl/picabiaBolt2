@@ -24,17 +24,16 @@ export const StickyNoteShape: React.FC<StickyNoteShapeProps> = ({
   const backgroundColor = useStickyNoteColor(shape);
   const { isDark } = useDarkMode();
 
-  // Function to determine text color based on sticky note color and dark mode
   const getTextColor = () => {
     if (isDark) {
-      if (shape.showPrompt) { // If it's a green sticky note
-        return 'text-emerald-100'; // Light mint color
-      } else if (shape.showNegativePrompt) { // If it's a red sticky note
+      if (shape.showPrompt) {
+        return 'text-emerald-100';
+      } else if (shape.showNegativePrompt) {
         return 'text-red-100';
       }
-      return 'text-amber-100'; // Default yellow sticky note
+      return 'text-amber-100';
     }
-    return 'text-neutral-800'; // Light mode color
+    return 'text-neutral-800';
   };
 
   return (
@@ -46,7 +45,7 @@ export const StickyNoteShape: React.FC<StickyNoteShapeProps> = ({
       onKeyDown={handleKeyDown}
       className={`${styles} ${
         isEditing ? "cursor-text" : "cursor-move"
-      } ${getTextColor()}`}
+      } ${getTextColor()} w-full h-full resize-none p-3`}
       style={{
         fontSize: shape.fontSize || 16,
         scrollbarWidth: "thin",
@@ -54,8 +53,11 @@ export const StickyNoteShape: React.FC<StickyNoteShapeProps> = ({
         backgroundColor,
         border: "none",
         outline: "none",
-        boxShadow: `0 0 0 1px ${backgroundColor}`,
+        boxShadow: `0 1px 3px rgba(0,0,0,0.12)`,
         borderRadius: "4px",
+        wordWrap: "break-word",
+        overflowWrap: "break-word",
+        whiteSpace: "pre-wrap",
       }}
       readOnly={!isEditing}
       spellCheck={false}

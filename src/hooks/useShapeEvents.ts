@@ -50,23 +50,38 @@ export function useShapeEvents({
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (shape.type === "3d" && shape.isOrbiting) {
-      e.stopPropagation();
-      return;
-    }
+// Add specific check for sticky note control panel elements
+const isStickyControlsElement = (e.target as Element).closest(
+  '[data-sticky-controls]'
+);
+const isCheckbox = (e.target as Element).tagName.toLowerCase() === 'input' &&
+  (e.target as HTMLInputElement).type === 'checkbox';
+
+if (isStickyControlsElement || isCheckbox) {
+  e.stopPropagation();
+  if (!selectedShapes.includes(shape.id)) {
+    setSelectedShapes([shape.id]);
+  }
+  return;
+}
+
+if (shape.type === "3d" && shape.isOrbiting) {
+  e.stopPropagation();
+  return;
+}
 
     if (tool === "pan" || (isEditing && !shape.isNew)) return;
 
-    const controlsPanel = document.querySelector(
-      `[data-controls-panel="${shape.id}"]`
-    );
-    if (controlsPanel?.contains(e.target as Node)) {
-      e.stopPropagation();
-      if (!selectedShapes.includes(shape.id)) {
-        setSelectedShapes([shape.id]);
-      }
-      return;
+     const controlsPanel = document.querySelector(
+    `[data-controls-panel="${shape.id}"]`
+  );
+  if (controlsPanel?.contains(e.target as Node)) {
+    e.stopPropagation();
+    if (!selectedShapes.includes(shape.id)) {
+      setSelectedShapes([shape.id]);
     }
+    return;
+  }
 
     e.stopPropagation();
     handleStickyInteraction();
@@ -132,6 +147,7 @@ export function useShapeEvents({
       }
 
       handleStickyInteraction();
+
     } else if (shape.type === "3d") {
       // Toggle orbiting for 3D shapes
       updateShape(shape.id, {

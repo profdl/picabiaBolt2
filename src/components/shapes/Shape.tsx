@@ -19,6 +19,7 @@ import { useSketchpadShapeEvents } from "../../hooks/sketchpadShapeEvents";
 import { useShapeEvents } from "../../hooks/useShapeEvents";
 import { useThemeClass } from "../../styles/useThemeClass";
 import { StickyNoteShape } from "./shapetypes/StickyNoteShape";
+import {useStickyNoteColor} from "../../hooks/useStickyNoteColor";
 import {TextShape} from "./shapetypes/TextShape"
 
 interface ShapeProps {
@@ -52,6 +53,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       label: useThemeClass(["shape", "sidePanel", "label"]),
     },
   };
+  const stickyNoteColor = useStickyNoteColor(shape);
 
   const {
     selectedShapes,
@@ -64,7 +66,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     setIsEditingText,
     setSelectedShapes,
     isEditingText,
-    mergeImages
   } = useStore();
 
   const isEditing = shape.isEditing && isEditingText;
@@ -101,7 +102,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     zoom,
     textRef,
     initDragStart,
-    mergeImages,
   });
 
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } =
@@ -233,22 +233,28 @@ export function ShapeComponent({ shape }: ShapeProps) {
     tool,
     isEditing
   );
+
+
   
   return (
     <div style={{ position: "absolute", width: 0, height: 0 }}>
-      <div
-        id={shape.id}
-        style={{
-          ...shapeStyles,
-          overflow: "hidden",
-          pointerEvents: tool === "select" ? "all" : "none",
-          ...(shape.type === "diffusionSettings" && {
-            backgroundColor: "transparent",
-            border: "none",
-            backgroundImage: "none",
-            boxShadow: "none",
-          }),
-        }}
+<div
+  id={shape.id}
+  style={{
+    ...shapeStyles,
+    overflow: "hidden",
+    pointerEvents: tool === "select" ? "all" : "none",
+    ...(shape.type === "sticky" && {
+      backgroundColor: stickyNoteColor,
+      boxShadow: `0 0 0 1px ${stickyNoteColor}`,
+    }),
+    ...(shape.type === "diffusionSettings" && {
+      backgroundColor: "transparent",
+      border: "none",
+      backgroundImage: "none",
+      boxShadow: "none",
+    }),
+  }}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
