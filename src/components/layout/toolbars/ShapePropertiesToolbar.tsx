@@ -11,6 +11,8 @@ import {
   Layers,
   Crop,
   Download,
+  Mountain,
+  Box,
 } from "lucide-react";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { Shape } from "../../../types";
@@ -62,9 +64,9 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
   return (
     <div className={styles.container}>
       <div className={styles.buttonGroup}>
-        <span className="text-sm text-neutral-500 dark:text-neutral-400 mr-2">
+        {/* <span className="text-sm text-neutral-500 dark:text-neutral-400 mr-2">
           Arrange:
-        </span>
+        </span> */}
 
         <Tooltip content="Send Backward" side="top">
           <ToolbarButton
@@ -115,11 +117,19 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
             className={styles.button}
           />
         </Tooltip>
-
+        {/* Remove Background */}
+        {shape.type === "image" && (
+          <Tooltip content="Remove Background" side="top">
+            <ToolbarButton
+              icon={<Mountain className="w-4 h-4" />}
+              onClick={actions.onSelectSubject}
+              className={styles.button}
+            />
+          </Tooltip>
+        )}
         {shape.type === "image" && (
           <Tooltip content="Crop Image" side="top">
             {/* Crop */}
-
             <ToolbarButton
               icon={<Crop className="w-4 h-4" />}
               onClick={actions.onCrop}
@@ -127,7 +137,23 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
             />
           </Tooltip>
         )}
+        {/* 3D Depth  */}
 
+        {shape.type === "image" && shape.depthPreviewUrl && (
+          <Tooltip content="Create 3D Depth" side="top">
+            <ToolbarButton
+              icon={<Box className="w-4 h-4" />}
+              onClick={() => {
+                const newX = shape.position.x + shape.width + 20;
+                actions.create3DDepth(shape, {
+                  x: newX,
+                  y: shape.position.y,
+                });
+              }}
+              className={styles.button}
+            />
+          </Tooltip>
+        )}
 
         {/* Download  */}
         <Tooltip content="Download Image" side="top">
