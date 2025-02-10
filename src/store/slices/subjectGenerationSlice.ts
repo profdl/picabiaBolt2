@@ -115,20 +115,34 @@ export const subjectGenerationSlice: StateCreator<
             // Get the trimmed dimensions of the processed image
             const { url: trimmedUrl, bounds } = await trimTransparentPixels(typedPayload.new.generated_01);
             
+            // Calculate scale to fit within 512px while maintaining aspect ratio
+            const aspectRatio = bounds.width / bounds.height;
+            let newWidth, newHeight;
+            
+            if (aspectRatio > 1) {
+              // Image is wider than tall
+              newWidth = 512;
+              newHeight = 512 / aspectRatio;
+            } else {
+              // Image is taller than wide
+              newHeight = 512;
+              newWidth = 512 * aspectRatio;
+            }
+    
             // Calculate new position to keep image centered relative to original position
-            const xOffset = (sourceShape.width - bounds.width) / 2;
-            const yOffset = (sourceShape.height - bounds.height) / 2;
+            const xOffset = (sourceShape.width - newWidth) / 2;
+            const yOffset = (sourceShape.height - newHeight) / 2;
             const newPosition = {
               x: sourceShape.position.x + sourceShape.width + 20 + xOffset,
               y: sourceShape.position.y + yOffset
             };
-
-            // Update shape with trimmed image and new dimensions
+    
+            // Update shape with trimmed image and scaled dimensions
             get().updateShape(prediction_id, {
               isUploading: false,
               imageUrl: trimmedUrl,
-              width: bounds.width,
-              height: bounds.height,
+              width: newWidth,
+              height: newHeight,
               position: newPosition
             });
             
