@@ -24,11 +24,16 @@ export function useKeyboardShortcuts() {
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
 
-   // Add check for assets drawer search input
-   const isAssetsSearch = (e.target as HTMLElement)?.classList?.contains('assets-drawer-search');
+      // Check for all search inputs and navbar inputs
+      const isSearchInput = 
+        (e.target as HTMLElement)?.classList?.contains('assets-drawer-search') ||
+        (e.target as HTMLElement)?.classList?.contains('sourceplus-search-input') ||
+        // Check if the element is within the navbar
+        (e.target as HTMLElement)?.closest('nav');
       
-   // Return early if we're in the assets search or editing text in an input
-   if ((isInput && isEditingText) || isAssetsSearch) return;
+      // Return early if we're in any search input, navbar input, or editing text in an input
+      if ((isInput && isEditingText) || isSearchInput) return;
+
 
 
       const isPrintableKey = e.key.length === 1 && !e.ctrlKey && !e.metaKey;

@@ -27,9 +27,9 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   }));
 
   const styles = {
-    searchContainer: useThemeClass(['drawer', 'search', 'container']),
-    searchInput: useThemeClass(['drawer', 'search', 'input']),
-    searchIcon: useThemeClass(['drawer', 'search', 'icon'])
+    searchContainer: useThemeClass(["drawer", "search", "container"]),
+    searchInput: useThemeClass(["drawer", "search", "input"]),
+    searchIcon: useThemeClass(["drawer", "search", "icon"]),
   };
   const { addNewShape } = useShapeAdder();
 
@@ -43,7 +43,9 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     mapAssetsToImageItems,
   } = usePersonalAssets();
 
-  const { fileInputRef, uploading, handleFileSelect } = useFileUpload(() => fetchAssets(1));
+  const { fileInputRef, uploading, handleFileSelect } = useFileUpload(() =>
+    fetchAssets(1)
+  );
 
   const {
     sourcePlusLoading,
@@ -59,19 +61,18 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     }
   }, [isOpen, assetsRefreshTrigger, fetchAssets]);
 
-
-
   const handleAssetClick = async (asset: Asset) => {
     if (!asset) return;
-  
+
     const fullSizeUrl = asset.url.replace("/thumbnails/", "/images/");
-  
+
     try {
-      const { width: originalWidth, height: originalHeight } = await getImageDimensions(fullSizeUrl);
+      const { width: originalWidth, height: originalHeight } =
+        await getImageDimensions(fullSizeUrl);
       const aspectRatio = originalWidth / originalHeight;
-  
+
       const success = await addNewShape(
-        'image',
+        "image",
         {
           imageUrl: fullSizeUrl,
           originalWidth,
@@ -83,13 +84,13 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
           sketchStrength: asset.sketchStrength || 0.25,
           remixStrength: asset.remixStrength || 0.25,
         },
-        fullSizeUrl, 
+        fullSizeUrl,
         {
           animate: true,
-          setSelected: true
+          setSelected: true,
         }
       );
-  
+
       if (success) {
         onClose();
       }
@@ -97,7 +98,6 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
       console.error("Failed to get image dimensions:", error);
     }
   };
-  
 
   useEffect(() => {
     if (activeTab === "source-plus") {
@@ -112,143 +112,139 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     }
   };
 
-
-return (
-  <Drawer title="Assets" isOpen={isOpen} onClose={onClose} position="left">
-    <div className="flex flex-col h-full">
-      <div className="flex border-b border-gray-200 dark:border-[#404040]">
-        <button
-          onClick={() => setActiveTab("my-assets")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 ${
-            activeTab === "my-assets"
-              ? "border-blue-500 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          My Assets
-        </button>
-        <button
-          onClick={() => setActiveTab("source-plus")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 ${
-            activeTab === "source-plus"
-              ? "border-blue-500 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Public Domain Images
-        </button>
-      </div>
-
-      {activeTab === "source-plus" && (
-        <div className="flex flex-col h-full">
-          <div className="flex-shrink-0 bg-white dark:bg-[#2c2c2c] p-4 border-b border-gray-200 dark:border-[#404040]">
-            <div className="flex justify-end mb-2">
-              <a
-                href="https://source.plus"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                Visit Source.Plus <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-            <div className={styles.searchContainer}>
-              <input
-                type="text"
-                value={sourcePlusQuery}
-                onChange={(e) => setSourcePlusQuery(e.target.value)}
-                placeholder="Search within collection..."
-                className={styles.searchInput}
-              />
-              <Search className={styles.searchIcon} />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            <ImageGrid
-              images={
-                sourcePlusImages?.map((img) => ({
-                  id: img.id,
-                  url: img.url,
-                  thumbnailUrl: img.thumbnail_url,
-                  alt: img.description || "Source.plus image",
-                  status: "completed" as const,
-                })) || []
-              }
-              loading={sourcePlusLoading}
-              emptyMessage="No images found in collection"
-              onImageClick={(image) => {
-                const sourcePlusImage = sourcePlusImages.find(
-                  (img) => img.id === image.id
-                );
-                if (sourcePlusImage) {
-                  handleSourcePlusClick(sourcePlusImage);
-                }
-              }}
-              onImageDelete={() => {}}
-              showViewButton={false}
-              imageUrlKey="thumbnailUrl"
-            />
-          </div>
-        </div>
-      )}
-
-      {activeTab === "my-assets" && (
-        <div className="flex flex-col h-full">
-          <div className="flex-shrink-0 bg-white dark:bg-[#2c2c2c] p-4 border-b border-gray-200 dark:border-[#404040]">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="w-full mb-4 p-2 flex items-center justify-center gap-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-            >
-              {uploading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Upload className="w-5 h-5" />
-              )}
-              {uploading ? "Uploading..." : "Upload Image"}
-            </button>
-          </div>
-
-          <div 
-            className="flex-1 overflow-y-auto"
-            onScroll={handleScroll}
+  return (
+    <Drawer title="Assets" isOpen={isOpen} onClose={onClose} position="left">
+      <div className="flex flex-col h-full">
+        <div className="flex border-b border-gray-200 dark:border-[#404040]">
+          <button
+            onClick={() => setActiveTab("my-assets")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === "my-assets"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
           >
-            <ImageGrid
-              images={mapAssetsToImageItems(assets)}
-              loading={loading && assets.length === 0}
-              emptyMessage="No uploaded assets yet"
-              onImageClick={(image) =>
-                handleAssetClick(assets.find((a) => a.id === image.id)!)
-              }
-              onImageDelete={handleDeleteAsset}
-            />
-            {loading && assets.length > 0 && (
-              <div className="py-4 flex justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              </div>
-            )}
-            {!loading && hasMore && (
-              <div className="py-4 flex justify-center">
-                <button
-                  onClick={() => loadMore()}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200"
-                >
-                  Load More
-                </button>
-              </div>
-            )}
-          </div>
+            My Assets
+          </button>
+          <button
+            onClick={() => setActiveTab("source-plus")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === "source-plus"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Public Domain Images
+          </button>
         </div>
-      )}
-    </div>
-  </Drawer>
-);
-}
+
+        {activeTab === "source-plus" && (
+          <div className="flex flex-col h-full">
+            <div className="flex-shrink-0 bg-white dark:bg-[#2c2c2c] p-4 border-b border-gray-200 dark:border-[#404040]">
+              <div className="flex justify-end mb-2">
+                <a
+                  href="https://source.plus"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  Visit Source.Plus <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+              <div className={styles.searchContainer}>
+                <input
+                  type="text"
+                  value={sourcePlusQuery}
+                  onChange={(e) => setSourcePlusQuery(e.target.value)}
+                  placeholder="Search within collection..."
+                  className={`${styles.searchInput} sourceplus-search-input`}
+                />
+                <Search className={styles.searchIcon} />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              <ImageGrid
+                images={
+                  sourcePlusImages?.map((img) => ({
+                    id: img.id,
+                    url: img.url,
+                    thumbnailUrl: img.thumbnail_url,
+                    alt: img.description || "Source.plus image",
+                    status: "completed" as const,
+                  })) || []
+                }
+                loading={sourcePlusLoading}
+                emptyMessage="No images found in collection"
+                onImageClick={(image) => {
+                  const sourcePlusImage = sourcePlusImages.find(
+                    (img) => img.id === image.id
+                  );
+                  if (sourcePlusImage) {
+                    handleSourcePlusClick(sourcePlusImage);
+                  }
+                }}
+                onImageDelete={() => {}}
+                showViewButton={false}
+                imageUrlKey="thumbnailUrl"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === "my-assets" && (
+          <div className="flex flex-col h-full">
+            <div className="flex-shrink-0 bg-white dark:bg-[#2c2c2c] p-4 border-b border-gray-200 dark:border-[#404040]">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full mb-4 p-2 flex items-center justify-center gap-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+              >
+                {uploading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Upload className="w-5 h-5" />
+                )}
+                {uploading ? "Uploading..." : "Upload Image"}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto" onScroll={handleScroll}>
+              <ImageGrid
+                images={mapAssetsToImageItems(assets)}
+                loading={loading && assets.length === 0}
+                emptyMessage="No uploaded assets yet"
+                onImageClick={(image) =>
+                  handleAssetClick(assets.find((a) => a.id === image.id)!)
+                }
+                onImageDelete={handleDeleteAsset}
+              />
+              {loading && assets.length > 0 && (
+                <div className="py-4 flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                </div>
+              )}
+              {!loading && hasMore && (
+                <div className="py-4 flex justify-center">
+                  <button
+                    onClick={() => loadMore()}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                  >
+                    Load More
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </Drawer>
+  );
+};

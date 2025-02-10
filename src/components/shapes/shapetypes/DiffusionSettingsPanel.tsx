@@ -18,11 +18,11 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     const aspectRatios = {
+        'Square (1:1)': { width: 1024, height: 1024 },
         'Landscape SD (4:3)': { width: 1176, height: 888 },
         'Widescreen IMAX (1.43:1)': { width: 1224, height: 856 },
         'Widescreen HD(16:9)': { width: 1360, height: 768 },
         'Golden Ratio (1.618:1)': { width: 1296, height: 800 },
-        'Square (1:1)': { width: 1024, height: 1024 },
         'Portrait (2:3)': { width: 832, height: 1248 },
         'Portrait Standard (3:4)': { width: 880, height: 1176 },
         'Portrait Large Format (4:5)': { width: 912, height: 1144 },
