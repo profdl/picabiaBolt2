@@ -9,6 +9,8 @@ import {
   Group,
   Ungroup,
   Layers,
+  Crop,
+  Download,
 } from "lucide-react";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { Shape } from "../../../types";
@@ -29,6 +31,10 @@ interface ShapePropertiesToolbarProps {
     createGroup: (ids: string[]) => void;
     ungroup: (id: string) => void;
     mergeImages: (ids: string[]) => Promise<void>;
+    onSelectSubject: (e: React.MouseEvent) => void;
+    onCrop: (e: React.MouseEvent) => void;
+    onDownload: (e: React.MouseEvent) => void;
+    create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
   };
 }
 
@@ -106,6 +112,28 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
           <ToolbarButton
             icon={<Trash2 className="w-4 h-4" />}
             onClick={() => actions.deleteShape(shape.id)}
+            className={styles.button}
+          />
+        </Tooltip>
+
+        {shape.type === "image" && (
+          <Tooltip content="Crop Image" side="top">
+            {/* Crop */}
+
+            <ToolbarButton
+              icon={<Crop className="w-4 h-4" />}
+              onClick={actions.onCrop}
+              className={styles.button}
+            />
+          </Tooltip>
+        )}
+
+
+        {/* Download  */}
+        <Tooltip content="Download Image" side="top">
+          <ToolbarButton
+            icon={<Download className="w-4 h-4" />}
+            onClick={actions.onDownload}
             className={styles.button}
           />
         </Tooltip>

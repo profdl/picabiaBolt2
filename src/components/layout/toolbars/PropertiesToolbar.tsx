@@ -28,6 +28,10 @@ interface PropertiesToolbarProps {
     createGroup: (ids: string[]) => void;
     ungroup: (id: string) => void;
     mergeImages: (ids: string[]) => Promise<void>;
+    onSelectSubject: (e: React.MouseEvent) => void;
+    onCrop: (e: React.MouseEvent) => void;
+    onDownload: (e: React.MouseEvent) => void;
+    create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
   };
 }
 

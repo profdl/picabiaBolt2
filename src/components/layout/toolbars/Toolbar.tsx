@@ -20,8 +20,7 @@ import { useToolbarShapes } from "../../../hooks/useToolbarShapes";
 import { useToolbarGenerate } from "../../../hooks/useToolbarGenerate";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { useShapeAdder } from "../../../hooks/useShapeAdder";
-import { BrushPropertiesToolbar } from "./BrushPropertiesToolbar";
-import { ShapePropertiesToolbar } from "./ShapePropertiesToolbar";
+
 
 interface ToolbarProps {
   onShowImageGenerate: () => void;
@@ -52,6 +51,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
   const { addNewShape } = useShapeAdder();
 
   const {
+    handleGenerateSubject,
+    create3DDepth,
+    updateShape,
     selectedShapes,
     shapes,
     sendBackward,
@@ -83,6 +85,36 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     setBrushFollowPath: state.setBrushFollowPath,
     setBrushSpacing: state.setBrushSpacing,
   }));
+
+  // Add handlers for image actions
+  const handleCrop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (selectedShape) {
+      updateShape(selectedShape.id, { isImageEditing: true });
+    }
+  };
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (selectedShape?.imageUrl) {
+      try {
+        const response = await fetch(selectedShape.imageUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `image-${selectedShape.id}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Download failed:", error);
+      }
+    }
+  };
 
   const handlePropertyChange = (property: string, value: unknown) => {
     switch (property) {
@@ -234,12 +266,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
           {/* Image Properties Toolbar */}
           {tool === "select" && selectedShape?.type === "image" && (
-            <PropertiesToolbar
-              type="image"
-              shape={selectedShape}
-              selectedShapes={selectedShapes}
-              shapes={shapes}
-              actions={{
+  <PropertiesToolbar
+  type="image"
+  shape={selectedShape}
+  selectedShapes={selectedShapes}
+  shapes={shapes}
+  actions={{
                 sendBackward,
                 sendForward,
                 sendToBack,
@@ -249,6 +281,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 createGroup,
                 ungroup,
                 mergeImages,
+                onSelectSubject: () => handleGenerateSubject(selectedShape),
+                onCrop: handleCrop,
+                onDownload: handleDownload,
+                create3DDepth,
               }}
             />
           )}
