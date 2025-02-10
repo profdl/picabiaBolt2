@@ -114,8 +114,8 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
 
   return (
     <Drawer title="Assets" isOpen={isOpen} onClose={onClose} position="left">
-      <div className="flex flex-col h-full">
-        <div className="flex border-b border-gray-200 dark:border-[#404040]">
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#404040]">
           <button
             onClick={() => setActiveTab("my-assets")}
             className={`px-4 py-2 text-sm font-medium border-b-2 ${
@@ -139,7 +139,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
         </div>
 
         {activeTab === "source-plus" && (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full overflow-hidden">
             <div className="flex-shrink-0 bg-white dark:bg-[#2c2c2c] p-4 border-b border-gray-200 dark:border-[#404040]">
               <div className="flex justify-end mb-2">
                 <a
@@ -192,10 +192,11 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
           </div>
         )}
 
-        {activeTab === "my-assets" && (
-          <div className="flex flex-col h-full">
+
+{activeTab === "my-assets" && (
+          <div className="flex flex-col h-full overflow-hidden">
             <div className="flex-shrink-0 bg-white dark:bg-[#2c2c2c] p-4 border-b border-gray-200 dark:border-[#404040]">
-              <input
+       <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"

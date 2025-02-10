@@ -48,7 +48,7 @@ export const Drawer: React.FC<DrawerProps> = ({
       <div 
         onClick={handleDrawerClick}
         className={`
-          fixed flex flex-col
+          fixed flex flex-col overflow-hidden
           ${styles.base}
           ${position === 'left' ? styles.border.right : styles.border.left}
         `}
@@ -78,7 +78,7 @@ export const Drawer: React.FC<DrawerProps> = ({
           </button>
         </div>
 
-        <div className={`${styles.content} flex-1 overflow-y-auto`}>
+        <div className={`${styles.content} flex-1`}>
           {children}
         </div>
       </div>
