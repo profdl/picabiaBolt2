@@ -45,21 +45,95 @@ const findRightmostBoundary = (shapes: Shape[]): number => {
   return Math.max(...shapes.map((shape) => shape.position.x + shape.width));
 };
 
+const findOccupiedSpaces = (shapes: Shape[]): Array<{
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}> => {
+  return shapes.map((shape) => ({
+    x1: shape.position.x,
+    y1: shape.position.y,
+    x2: shape.position.x + shape.width,
+    y2: shape.position.y + shape.height,
+  }));
+};
+
+// Helper function to check if a position overlaps with existing shapes
+const isPositionOverlapping = (
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  occupiedSpaces: Array<{ x1: number; y1: number; x2: number; y2: number }>,
+  padding: number
+): boolean => {
+  const proposed = {
+    x1: x - padding,
+    y1: y - padding,
+    x2: x + width + padding,
+    y2: y + height + padding,
+  };
+
+  return occupiedSpaces.some(
+    (space) =>
+      proposed.x1 < space.x2 &&
+      proposed.x2 > space.x1 &&
+      proposed.y1 < space.y2 &&
+      proposed.y2 > space.y1
+  );
+};
+
 const findOpenSpace = (
   shapes: Shape[],
   width: number,
   height: number,
-  center: Position
+  viewCenter: Position
 ): Position => {
-  const PADDING = 20; // Space between shapes
-  const rightBoundary = findRightmostBoundary(shapes);
-  const maxWidth = Math.max(width, rightBoundary); // Use width parameter
+  const PADDING = 20;
+  const SEARCH_RADIUS = 1000; // Maximum search radius
+  const STEP = 100; // Distance between each position check
+  const occupiedSpaces = findOccupiedSpaces(shapes);
 
+  // Start at the view center
+  let bestPosition = { x: viewCenter.x, y: viewCenter.y };
+  let bestDistance = Infinity;
+
+  // Spiral search pattern
+  for (let radius = 0; radius <= SEARCH_RADIUS; radius += STEP) {
+    for (let angle = 0; angle < 360; angle += 45) {
+      const radian = (angle * Math.PI) / 180;
+      const x = viewCenter.x + radius * Math.cos(radian);
+      const y = viewCenter.y + radius * Math.sin(radian);
+
+      if (!isPositionOverlapping(x, y, width, height, occupiedSpaces, PADDING)) {
+        const distance = Math.sqrt(
+          Math.pow(x - viewCenter.x, 2) + Math.pow(y - viewCenter.y, 2)
+        );
+        
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestPosition = { x, y };
+        }
+      }
+    }
+
+    // If we found a valid position, return it
+    if (bestDistance < Infinity) {
+      return bestPosition;
+    }
+  }
+
+  // If no space found, return a position offset from view center
   return {
-    x: maxWidth + PADDING,
-    y: center.y - height / 2,
+    x: viewCenter.x + PADDING,
+    y: viewCenter.y + PADDING,
   };
 };
+
+
+
+
 
 export const generationHandlerSlice: StateCreator<
   StoreState & GenerationHandlerSlice,
@@ -385,10 +459,11 @@ export const generationHandlerSlice: StateCreator<
       const prediction_id = responseData.prediction.id;
 
       const { zoom, offset } = get();
-      const center = {
-        x: (window.innerWidth / 2 - offset.x) / zoom,
-        y: (window.innerHeight / 2 - offset.y) / zoom,
+      const viewCenter = {
+        x: (-offset.x + window.innerWidth / 2) / zoom,
+        y: (-offset.y + window.innerHeight / 2) / zoom,
       };
+      
 
       const maxDimension = 400;
       const aspectRatio =
@@ -399,13 +474,9 @@ export const generationHandlerSlice: StateCreator<
           ? [maxDimension, maxDimension / aspectRatio]
           : [maxDimension * aspectRatio, maxDimension];
 
-      const openPosition = findOpenSpace(
-        shapes,
-        scaledWidth,
-        scaledHeight,
-        center
-      );
+          const openPosition = findOpenSpace(shapes, scaledWidth, scaledHeight, viewCenter);
 
+          
       const placeholderShape: Shape = {
         id: prediction_id,
         type: "image",

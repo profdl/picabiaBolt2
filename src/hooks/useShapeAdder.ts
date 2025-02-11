@@ -97,17 +97,83 @@ export function useShapeAdder() {
     const center = getViewportCenter();
     const shapeId = Math.random().toString(36).substr(2, 9);
 
-    const findOpenSpace = (height: number, center: Position): Position => {
-      const PADDING = 20;
-      const rightBoundary = Math.max(...shapes.map(s => s.position.x + s.width), 0);
+    const findOccupiedSpaces = (shapes: Shape[]): Array<{
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+    }> => {
+      return shapes.map((shape) => ({
+        x1: shape.position.x,
+        y1: shape.position.y,
+        x2: shape.position.x + shape.width,
+        y2: shape.position.y + shape.height,
+      }));
+    };
     
+    const isPositionOverlapping = (
+      x: number,
+      y: number,
+      width: number,
+      height: number,
+      occupiedSpaces: Array<{ x1: number; y1: number; x2: number; y2: number }>,
+      padding: number
+    ): boolean => {
+      const proposed = {
+        x1: x - padding,
+        y1: y - padding,
+        x2: x + width + padding,
+        y2: y + height + padding,
+      };
+    
+      return occupiedSpaces.some(
+        (space) =>
+          proposed.x1 < space.x2 &&
+          proposed.x2 > space.x1 &&
+          proposed.y1 < space.y2 &&
+          proposed.y2 > space.y1
+      );
+    };
+    
+    const findOpenSpace = (
+      shapes: Shape[],
+      width: number,
+      height: number,
+      viewCenter: Position
+    ): Position => {
+      const PADDING = 5;
+      const MAX_ATTEMPTS = 10;
+      const occupiedSpaces = findOccupiedSpaces(shapes);
+    
+      // Start with trying to place directly to the right of viewport center
+      let attemptX = viewCenter.x + PADDING;
+      const attemptY = viewCenter.y - height / 2;
+    
+      // Try positions progressively further to the right
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        if (!isPositionOverlapping(
+          attemptX,
+          attemptY,
+          width,
+          height,
+          occupiedSpaces,
+          PADDING
+        )) {
+          return { x: attemptX, y: attemptY };
+        }
+        // Move further right for next attempt
+        attemptX += (width + PADDING);
+      }
+    
+      // If no space found, default to a position right of viewport center
       return {
-        x: rightBoundary + PADDING,
-        y: center.y - height / 2,
+        x: viewCenter.x + PADDING,
+        y: viewCenter.y - height / 2,
       };
     };
 
-    const position = options.position || findOpenSpace(height, center);
+
+    const position = options.position || findOpenSpace(shapes, width, height, center);
 
     const stickyDefaults = shapeType === 'sticky' ? {
       showPrompt: true,
