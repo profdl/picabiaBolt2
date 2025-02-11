@@ -124,17 +124,24 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
     }
   };
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop <= clientHeight * 1.5 && !isLoading && hasMore) {
+      loadMore();
+    }
+  };
+
 
 
   return (
     <>
- <Drawer
+      <Drawer
         title="Generated Images"
         isOpen={showGallery}
         onClose={toggleGallery}
         position="right"
       >
-        <div className="p-2">
+        <div className="p-2 h-full overflow-y-auto" onScroll={handleScroll}>
           <ImageGrid
             images={displayImages}
             loading={isLoading && page === 1}
@@ -145,23 +152,12 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
             showViewButton={true}
             imageUrlKey="url"
           />
-          {/* Loading spinner for pagination */}
           {isLoading && page > 1 && (
             <div className="py-4 flex justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
           )}
-          {/* Load more button */}
-          {!isLoading && hasMore && (
-            <div className="py-4 flex justify-center">
-              <button
-                onClick={loadMore}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200"
-              >
-                Load More
-              </button>
-            </div>
-          )}
+          {/* Remove the "Load More" button since we're using infinite scroll */}
         </div>
       </Drawer>
       {viewingImage && (
