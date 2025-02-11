@@ -29,6 +29,7 @@ export interface DragStart {
 }
 
 export interface Project {
+  is_template: boolean | undefined;
   id: string;
   created_at: string;
   updated_at: string;

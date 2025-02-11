@@ -3,6 +3,7 @@ import { useProjects } from '../hooks/useProjects';
 import { ProjectCard } from '../components/shared/ProjectCard';
 import { useNavigate } from 'react-router-dom';
 import { useThemeClass } from '../styles/useThemeClass';
+import { cn } from '../utils/cn';
 
 
 export function Dashboard() {
@@ -66,10 +67,13 @@ export function Dashboard() {
     <div className={styles.page}> {/* Add page wrapper */}
       <div className={styles.container}>
         <div className={styles.header.container}>
-          <button onClick={handleCreateProject} className={styles.header.button}>
-            <Plus className="w-5 h-5 mr-2" />
-            New Board
-          </button>
+        <button onClick={handleCreateProject} className={cn(
+  styles.header.button,
+  "inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-[#0d99ff] hover:bg-[#0b87e3]"
+)}>
+  <Plus className="w-5 h-5 mr-2" />
+  New Board
+</button>
         </div>
 
         {projects.length === 0 ? (

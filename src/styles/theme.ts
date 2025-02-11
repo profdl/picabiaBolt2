@@ -207,8 +207,9 @@ export const theme = {
     container: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8",
     header: {
       container: "flex items-center gap-4 mb-8",
-      button: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-neutral-50 bg-neutral-800 hover:bg-neutral-900 dark:bg-[#0d99ff] dark:hover:bg-[#0b87e3]"
+      button: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#0d99ff] hover:bg-[#0b87e3]" // Updated to be blue in both modes
     },
+  
     emptyState: {
       container: "text-center py-12",
       title: "text-lg font-medium text-neutral-900 dark:text-white mb-2",
