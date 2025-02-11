@@ -48,8 +48,6 @@ export const handler: Handler = async (event) => {
         const query = event.queryStringParameters?.query;
         console.log('Received query:', query);
 
-        // add as collection slug "flowers-7dgsgm20"
-
         const requestBody = {
             query_string: query || "",
             collection_ids: [1],
@@ -61,7 +59,18 @@ export const handler: Handler = async (event) => {
             include_nsfw: true,
             include_flagged: true,
             include_duplicates: true,
-            only_originals: false
+            only_originals: false,
+            media_types: ["photograph", "painting", "drawing", "illustration"],
+            excluded_media_types: ["document", "text", "manuscript", "title_page", "book_cover", "page"],
+            classifications: ["photograph", "artwork", "illustration"],
+            excluded_classifications: ["text", "document", "manuscript", "book", "publication"],
+            excluded_keywords: ["title page", "book cover", "cover page", "frontispiece", "table of contents", "index", "bibliography"],
+            content_attributes: {
+                has_text: false,
+                is_document: false
+            },
+            sort_by: "visual_relevance",
+            min_image_area: 100000  // This helps filter out small images that might be document snippets
         };
         
         console.log('Making request to Source.plus with body:', requestBody);

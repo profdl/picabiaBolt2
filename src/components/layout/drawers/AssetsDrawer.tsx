@@ -17,6 +17,42 @@ interface AssetsDrawerProps {
   onClose: () => void;
 }
 
+const randomSearchTerms = [
+  // Art Movements & Styles
+  "renaissance", "baroque", "gothic", "impressionism", "art nouveau", "surrealism", 
+  "romanticism", "rococo", "modernism", "victorian", "art deco",
+
+  // Artists
+  "albrecht dürer", "rembrandt", "da vinci", "van gogh", "monet",
+  "william blake", "Gustav Klimt", "hieronymus bosch", "vermeer", "michelangelo",
+  "raphael", "botticelli", "goya", "delacroix", "hokusai",
+
+  // Natural World
+  "flowers", "nature", "botanical", "birds", "butterflies", "insects",
+  "marine life", "mushrooms", "minerals", "shells", "corals",
+
+  // Sciences & Studies
+  "astronomy", "geology", "anatomy", "maps", "medical", "mechanical",
+  "zoology", "biology", "archaeology", "mathematics", "alchemy",
+
+  // Design & Decorative
+  "patterns", "ornaments", "textiles", "tapestry", "jewelry", "furniture",
+  "heraldry", "illuminated", "manuscripts", "calligraphy", "typography",
+
+  // Architecture & Places
+  "architecture", "cathedrals", "palaces", "ruins", "gardens",
+  "castles", "bridges", "cities", "monuments", "temples",
+
+  // Cultural & Historical
+  "medieval", "ancient", "mythology", "religious", "folk art",
+  "costumes", "fashion", "weapons", "artifacts", "ritual objects",
+
+  // Specific Collections
+  "haeckel", "audubon birds", "redoute roses", "basilius besler",
+  "maria sibylla merian", "edward curtis", "karl blossfeldt"
+];
+
+
 export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
   isOpen,
   onClose,
@@ -32,6 +68,8 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     searchIcon: useThemeClass(["drawer", "search", "icon"]),
   };
   const { addNewShape } = useShapeAdder();
+
+
 
   const {
     assets,
@@ -99,10 +137,13 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
     }
   };
 
+
+
   useEffect(() => {
     if (activeTab === "source-plus") {
-      setSourcePlusQuery("flowers");
-    }
+      const randomTerm = randomSearchTerms[Math.floor(Math.random() * randomSearchTerms.length)];
+      setSourcePlusQuery(randomTerm);
+      }
   }, [activeTab, setSourcePlusQuery]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
