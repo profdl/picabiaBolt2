@@ -774,7 +774,7 @@ export function ShapeControls({
                     position: shape.position,
                     width: shape.width,
                     height: shape.height,
-                    color: "#ffffff",
+                    color: "#000000",
                     rotation: shape.rotation,
                     locked: true,
                     isUploading: false,
