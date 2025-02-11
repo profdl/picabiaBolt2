@@ -40,10 +40,7 @@ export interface GenerationHandlerSlice {
   handleGenerate: () => Promise<void>;
 }
 
-const findRightmostBoundary = (shapes: Shape[]): number => {
-  if (shapes.length === 0) return 0;
-  return Math.max(...shapes.map((shape) => shape.position.x + shape.width));
-};
+
 
 const findOccupiedSpaces = (shapes: Shape[]): Array<{
   x1: number;
@@ -90,44 +87,34 @@ const findOpenSpace = (
   height: number,
   viewCenter: Position
 ): Position => {
-  const PADDING = 20;
-  const SEARCH_RADIUS = 1000; // Maximum search radius
-  const STEP = 100; // Distance between each position check
+  const PADDING = 5;
+  const MAX_ATTEMPTS = 10;
   const occupiedSpaces = findOccupiedSpaces(shapes);
 
-  // Start at the view center
-  let bestPosition = { x: viewCenter.x, y: viewCenter.y };
-  let bestDistance = Infinity;
+  // Start with trying to place directly to the right of viewport center
+  let attemptX = viewCenter.x + PADDING;
+  const attemptY = viewCenter.y - height / 2;
 
-  // Spiral search pattern
-  for (let radius = 0; radius <= SEARCH_RADIUS; radius += STEP) {
-    for (let angle = 0; angle < 360; angle += 45) {
-      const radian = (angle * Math.PI) / 180;
-      const x = viewCenter.x + radius * Math.cos(radian);
-      const y = viewCenter.y + radius * Math.sin(radian);
-
-      if (!isPositionOverlapping(x, y, width, height, occupiedSpaces, PADDING)) {
-        const distance = Math.sqrt(
-          Math.pow(x - viewCenter.x, 2) + Math.pow(y - viewCenter.y, 2)
-        );
-        
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestPosition = { x, y };
-        }
-      }
+  // Try positions progressively further to the right
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (!isPositionOverlapping(
+      attemptX,
+      attemptY,
+      width,
+      height,
+      occupiedSpaces,
+      PADDING
+    )) {
+      return { x: attemptX, y: attemptY };
     }
-
-    // If we found a valid position, return it
-    if (bestDistance < Infinity) {
-      return bestPosition;
-    }
+    // Move further right for next attempt
+    attemptX += (width + PADDING);
   }
 
-  // If no space found, return a position offset from view center
+  // If no space found, default to a position right of viewport center
   return {
     x: viewCenter.x + PADDING,
-    y: viewCenter.y + PADDING,
+    y: viewCenter.y - height / 2,
   };
 };
 
@@ -459,49 +446,48 @@ export const generationHandlerSlice: StateCreator<
       const prediction_id = responseData.prediction.id;
 
       const { zoom, offset } = get();
+  
+
+      const maxDimension = 400;
+      const aspectRatio = (activeSettings.outputWidth || 1360) / (activeSettings.outputHeight || 768);
+      const [scaledWidth, scaledHeight] = aspectRatio > 1
+        ? [maxDimension, maxDimension / aspectRatio]
+        : [maxDimension * aspectRatio, maxDimension];
+      
       const viewCenter = {
         x: (-offset.x + window.innerWidth / 2) / zoom,
         y: (-offset.y + window.innerHeight / 2) / zoom,
       };
-      
 
-      const maxDimension = 400;
-      const aspectRatio =
-        (activeSettings.outputWidth || 1360) /
-        (activeSettings.outputHeight || 768);
-      const [scaledWidth, scaledHeight] =
-        aspectRatio > 1
-          ? [maxDimension, maxDimension / aspectRatio]
-          : [maxDimension * aspectRatio, maxDimension];
-
-          const openPosition = findOpenSpace(shapes, scaledWidth, scaledHeight, viewCenter);
+          const position = findOpenSpace(shapes, scaledWidth, scaledHeight, viewCenter);
 
           
-      const placeholderShape: Shape = {
-        id: prediction_id,
-        type: "image",
-        position: openPosition,
-        width: scaledWidth,
-        height: scaledHeight,
-        isUploading: true,
-        imageUrl: "",
-        color: "transparent",
-        rotation: 0,
-        model: "",
-        useSettings: false,
-        isEditing: false,
-        depthStrength: 0,
-        edgesStrength: 0,
-        contentStrength: 0,
-        poseStrength: 0,
-        sketchStrength: 0,
-        remixStrength: 0,
-        showDepth: false,
-        showEdges: false,
-        showPose: false,
-        showSketch: false,
-        showRemix: false,
-      };
+          const placeholderShape: Shape = {
+            id: prediction_id,
+            type: "image",
+            position,
+            width: scaledWidth,
+            height: scaledHeight,
+            isUploading: true,
+            imageUrl: "",
+            color: "transparent",
+            rotation: 0,
+            model: "",
+            useSettings: false,
+            isEditing: false,
+            depthStrength: 0,
+            edgesStrength: 0,
+            contentStrength: 0,
+            poseStrength: 0,
+            sketchStrength: 0,
+            remixStrength: 0,
+            showDepth: false,
+            showEdges: false,
+            showPose: false,
+            showSketch: false,
+            showRemix: false,
+          };
+          
 
       get().addShape(placeholderShape);
       get().setSelectedShapes([prediction_id]);
