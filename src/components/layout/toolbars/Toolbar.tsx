@@ -207,11 +207,26 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
   };
 
   const handleAddDiffusionSettings = async () => {
-    await addNewShape("diffusionSettings", {}, "", {
-      centerOnShape: true,
-      setSelected: true,
-      defaultWidth: 300,
+
+    shapes.forEach((shape) => {
+      if (shape.type === "diffusionSettings" && shape.useSettings) {
+        updateShape(shape.id, { useSettings: false });
+      }
     });
+
+    
+    await addNewShape(
+      "diffusionSettings",
+      {
+        useSettings: true, // Set useSettings to true for the new shape
+      },
+      "",
+      {
+        centerOnShape: true,
+        setSelected: true,
+        defaultWidth: 300,
+      }
+    );
   };
 
   const handleAddImagePlaceholder = async () => {

@@ -207,13 +207,14 @@ export function ShapeControls({
     shape.showPrompt ||
     shape.showNegativePrompt ||
     shape.showSketch ||
-    shape.showRemix;
+    shape.showRemix ||
+    (shape.type === "diffusionSettings" && shape.useSettings); 
 
-  const showControlPanel = isSelected || anyCheckboxChecked;
-
-  const showManipulationControls = isSelected;
-
-  if (!showControlPanel && !shape.isNew) return null;
+    const showControlPanel = isSelected || anyCheckboxChecked;
+    const showManipulationControls = isSelected;
+  
+    if (!showControlPanel && !shape.isNew) return null;
+  
 
   const handleCheckboxChange = async (
     control: (typeof controls)[0],
@@ -468,10 +469,11 @@ export function ShapeControls({
           />
         )}
 
-      {shape.type === "diffusionSettings" && (
+{shape.type === "diffusionSettings" && (
         <div
           className={`absolute left-1/2 -bottom-10 transform -translate-x-1/2 ${styles.sidePanel.container}`}
           style={{ zIndex: 101, pointerEvents: "all", width: "160px" }}
+          data-controls-panel={shape.id}
         >
           <div className={styles.sidePanel.group}>
             <input
