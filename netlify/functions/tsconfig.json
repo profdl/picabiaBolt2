@@ -13,6 +13,6 @@
     "noEmit": false,
     "outDir": "../../.netlify/functions-build"
   },
-  "include": ["./**/*"],
+  "include": ["./**/*", "src/types/*.d.ts" ],
   "exclude": ["node_modules"]
 }
