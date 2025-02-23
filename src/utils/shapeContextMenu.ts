@@ -30,12 +30,7 @@ export const createShapeContextMenu = (
   actions: ContextMenuActions,
   shapes: Shape[] = []
 ): ContextMenuItem[] => {
-  // Add console.log to debug
-  console.log('Creating context menu:', {
-    selectedShapes,
-    shapes,
-    currentShape: shape
-  });
+
 
   const menuItems: ContextMenuItem[] = [];
 
@@ -44,12 +39,7 @@ export const createShapeContextMenu = (
   const areAllImages = selectedShapeObjects.length > 1 && 
     selectedShapeObjects.every((s) => s.type === "image");
 
-  // Add console.log to debug image selection
-  console.log('Image selection check:', {
-    selectedCount: selectedShapeObjects.length,
-    areAllImages,
-    selectedTypes: selectedShapeObjects.map(s => s.type)
-  });
+ 
 
   // Add merge option if multiple images are selected
   if (areAllImages) {

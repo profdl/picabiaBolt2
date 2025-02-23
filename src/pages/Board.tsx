@@ -256,16 +256,13 @@ export const Board = () => {
         try {
           const localShapes = JSON.parse(localData);
           setShapes(localShapes);
-          console.log("Loaded from localStorage");
         } catch (e) {
           console.warn("Error parsing localStorage data:", e);
         }
       }
 
       // Load from Supabase
-      console.log("Fetching project data...");
       const project = await fetchProject(id);
-      console.log("Project data received:", project);
 
       if (!project) {
         setError("Project not found...");

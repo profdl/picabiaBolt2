@@ -22,7 +22,6 @@ export const handler: Handler = async (event) => {
     }
     lastRequestTime = now;
 
-    console.log('Unsplash search triggered:', event.queryStringParameters);
 
 
 

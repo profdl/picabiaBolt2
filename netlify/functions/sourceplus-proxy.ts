@@ -11,7 +11,6 @@ export const handler: Handler = async (event) => {
 
   try {
     const imageUrl = event.queryStringParameters?.url;
-    console.log('Attempting to proxy image URL:', imageUrl);
 
     if (!imageUrl) {
       return {
@@ -32,7 +31,6 @@ export const handler: Handler = async (event) => {
 
     // Use the thumbnail URL instead of the full image URL
     const thumbnailUrl = imageUrl.replace('/images/', '/thumbnails/');
-    console.log('Using thumbnail URL:', thumbnailUrl);
 
     const response = await fetch(thumbnailUrl, {
       headers: {

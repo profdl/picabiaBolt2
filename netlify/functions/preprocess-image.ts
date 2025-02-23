@@ -18,14 +18,7 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const WEBHOOK_URL = process.env.PREPROCESS_WEBHOOK || process.env.WEBHOOK_URL;
 
 export const handler: Handler = async (event) => {
-  console.log("Preprocess Image Function Details:", {
-    timestamp: new Date().toISOString(),
-    requestId: event?.headers["x-request-id"],
-    webhook: process.env.WEBHOOK_URL,
-    modelVersion: MODEL_VERSION,
-    // Add payload logging
-    payload: event.body ? JSON.parse(event.body) : null,
-  });
+
 
   if (!REPLICATE_API_TOKEN) {
     console.error("Missing REPLICATE_API_TOKEN");
@@ -40,13 +33,7 @@ export const handler: Handler = async (event) => {
     const payload = JSON.parse(event.body || "{}");
     const { imageUrl, processType, shapeId, userId } = payload;
 
-    // Add validation logging
-    console.log("Validated payload:", {
-      imageUrl,
-      processType,
-      shapeId,
-      userId,
-    });
+
 
     const baseWorkflow = {
       "10": {
@@ -78,15 +65,7 @@ export const handler: Handler = async (event) => {
     // Create a copy of the workflow
     const workflow = JSON.parse(JSON.stringify(baseWorkflow));
 
-    // Log the workflow configuration
-    console.log("Workflow configuration:", {
-      workflow,
-      imageUrl,
-      processType,
-      MODEL_VERSION,
-      REPLICATE_API_TOKEN: !!REPLICATE_API_TOKEN, // Log existence only, not the actual token
-    });
-
+   
     // Modify the copy
     workflow["10"].inputs.image = imageUrl;
     baseWorkflow["33"].inputs.preprocessor =
@@ -139,7 +118,6 @@ export const handler: Handler = async (event) => {
       }
     );
 
-    console.log("Replicate response status:", replicateResponse.status);
 
     if (!replicateResponse.ok) {
       const errorData = await replicateResponse.json();

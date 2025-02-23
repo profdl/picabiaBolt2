@@ -46,7 +46,6 @@ export const handler: Handler = async (event) => {
 
     try {
         const query = event.queryStringParameters?.query;
-        console.log('Received query:', query);
 
         const requestBody = {
             query_string: query || "",

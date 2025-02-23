@@ -7,19 +7,6 @@ const REPLICATE_API_TOKEN =
   process.env.REPLICATE_API_TOKEN || process.env.VITE_REPLICATE_API_TOKEN;
 
 export const handler: Handler = async (event) => {
-  console.log("Generate Image Function Details:", {
-    timestamp: new Date().toISOString(),
-    requestId: event.requestContext?.requestId,
-    webhookUrl: process.env.WEBHOOK_URL,
-    modelVersion: MODEL_VERSION,
-  });
-
-  console.log("Generate Image TypeScript Function Started", {
-    timestamp: new Date().toISOString(),
-    httpMethod: event.httpMethod,
-    headers: event.headers,
-  });
-  console.log("Received event:", event);
 
   const headers = {
     "Access-Control-Allow-Origin": "*",

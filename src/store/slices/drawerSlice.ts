@@ -374,8 +374,6 @@ fetchGeneratedImages: async (page = 1, perPage = 20) => {
       } = await supabase.auth.getUser();
       if (!user) return false;
 
-      // Log the upload attempt
-      console.log("Uploading asset to bucket:", file.name);
 
       const fileName = `${user.id}-${Date.now()}-${file.name}`;
 
@@ -392,9 +390,7 @@ fetchGeneratedImages: async (page = 1, perPage = 20) => {
         data: { publicUrl },
       } = supabase.storage.from("assets").getPublicUrl(fileName);
 
-      // Log the public URL
-      console.log("Generated public URL:", publicUrl);
-
+   
       // Get image dimensions first, matching the drag & drop pattern
       const img = new Image();
       const url = URL.createObjectURL(file);
