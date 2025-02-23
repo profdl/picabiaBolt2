@@ -28,19 +28,20 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
 
   useEffect(() => {
     if (!canvasRef.current) return;
-
+  
     // Initialize overlay canvas
     overlayCanvasRef.current = document.createElement("canvas");
     overlayCanvasRef.current.width = 512;
     overlayCanvasRef.current.height = 512;
-
+    overlayCanvasRef.current.getContext('2d', { willReadFrequently: true });
+  
     // Initialize stroke canvas
     strokeCanvasRef.current = document.createElement("canvas");
     strokeCanvasRef.current.width = 512;
     strokeCanvasRef.current.height = 512;
-
+  
     // Initialize with black background
-    const strokeCtx = strokeCanvasRef.current.getContext("2d");
+    const strokeCtx = strokeCanvasRef.current.getContext("2d", { willReadFrequently: true });
     if (strokeCtx) {
       strokeCtx.fillStyle = "#000000";
       strokeCtx.fillRect(0, 0, 512, 512);
@@ -171,7 +172,7 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     }
   };
   const updateMainCanvas = () => {
-    const ctx = canvasRef.current?.getContext("2d");
+    const ctx = canvasRef.current?.getContext("2d", { willReadFrequently: true });
     if (!ctx || !strokeCanvasRef.current || !overlayCanvasRef.current) return;
 
     // Clear main canvas
@@ -192,7 +193,7 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
   };
 
   const drawBrushDot = (canvas: HTMLCanvasElement, point: Point) => {
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const textureImg = brushTextures.get(brushTexture);
     if (!ctx || !textureImg || !textureImg.complete) return;
   

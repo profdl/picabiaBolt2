@@ -51,7 +51,7 @@ export const useMixboxBrush = ({ strokeCanvasRef }: MixboxBrushProps) => {
 
   // Sample color from canvas
   const sampleColor = useCallback((x: number, y: number): string => {
-    const ctx = strokeCanvasRef.current?.getContext('2d');
+    const ctx = strokeCanvasRef.current?.getContext('2d', { willReadFrequently: true });
     if (!ctx) return '#000000';
     
     const pixel = ctx.getImageData(x, y, 1, 1).data;
@@ -81,6 +81,11 @@ export const useMixboxBrush = ({ strokeCanvasRef }: MixboxBrushProps) => {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
+    // Get context with willReadFrequently flag
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (ctx) {
+      ctx.clearRect(0, 0, width, height);
+    }
     return {
       canvas,
       opacity: 1,
@@ -89,8 +94,8 @@ export const useMixboxBrush = ({ strokeCanvasRef }: MixboxBrushProps) => {
   }, []);
 
   const blendLayers = useCallback((bottomLayer: StrokeLayer, topLayer: StrokeLayer, x: number, y: number) => {
-    const bottomCtx = bottomLayer.canvas.getContext('2d');
-    const topCtx = topLayer.canvas.getContext('2d');
+    const bottomCtx = bottomLayer.canvas.getContext('2d', { willReadFrequently: true });
+    const topCtx = topLayer.canvas.getContext('2d', { willReadFrequently: true });
     if (!bottomCtx || !topCtx) return;
 
     const bottomPixel = bottomCtx.getImageData(x, y, 1, 1).data;
