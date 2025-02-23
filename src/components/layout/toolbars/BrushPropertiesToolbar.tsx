@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Maximize2,
   Blend,
@@ -7,7 +7,7 @@ import {
   ArrowLeftRight,
 } from "lucide-react";
 import { BrushShapeSelector } from "./BrushShapeSelector";
-import {OKColorPicker} from "../../shared/hsl-color-picker";
+import { OKColorPicker } from "../../shared/hsl-color-picker";
 
 interface BrushPropertiesToolbarProps {
   properties: {
@@ -22,8 +22,6 @@ interface BrushPropertiesToolbarProps {
   onPropertyChange: (property: string, value: unknown) => void;
 }
 
-
-
 export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
   properties,
   onPropertyChange,
@@ -31,7 +29,6 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   const styles = {
-
     container:
       "absolute bottom-full mb-2.5 left-1/2 transform -translate-x-1/2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1.5",
     buttonGroup: "flex items-center gap-1",
@@ -42,10 +39,18 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
         "mini-slider w-full pointer-events-all h-[2px] bg-neutral-200 dark:bg-neutral-700 rounded-full appearance-none outline-none",
     },
     colorPicker: {
-      trigger: "w-8 h-8 p-0 bg-transparent rounded cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded [&::-webkit-color-swatch]:border-none border border-neutral-300 dark:border-neutral-600",
+      trigger:
+        "w-8 h-8 p-0 bg-transparent rounded cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded [&::-webkit-color-swatch]:border-none border border-neutral-300 dark:border-neutral-600",
       popup: "absolute bottom-[calc(100%+0.5rem)] left-0 z-[60]",
     },
   };
+
+  const handleColorChange = useCallback(
+    (color: string) => {
+      onPropertyChange("color", color);
+    },
+    [onPropertyChange]
+  );
 
   return (
     <div className={styles.container}>
@@ -56,14 +61,19 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
             onClick={() => setShowColorPicker(!showColorPicker)}
             style={{ backgroundColor: properties.color }}
           />
-          
+
           {showColorPicker && (
             <div className={styles.colorPicker.popup}>
-              <div className="fixed inset-0" onClick={() => setShowColorPicker(false)} />
-              <OKColorPicker />
+              <div
+                className="fixed inset-0"
+                onClick={() => setShowColorPicker(false)}
+              />
+              <OKColorPicker
+                value={properties.color}
+                onChange={handleColorChange}
+              />
             </div>
           )}
-
           <BrushShapeSelector
             currentTexture={properties.texture || "basic"}
             onTextureSelect={(texture) => onPropertyChange("texture", texture)}
@@ -90,7 +100,9 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
             <input
               type="range"
               value={properties.opacity}
-              onChange={(e) => onPropertyChange("opacity", Number(e.target.value))}
+              onChange={(e) =>
+                onPropertyChange("opacity", Number(e.target.value))
+              }
               min="0"
               max="1"
               step="0.1"

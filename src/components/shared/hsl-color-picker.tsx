@@ -1,10 +1,10 @@
-import { useState, useEffect, ChangeEvent, useCallback } from 'react';
-import { converter, Color as CuloriColor } from 'culori';
+import { useState, useEffect, ChangeEvent, useCallback, useMemo } from "react";
+import { converter, Color as CuloriColor } from "culori";
 
 interface Color {
-  hue: number;  // 0-360
-  saturation: number;  // 0-100 
-  lightness: number;  // 0-100
+  hue: number;
+  saturation: number;
+  lightness: number;
 }
 
 interface OKColorPickerProps {
@@ -12,174 +12,235 @@ interface OKColorPickerProps {
   onChange?: (color: string) => void;
 }
 
-const rgbToOkhsl = converter('okhsl');
-const okhslToRgb = converter('rgb');
+const rgbToOkhsl = converter("okhsl");
+const okhslToRgb = converter("rgb");
 
 // Utility functions defined before use
 const hexToRgb = (hex: string): CuloriColor => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    mode: 'rgb',
-    r: parseInt(result[1], 16) / 255,
-    g: parseInt(result[2], 16) / 255,
-    b: parseInt(result[3], 16) / 255
-  } : { mode: 'rgb', r: 0, g: 0, b: 0 };
+  return result
+    ? {
+        mode: "rgb",
+        r: parseInt(result[1], 16) / 255,
+        g: parseInt(result[2], 16) / 255,
+        b: parseInt(result[3], 16) / 255,
+      }
+    : { mode: "rgb", r: 0, g: 0, b: 0 };
 };
 
 const rgbToHex = (r: number, g: number, b: number): string => {
-  return '#' + [r, g, b].map(x => {
-    const hex = Math.round(x * 255).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  }).join('');
+  return (
+    "#" +
+    [r, g, b]
+      .map((x) => {
+        const hex = Math.round(x * 255).toString(16);
+        return hex.length === 1 ? "0" + hex : hex;
+      })
+      .join("")
+  );
 };
 
-export const OKColorPicker: React.FC<OKColorPickerProps> = ({ value, onChange }) => {
-  // Parse initial color
-  const initialOkhsl = value ? rgbToOkhsl(hexToRgb(value)) : null;
 
-  const [color, setColor] = useState<Color>({
+export const OKColorPicker: React.FC<OKColorPickerProps> = ({
+  value,
+  onChange,
+}) => {
+  // Parse initial color only once
+  const initialOkhsl = useMemo(() => 
+    value ? rgbToOkhsl(hexToRgb(value)) : null
+  , [value]);
+
+  const [color, setColor] = useState<Color>(() => ({
     hue: initialOkhsl?.h ?? 0,
     saturation: (initialOkhsl?.s ?? 0.5) * 100,
-    lightness: (initialOkhsl?.l ?? 0.5) * 100
-  });
+    lightness: (initialOkhsl?.l ?? 0.5) * 100,
+  }));
 
-  // Convert OKHSL to Hex
+  // Convert OKHSL to Hex - memoize this function
   const colorToHex = useCallback((h: number, s: number, l: number): string => {
     const okhslColor = {
-      mode: 'okhsl' as const,
+      mode: "okhsl" as const,
       h,
       s: s / 100,
-      l: l / 100
+      l: l / 100,
     };
-    
+
     const rgbColor = okhslToRgb(okhslColor);
-    if (!rgbColor) return '#000000';
+    if (!rgbColor) return "#000000";
 
     return rgbToHex(rgbColor.r, rgbColor.g, rgbColor.b);
   }, []);
 
-  // Generate hue spectrum colors
-  const getHueSpectrumBackground = useCallback((): string => {
-    const steps = 7;
-    const colors = Array.from({ length: steps }, (_, i) => {
-      const h = (i * 360) / (steps - 1);
-      const okhslColor = {
-        mode: 'okhsl' as const,
-        h,
-        s: color.saturation / 100,
-        l: color.lightness / 100
-      };
-      const rgbColor = okhslToRgb(okhslColor);
-      if (!rgbColor) return '#000000';
-      return rgbToHex(rgbColor.r, rgbColor.g, rgbColor.b);
-    });
-
-    return `linear-gradient(to right, ${colors.join(', ')})`;
-  }, [color.saturation, color.lightness]);
-
-  // Update color preview
-  const getPreviewColor = useCallback((): string => {
-    return colorToHex(color.hue, color.saturation, color.lightness);
-  }, [color, colorToHex]);
-
   // Handle slider changes
-  const handleSliderChange = (e: ChangeEvent<HTMLInputElement>, type: 'hue' | 'saturation' | 'lightness') => {
+  const handleSliderChange = useCallback((
+    e: ChangeEvent<HTMLInputElement>,
+    type: "hue" | "saturation" | "lightness"
+  ) => {
     const value = parseFloat(e.target.value);
     setColor(prevColor => ({
       ...prevColor,
-      [type]: value
+      [type]: value,
     }));
-  };
+  }, []);
 
-  // Update external onChange handler
+  // Update external onChange handler with proper debouncing
   useEffect(() => {
-    if (onChange) {
-      const hex = colorToHex(color.hue, color.saturation, color.lightness);
+    if (!onChange) return;
+    
+    const hex = colorToHex(color.hue, color.saturation, color.lightness);
+    const timeoutId = setTimeout(() => {
       onChange(hex);
-    }
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
   }, [color, onChange, colorToHex]);
 
-  return (
-    <div>
-      {/* Color Preview */}
-      <div className="flex mb-4">
-        <div 
-          className="h-24 w-1/2"
-          style={{ backgroundColor: getPreviewColor() }}
-        />
-        <div 
-          className="h-24 w-1/2"
-          style={{ backgroundColor: colorToHex(0, 0, color.lightness) }}
-        />
-      </div>
+  // Update color when external value changes
+  useEffect(() => {
+    if (!value) return;
+    
+    const okhsl = rgbToOkhsl(hexToRgb(value));
+    if (!okhsl) return;
 
-      {/* Sliders */}
-      <div className="space-y-4">
+    setColor({
+      hue: okhsl.h ?? 0,
+      saturation: (okhsl.s ?? 0.5) * 100,
+      lightness: (okhsl.l ?? 0.5) * 100,
+    });
+  }, [value]);
+
+    // Generate hue spectrum colors
+    const getHueSpectrumBackground = useCallback((): string => {
+      const steps = 7;
+      const colors = Array.from({ length: steps }, (_, i) => {
+        const h = (i * 360) / (steps - 1);
+        const okhslColor = {
+          mode: "okhsl" as const,
+          h,
+          s: color.saturation / 100,
+          l: color.lightness / 100,
+        };
+        const rgbColor = okhslToRgb(okhslColor);
+        if (!rgbColor) return "#000000";
+        return rgbToHex(rgbColor.r, rgbColor.g, rgbColor.b);
+      });
+  
+      return `linear-gradient(to right, ${colors.join(", ")})`;
+    }, [color.saturation, color.lightness]);
+  
+
+    
+
+  return (
+    <div className="p-4 w-[300px] bg-neutral-900 rounded-lg">
+      {/* Color Preview */}
+      <div
+        className="w-full h-12 rounded mb-6"
+        style={{
+          backgroundColor: colorToHex(
+            color.hue,
+            color.saturation,
+            color.lightness
+          ),
+        }}
+      />
+
+      {/* Sliders Container */}
+      <div className="space-y-6">
         {/* Hue Slider */}
         <div>
-          <label className="block mb-2">Hue: {Math.round(color.hue)}°</label>
-          <input
-            type="range"
-            min="0"
-            max="360"
-            value={color.hue}
-            onChange={(e) => handleSliderChange(e, 'hue')}
-            className="w-full"
-          />
-          <div 
-            className="h-8 w-full mt-1 rounded"
-            style={{ background: getHueSpectrumBackground() }}
-          />
+          <div className="flex justify-between mb-1">
+            <span className="text-sm text-white">Hue</span>
+            <span className="text-sm text-white">{Math.round(color.hue)}°</span>
+          </div>
+          <div className="relative">
+            <div
+              className="h-4 w-full rounded"
+              style={{ background: getHueSpectrumBackground() }}
+            />
+            <input
+              type="range"
+              min="0"
+              max="360"
+              value={color.hue}
+              onChange={(e) => handleSliderChange(e, "hue")}
+              className="absolute top-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <div
+              className="absolute top-1/2 -translate-y-1/2 w-3 h-6 bg-white rounded border-2 border-neutral-900"
+              style={{
+                left: `${(color.hue / 360) * 100}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            />
+          </div>
         </div>
 
         {/* Saturation Slider */}
         <div>
-          <label className="block mb-2">Saturation: {Math.round(color.saturation)}%</label>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={color.saturation}
-            onChange={(e) => handleSliderChange(e, 'saturation')}
-            className="w-full"
-          />
-          <div 
-            className="h-8 w-full mt-1 rounded"
-            style={{
-              background: `linear-gradient(to right, ${
-                colorToHex(color.hue, 0, color.lightness)
-              }, ${
-                colorToHex(color.hue, 100, color.lightness)
-              })`
-            }}
-          />
+          <div className="flex justify-between mb-1">
+            <span className="text-sm text-white">Saturation</span>
+            <span className="text-sm text-white">
+              {Math.round(color.saturation)}%
+            </span>
+          </div>
+          <div className="relative">
+            <div
+              className="h-4 w-full rounded"
+              style={{
+                background: `linear-gradient(to right, ${colorToHex(
+                  color.hue,
+                  0,
+                  color.lightness
+                )}, ${colorToHex(color.hue, 100, color.lightness)})`,
+              }}
+            />
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={color.saturation}
+              onChange={(e) => handleSliderChange(e, "saturation")}
+              className="absolute top-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <div
+              className="absolute top-1/2 -translate-y-1/2 w-3 h-6 bg-white rounded border-2 border-neutral-900"
+              style={{
+                left: `${color.saturation}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            />
+          </div>
         </div>
 
-        {/* Lightness Slider */}
-        <div>
-          <label className="block mb-2">Lightness: {Math.round(color.lightness)}%</label>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={color.lightness}
-            onChange={(e) => handleSliderChange(e, 'lightness')}
-            className="w-full"
-          />
-          <div 
-            className="h-8 w-full mt-1 rounded"
-            style={{
-              background: `linear-gradient(to right, ${
-                colorToHex(color.hue, color.saturation, 0)
-              }, ${
-                colorToHex(color.hue, color.saturation, 50)
-              }, ${
-                colorToHex(color.hue, color.saturation, 100)
-              })`
-            }}
-          />
-        </div>
+  {/* Lightness Slider */}
+  <div>
+    <div className="flex justify-between mb-1">
+      <span className="text-sm text-white">Lightness</span>
+      <span className="text-sm text-white">{Math.round(color.lightness)}%</span>
+    </div>
+    <div className="relative">
+      <div
+        className="h-4 w-full rounded"
+        style={{
+          background: `linear-gradient(to right, #000000, #ffffff)`
+        }}
+      />
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={color.lightness}
+        onChange={(e) => handleSliderChange(e, 'lightness')}
+        className="absolute top-0 w-full h-full opacity-0 cursor-pointer"
+      />
+      <div 
+        className="absolute top-1/2 -translate-y-1/2 w-3 h-6 bg-white rounded border-2 border-neutral-900"
+        style={{ left: `${color.lightness}%`, transform: 'translate(-50%, -50%)' }}
+      />
+    </div>
+  </div>
       </div>
     </div>
   );
-}
+};
