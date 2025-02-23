@@ -68,10 +68,15 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
                 className="fixed inset-0"
                 onClick={() => setShowColorPicker(false)}
               />
-              <OKColorPicker
-                value={properties.color}
-                onChange={handleColorChange}
-              />
+ <OKColorPicker
+  value={properties.color}
+  onChange={handleColorChange}
+  defaultColor={{
+    hue: 0,          // Red
+    saturation: 100, // Full saturation
+    lightness: 50    // Medium lightness
+  }}
+/>
             </div>
           )}
           <BrushShapeSelector

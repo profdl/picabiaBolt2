@@ -7,9 +7,25 @@ interface Color {
   lightness: number;
 }
 
+// First, define the default color type
+interface HSLColor {
+  hue: number;
+  saturation: number;
+  lightness: number;
+}
+
+// Define default values
+const DEFAULT_COLOR: HSLColor = {
+  hue: 0,          // Red
+  saturation: 100, // Full saturation
+  lightness: 50    // Medium lightness
+};
+
+// Update the props interface to include defaultColor
 interface OKColorPickerProps {
   value?: string;
   onChange?: (color: string) => void;
+  defaultColor?: HSLColor; // Add this line
 }
 
 const rgbToOkhsl = converter("okhsl");
@@ -44,16 +60,21 @@ const rgbToHex = (r: number, g: number, b: number): string => {
 export const OKColorPicker: React.FC<OKColorPickerProps> = ({
   value,
   onChange,
+  defaultColor = DEFAULT_COLOR // Use the default value
+
 }) => {
-  // Parse initial color only once
   const initialOkhsl = useMemo(() => 
-    value ? rgbToOkhsl(hexToRgb(value)) : null
-  , [value]);
+    value ? rgbToOkhsl(hexToRgb(value)) : {
+      h: defaultColor.hue,
+      s: defaultColor.saturation / 100,
+      l: defaultColor.lightness / 100,
+    }
+  , [value, defaultColor]);
 
   const [color, setColor] = useState<Color>(() => ({
-    hue: initialOkhsl?.h ?? 0,
-    saturation: (initialOkhsl?.s ?? 0.5) * 100,
-    lightness: (initialOkhsl?.l ?? 0.5) * 100,
+    hue: initialOkhsl.h ?? defaultColor.hue,
+    saturation: (initialOkhsl.s ?? defaultColor.saturation / 100) * 100,
+    lightness: (initialOkhsl.l ?? defaultColor.lightness / 100) * 100,
   }));
 
   // Convert OKHSL to Hex - memoize this function
