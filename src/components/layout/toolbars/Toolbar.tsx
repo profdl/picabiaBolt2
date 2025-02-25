@@ -21,7 +21,6 @@ import { useToolbarGenerate } from "../../../hooks/useToolbarGenerate";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { useShapeAdder } from "../../../hooks/useShapeAdder";
 
-
 interface ToolbarProps {
   onShowImageGenerate: () => void;
   onShowUnsplash: () => void;
@@ -76,6 +75,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     setBrushRotation,
     setBrushFollowPath,
     setBrushSpacing,
+    setBrushHardness,
   } = useStore((state) => ({
     setCurrentColor: state.setCurrentColor,
     setBrushTexture: state.setBrushTexture,
@@ -84,6 +84,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     setBrushRotation: state.setBrushRotation,
     setBrushFollowPath: state.setBrushFollowPath,
     setBrushSpacing: state.setBrushSpacing,
+    setBrushHardness: state.setBrushHardness,
   }));
 
   // Add handlers for image actions
@@ -139,6 +140,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
       case "spacing":
         setBrushSpacing(value as number);
         break;
+      case "hardness":
+        setBrushHardness(value as number);
+        break;
     }
   };
 
@@ -151,6 +155,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     brushRotation,
     brushFollowPath,
     brushSpacing,
+    brushHardness,
     tool,
     setTool,
   } = useToolbarBrush();
@@ -207,14 +212,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
   };
 
   const handleAddDiffusionSettings = async () => {
-
     shapes.forEach((shape) => {
       if (shape.type === "diffusionSettings" && shape.useSettings) {
         updateShape(shape.id, { useSettings: false });
       }
     });
 
-    
     await addNewShape(
       "diffusionSettings",
       {
@@ -281,12 +284,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
           {/* Image Properties Toolbar */}
           {tool === "select" && selectedShape?.type === "image" && (
-  <PropertiesToolbar
-  type="image"
-  shape={selectedShape}
-  selectedShapes={selectedShapes}
-  shapes={shapes}
-  actions={{
+            <PropertiesToolbar
+              type="image"
+              shape={selectedShape}
+              selectedShapes={selectedShapes}
+              shapes={shapes}
+              actions={{
                 sendBackward,
                 sendForward,
                 sendToBack,
@@ -316,6 +319,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 rotation: brushRotation,
                 followPath: brushFollowPath,
                 spacing: brushSpacing,
+                hardness: brushHardness, 
               }}
               onPropertyChange={handlePropertyChange}
             />

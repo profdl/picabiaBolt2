@@ -13,6 +13,7 @@ interface PropertiesToolbarProps {
     rotation?: number;
     followPath?: boolean;
     spacing?: number;
+    hardness?: number;  
   };
   onPropertyChange?: (property: string, value: unknown) => void;
   shape?: Shape;

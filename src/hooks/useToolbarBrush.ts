@@ -18,6 +18,8 @@ interface BrushControls {
   setBrushFollowPath: (follow: boolean) => void;
   brushSpacing: number;
   setBrushSpacing: (spacing: number) => void;
+  brushHardness: number;                    
+  setBrushHardness: (hardness: number) => void;  
   tool: ToolType;
   setTool: (tool: ToolType) => void;
 }
@@ -39,6 +41,8 @@ export function useToolbarBrush(): BrushControls {
     setBrushFollowPath,
     brushSpacing,
     setBrushSpacing,
+    brushHardness,        
+    setBrushHardness,    
     tool,
     setTool
   } = useStore();
@@ -64,6 +68,8 @@ export function useToolbarBrush(): BrushControls {
     setBrushFollowPath,
     brushSpacing,
     setBrushSpacing,
+    brushHardness,       
+    setBrushHardness,    
     tool,
     setTool
   };

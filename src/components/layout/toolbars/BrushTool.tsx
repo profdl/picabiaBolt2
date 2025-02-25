@@ -24,6 +24,7 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     brushTexture,
     brushSpacing,
     brushRotation,
+    brushHardness,
   } = useStore();
 
   useEffect(() => {
@@ -195,7 +196,7 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
   const drawBrushDot = (canvas: HTMLCanvasElement, point: Point) => {
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const textureImg = brushTextures.get(brushTexture);
-    if (!ctx || !textureImg || !textureImg.complete) return;
+    if (!ctx) return;
   
     ctx.save();
     if (tool === "eraser") {
@@ -208,35 +209,109 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
       ctx.rotate((brushRotation * Math.PI) / 180);
       ctx.translate(-brushSize / 2, -brushSize / 2);
   
-      // Use drawMixboxStamp for the initial dot to maintain consistency
-      drawMixboxStamp({
-        ctx,
-        x: brushSize / 2,
-        y: brushSize / 2,
-        color: currentColor,
-        opacity: brushOpacity,
-        size: brushSize
-      });
-  
-      // Apply texture after the mixbox stamp
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = brushSize;
-      tempCanvas.height = brushSize;
-      const tempCtx = tempCanvas.getContext("2d");
-      if (tempCtx) {
-        // Copy the mixbox result
-        tempCtx.drawImage(canvas, point.x - brushSize/2, point.y - brushSize/2, brushSize, brushSize, 0, 0, brushSize, brushSize);
+      if (brushTexture === 'soft') {
+        // Reset transformation for radial gradient
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         
-        // Apply texture as mask
-        tempCtx.globalCompositeOperation = "destination-in";
-        tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
+        const gradient = ctx.createRadialGradient(
+          point.x, point.y, 0,
+          point.x, point.y, brushSize / 2
+        );
+        
+        const alpha = brushOpacity;
+        const hardnessFactor = 1 - Math.max(0.01, brushHardness);
+        
+        gradient.addColorStop(0, `rgba(255,255,255,${alpha})`);
+        gradient.addColorStop(Math.min(1, 1 - hardnessFactor), `rgba(255,255,255,${alpha * 0.5})`);
+        gradient.addColorStop(1, 'rgba(255,255,255,0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (textureImg && textureImg.complete) {
+        // Use drawMixboxStamp for the initial dot to maintain consistency
+        drawMixboxStamp({
+          ctx,
+          x: brushSize / 2,
+          y: brushSize / 2,
+          color: currentColor,
+          opacity: brushOpacity,
+          size: brushSize
+        });
   
-        // Clear original area and draw the textured result
-        ctx.clearRect(0, 0, brushSize, brushSize);
-        ctx.drawImage(tempCanvas, 0, 0);
+        // Apply texture after the mixbox stamp
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = brushSize;
+        tempCanvas.height = brushSize;
+        const tempCtx = tempCanvas.getContext("2d");
+        if (tempCtx) {
+          // Copy the mixbox result
+          tempCtx.drawImage(canvas, point.x - brushSize/2, point.y - brushSize/2, brushSize, brushSize, 0, 0, brushSize, brushSize);
+          
+          // Apply texture as mask
+          tempCtx.globalCompositeOperation = "destination-in";
+          tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
+  
+          // Clear original area and draw the textured result
+          ctx.clearRect(0, 0, brushSize, brushSize);
+          ctx.drawImage(tempCanvas, 0, 0);
+        }
       }
     }
     ctx.restore();
+  };
+  
+  const drawBrushStamp = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number
+  ) => {
+    const textureImg = brushTextures.get(brushTexture);
+  
+    if (brushTexture === 'soft') {
+      const gradient = ctx.createRadialGradient(
+        x, y, 0,
+        x, y, brushSize / 2
+      );
+      
+      const alpha = brushOpacity;
+      const hardnessFactor = 1 - Math.max(0.01, brushHardness);
+      
+      gradient.addColorStop(0, `rgba(255,255,255,${alpha})`);
+      gradient.addColorStop(Math.min(1, 1 - hardnessFactor), `rgba(255,255,255,${alpha * 0.5})`);
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (textureImg && textureImg.complete) {
+      // Create temporary canvas for colored texture
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = brushSize;
+      tempCanvas.height = brushSize;
+      const tempCtx = tempCanvas.getContext('2d');
+  
+      if (tempCtx) {
+        // Draw mixed color using Mixbox
+        drawMixboxStamp({
+          ctx: tempCtx,
+          x: brushSize / 2,
+          y: brushSize / 2,
+          color: currentColor,
+          opacity: brushOpacity,
+          size: brushSize
+        });
+  
+        // Apply texture
+        tempCtx.globalCompositeOperation = 'destination-in';
+        tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
+  
+        // Draw the final result
+        ctx.drawImage(tempCanvas, x - brushSize/2, y - brushSize/2);
+      }
+    }
   };
 
   const { drawMixboxStamp } = useMixboxBrush({
@@ -245,48 +320,12 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     overlayCanvasRef
   });
 
-  const drawBrushStamp = (
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number
-  ) => {
-    const textureImg = brushTextures.get(brushTexture);
-    if (!textureImg || !textureImg.complete) return;
-
-    // Create temporary canvas for colored texture
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = brushSize;
-    tempCanvas.height = brushSize;
-    const tempCtx = tempCanvas.getContext('2d');
-
-    if (tempCtx) {
-      // Draw mixed color using Mixbox
-      drawMixboxStamp({
-        ctx: tempCtx,
-        x: brushSize / 2,
-        y: brushSize / 2,
-        color: currentColor,
-        opacity: brushOpacity,
-        size: brushSize
-      });
-
-      // Apply texture
-      tempCtx.globalCompositeOperation = 'destination-in';
-      tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
-
-      // Draw the final result
-      ctx.drawImage(tempCanvas, x - brushSize/2, y - brushSize/2);
-    }
-  };
 
   const drawBrushStroke = (
     ctx: CanvasRenderingContext2D,
     start: Point,
     end: Point
   ) => {
-    const textureImg = brushTextures.get(brushTexture);
-    if (!textureImg || !textureImg.complete) return;
-  
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -299,22 +338,40 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
       const x = start.x + dx * t;
       const y = start.y + dy * t;
   
-      ctx.save();
-      ctx.translate(x, y);
+      if (brushTexture === 'soft') {
+        const gradient = ctx.createRadialGradient(
+          x, y, 0,
+          x, y, brushSize / 2
+        );
+        
+        const alpha = brushOpacity;
+        const hardnessFactor = 1 - Math.max(0.01, brushHardness);
+        
+        gradient.addColorStop(0, `rgba(255,255,255,${alpha})`);
+        gradient.addColorStop(Math.min(1, 1 - hardnessFactor), `rgba(255,255,255,${alpha * 0.5})`);
+        gradient.addColorStop(1, 'rgba(255,255,255,0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.save();
+        ctx.translate(x, y);
   
-      const rotation = brushFollowPath
-        ? pathAngle
-        : (brushRotation * Math.PI) / 180;
+        const rotation = brushFollowPath
+          ? pathAngle
+          : (brushRotation * Math.PI) / 180;
   
-      ctx.rotate(rotation);
-      ctx.translate(-brushSize / 2, -brushSize / 2);
+        ctx.rotate(rotation);
+        ctx.translate(-brushSize / 2, -brushSize / 2);
   
-      drawBrushStamp(ctx, brushSize / 2, brushSize / 2);
-      ctx.restore();
+        drawBrushStamp(ctx, brushSize / 2, brushSize / 2);
+        ctx.restore();
+      }
     }
   };
   
-  // Update the pointer move handler to match
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing.current || !lastPoint.current) return;
     if (tool !== "brush" && tool !== "eraser") return;
@@ -332,6 +389,12 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     if (accumulatedDistance.current >= spacing) {
       const overlayCtx = overlayCanvasRef.current?.getContext("2d");
       if (overlayCtx && lastPoint.current) {
+        if (tool === "eraser") {
+          overlayCtx.globalCompositeOperation = "destination-out";
+        } else {
+          overlayCtx.globalCompositeOperation = "source-over";
+        }
+        
         drawBrushStroke(
           overlayCtx,
           lastPoint.current,

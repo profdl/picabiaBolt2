@@ -11,6 +11,7 @@ interface ToolState {
   brushRotation: number;
   brushSpacing: number;
   brushFollowPath: boolean;
+  brushHardness: number;
 }
 
 interface ToolSlice {
@@ -24,6 +25,7 @@ interface ToolSlice {
   brushRotation: number;
   brushFollowPath: boolean;
   isEraser: boolean;
+  brushHardness: number;
   setTool: (tool: "select" | "pan" | "pen" | "brush" | "eraser") => void;
   setCurrentColor: (color: string) => void;
   setStrokeWidth: (width: number) => void;
@@ -34,6 +36,7 @@ interface ToolSlice {
   setBrushRotation: (rotation: number) => void;
   setBrushFollowPath: (value: boolean) => void;
   setIsEraser: (isEraser: boolean) => void;
+  setBrushHardness: (hardness: number) => void;
 }
 
 export const toolSlice: StateCreator<
@@ -52,7 +55,7 @@ export const toolSlice: StateCreator<
   brushRotation: 0,
   brushFollowPath: false,
   isEraser: false,
-
+  brushHardness: 1,
   setTool: (tool) => set({ tool }),
   setCurrentColor: (color) => set({ currentColor: color }),
   setStrokeWidth: (width) => set({ strokeWidth: width }),
@@ -63,4 +66,5 @@ export const toolSlice: StateCreator<
   setBrushRotation: (rotation) => set({ brushRotation: rotation }),
   setBrushFollowPath: (value) => set(() => ({ brushFollowPath: value })),
   setIsEraser: (isEraser) => set({ isEraser }),
+  setBrushHardness: (hardness) => set({ brushHardness: hardness }),
 });

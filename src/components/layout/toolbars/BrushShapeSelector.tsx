@@ -6,6 +6,7 @@ interface BrushShapeSelectorProps {
 }
 
 const BRUSH_TEXTURES = [
+    'soft', 
     'basic',
     'fur',
     'ink',
@@ -35,11 +36,15 @@ export const BrushShapeSelector: React.FC<BrushShapeSelectorProps> = ({
                     `}
                     onClick={() => onTextureSelect(texture)}
                 >
-                    <img
-                        src={`/brushes/${texture}.png`}
-                        alt={`${texture} brush`}
-                        className="w-5 h-5 object-contain opacity-75"
-                    />
+                    {texture === 'soft' ? (
+                        <div className="w-5 h-5 rounded-full bg-white opacity-75" />
+                    ) : (
+                        <img
+                            src={`/brushes/${texture}.png`}
+                            alt={`${texture} brush`}
+                            className="w-5 h-5 object-contain opacity-75"
+                        />
+                    )}
                 </button>
             ))}
         </div>

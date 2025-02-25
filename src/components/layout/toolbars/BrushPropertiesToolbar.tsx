@@ -14,6 +14,7 @@ interface BrushPropertiesToolbarProps {
     rotation?: number;
     followPath?: boolean;
     spacing?: number;
+    hardness?: number;
   };
   onPropertyChange: (property: string, value: unknown) => void;
 }
@@ -32,7 +33,8 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
     divider: "w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1.5",
     controlGroup: {
       container: "flex items-center gap-1",
-      label: "text-[10px] font-medium text-neutral-500 dark:text-neutral-400 uppercase",
+      label:
+        "text-[10px] font-medium text-neutral-500 dark:text-neutral-400 uppercase",
     },
     colorPicker: {
       trigger:
@@ -40,10 +42,10 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
       popup: "absolute bottom-[calc(100%+0.5rem)] left-0 z-[60]",
     },
     settingsMenu: {
-      container: "absolute bottom-[calc(100%+0.5rem)] right-0 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-2 w-fit z-[60]",
+      container:
+        "absolute bottom-[calc(100%+0.5rem)] right-0 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-2 w-fit z-[60]",
       group: "flex flex-col gap-2",
     },
-
   };
 
   const handleColorChange = useCallback(
@@ -111,6 +113,19 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
               formatValue={(v) => `${Math.round(v)}%`}
             />
           </div>
+          {properties.texture === 'soft' && (
+            <div className={styles.controlGroup.container}>
+              <span className={styles.controlGroup.label}>Hardness</span>
+              <NumberInput
+                value={Math.round((properties.hardness ?? 1) * 100)}
+                onChange={(value) => onPropertyChange("hardness", value / 100)}
+                min={1}
+                max={100}
+                step={1}
+                formatValue={(v) => `${Math.round(v)}%`}
+              />
+            </div>
+          )}
 
           <div className="relative">
             <ToolbarButton
@@ -118,7 +133,6 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
               active={showBrushSettings}
               onClick={() => setShowBrushSettings(!showBrushSettings)}
             />
-
             {showBrushSettings && (
               <>
                 <div
@@ -131,7 +145,9 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
                       <span className={styles.controlGroup.label}>Angle</span>
                       <NumberInput
                         value={properties.rotation || 0}
-                        onChange={(value) => onPropertyChange("rotation", value)}
+                        onChange={(value) =>
+                          onPropertyChange("rotation", value)
+                        }
                         min={0}
                         max={360}
                         step={1}
@@ -143,7 +159,9 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
                       <span className={styles.controlGroup.label}>Spacing</span>
                       <NumberInput
                         value={(properties.spacing || 0) * 100}
-                        onChange={(value) => onPropertyChange("spacing", value / 100)}
+                        onChange={(value) =>
+                          onPropertyChange("spacing", value / 100)
+                        }
                         min={5}
                         max={100}
                         step={1}
@@ -152,11 +170,15 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
                     </div>
 
                     <div className={styles.controlGroup.container}>
-                      <span className={styles.controlGroup.label}>Rotate Tip</span>
+                      <span className={styles.controlGroup.label}>
+                        Rotate Tip
+                      </span>
                       <input
                         type="checkbox"
                         checked={properties.followPath}
-                        onChange={(e) => onPropertyChange("followPath", e.target.checked)}
+                        onChange={(e) =>
+                          onPropertyChange("followPath", e.target.checked)
+                        }
                         className="w-3 h-3 text-neutral-600 dark:text-neutral-400 rounded border-neutral-300 dark:border-neutral-700"
                       />
                     </div>
