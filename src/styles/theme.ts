@@ -41,9 +41,11 @@ export const theme = {
     },
     controls: {
       container: "flex flex-col gap-1",
-      label: "text-xs text-neutral-500 dark:text-[#999999]",
-      input: "w-full dark:bg-[#2c2c2c] dark:text-white"
+      label: "text-[10px] font-medium text-neutral-500 dark:text-neutral-400 uppercase",
+      input: "w-full dark:bg-[#2c2c2c] dark:text-white",
+      slider: "mini-slider", 
     }
+    
   },
   canvas: {
     container: "w-full h-full overflow-hidden bg-neutral-50 dark:bg-[#121212] relative",

@@ -1,13 +1,8 @@
 import React, { useState, useCallback } from "react";
-import {
-  Maximize2,
-  Blend,
-  RotateCw,
-  Forward,
-  ArrowLeftRight,
-} from "lucide-react";
+
 import { BrushShapeSelector } from "./BrushShapeSelector";
 import { OKColorPicker } from "../../shared/hsl-color-picker";
+import { NumberInput } from "../../shared/NumberInput";
 
 interface BrushPropertiesToolbarProps {
   properties: {
@@ -33,10 +28,9 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
       "absolute bottom-full mb-2.5 left-1/2 transform -translate-x-1/2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1.5",
     buttonGroup: "flex items-center gap-1",
     divider: "w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1.5",
-    slider: {
-      container: "flex items-center gap-2 w-[80px]",
-      input:
-        "mini-slider w-full pointer-events-all h-[2px] bg-neutral-200 dark:bg-neutral-700 rounded-full appearance-none outline-none",
+    controlGroup: {
+      container: "flex items-center gap-1",
+      label: "text-[10px] font-medium text-neutral-500 dark:text-neutral-400 uppercase ",
     },
     colorPicker: {
       trigger:
@@ -68,91 +62,80 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
                 className="fixed inset-0"
                 onClick={() => setShowColorPicker(false)}
               />
- <OKColorPicker
-  value={properties.color}
-  onChange={handleColorChange}
-  defaultColor={{
-    hue: 0,          // Red
-    saturation: 100, // Full saturation
-    lightness: 50    // Medium lightness
-  }}
-/>
+              <OKColorPicker
+                value={properties.color}
+                onChange={handleColorChange}
+                defaultColor={{
+                  hue: 0,
+                  saturation: 100,
+                  lightness: 50,
+                }}
+              />
             </div>
           )}
-          <BrushShapeSelector
+         <BrushShapeSelector
             currentTexture={properties.texture || "basic"}
             onTextureSelect={(texture) => onPropertyChange("texture", texture)}
           />
         </div>
         <div className={styles.divider} />
 
-        <div className="flex items-center gap-4">
-          <div className={styles.slider.container}>
-            <Maximize2 className="w-3 h-3 text-neutral-500 dark:text-neutral-400" />
-            <input
-              type="range"
-              value={properties.size}
-              onChange={(e) => onPropertyChange("size", Number(e.target.value))}
-              min="1"
-              max="100"
-              className={styles.slider.input}
-              title="Size"
+        <div className="flex items-center gap-6">
+          <div className={styles.controlGroup.container}>
+            <span className={styles.controlGroup.label}>Size</span>
+            <NumberInput
+              value={properties.size || 1}
+              onChange={(value) => onPropertyChange("size", value)}
+              min={1}
+              max={100}
+              step={1}
+              formatValue={(v) => `${Math.round(v)}`}
             />
           </div>
 
-          <div className={styles.slider.container}>
-            <Blend className="w-3 h-3 text-neutral-500 dark:text-neutral-400" />
-            <input
-              type="range"
-              value={properties.opacity}
-              onChange={(e) =>
-                onPropertyChange("opacity", Number(e.target.value))
-              }
-              min="0"
-              max="1"
-              step="0.1"
-              className={styles.slider.input}
-              title="Opacity"
+          <div className={styles.controlGroup.container}>
+            <span className={styles.controlGroup.label}>Opacity</span>
+            <NumberInput
+              value={(properties.opacity || 0) * 100}
+              onChange={(value) => onPropertyChange("opacity", value / 100)}
+              min={0}
+              max={100}
+              step={1}
+              formatValue={(v) => `${Math.round(v)}%`}
             />
           </div>
 
-          <div className={styles.slider.container}>
-            <RotateCw className="w-3 h-3 text-neutral-500 dark:text-neutral-400" />
-            <input
-              type="range"
-              value={properties.rotation}
-              onChange={(e) =>
-                onPropertyChange("rotation", Number(e.target.value))
-              }
-              min="0"
-              max="360"
-              className={styles.slider.input}
-              title="Rotation"
+          <div className={styles.controlGroup.container}>
+            <span className={styles.controlGroup.label}>Angle</span>
+            <NumberInput
+              value={properties.rotation || 0}
+              onChange={(value) => onPropertyChange("rotation", value)}
+              min={0}
+              max={360}
+              step={1}
+              formatValue={(v) => `${Math.round(v)}°`}
             />
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className={styles.controlGroup.container}>
+            <span className={styles.controlGroup.label}>Follow</span>
             <input
               type="checkbox"
               checked={properties.followPath}
               onChange={(e) => onPropertyChange("followPath", e.target.checked)}
               className="w-3 h-3 text-neutral-600 dark:text-neutral-400 rounded border-neutral-300 dark:border-neutral-700"
             />
-            <Forward className="w-3 h-3 text-neutral-500 dark:text-neutral-400" />
           </div>
 
-          <div className={styles.slider.container}>
-            <ArrowLeftRight className="w-3 h-3 text-neutral-500 dark:text-neutral-400" />
-            <input
-              type="range"
-              value={properties.spacing ? properties.spacing * 100 : 0}
-              onChange={(e) =>
-                onPropertyChange("spacing", Number(e.target.value) / 100)
-              }
-              min="5"
-              max="100"
-              className={styles.slider.input}
-              title="Spacing"
+          <div className={styles.controlGroup.container}>
+            <span className={styles.controlGroup.label}>Space</span>
+            <NumberInput
+              value={(properties.spacing || 0) * 100}
+              onChange={(value) => onPropertyChange("spacing", value / 100)}
+              min={5}
+              max={100}
+              step={1}
+              formatValue={(v) => `${Math.round(v)}%`}
             />
           </div>
         </div>
