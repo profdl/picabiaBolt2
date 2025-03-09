@@ -58,14 +58,17 @@ export function useCanvasMouseHandlers() {
     document.addEventListener('gesturestart', preventDefault);
     document.addEventListener('gesturechange', preventDefault);
     document.addEventListener('gesturend', preventDefault);
+    document.addEventListener("contextmenu", preventDefault);
 
     return () => {
       document.removeEventListener('gesturestart', preventDefault);
       document.removeEventListener('gesturechange', preventDefault);
       document.removeEventListener('gesturend', preventDefault);
+      document.removeEventListener("contextmenu", preventDefault);
+
     };
   }, []);
-
+  
   const handleMouseDown = (
     e: React.MouseEvent,
     canvasRef: React.RefObject<HTMLDivElement>,

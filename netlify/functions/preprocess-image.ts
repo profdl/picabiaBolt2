@@ -33,7 +33,7 @@ export const handler: Handler = async (event) => {
     const payload = JSON.parse(event.body || "{}");
     const { imageUrl, processType, shapeId, userId } = payload;
 
-
+    console.log('processType:', processType)
 
     const baseWorkflow = {
       "10": {
@@ -68,7 +68,7 @@ export const handler: Handler = async (event) => {
    
     // Modify the copy
     workflow["10"].inputs.image = imageUrl;
-    baseWorkflow["33"].inputs.preprocessor =
+    workflow["33"].inputs.preprocessor =
       processType === "depth"
         ? "Zoe-DepthMapPreprocessor"
         : processType === "edge"
@@ -103,18 +103,7 @@ export const handler: Handler = async (event) => {
           Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          version: MODEL_VERSION,
-          input: {
-            workflow_json: JSON.stringify(baseWorkflow),
-            input_file: imageUrl,
-            output_format: "png",
-            output_quality: 95,
-            randomise_seeds: false,
-          },
-          webhook: process.env.PREPROCESS_WEBHOOK,
-          webhook_events_filter: ["completed"],
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
 

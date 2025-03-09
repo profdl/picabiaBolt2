@@ -1,78 +1,57 @@
-import {
-  ChevronDown,
-  Download,
-  Crop,
-  Eraser,
-  ArrowDown,
-  ArrowUp,
-  MoveDown,
-  MoveUp,
-  ChevronRight,
-  Trash2,
-  Box,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useStore } from "../../store";
 import { Shape } from "../../types";
 import { useState } from "react";
-import { useThemeClass } from '../../styles/useThemeClass';
+import { useThemeClass } from "../../styles/useThemeClass";
+import { Tooltip } from "../shared/Tooltip";
+import { getControlDescription, ControlType } from "../../utils/tooltips";
 
 interface ImageActionDropdownProps {
   shape: Shape;
   isDropdownOpen: boolean;
   setIsDropdownOpen: (isOpen: boolean) => void;
-  onSelectSubject: (e: React.MouseEvent) => void;
-  onCrop: (e: React.MouseEvent) => void;
-  onDownload: (e: React.MouseEvent) => void;
-  sendForward: () => void;
-  sendBackward: () => void;
-  sendToFront: () => void;
-  sendToBack: () => void;
-  deleteShape: () => void;
 }
 
 export function ImageActionDropdown({
   isDropdownOpen,
   setIsDropdownOpen,
-  onSelectSubject,
-  onCrop,
-  onDownload,
-  sendForward,
-  sendBackward,
-  sendToFront,
-  sendToBack,
-  deleteShape,
   shape,
 }: ImageActionDropdownProps) {
   const styles = {
-    button: useThemeClass(['dropdown', 'button']),
-    menu: useThemeClass(['dropdown', 'menu']),
-    item: useThemeClass(['dropdown', 'item']),
-    submenu: useThemeClass(['dropdown', 'submenu']),
-    icon: useThemeClass(['dropdown', 'icon']),
-    deleteButton: useThemeClass(['dropdown', 'deleteButton']),
-    deleteIcon: useThemeClass(['dropdown', 'deleteIcon'])
+    button: useThemeClass(["dropdown", "button"]),
+    menu: useThemeClass(["dropdown", "menu"]),
+    item: useThemeClass(["dropdown", "item"]),
+    icon: useThemeClass(["dropdown", "icon"]),
   };
 
-  const [showArrangeMenu, setShowArrangeMenu] = useState(false);
-  
-  const handleAction = (action: (e: React.MouseEvent) => void) => {
-    action(new MouseEvent("click") as unknown as React.MouseEvent);
-    setIsDropdownOpen(false);
-  };
+  const { updateShape, generatePreprocessedImage } = useStore();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const { create3DDepth } = useStore((state) => ({
-    create3DDepth: state.create3DDepth,
-  }));
+  const controls = [
+    { type: "Depth", showKey: "showDepth", processType: "depth" },
+    { type: "Edges", showKey: "showEdges", processType: "edge" },
+    { type: "Pose", showKey: "showPose", processType: "pose" },
+    { type: "Sketch", showKey: "showSketch", processType: "sketch" },
+    { type: "Remix", showKey: "showRemix", processType: "remix" },
+  ];
 
-  const onSelect3DDepth = (shape: Shape) => {
-    if (shape.depthPreviewUrl) {
-      const newX = shape.position.x + shape.width + 20;
-      create3DDepth(shape, {
-        x: newX,
-        y: shape.position.y,
-      });
-      setIsDropdownOpen(false);
+  const handleSelectControl = async (control: (typeof controls)[0]) => {
+    if (!control.showKey || !control.processType) return;
+    setIsProcessing(true);
+
+    const isEnabled = !shape[control.showKey as keyof Shape];
+    updateShape(shape.id, { [control.showKey]: isEnabled });
+
+    if (isEnabled && !shape[`${control.processType}PreviewUrl` as keyof Shape]) {
+      try {
+        await generatePreprocessedImage(shape.id, control.processType);
+      } catch (error) {
+        console.error("Failed to generate preprocessed image:", error);
+        updateShape(shape.id, { [control.showKey]: false });
+      }
     }
+    setIsProcessing(false);
+    setIsDropdownOpen(false);
   };
 
   return (
@@ -84,92 +63,31 @@ export function ImageActionDropdown({
           setIsDropdownOpen(!isDropdownOpen);
         }}
       >
-        <span className="text-xs">ACTIONS...</span>
+        <span className="text-xs">SHAPE CONTROLS...</span>
         <ChevronDown className="w-3 h-3" />
       </button>
 
       {isDropdownOpen && (
         <div className={styles.menu} style={{ zIndex: 1002 }}>
-          <div
-            className={`${styles.item} justify-between`}
-            onMouseEnter={() => setShowArrangeMenu(true)}
-            onMouseLeave={() => setShowArrangeMenu(false)}
-          >
-            <span className="flex items-center gap-2">
-              <MoveUp className={styles.icon} />
-              Arrange
-            </span>
-            <ChevronRight className={styles.icon} />
-
-            {showArrangeMenu && (
-              <div className={styles.submenu}>
-                <button
-                  className={styles.item}
-                  onClick={() => handleAction(sendForward)}
-                >
-                  <ArrowUp className={styles.icon} />
-                  Send Forward
-                </button>
-                <button
-                  className={styles.item}
-                  onClick={() => handleAction(sendBackward)}
-                >
-                  <ArrowDown className={styles.icon} />
-                  Send Backward
-                </button>
-                <button
-                  className={styles.item}
-                  onClick={() => handleAction(sendToFront)}
-                >
-                  <MoveUp className={styles.icon} />
-                  Send to Front
-                </button>
-                <button
-                  className={styles.item}
-                  onClick={() => handleAction(sendToBack)}
-                >
-                  <MoveDown className={styles.icon} />
-                  Send to Back
-                </button>
-              </div>
-            )}
-          </div>
-
-          <button
-            className={styles.item}
-            onClick={() => handleAction(onSelectSubject)}
-          >
-            <Eraser className={styles.icon} />
-            Remove Background
-          </button>
-          <button
-            className={styles.item}
-            onClick={() => handleAction(() => onSelect3DDepth(shape))}
-          >
-            <Box className={styles.icon} />
-            3D Depth
-          </button>
-          <button
-            className={styles.item}
-            onClick={() => handleAction(onCrop)}
-          >
-            <Crop className={styles.icon} />
-            Crop
-          </button>
-          <button
-            className={styles.item}
-            onClick={() => handleAction(onDownload)}
-          >
-            <Download className={styles.icon} />
-            Download
-          </button>
-          <button
-            className={styles.deleteButton}
-            onClick={() => handleAction(deleteShape)}
-          >
-            <Trash2 className={styles.deleteIcon} />
-            Delete
-          </button>
+          {controls.map((control) => (
+            <Tooltip
+              key={control.type}
+              content={
+                <div>
+                  <h4 className="font-medium mb-1">{control.type}</h4>
+                  <p>{getControlDescription(control.type as ControlType)}</p>
+                </div>
+              }
+            >
+              <button
+                className={styles.item}
+                onClick={() => handleSelectControl(control)}
+                disabled={isProcessing}
+              >
+                {control.type}
+              </button>
+            </Tooltip>
+          ))}
         </div>
       )}
     </div>

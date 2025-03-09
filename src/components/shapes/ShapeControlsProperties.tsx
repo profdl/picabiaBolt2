@@ -19,7 +19,7 @@ interface ThreeJSShapeRef {
   exportToGLTF: () => void;
 }
 
-export function ShapeControls({
+export function ShapeControlsProperties({
   shape,
   isSelected,
   handleResizeStart,
@@ -317,27 +317,45 @@ export function ShapeControls({
     >
       {(shape.type === "image" || shape.type === "sketchpad") && (
         <div className={styles.controls.panel}>
-          {(//isSelected
-            //? controls.filter((control) => control.processType)
-             controls.filter(
+          {(isSelected
+            ? controls.filter((control) => control.processType)
+            : controls.filter(
                 (control) =>
                   control.showKey && shape[control.showKey as keyof Shape]
               )
           ).map((control) => (
             <div key={control.type} className={styles.controls.group}>
-              <div className="group relative py-0.5 w-max  relative block">
+              <div className="group relative py-0.5 w-max">
                 {control.showKey && (
+                  <Tooltip
+                    content={
+                      <div>
+                        <h4 className="font-medium mb-1">{control.type}</h4>
+                        <p>
+                          {getControlDescription(control.type as ControlType)}
+                        </p>
+                      </div>
+                    }
+                  >
                     <div className={styles.sidePanel.group}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(shape[control.showKey as keyof Shape])}
+                        onChange={(e) => handleCheckboxChange(control, e)}
+                        className={styles.controls.checkbox}
+                        style={{ pointerEvents: "all" }}
+                      />
                       <span className={styles.controls.label}>
                         {control.type}
                       </span>
                     </div>
+                  </Tooltip>
                 )}
                 {control.strengthKey &&
                   control.showKey &&
                   shape[control.showKey as keyof Shape] && (
                     <div
-                      className="mt-0.5 pr-2 relative block"
+                      className="mt-0.5 pl-4 pr-2 relative block"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="relative">
