@@ -20,6 +20,7 @@ import { useToolbarShapes } from "../../../hooks/useToolbarShapes";
 import { useToolbarGenerate } from "../../../hooks/useToolbarGenerate";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { useShapeAdder } from "../../../hooks/useShapeAdder";
+import { Brush, Eraser } from "lucide-react";
 
 interface ToolbarProps {
   onShowImageGenerate: () => void;
@@ -319,7 +320,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 rotation: brushRotation,
                 followPath: brushFollowPath,
                 spacing: brushSpacing,
-                hardness: brushHardness, 
+                hardness: brushHardness,
               }}
               onPropertyChange={handlePropertyChange}
             />
@@ -399,6 +400,38 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
           {/* Tools Section */}
           <div className={styles.divider} />
+
+          <Tooltip content="Brush Tool" side="bottom">
+            <ToolbarButton
+              icon={<Brush />}
+              active={tool === "brush"}
+              onClick={() => {
+                setTool("brush");
+                setCurrentColor("#ffffff");
+              }}
+              title="Brush Tool (B)"
+              className={`${styles.button.base} ${
+                tool === "brush" ? styles.button.active : ""
+              }`}
+            />
+          </Tooltip>
+
+          {/* <Tooltip content="Eraser Tool" side="bottom">
+            <ToolbarButton
+              icon={<Eraser />}
+              active={tool === "eraser"}
+              onClick={() => {
+                setTool("eraser");
+                setCurrentColor("#000000");
+              }}
+              title="Eraser Tool (E)"
+              className={`${styles.button.base} ${
+                tool === "eraser" ? styles.button.active : ""
+              }`}
+            />
+          </Tooltip> */}
+
+          {/* <div className={styles.divider} /> */}
 
           <ToolbarButton
             icon={<MousePointer />}
