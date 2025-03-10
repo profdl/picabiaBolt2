@@ -96,7 +96,8 @@ export const theme = {
     diffusionPanel: "bg-neutral-200 dark:bg-[#262626]", 
     controls: {
       panel: "absolute left-full ml-1.5 top-0 z-[101]",
-      group: "bg-neutral-50 dark:bg-[#2c2c2c] rounded-md mb-1 p-1 border border-neutral-200 dark:border-[#404040] shadow-sm",
+      panelMod: "absolute left-full ml-1.5 top-0 z-[101] bg-neutral-50 dark:bg-[#333] rounded-md",
+      group: "p-2 border-b border-neutral-200 dark:border-[#404040] last:border-none",
      checkbox: "forms.checkbox",
         label: "text-xs text-neutral-700 dark:text-[#999999] whitespace-nowrap",
       slider: "mini-slider",

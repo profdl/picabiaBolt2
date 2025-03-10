@@ -28,6 +28,7 @@ export function ShapeControls({
   const styles = {
     controls: {
       panel: useThemeClass(["shape", "controls", "panel"]),
+      panelMod: useThemeClass(["shape", "controls", "panelMod"]),
       group: useThemeClass(["shape", "controls", "group"]),
       checkbox: useThemeClass(["forms", "checkbox"]), // Update to use forms.checkbox directly
       label: useThemeClass(["shape", "controls", "label"]),
@@ -315,22 +316,26 @@ export function ShapeControls({
           : {}),
       }}
     >
-      {(shape.type === "image" || shape.type === "sketchpad") && (
-        <div className={styles.controls.panel}>
-          {(//isSelected
-            //? controls.filter((control) => control.processType)
+      {(shape.type === "image" || shape.type === "sketchpad") && isSelected && (
+        <div className={styles.controls.panelMod} onClick={(e) => {
+          e.stopPropagation();}}>
+          {isSelected && (
              controls.filter(
                 (control) =>
                   control.showKey && shape[control.showKey as keyof Shape]
               )
           ).map((control) => (
             <div key={control.type} className={styles.controls.group}>
-              <div className="group relative py-0.5 w-max  relative block">
+              <div className="group relative py-0.5 w-max  relative block" style={{ zIndex: 101, pointerEvents: "all" }}>
                 {control.showKey && (
                     <div className={styles.sidePanel.group}>
                       <span className={styles.controls.label}>
                         {control.type}
                       </span>
+                      <span onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('trying to delete modifier')
+                      updateShape(shape.id, { [control.showKey]: false })}}><Trash2 className="w-3 h-3"/></span>
                     </div>
                 )}
                 {control.strengthKey &&
