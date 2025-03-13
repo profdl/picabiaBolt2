@@ -39,7 +39,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
         data.forEach((record) => {
           if (record.status === "completed" && record.processType) {
             const urlKey = `${record.processType}Url`;
-            const previewUrlKey = `${record.processType}PreviewUrl`;
+            const previewUrlKey = `${record.processType}Url`;
 
             updateShape(shape.id, {
               [previewUrlKey]: record[urlKey],
@@ -81,7 +81,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
             data.forEach((record) => {
               if (record.status === "completed" && record.processType) {
                 const urlKey = `${record.processType}Url`;
-                const previewUrlKey = `${record.processType}PreviewUrl`;
+                const previewUrlKey = `${record.processType}Url`;
   
                 // Update shape with the processed image URL
                 updateShape(shape.id, {
@@ -160,7 +160,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
                   payload.new.processType === processType
                 ) {
                   const urlKey = `${processType}Url`;
-                  const previewUrlKey = `${processType}PreviewUrl`;
+                  const previewUrlKey = `${processType}Url`;
 
                   updateShape(shape.id, {
                     [previewUrlKey]: payload.new[urlKey],
@@ -238,61 +238,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
         className="absolute w-full h-full object-cover"
         draggable={false}
       />
-
-      {/* Depth layer */}
-      {shape.showDepth &&
-        (preprocessingStates[shape.id]?.depth ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          </div>
-        ) : (
-          shape.depthPreviewUrl && (
-            <img
-              src={shape.depthPreviewUrl}
-              alt="Depth map"
-              className="absolute w-full h-full object-cover"
-              style={{
-                opacity: 0.5 + shape.depthStrength * 0.5,
-              }}
-              draggable={false}
-            />
-          )
-        ))}
-      {/* Edges layer */}
-      {shape.showEdges &&
-        (useStore.getState().preprocessingStates[shape.id]?.edge ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          </div>
-        ) : (
-          shape.edgePreviewUrl && (
-            <img
-              src={shape.edgePreviewUrl}
-              alt="Edge detection"
-              className="absolute w-full h-full object-cover"
-              style={{ opacity: shape.edgesStrength || 0.5 }}
-              draggable={false}
-            />
-          )
-        ))}
-
-      {/* Pose layer */}
-      {shape.showPose &&
-        (useStore.getState().preprocessingStates[shape.id]?.pose ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          </div>
-        ) : (
-          shape.posePreviewUrl && (
-            <img
-              src={shape.posePreviewUrl}
-              alt="Pose detection"
-              className="absolute w-full h-full object-cover"
-              style={{ opacity: shape.poseStrength || 0.5 }}
-              draggable={false}
-            />
-          )
-        ))}
 
       {shape.showSketch && shape.sketchPreviewUrl && (
         <img

@@ -93,7 +93,19 @@ export const theme = {
     base: "transition-shadow hover:shadow-xl relative",
     selected: "ring-2 ring-neutral-500 dark:ring-[#0d99ff]",
     container: "absolute inset-0",
-    diffusionPanel: "bg-neutral-200 dark:bg-[#262626]", 
+    diffusionPanel: "bg-neutral-200 dark:bg-[#262626]",
+    edge: {
+      container: "relative w-full h-full",
+      image: "absolute w-full h-full object-cover"
+    },
+    depth: {
+      container: "relative w-full h-full",
+      image: "absolute w-full h-full object-cover"
+    },
+    pose: {
+      container: "relative w-full h-full",
+      image: "absolute w-full h-full object-cover"
+    },
     controls: {
       panel: "absolute left-full ml-1.5 top-0 z-[101]",
       panelMod: "absolute left-full ml-1.5 top-0 z-[101] bg-neutral-50 dark:bg-[#333] rounded-md",

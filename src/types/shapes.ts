@@ -30,7 +30,10 @@ export interface Shape {
     | "sketchpad"
     | "group"
     | "diffusionSettings"
-    | "3d";
+    | "3d"
+    | "depth"
+    | "edges"
+    | "pose";
   position: Position;
   content?: string;
   width: number;
@@ -48,72 +51,44 @@ export interface Shape {
   showPrompt?: boolean;
   showNegativePrompt?: boolean;
   isUploading: boolean;
-  showDepth?: boolean;
-  showEdges?: boolean;
   showContent?: boolean;
-  showPose?: boolean;
   showSketch?: boolean;
   showRemix?: boolean;
-  depthStrength: number;
-  edgesStrength: number;
+  showDepth?: boolean;
+  showEdges?: boolean;
+  showPose?: boolean;
   contentStrength: number;
-  poseStrength: number;
   sketchStrength: number;
   remixStrength: number;
+  depthStrength: number;
+  edgesStrength: number;
+  poseStrength: number;
   groupId?: string;
   isGroup?: boolean;
+  sketchMapUrl?: string;
+  remixMapUrl?: string;
   depthMapUrl?: string;
   edgeMapUrl?: string;
   poseMapUrl?: string;
-  sketchMapUrl?: string;
-  remixMapUrl?: string;
+  sketchPreviewUrl?: string;
+  remixPreviewUrl?: string;
   depthPreviewUrl?: string;
   edgePreviewUrl?: string;
   posePreviewUrl?: string;
-  sketchPreviewUrl?: string;
-  remixPreviewUrl?: string;
+  isSketchProcessing?: boolean;
+  isRemixProcessing?: boolean;
   isDepthProcessing?: boolean;
   isEdgeProcessing?: boolean;
   isPoseProcessing?: boolean;
-  isSketchProcessing?: boolean;
-  isRemixProcessing?: boolean;
+  hasSketchGenerated?: boolean;
+  hasRemixGenerated?: boolean;
   hasDepthGenerated?: boolean;
   hasEdgeGenerated?: boolean;
   hasPoseGenerated?: boolean;
-  hasSketchGenerated?: boolean;
-  hasRemixGenerated?: boolean;
   scheduler?: string;
   seed?: number;
   steps?: number;
   guidanceScale?: number;
-  outputFormat?: string;
-  outputQuality?: number;
-  randomiseSeeds?: boolean;
-  negativePrompt?: string;
-  outputWidth?: number;
-  outputHeight?: number;
-  mergedFrom?: string[];
-  isMerged?: boolean;  
-  // 3D specific properties
-  depthMap?: string;
-  displacementScale?: number;
-  orbitControls?: {
-    autoRotate?: boolean;
-    autoRotateSpeed?: number;
-    enableZoom?: boolean;
-    enablePan?: boolean;
-  };
-  lighting?: {
-    intensity?: number;
-    position?: Position;
-    color?: string;
-  };
-  camera?: {
-    position?: Position & { z: number };
-    fov?: number;
-  };
-  isOrbiting?: boolean;
-  lastUpdated?: string;
 }
 
 export interface DragStart {

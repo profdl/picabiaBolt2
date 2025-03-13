@@ -161,7 +161,11 @@ export const generationHandlerSlice: StateCreator<
 
     const hasActiveControls = shapes.some(
       (shape) =>
-        shape.type === "image" &&
+        (shape.type === "image" || 
+         shape.type === "sketchpad" || 
+         shape.type === "depth" ||
+         shape.type === "edges" ||
+         shape.type === "pose") &&
         (shape.showDepth ||
           shape.showEdges ||
           shape.showPose ||
@@ -170,7 +174,7 @@ export const generationHandlerSlice: StateCreator<
     );
 
     const stickyWithPrompt = shapes.find(
-      (shape) => shape.type === "sticky" && shape.showPrompt && shape.content
+      (shape) => shape.type === "sticky" && shape.isTextPrompt && shape.content
     );
 
     if (!stickyWithPrompt?.content && !hasActiveControls) {
@@ -206,7 +210,7 @@ export const generationHandlerSlice: StateCreator<
       const negativePrompt =
         shapes.find(
           (shape) =>
-            shape.type === "sticky" && shape.showNegativePrompt && shape.content
+            shape.type === "sticky" && shape.isNegativePrompt && shape.content
         )?.content || "text, watermark";
       workflow["7"].inputs.text = negativePrompt;
       workflow["7"].inputs.clip = ["4", 1];
@@ -230,7 +234,11 @@ export const generationHandlerSlice: StateCreator<
 
       const controlShapes = shapes.filter(
         (shape) =>
-          (shape.type === "image" || shape.type === "sketchpad") &&
+          (shape.type === "image" || 
+           shape.type === "sketchpad" || 
+           shape.type === "depth" ||
+           shape.type === "edges" ||
+           shape.type === "pose") &&
           (shape.showDepth ||
             shape.showEdges ||
             shape.showPose ||
@@ -277,6 +285,7 @@ export const generationHandlerSlice: StateCreator<
               positive: [currentPositiveNode, 0],
               negative: ["7", 0],
               control_net: ["32", 0],
+              image: ["33", 0],
               strength: controlShape.depthStrength || 0.5,
             },
           };

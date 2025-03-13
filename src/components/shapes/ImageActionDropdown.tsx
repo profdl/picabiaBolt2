@@ -28,11 +28,8 @@ export function ImageActionDropdown({
   const [isProcessing, setIsProcessing] = useState(false);
 
   const controls = [
-    { type: "Depth", showKey: "showDepth", processType: "depth" },
-    { type: "Edges", showKey: "showEdges", processType: "edge" },
-    { type: "Pose", showKey: "showPose", processType: "pose" },
-    { type: "Sketch", showKey: "showSketch", processType: "sketch" },
-    { type: "Remix", showKey: "showRemix", processType: "remix" },
+    { type: "Sketch", showKey: "showSketch", processType: "sketch" as const },
+    { type: "Remix", showKey: "showRemix", processType: "remix" as const },
   ];
 
   const handleSelectControl = async (control: (typeof controls)[0]) => {

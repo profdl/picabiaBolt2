@@ -5,7 +5,7 @@ export interface Position {
 
 export interface Shape {
   id: string;
-  type: "drawing" | "image" | "text" | "sticky" | "3d" | "sketchpad" | "diffusionSettings" | "group";
+  type: "drawing" | "image" | "text" | "sticky" | "3d" | "sketchpad" | "diffusionSettings" | "group" | "depth" | "edges" | "pose";
   position: Position;
   width: number;
   height: number;
@@ -16,12 +16,12 @@ export interface Shape {
   isUploading?: boolean;
   model?: string;
   useSettings?: boolean;
-  depthStrength?: number;
-  edgesStrength?: number;
   contentStrength?: number;
-  poseStrength?: number;
   sketchStrength?: number;
   remixStrength?: number;
+  depthStrength?: number;
+  edgesStrength?: number;
+  poseStrength?: number;
   isEditing?: boolean;
   content?: string;
   imageUrl?: string;
@@ -39,4 +39,61 @@ export interface Shape {
   isNegativePrompt?: boolean;
   groupId?: string;
   onClear?: () => void;
+  sourceImageId?: string;
+  showSketch?: boolean;
+  showRemix?: boolean;
+  showContent?: boolean;
+  showDepth: boolean;
+  showEdges: boolean;
+  showPose: boolean;
+  showPrompt?: boolean;
+  showNegativePrompt?: boolean;
+  sketchMapUrl?: string;
+  remixMapUrl?: string;
+  depthMapUrl?: string;
+  edgeMapUrl?: string;
+  poseMapUrl?: string;
+  sketchPreviewUrl?: string;
+  remixPreviewUrl?: string;
+  depthPreviewUrl?: string;
+  edgePreviewUrl?: string;
+  posePreviewUrl?: string;
+  isSketchProcessing?: boolean;
+  isRemixProcessing?: boolean;
+  isDepthProcessing?: boolean;
+  isEdgeProcessing?: boolean;
+  isPoseProcessing?: boolean;
+  hasSketchGenerated?: boolean;
+  hasRemixGenerated?: boolean;
+  hasDepthGenerated?: boolean;
+  hasEdgeGenerated?: boolean;
+  hasPoseGenerated?: boolean;
+  // Generation settings
+  steps?: number;
+  guidanceScale?: number;
+  scheduler?: string;
+  seed?: number;
+  outputWidth?: number;
+  outputHeight?: number;
+  outputFormat?: string;
+  outputQuality?: number;
+  randomiseSeeds?: boolean;
+  // Canvas data
+  canvasData?: string;
+  // Additional properties
+  aspectRatio?: number;
+  assetId?: string;
+  depthMap?: string;
+  displacementScale?: number;
+  orbitControls?: {
+    autoRotate: boolean;
+    autoRotateSpeed: number;
+    enableZoom: boolean;
+    enablePan: boolean;
+  };
+  lighting?: {
+    intensity: number;
+    position: { x: number; y: number };
+    color: string;
+  };
 } 

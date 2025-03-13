@@ -21,6 +21,9 @@ import { useThemeClass } from "../../styles/useThemeClass";
 import { StickyNoteShape } from "./shapetypes/StickyNoteShape";
 import { useStickyNoteColor } from "../../hooks/ui/useStickyNoteColor";
 import { TextShape } from "./shapetypes/TextShape";
+import { DepthShape } from "./shapetypes/DepthShape";
+import { EdgeShape } from "./shapetypes/EdgeShape";
+import { PoseShape } from "./shapetypes/PoseShape";
 
 interface ShapeProps {
   shape: Shape;
@@ -172,7 +175,114 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={isSelected}
             handleResizeStart={handleResizeStart}
-            threeJSRef={threeJSRef} 
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (shape.type === "depth") {
+    const sourceShape = shapes.find(s => s.id === shape.sourceImageId);
+    const aspectRatio = sourceShape ? sourceShape.width / sourceShape.height : 1;
+    
+    return (
+      <div
+        style={{
+          position: "absolute",
+          left: shape.position.x,
+          top: shape.position.y,
+          width: shape.width,
+          height: shape.width / aspectRatio,
+          transform: `rotate(${shape.rotation}deg)`,
+          cursor: tool === "select" ? "move" : "default",
+          pointerEvents: tool === "select" ? "all" : "none",
+          zIndex: isSelected
+            ? 1000
+            : shapes.findIndex((s) => s.id === shape.id),
+          overflow: "visible"
+        }}
+        className="bg-gray-100 rounded-lg"
+        onMouseDown={handleMouseDown}
+        onContextMenu={handleContextMenu}
+      >
+        <DepthShape shape={shape} />
+        {(isSelected || Boolean(shape.showDepth)) && tool === "select" && (
+          <ShapeControls
+            shape={shape}
+            isSelected={isSelected}
+            handleResizeStart={handleResizeStart}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (shape.type === "edges") {
+    const sourceShape = shapes.find(s => s.id === shape.sourceImageId);
+    const aspectRatio = sourceShape ? sourceShape.width / sourceShape.height : 1;
+    
+    return (
+      <div
+        style={{
+          position: "absolute",
+          left: shape.position.x,
+          top: shape.position.y,
+          width: shape.width,
+          height: shape.width / aspectRatio,
+          transform: `rotate(${shape.rotation}deg)`,
+          cursor: tool === "select" ? "move" : "default",
+          pointerEvents: tool === "select" ? "all" : "none",
+          zIndex: isSelected
+            ? 1000
+            : shapes.findIndex((s) => s.id === shape.id),
+          overflow: "visible"
+        }}
+        className="bg-gray-100 rounded-lg"
+        onMouseDown={handleMouseDown}
+        onContextMenu={handleContextMenu}
+      >
+        <EdgeShape shape={shape} />
+        {(isSelected || Boolean(shape.showEdges)) && tool === "select" && (
+          <ShapeControls
+            shape={shape}
+            isSelected={isSelected}
+            handleResizeStart={handleResizeStart}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (shape.type === "pose") {
+    const sourceShape = shapes.find(s => s.id === shape.sourceImageId);
+    const aspectRatio = sourceShape ? sourceShape.width / sourceShape.height : 1;
+    
+    return (
+      <div
+        style={{
+          position: "absolute",
+          left: shape.position.x,
+          top: shape.position.y,
+          width: shape.width,
+          height: shape.width / aspectRatio,
+          transform: `rotate(${shape.rotation}deg)`,
+          cursor: tool === "select" ? "move" : "default",
+          pointerEvents: tool === "select" ? "all" : "none",
+          zIndex: isSelected
+            ? 1000
+            : shapes.findIndex((s) => s.id === shape.id),
+          overflow: "visible"
+        }}
+        className="bg-gray-100 rounded-lg"
+        onMouseDown={handleMouseDown}
+        onContextMenu={handleContextMenu}
+      >
+        <PoseShape shape={shape} />
+        {(isSelected || Boolean(shape.showPose)) && tool === "select" && (
+          <ShapeControls
+            shape={shape}
+            isSelected={isSelected}
+            handleResizeStart={handleResizeStart}
           />
         )}
       </div>
@@ -216,11 +326,10 @@ export function ShapeComponent({ shape }: ShapeProps) {
         <ThreeJSShape ref={threeJSRef} shape={shape} />
         {isSelected && tool === "select" && (
           <ShapeControls
-  shape={shape}
-  isSelected={isSelected}
-  handleResizeStart={handleResizeStart}
-  threeJSRef={threeJSRef}
-/>
+            shape={shape}
+            isSelected={isSelected}
+            handleResizeStart={handleResizeStart}
+          />
         )}
       </div>
     );
@@ -234,27 +343,25 @@ export function ShapeComponent({ shape }: ShapeProps) {
     isEditing
   );
 
-
-  
   return (
     <div style={{ position: "absolute", width: 0, height: 0 }}>
-<div
-  id={shape.id}
-  style={{
-    ...shapeStyles,
-    overflow: "hidden",
-    pointerEvents: tool === "select" ? "all" : "none",
-    ...(shape.type === "sticky" && {
-      backgroundColor: stickyNoteColor,
-      boxShadow: `0 0 0 1px ${stickyNoteColor}`,
-    }),
-    ...(shape.type === "diffusionSettings" && {
-      backgroundColor: "transparent",
-      border: "none",
-      backgroundImage: "none",
-      boxShadow: "none",
-    }),
-  }}
+      <div
+        id={shape.id}
+        style={{
+          ...shapeStyles,
+          overflow: "hidden",
+          pointerEvents: tool === "select" ? "all" : "none",
+          ...(shape.type === "sticky" && {
+            backgroundColor: stickyNoteColor,
+            boxShadow: `0 0 0 1px ${stickyNoteColor}`,
+          }),
+          ...(shape.type === "diffusionSettings" && {
+            backgroundColor: "transparent",
+            border: "none",
+            backgroundImage: "none",
+            boxShadow: "none",
+          }),
+        }}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
@@ -293,14 +400,14 @@ export function ShapeComponent({ shape }: ShapeProps) {
         {shape.type === "image" && <ImageShape shape={shape} />}
   
         {shape.type === "sticky" && (
-        <StickyNoteShape
-          shape={shape}
-          isEditing={isEditing}
-          textRef={textRef}
-          handleKeyDown={handleKeyDown}
-          handleBlur={handleBlur}
-        />
-      )}
+          <StickyNoteShape
+            shape={shape}
+            isEditing={isEditing}
+            textRef={textRef}
+            handleKeyDown={handleKeyDown}
+            handleBlur={handleBlur}
+          />
+        )}
   
         {shape.type === "text" && (
           <TextShape
@@ -312,8 +419,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
           />
         )}
       </div>
-  
-
   
       {/* Controls layer */}
       {(tool === "select" ||

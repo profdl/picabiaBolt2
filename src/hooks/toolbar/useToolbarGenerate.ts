@@ -8,11 +8,11 @@ export function useToolbarGenerate() {
     () =>
       shapes.some(
         (shape) =>
-          (shape.type === "sticky" && shape.showPrompt && shape.content) ||
+          (shape.type === "sticky" && shape.isTextPrompt && shape.content) ||
           (shape.type === "image" &&
-            (shape.showDepth ||
-              shape.showEdges ||
-              shape.showPose ||
+            (shape.enableDepthPrompt ||
+              shape.enableEdgesPrompt ||
+              shape.enablePosePrompt ||
               shape.showSketch ||
               shape.showRemix))
       ),

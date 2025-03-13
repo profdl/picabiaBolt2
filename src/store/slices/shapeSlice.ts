@@ -136,6 +136,12 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           sketchStrength: shape.sketchStrength ?? 0.25,
           remixStrength: shape.remixStrength ?? 0.25,
           isEditing: shape.type === "sticky",
+          showDepth: shape.showDepth ?? false,
+          showEdges: shape.showEdges ?? false,
+          showPose: shape.showPose ?? false,
+          showPrompt: shape.showPrompt ?? false,
+          showNegativePrompt: shape.showNegativePrompt ?? false,
+          aspectRatio: shape.aspectRatio,
         };
   
         // Special handling for sticky notes
