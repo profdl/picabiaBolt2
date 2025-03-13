@@ -50,43 +50,44 @@ export function useShapeEvents({
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-// Add specific check for sticky note control panel elements
-const isStickyControlsElement = (e.target as Element).closest(
-  '[data-sticky-controls]'
-);
-const isCheckbox = (e.target as Element).tagName.toLowerCase() === 'input' &&
-  (e.target as HTMLInputElement).type === 'checkbox';
-
-if (isStickyControlsElement || isCheckbox) {
-  e.stopPropagation();
-  if (!selectedShapes.includes(shape.id)) {
-    setSelectedShapes([shape.id]);
-  }
-  return;
-}
-
-if (shape.type === "3d" && shape.isOrbiting) {
-  e.stopPropagation();
-  return;
-}
-
+    // Early return for specific cases
     if (tool === "pan" || (isEditing && !shape.isNew)) return;
+    
+    // Check for sticky note controls or checkboxes
+    const isStickyControlsElement = (e.target as Element).closest('[data-sticky-controls]');
+    const isCheckbox = (e.target as Element).tagName.toLowerCase() === 'input' &&
+      (e.target as HTMLInputElement).type === 'checkbox';
 
-     const controlsPanel = document.querySelector(
-    `[data-controls-panel="${shape.id}"]`
-  );
-  if (controlsPanel?.contains(e.target as Node)) {
-    e.stopPropagation();
-    if (!selectedShapes.includes(shape.id)) {
-      setSelectedShapes([shape.id]);
+    if (isStickyControlsElement || isCheckbox) {
+      e.stopPropagation();
+      if (!selectedShapes.includes(shape.id)) {
+        setSelectedShapes([shape.id]);
+      }
+      return;
     }
-    return;
-  }
 
+    // Check for 3D orbiting
+    if (shape.type === "3d" && shape.isOrbiting) {
+      e.stopPropagation();
+      return;
+    }
+
+    // Check for controls panel
+    const controlsPanel = document.querySelector(`[data-controls-panel="${shape.id}"]`);
+    if (controlsPanel?.contains(e.target as Node)) {
+      e.stopPropagation();
+      if (!selectedShapes.includes(shape.id)) {
+        setSelectedShapes([shape.id]);
+      }
+      return;
+    }
+
+    // Handle selection and drag
     e.stopPropagation();
     handleStickyInteraction();
     initDragStart(e);
 
+    // Update selection based on shift key
     if (e.shiftKey) {
       const newSelection = selectedShapes.includes(shape.id)
         ? selectedShapes.filter((id) => id !== shape.id)

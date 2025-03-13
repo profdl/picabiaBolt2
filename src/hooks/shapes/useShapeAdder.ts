@@ -176,17 +176,17 @@ export function useShapeAdder() {
     const position = options.position || findOpenSpace(shapes, width, height, center);
 
     const stickyDefaults = shapeType === 'sticky' ? {
-      showPrompt: true,
+      isTextPrompt: true,
       color: 'var(--sticky-green)',
       content: 'Double-Click to Edit...',
       // Uncheck any existing sticky notes' text prompts
       ...(() => {
         const { updateShape } = useStore.getState(); // Get updateShape from the store state
         shapes.forEach(shape => {
-          if (shape.type === 'sticky' && shape.showPrompt) {
+          if (shape.type === 'sticky' && shape.isTextPrompt) {
             updateShape(shape.id, {
-              showPrompt: false,
-              color: shape.showNegativePrompt ? 'var(--sticky-red)' : 'var(--sticky-yellow)'
+              isTextPrompt: false,
+              color: shape.isNegativePrompt ? 'var(--sticky-red)' : 'var(--sticky-yellow)'
             });
           }
         });

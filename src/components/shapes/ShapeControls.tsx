@@ -21,12 +21,15 @@ export function ShapeControls({
   // All hooks must be at the top
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const { updateShape, shapes, setSelectedShapes } = useStore();
+  const { updateShape, shapes, setSelectedShapes, updateShapes } = useStore();
   const depthProcessing = useStore((state) => state.preprocessingStates[shape.id]?.depth);
   const edgeProcessing = useStore((state) => state.preprocessingStates[shape.id]?.edge);
   const poseProcessing = useStore((state) => state.preprocessingStates[shape.id]?.pose);
   const sketchProcessing = useStore((state) => state.preprocessingStates[shape.id]?.sketch);
   const remixProcessing = useStore((state) => state.preprocessingStates[shape.id]?.remix);
+
+  // Add state for tracking pending updates
+  const [pendingUpdates, setPendingUpdates] = useState<{ id: string; isChecked: boolean; isTextPrompt: boolean } | null>(null);
 
   // Styles
   const styles = {
@@ -70,6 +73,43 @@ export function ShapeControls({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDropdownOpen]);
+
+  // Effect to handle updates to other shapes
+  useEffect(() => {
+    if (!pendingUpdates) return;
+
+    const { id, isChecked, isTextPrompt } = pendingUpdates;
+    
+    if (isChecked) {
+      const updates = [];
+      shapes.forEach((otherShape) => {
+        if (
+          otherShape.id !== id &&
+          otherShape.type === "sticky" &&
+          // Only uncheck the same type of prompt that was checked
+          (isTextPrompt ? otherShape.isTextPrompt : otherShape.isNegativePrompt)
+        ) {
+          updates.push({
+            id: otherShape.id,
+            shape: {
+              // Only update the relevant prompt type
+              ...(isTextPrompt ? { isTextPrompt: false } : { isNegativePrompt: false }),
+              // Update color based on remaining prompt state
+              color: isTextPrompt 
+                ? (otherShape.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)")
+                : (otherShape.isTextPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)")
+            }
+          });
+        }
+      });
+      
+      if (updates.length > 0) {
+        updateShapes(updates);
+      }
+    }
+    
+    setPendingUpdates(null);
+  }, [pendingUpdates, shapes, updateShapes]);
 
   // Constants and derived state
   const controls = [
@@ -131,8 +171,8 @@ export function ShapeControls({
     shape.showEdges ||
     shape.showContent ||
     shape.showPose ||
-    shape.showPrompt ||
-    shape.showNegativePrompt ||
+    shape.isTextPrompt ||
+    shape.isNegativePrompt ||
     shape.showSketch ||
     shape.showRemix ||
     (shape.type === "diffusionSettings" && shape.useSettings);
@@ -215,8 +255,7 @@ export function ShapeControls({
                     <div
                       className="mt-0.5 pr-2 relative block"
                       data-shape-control="true"
-                      onMouseDown={preventEvent}
-                      onClick={preventEvent}
+                      style={{ pointerEvents: "all" }}
                     >
                       <div className="relative">
                         {isHovering && (
@@ -260,21 +299,23 @@ export function ShapeControls({
                             onMouseEnter={() => setIsHovering(true)}
                             onMouseLeave={() => setIsHovering(false)}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              preventEvent(e);
+                              e.stopPropagation();
                               updateShape(shape.id, {
                                 [control.strengthKey]: parseFloat(
                                   e.target.value
                                 ),
                               });
                             }}
-                            onMouseDown={preventEvent}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                            }}
                             className={styles.controls.slider}
                             style={{
                               position: "absolute",
                               top: "50%",
                               transform: "translateY(-50%)",
-                              pointerEvents: "all",
                               width: "calc(100% - 8px)",
+                              cursor: "pointer",
                             }}
                           />
                         </div>
@@ -459,48 +500,23 @@ export function ShapeControls({
                 <input
                   type="checkbox"
                   id={`prompt-${shape.id}`}
-                  checked={shape.showPrompt || false}
+                  checked={shape.isTextPrompt || false}
                   onChange={(e) => {
                     preventEvent(e);
                     const isChecked = e.target.checked;
-                    if (isChecked) {
-                      // Uncheck negative prompt if it's checked
-                      if (shape.showNegativePrompt) {
-                        updateShape(shape.id, { showNegativePrompt: false });
-                      }
-                      // Uncheck prompts on other sticky notes
-                      shapes.forEach((otherShape) => {
-                        if (
-                          otherShape.id !== shape.id &&
-                          otherShape.type === "sticky" &&
-                          otherShape.showPrompt
-                        ) {
-                          updateShape(otherShape.id, {
-                            showPrompt: false,
-                            color: otherShape.showNegativePrompt
-                              ? "var(--sticky-red)"
-                              : "var(--sticky-yellow)",
-                          });
-                        }
-                      });
-                      // Update current shape
-                      updateShape(shape.id, {
-                        showPrompt: true,
-                        color: "var(--sticky-green)",
-                      });
-                      // Keep the shape selected after checking the box
-                      setSelectedShapes([shape.id]);
-                    } else {
-                      // When unchecking, just update current shape
-                      updateShape(shape.id, {
-                        showPrompt: false,
-                        color: shape.showNegativePrompt
-                          ? "var(--sticky-red)"
-                          : "var(--sticky-yellow)",
-                      });
-                      // Keep the shape selected after unchecking the box
-                      setSelectedShapes([shape.id]);
-                    }
+                    
+                    // Single update for current shape
+                    updateShape(shape.id, {
+                      isTextPrompt: isChecked,
+                      isNegativePrompt: isChecked ? false : shape.isNegativePrompt,
+                      color: isChecked ? "var(--sticky-green)" : (shape.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)")
+                    });
+                    
+                    // Set pending updates for other shapes
+                    setPendingUpdates({ id: shape.id, isChecked, isTextPrompt: true });
+                    
+                    // Keep the shape selected
+                    setSelectedShapes([shape.id]);
                   }}
                   onMouseDown={preventEvent}
                   className={styles.controls.checkbox}
@@ -541,36 +557,23 @@ export function ShapeControls({
                 <input
                   type="checkbox"
                   id={`negative-${shape.id}`}
-                  checked={shape.showNegativePrompt || false}
+                  checked={shape.isNegativePrompt || false}
                   onChange={(e) => {
                     preventEvent(e);
-                    if (e.target.checked) {
-                      if (shape.showPrompt) {
-                        updateShape(shape.id, { showPrompt: false });
-                      }
-                      shapes.forEach((otherShape) => {
-                        if (
-                          otherShape.type === "sticky" &&
-                          otherShape.showNegativePrompt
-                        ) {
-                          updateShape(otherShape.id, {
-                            showNegativePrompt: false,
-                            color: shape.showPrompt
-                              ? "var(--sticky-green)"
-                              : "var(--sticky-yellow)",
-                          });
-                        }
-                      });
-                      updateShape(shape.id, {
-                        showNegativePrompt: true,
-                        color: "var(--sticky-red)",
-                      });
-                    } else {
-                      updateShape(shape.id, {
-                        showNegativePrompt: false,
-                        color: shape.showPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)",
-                      });
-                    }
+                    const isChecked = e.target.checked;
+                    
+                    // Single update for current shape
+                    updateShape(shape.id, {
+                      isNegativePrompt: isChecked,
+                      isTextPrompt: isChecked ? false : shape.isTextPrompt,
+                      color: isChecked ? "var(--sticky-red)" : (shape.isTextPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)")
+                    });
+                    
+                    // Set pending updates for other shapes
+                    setPendingUpdates({ id: shape.id, isChecked, isTextPrompt: false });
+                    
+                    // Keep the shape selected
+                    setSelectedShapes([shape.id]);
                   }}
                   onMouseDown={preventEvent}
                   className={styles.controls.checkbox}
