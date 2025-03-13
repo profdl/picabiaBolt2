@@ -11,25 +11,17 @@ interface ShapeControlsProps {
   shape: Shape;
   isSelected: boolean;
   handleResizeStart: (e: React.MouseEvent<HTMLDivElement>) => void;
-  threeJSRef?: React.RefObject<ThreeJSShapeRef>;
-}
-
-interface ThreeJSShapeRef {
-  exportToGLTF: () => void;
 }
 
 export function ShapeControls({
   shape,
   isSelected,
   handleResizeStart,
-  threeJSRef,
 }: ShapeControlsProps) {
   // All hooks must be at the top
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const { sendToBack, sendToFront, sendBackward, sendForward, deleteShape, updateShape, shapes, setSelectedShapes } = useStore();
-  const handleGenerateSubject = useStore((state) => state.handleGenerateSubject);
-  const generatePreprocessedImage = useStore((state) => state.generatePreprocessedImage);
+  const { updateShape, shapes, setSelectedShapes } = useStore();
   const depthProcessing = useStore((state) => state.preprocessingStates[shape.id]?.depth);
   const edgeProcessing = useStore((state) => state.preprocessingStates[shape.id]?.edge);
   const poseProcessing = useStore((state) => state.preprocessingStates[shape.id]?.pose);
@@ -57,6 +49,14 @@ export function ShapeControls({
     },
     resizeHandle: useThemeClass(["shape", "resizeHandle"]),
     colorPicker: useThemeClass(["shape", "colorPicker"]),
+  };
+
+  // Utility function to prevent event propagation
+  const preventEvent = (e: React.MouseEvent | React.ChangeEvent<HTMLInputElement>) => {
+    if ('preventDefault' in e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   };
 
   // Effect hooks
@@ -143,98 +143,10 @@ export function ShapeControls({
   // Now we can safely return early if needed
   if (!showControlPanel && !shape.isNew) return null;
 
-  const handleCheckboxChange = async (
-    control: (typeof controls)[0],
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    e.stopPropagation();
-    if (!control.showKey || !control.processType) return;
-
-    const isChecked = e.target.checked;
-
-    if (isChecked) {
-      setSelectedShapes([shape.id]);
-    }
-
-    // For sketch control, use the original image as preview
-    if (control.processType === "sketch") {
-      // Uncheck sketch on all other shapes first
-      shapes.forEach((otherShape) => {
-        if (
-          otherShape.id !== shape.id &&
-          (otherShape.type === "image" || otherShape.type === "sketchpad")
-        ) {
-          if (otherShape.showSketch) {
-            updateShape(otherShape.id, {
-              showSketch: false,
-              sketchPreviewUrl: undefined,
-            });
-          }
-        }
-      });
-
-      // Then update current shape
-      updateShape(shape.id, {
-        [control.showKey]: isChecked,
-        sketchPreviewUrl: isChecked ? shape.imageUrl : undefined,
-      });
-      return;
-    }
-
-    // For remix control, set remixPreviewUrl
-    if (control.processType === "remix") {
-      updateShape(shape.id, {
-        [control.showKey]: isChecked,
-        remixPreviewUrl: isChecked ? shape.imageUrl : undefined,
-      });
-      return;
-    }
-
-    // Rest of the existing handleCheckboxChange logic...
-    const previewUrl = shape[`${control.processType}PreviewUrl` as keyof Shape];
-    updateShape(shape.id, { [control.showKey]: isChecked });
-
-    if (control.processType !== "remix") {
-      shapes.forEach((otherShape) => {
-        if (otherShape.id !== shape.id && otherShape.type === "image") {
-          const showKey = control.showKey as keyof Shape;
-          if (otherShape[showKey]) {
-            updateShape(otherShape.id, { [control.showKey]: false });
-          }
-        }
-      });
-    }
-
-    // Generate preview if needed
-    if (isChecked && !previewUrl) {
-      try {
-        await generatePreprocessedImage(
-          shape.id,
-          control.processType as "depth" | "edge" | "pose" | "sketch" | "remix"
-        );
-      } catch (error) {
-        console.error("Failed to generate preprocessed image:", error);
-        updateShape(shape.id, { [control.showKey]: false });
-      }
-    }
-  };
-
-  const handleSelectSubject = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (shape.imageUrl) {
-      try {
-        await handleGenerateSubject(shape);
-      } catch (error) {
-        console.error("Select subject failed:", error);
-      }
-    }
-    setIsDropdownOpen(false);
-  };
-
   return (
     <div
       className="absolute inset-0"
+      data-shape-control="true"
       style={{
         pointerEvents: "none",
         ...(isSelected && shape.type === "3d"
@@ -254,8 +166,13 @@ export function ShapeControls({
       }}
     >
       {(shape.type === "image" || shape.type === "sketchpad") && isSelected && (
-        <div className={styles.controls.panelMod} onClick={(e) => {
-          e.stopPropagation();}}>
+        <div 
+          className={styles.controls.panelMod} 
+          data-shape-control="true"
+          onMouseDown={preventEvent}
+          onClick={preventEvent}
+          style={{ pointerEvents: "all", zIndex: 1000 }}
+        >
           {isSelected && (
              controls.filter(
                 (control) =>
@@ -263,16 +180,33 @@ export function ShapeControls({
               )
           ).map((control) => (
             <div key={control.type} className={styles.controls.group}>
-              <div className="group relative py-0.5 w-max  relative block" style={{ zIndex: 101, pointerEvents: "all" }}>
+              <div 
+                className="group py-0.5 w-max relative block" 
+                data-shape-control="true"
+                style={{ zIndex: 1000, pointerEvents: "all" }}
+                onMouseDown={preventEvent}
+                onClick={preventEvent}
+              >
                 {control.showKey && (
-                    <div className={styles.sidePanel.group}>
+                    <div 
+                      className={styles.sidePanel.group}
+                      data-shape-control="true"
+                      onMouseDown={preventEvent}
+                      onClick={preventEvent}
+                    >
                       <span className={styles.controls.label}>
                         {control.type}
                       </span>
-                      <span onClick={(e) => {
-                      e.stopPropagation();
-                      console.log('trying to delete modifier')
-                      updateShape(shape.id, { [control.showKey]: false })}}><Trash2 className="w-3 h-3"/></span>
+                      <span 
+                        onClick={(e) => {
+                          preventEvent(e);
+                          console.log('trying to delete modifier');
+                          updateShape(shape.id, { [control.showKey]: false });
+                        }}
+                        onMouseDown={preventEvent}
+                      >
+                        <Trash2 className="w-3 h-3"/>
+                      </span>
                     </div>
                 )}
                 {control.strengthKey &&
@@ -280,7 +214,9 @@ export function ShapeControls({
                   shape[control.showKey as keyof Shape] && (
                     <div
                       className="mt-0.5 pr-2 relative block"
-                      onClick={(e) => e.stopPropagation()}
+                      data-shape-control="true"
+                      onMouseDown={preventEvent}
+                      onClick={preventEvent}
                     >
                       <div className="relative">
                         {isHovering && (
@@ -323,13 +259,15 @@ export function ShapeControls({
                             }
                             onMouseEnter={() => setIsHovering(true)}
                             onMouseLeave={() => setIsHovering(false)}
-                            onChange={(e) => {
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              preventEvent(e);
                               updateShape(shape.id, {
                                 [control.strengthKey]: parseFloat(
                                   e.target.value
                                 ),
                               });
                             }}
+                            onMouseDown={preventEvent}
                             className={styles.controls.slider}
                             style={{
                               position: "absolute",
@@ -351,41 +289,15 @@ export function ShapeControls({
       {shape.type === "image" && shape.imageUrl && isSelected && (
         <div
           className="absolute -left-0 -bottom-7 action-dropdown"
-          style={{ zIndex: 101, pointerEvents: "all" }}
+          data-shape-control="true"
+          style={{ zIndex: 1000, pointerEvents: "all" }}
+          onMouseDown={preventEvent}
+          onClick={preventEvent}
         >
           <ImageActionDropdown
             shape={shape}
             isDropdownOpen={isDropdownOpen}
             setIsDropdownOpen={setIsDropdownOpen}
-            onSelectSubject={handleSelectSubject}
-            onCrop={() => updateShape(shape.id, { isImageEditing: true })}
-            onDownload={async (e: React.MouseEvent) => {
-              e.preventDefault();
-              e.stopPropagation();
-
-              if (shape.imageUrl) {
-                try {
-                  const response = await fetch(shape.imageUrl);
-                  const blob = await response.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const link = document.createElement("a");
-                  link.href = url;
-                  link.download = `image-${shape.id}.png`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  window.URL.revokeObjectURL(url);
-                } catch (error) {
-                  console.error("Download failed:", error);
-                }
-              }
-              setIsDropdownOpen(false);
-            }}
-            sendToBack={() => sendToBack()}
-            sendToFront={() => sendToFront()}
-            sendBackward={() => sendBackward()}
-            sendForward={() => sendForward()}
-            deleteShape={() => deleteShape(shape.id)}
           />
         </div>
       )}
@@ -394,8 +306,12 @@ export function ShapeControls({
       {showManipulationControls && (
         <div
           className={styles.resizeHandle}
-          style={{ zIndex: 101, pointerEvents: "all" }}
-          onMouseDown={handleResizeStart}
+          data-shape-control="true"
+          style={{ zIndex: 1000, pointerEvents: "all" }}
+          onMouseDown={(e) => {
+            preventEvent(e);
+            handleResizeStart(e);
+          }}
         />
       )}
 
@@ -408,24 +324,37 @@ export function ShapeControls({
           <input
             type="color"
             value={shape.color}
-            onChange={(e) => updateShape(shape.id, { color: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              preventEvent(e);
+              updateShape(shape.id, { color: e.target.value });
+            }}
+            onMouseDown={preventEvent}
             className={styles.colorPicker}
-            style={{ zIndex: 101, pointerEvents: "all" }}
+            data-shape-control="true"
+            style={{ zIndex: 1000, pointerEvents: "all" }}
           />
         )}
 
-{shape.type === "diffusionSettings" && (
+      {shape.type === "diffusionSettings" && (
         <div
           className={`absolute left-1/2 -bottom-10 transform -translate-x-1/2 ${styles.sidePanel.container}`}
-          style={{ zIndex: 101, pointerEvents: "all", width: "160px" }}
-          data-controls-panel={shape.id}
+          data-shape-control="true"
+          style={{ zIndex: 1000, pointerEvents: "all", width: "160px" }}
+          onMouseDown={preventEvent}
+          onClick={preventEvent}
         >
-          <div className={styles.sidePanel.group}>
+          <div 
+            className={styles.sidePanel.group}
+            data-shape-control="true"
+            onMouseDown={preventEvent}
+            onClick={preventEvent}
+          >
             <input
               type="checkbox"
               id={`use-settings-${shape.id}`}
               checked={shape.useSettings || false}
               onChange={(e) => {
+                preventEvent(e);
                 const isChecked = e.target.checked;
                 if (isChecked) {
                   // Uncheck all other diffusion settings shapes
@@ -440,11 +369,16 @@ export function ShapeControls({
                 }
                 updateShape(shape.id, { useSettings: isChecked });
               }}
+              onMouseDown={preventEvent}
               className={styles.controls.checkbox}
+              data-shape-control="true"
             />
             <label
               htmlFor={`use-settings-${shape.id}`}
               className={`${styles.sidePanel.label} whitespace-nowrap`}
+              data-shape-control="true"
+              onMouseDown={preventEvent}
+              onClick={preventEvent}
             >
               Use Settings
             </label>
@@ -454,26 +388,25 @@ export function ShapeControls({
       {shape.type === "sticky" && isSelected && (
         <div
           className="absolute -left-0 -bottom-7"
+          data-shape-control="true"
           style={{
-            zIndex: 1000, // Increased z-index
-            pointerEvents: "auto", // Ensure pointer events work
+            zIndex: 1000,
+            pointerEvents: "all",
           }}
+          onMouseDown={preventEvent}
+          onClick={preventEvent}
         >
           <Tooltip content="Add a random text prompt" side="bottom">
             <button
               type="button"
               className="w-6 h-6 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-center shadow-sm action-dropdown"
+              data-shape-control="true"
               style={{
                 pointerEvents: "all",
-                position: "relative", // Ensure proper stacking context
+                position: "relative",
               }}
               onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+                preventEvent(e);
                 const randomPrompt = generatePrompt();
                 updateShape(shape.id, {
                   content: randomPrompt,
@@ -481,23 +414,27 @@ export function ShapeControls({
                 });
                 setSelectedShapes([shape.id]);
               }}
+              onClick={preventEvent}
             >
               <img
                 src="/dice-outline.svg"
                 alt="Random prompt"
                 className="w-5 h-5 text-neutral-600 dark:text-neutral-300"
-                style={{ pointerEvents: "none" }} // Prevent img from interfering with clicks
+                style={{ pointerEvents: "none" }}
               />
             </button>
           </Tooltip>
         </div>
       )}
+
       {shape.type === "sticky" && (
         <div
           className={`absolute left-1/2 top-full mt-1 transform -translate-x-1/2 ${styles.sidePanel.container}`}
-          style={{ zIndex: 101, pointerEvents: "all", width: "160px" }}
+          data-shape-control="true"
+          style={{ zIndex: 1000, pointerEvents: "all", width: "160px" }}
+          onMouseDown={preventEvent}
+          onClick={preventEvent}
         >
-          {" "}
           <div className="flex flex-col gap-1.5">
             <Tooltip
               side="bottom"
@@ -513,13 +450,18 @@ export function ShapeControls({
                 </div>
               }
             >
-              <div className={styles.sidePanel.group}>
+              <div 
+                className={styles.sidePanel.group}
+                data-shape-control="true"
+                onMouseDown={preventEvent}
+                onClick={preventEvent}
+              >
                 <input
                   type="checkbox"
                   id={`prompt-${shape.id}`}
                   checked={shape.showPrompt || false}
                   onChange={(e) => {
-                    e.stopPropagation(); // Add this to prevent event bubbling
+                    preventEvent(e);
                     const isChecked = e.target.checked;
                     if (isChecked) {
                       // Uncheck negative prompt if it's checked
@@ -560,13 +502,17 @@ export function ShapeControls({
                       setSelectedShapes([shape.id]);
                     }
                   }}
+                  onMouseDown={preventEvent}
                   className={styles.controls.checkbox}
-                  style={{ pointerEvents: "all" }} // Add this to ensure clicks are registered
+                  data-shape-control="true"
+                  style={{ pointerEvents: "all" }}
                 />
                 <label
                   htmlFor={`prompt-${shape.id}`}
                   className={styles.sidePanel.label}
-                  onClick={(e) => e.stopPropagation()} // Add this to prevent event bubbling
+                  data-shape-control="true"
+                  onMouseDown={preventEvent}
+                  onClick={preventEvent}
                 >
                   Text Prompt
                 </label>
@@ -586,12 +532,18 @@ export function ShapeControls({
                 </div>
               }
             >
-              <div className={styles.sidePanel.group}>
+              <div 
+                className={styles.sidePanel.group}
+                data-shape-control="true"
+                onMouseDown={preventEvent}
+                onClick={preventEvent}
+              >
                 <input
                   type="checkbox"
                   id={`negative-${shape.id}`}
                   checked={shape.showNegativePrompt || false}
                   onChange={(e) => {
+                    preventEvent(e);
                     if (e.target.checked) {
                       if (shape.showPrompt) {
                         updateShape(shape.id, { showPrompt: false });
@@ -605,7 +557,7 @@ export function ShapeControls({
                             showNegativePrompt: false,
                             color: shape.showPrompt
                               ? "var(--sticky-green)"
-                              : "var(--sticky-yellow)", // Instead of "#90EE90" : "#fff9c4"
+                              : "var(--sticky-yellow)",
                           });
                         }
                       });
@@ -616,15 +568,21 @@ export function ShapeControls({
                     } else {
                       updateShape(shape.id, {
                         showNegativePrompt: false,
-                        color: shape.showPrompt ? "#90EE90" : "#fff9c4",
+                        color: shape.showPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)",
                       });
                     }
                   }}
+                  onMouseDown={preventEvent}
                   className={styles.controls.checkbox}
+                  data-shape-control="true"
+                  style={{ pointerEvents: "all" }}
                 />
                 <label
                   htmlFor={`negative-${shape.id}`}
                   className={styles.sidePanel.label}
+                  data-shape-control="true"
+                  onMouseDown={preventEvent}
+                  onClick={preventEvent}
                 >
                   Negative Prompt
                 </label>
@@ -633,48 +591,6 @@ export function ShapeControls({
           </div>
         </div>
       )}
-
-      {shape.type === "3d" && isSelected && (
-        <div
-          className="absolute -left-0 -bottom-7"
-          style={{
-            zIndex: 101,
-            pointerEvents: "all",
-          }}
-        >
-          <Tooltip content="Download 3D Scene" side="bottom">
-            <button
-              type="button"
-              className={`w-6 h-6 ${styles.controls.button} flex items-center justify-center`}
-              onClick={(e) => {
-                e.stopPropagation();
-                // Call the ref's exportToGLTF method directly
-                if (threeJSRef && threeJSRef.current) {
-                  threeJSRef.current.exportToGLTF();
-                }
-              }}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-            </button>
-          </Tooltip>
-        </div>
-      )}
-
- 
     </div>
   );
 }
