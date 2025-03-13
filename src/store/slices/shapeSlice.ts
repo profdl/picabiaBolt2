@@ -19,7 +19,7 @@ interface ShapeState {
       edge?: boolean;
       pose?: boolean;
       sketch?: boolean;
-      remix?: boolean;
+      imagePrompt?: boolean;
     };
   };
   isEditingText: boolean;
@@ -134,7 +134,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           contentStrength: shape.contentStrength ?? 0.25,
           poseStrength: shape.poseStrength ?? 0.25,
           sketchStrength: shape.sketchStrength ?? 0.25,
-          remixStrength: shape.remixStrength ?? 0.25,
+          imagePromptStrength: shape.imagePromptStrength ?? 0.25,
           isEditing: shape.type === "sticky",
           showDepth: shape.showDepth ?? false,
           showEdges: shape.showEdges ?? false,
@@ -240,30 +240,12 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           return {
             ...shape,
             ...update.shape,
-            showDepth:
-              "showDepth" in update.shape
-                ? update.shape.showDepth
-                : shape.showDepth,
-            showEdges:
-              "showEdges" in update.shape
-                ? update.shape.showEdges
-                : shape.showEdges,
-            showPose:
-              "showPose" in update.shape
-                ? update.shape.showPose
-                : shape.showPose,
-            showSketch:
-              "showSketch" in update.shape
-                ? update.shape.showSketch
-                : shape.showSketch,
-            showRemix:
-              "showRemix" in update.shape
-                ? update.shape.showRemix
-                : shape.showRemix,
-            showPrompt:
-              "showPrompt" in update.shape
-                ? update.shape.showPrompt
-                : shape.showPrompt,
+            showDepth: update.shape.showDepth ?? shape.showDepth ?? false,
+            showEdges: update.shape.showEdges ?? shape.showEdges ?? false,
+            showPose: update.shape.showPose ?? shape.showPose ?? false,
+            showSketch: update.shape.showSketch ?? shape.showSketch ?? false,
+            showImagePrompt: update.shape.showImagePrompt ?? shape.showImagePrompt ?? false,
+            showPrompt: update.shape.showPrompt ?? shape.showPrompt ?? false,
           };
         }
         return shape;
@@ -311,7 +293,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
               if (shapeToDelete.showEdges) shape.showEdges = false;
               if (shapeToDelete.showPose) shape.showPose = false;
               if (shapeToDelete.showSketch) shape.showSketch = false;
-              if (shapeToDelete.showRemix) shape.showRemix = false;
+              if (shapeToDelete.showImagePrompt) shape.showImagePrompt = false;
             }
           });
         }
@@ -381,7 +363,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             showEdges: boolean;
             showPose: boolean;
             showSketch: boolean;
-            showRemix: boolean;
+            showImagePrompt: boolean;
           },
           shape: Shape
         ) => {
@@ -391,7 +373,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
               showEdges: acc.showEdges || Boolean(shape.showEdges),
               showPose: acc.showPose || Boolean(shape.showPose),
               showSketch: acc.showSketch || Boolean(shape.showSketch),
-              showRemix: acc.showRemix || Boolean(shape.showRemix),
+              showImagePrompt: acc.showImagePrompt || Boolean(shape.showImagePrompt),
             };
           }
           return acc;
@@ -401,7 +383,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           showEdges: false,
           showPose: false,
           showSketch: false,
-          showRemix: false,
+          showImagePrompt: false,
         }
       );
 
@@ -414,7 +396,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             showEdges: controlStates.showEdges ? false : shape.showEdges,
             showPose: controlStates.showPose ? false : shape.showPose,
             showSketch: controlStates.showSketch ? false : shape.showSketch,
-            showRemix: controlStates.showRemix ? false : shape.showRemix,
+            showImagePrompt: controlStates.showImagePrompt ? false : shape.showImagePrompt,
           };
         }
         return shape;
@@ -437,8 +419,8 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           shape.type === "image" ? shape.posePreviewUrl : undefined,
         sketchPreviewUrl:
           shape.type === "image" ? shape.sketchPreviewUrl : undefined,
-        remixPreviewUrl:
-          shape.type === "image" ? shape.remixPreviewUrl : undefined,
+        imagePromptPreviewUrl:
+          shape.type === "image" ? shape.imagePromptPreviewUrl : undefined,
       }));
 
       const updatedShapes = [...updatedOriginalShapes, ...newShapes];
@@ -649,7 +631,10 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         contentStrength: 0.75,
         poseStrength: 0.75,
         sketchStrength: 0.75,
-        remixStrength: 0.75,
+        imagePromptStrength: 0.75,
+        showDepth: false,
+        showEdges: false,
+        showPose: false,
       };
 
       const updatedShapes = state.shapes.map((shape) =>
@@ -757,7 +742,10 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         contentStrength: 0.75,
         poseStrength: 0.75,
         sketchStrength: 0.75,
-        remixStrength: 0.75,
+        imagePromptStrength: 0.75,
+        showDepth: false,
+        showEdges: false,
+        showPose: false,
       };
 
       return {

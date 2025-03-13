@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../../store";
 import { Shape } from "../../types";
-import { ImageActionDropdown } from "./ImageActionDropdown";
 import { generatePrompt } from "../../utils/prompt-generator";
 import { Tooltip } from "../shared/Tooltip";
-import { Trash2 } from "lucide-react";
 import { useThemeClass } from "../../styles/useThemeClass";
-import { NumberInput } from "../shared/NumberInput";
 import { supabase } from "../../lib/supabase";
-import { generatePreprocessedImage } from "../../utils/generate-preprocessed-image";
+import { SmallSlider } from "../shared/SmallSlider";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -28,12 +25,7 @@ export function ShapeControls({
 }: ShapeControlsProps) {
   // All hooks must be at the top
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
-  const { updateShape, shapes, setSelectedShapes, updateShapes, addShape } = useStore();
-  const edgeProcessing = useStore((state) => state.preprocessingStates[shape.id]?.edge);
-  const poseProcessing = useStore((state) => state.preprocessingStates[shape.id]?.pose);
-  const sketchProcessing = useStore((state) => state.preprocessingStates[shape.id]?.sketch);
-  const remixProcessing = useStore((state) => state.preprocessingStates[shape.id]?.remix);
+  const { updateShape, shapes, setSelectedShapes, updateShapes, addShape, generatePreprocessedImage } = useStore();
 
   // Add state for tracking pending updates
   const [pendingUpdates, setPendingUpdates] = useState<{ id: string; isChecked: boolean; isTextPrompt: boolean } | null>(null);
@@ -118,51 +110,6 @@ export function ShapeControls({
   }, [pendingUpdates, shapes, updateShapes]);
 
   // Constants and derived state
-  const controls = [
-    {
-      type: "Original",
-      preview: shape.imageUrl,
-      showKey: null,
-      strengthKey: null,
-    },
-    {
-      type: "Edges",
-      preview: shape.edgePreviewUrl,
-      showKey: "showEdges",
-      strengthKey: "edgesStrength",
-      isProcessing: edgeProcessing,
-      processType: "edge",
-      preprocessor: "Canny",
-    },
-    {
-      type: "Pose",
-      preview: shape.posePreviewUrl,
-      showKey: "showPose",
-      strengthKey: "poseStrength",
-      isProcessing: poseProcessing,
-      processType: "pose",
-      preprocessor: "OpenPose",
-    },
-    {
-      type: "Sketch",
-      preview: shape.sketchPreviewUrl,
-      showKey: "showSketch",
-      strengthKey: "sketchStrength",
-      isProcessing: sketchProcessing,
-      processType: "sketch",
-      preprocessor: "Sketch",
-    },
-    {
-      type: "Remix",
-      preview: shape.remixPreviewUrl,
-      showKey: "showRemix",
-      strengthKey: "remixStrength",
-      isProcessing: remixProcessing,
-      processType: "remix",
-      preprocessor: "Remix",
-    },
-  ];
-
   const anyCheckboxChecked =
     (shape.type === "depth" && shape.showDepth) ||
     (shape.type === "edges" && shape.showEdges) ||
@@ -170,8 +117,7 @@ export function ShapeControls({
     shape.showContent ||
     shape.isTextPrompt ||
     shape.isNegativePrompt ||
-    shape.showSketch ||
-    shape.showRemix ||
+    (shape.type === "image" && shape.showImagePrompt) ||
     (shape.type === "diffusionSettings" && shape.useSettings);
 
   const showControlPanel = isSelected || anyCheckboxChecked;
@@ -203,141 +149,79 @@ export function ShapeControls({
             : {}),
         }}
       >
-        {(shape.type === "image" || shape.type === "sketchpad") && isSelected && (
-          <div 
-            className={styles.controls.panelMod} 
+        {/* Image Prompt controls panel */}
+        {(shape.type === "image" || shape.type === "sketchpad") && (isSelected || shape.showImagePrompt) && (
+          <div
+            className={`absolute left-0 top-full mt-1 ${styles.sidePanel.container}`}
             data-shape-control="true"
+            style={{ 
+              zIndex: 1000, 
+              pointerEvents: "all",
+              width: "160px"
+            }}
             onMouseDown={preventEvent}
             onClick={preventEvent}
-            style={{ pointerEvents: "all", zIndex: 1000 }}
           >
-            {isSelected && (
-               controls.filter(
-                  (control) =>
-                    control.showKey && shape[control.showKey as keyof Shape]
-                )
-            ).map((control) => (
-              <div key={control.type} className={styles.controls.group}>
-                <div 
-                  className="group py-0.5 w-max relative block" 
-                  data-shape-control="true"
-                  style={{ zIndex: 1000, pointerEvents: "all" }}
+            <div className="flex flex-col gap-1.5">
+              <div className={styles.sidePanel.group}>
+                <input
+                  type="checkbox"
+                  id={`imagePrompt-${shape.id}`}
+                  checked={shape.showImagePrompt || false}
+                  onChange={(e) => {
+                    preventEvent(e);
+                    const isEnabled = e.target.checked;
+                    updateShape(shape.id, { 
+                      showImagePrompt: isEnabled,
+                      imagePromptStrength: isEnabled ? 0.5 : undefined 
+                    });
+                  }}
+                  className={styles.sidePanel.checkbox}
                   onMouseDown={preventEvent}
-                  onClick={preventEvent}
+                />
+                <label
+                  htmlFor={`imagePrompt-${shape.id}`}
+                  className={styles.sidePanel.label}
+                  onMouseDown={preventEvent}
                 >
-                  {control.showKey && (
-                      <div 
-                        className={styles.sidePanel.group}
-                        data-shape-control="true"
-                        onMouseDown={preventEvent}
-                        onClick={preventEvent}
-                      >
-                        <span className={styles.controls.label}>
-                          {control.type}
-                        </span>
-                        <span 
-                          onClick={(e) => {
-                            preventEvent(e);
-                            console.log('trying to delete modifier');
-                            updateShape(shape.id, { [control.showKey]: false });
-                          }}
-                          onMouseDown={preventEvent}
-                        >
-                          <Trash2 className="w-3 h-3"/>
-                        </span>
-                      </div>
-                  )}
-                  {control.strengthKey &&
-                    control.showKey &&
-                    shape[control.showKey as keyof Shape] && (
-                      <div
-                        className="mt-0.5 pr-2 relative block"
-                        data-shape-control="true"
-                        style={{ pointerEvents: "all" }}
-                      >
-                        <div className="relative">
-                          {isHovering && (
-                            <div
-                              className={styles.controls.tooltip}
-                              style={{
-                                position: "absolute",
-                                top: "-25px",
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                                whiteSpace: "nowrap",
-                                pointerEvents: "none",
-                                zIndex: 1000,
-                              }}
-                            >
-                              {(
-                                shape[
-                                  control.strengthKey as keyof Shape
-                                ] as number
-                              )?.toFixed(2) ?? "0.25"}
-                            </div>
-                          )}
-                          <div
-                            className="relative"
-                            style={{ height: "18px", width: "80px" }}
-                          >
-                            <input
-                              type="range"
-                              min="0.05"
-                              max="1.00"
-                              step="0.05"
-                              value={
-                                typeof shape[
-                                  control.strengthKey as keyof Shape
-                                ] === "number"
-                                  ? (shape[
-                                      control.strengthKey as keyof Shape
-                                    ] as number)
-                                  : 0.25
-                              }
-                              onMouseEnter={() => setIsHovering(true)}
-                              onMouseLeave={() => setIsHovering(false)}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                e.stopPropagation();
-                                updateShape(shape.id, {
-                                  [control.strengthKey]: parseFloat(
-                                    e.target.value
-                                  ),
-                                });
-                              }}
-                              onMouseDown={(e) => {
-                                e.stopPropagation();
-                              }}
-                              className={styles.controls.slider}
-                              style={{
-                                position: "absolute",
-                                top: "50%",
-                                transform: "translateY(-50%)",
-                                width: "calc(100% - 8px)",
-                                cursor: "pointer",
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                </div>
+                  Image Prompt
+                </label>
               </div>
-            ))}
+              {shape.showImagePrompt && (
+                <div className="flex items-center w-full">
+                  <SmallSlider
+                    value={shape.imagePromptStrength || 0.5}
+                    onChange={(value) => {
+                      updateShape(shape.id, { imagePromptStrength: value });
+                    }}
+                    min={0.05}
+                    max={1.00}
+                    step={0.05}
+                    label="Strength"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         )}
-        {shape.type === "image" && shape.imageUrl && isSelected && (
+
+        {/* GET buttons panel */}
+        {(shape.type === "image" || shape.type === "sketchpad") && isSelected && (
           <div
-            className="absolute -left-0 -bottom-7 action-dropdown"
+            className={`absolute -right-[88px] top-0 ${styles.sidePanel.container}`}
             data-shape-control="true"
-            style={{ zIndex: 1000, pointerEvents: "all" }}
+            style={{ 
+              zIndex: 1000, 
+              pointerEvents: "all"
+            }}
             onMouseDown={preventEvent}
             onClick={preventEvent}
           >
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-neutral-500">GET:</span>
-              <div className="flex gap-1">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-neutral-500 self-start">GET:</span>
+              <div className="flex flex-col gap-1">
                 <button
-                  className="px-2 py-0.5 text-[10px] bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                  className="w-16 px-2 py-0.5 text-[10px] bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
                   onClick={async (e) => {
                     preventEvent(e);
                     const newDepthShape: Shape = {
@@ -403,7 +287,7 @@ export function ShapeControls({
                   DEPTH
                 </button>
                 <button
-                  className="px-2 py-0.5 text-[10px] bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                  className="w-16 px-2 py-0.5 text-[10px] bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
                   onClick={async (e) => {
                     preventEvent(e);
                     const newEdgesShape: Shape = {
@@ -469,7 +353,7 @@ export function ShapeControls({
                   EDGES
                 </button>
                 <button
-                  className="px-2 py-0.5 text-[10px] bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                  className="w-16 px-2 py-0.5 text-[10px] bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
                   onClick={async (e) => {
                     preventEvent(e);
                     const newPoseShape: Shape = {
@@ -535,11 +419,6 @@ export function ShapeControls({
                   POSE
                 </button>
               </div>
-              <ImageActionDropdown
-                shape={shape}
-                isDropdownOpen={isDropdownOpen}
-                setIsDropdownOpen={setIsDropdownOpen}
-              />
             </div>
           </div>
         )}
@@ -780,7 +659,7 @@ export function ShapeControls({
       {/* Move depth controls outside the inset-0 container */}
       {shape.type === "depth" && (isSelected || shape.showDepth) && (
         <div
-          className={`absolute left-1/2 top-full mt-1 transform -translate-x-1/2 ${styles.sidePanel.container}`}
+          className={`absolute left-0 top-full mt-1 ${styles.sidePanel.container}`}
           data-shape-control="true"
           style={{ 
             zIndex: 1000, 
@@ -813,9 +692,8 @@ export function ShapeControls({
                 Enable Depth Prompt
               </label>
             </div>
-            <div className="flex items-center gap-2">
-              <span className={styles.sidePanel.label}>Strength</span>
-              <NumberInput
+            <div className="flex items-center w-full">
+              <SmallSlider
                 value={shape.depthStrength || 0.5}
                 onChange={(value) => {
                   updateShape(shape.id, { depthStrength: value });
@@ -823,7 +701,7 @@ export function ShapeControls({
                 min={0.05}
                 max={1.00}
                 step={0.05}
-                formatValue={(value) => value.toFixed(2)}
+                label="Strength"
               />
             </div>
           </div>
@@ -833,7 +711,7 @@ export function ShapeControls({
       {/* Edge controls */}
       {shape.type === "edges" && (isSelected || shape.showEdges) && (
         <div
-          className={`absolute left-1/2 top-full mt-1 transform -translate-x-1/2 ${styles.sidePanel.container}`}
+          className={`absolute left-0 top-full mt-1 ${styles.sidePanel.container}`}
           data-shape-control="true"
           style={{ 
             zIndex: 1000, 
@@ -867,9 +745,8 @@ export function ShapeControls({
                 Enable Edges Prompt
               </label>
             </div>
-            <div className="flex items-center gap-2">
-              <span className={styles.sidePanel.label}>Strength</span>
-              <NumberInput
+            <div className="flex items-center w-full">
+              <SmallSlider
                 value={shape.edgesStrength || 0.5}
                 onChange={(value) => {
                   updateShape(shape.id, { edgesStrength: value });
@@ -877,7 +754,7 @@ export function ShapeControls({
                 min={0.05}
                 max={1.00}
                 step={0.05}
-                formatValue={(value) => value.toFixed(2)}
+                label="Strength"
               />
             </div>
           </div>
@@ -887,7 +764,7 @@ export function ShapeControls({
       {/* Pose controls */}
       {shape.type === "pose" && (isSelected || shape.showPose) && (
         <div
-          className={`absolute left-1/2 top-full mt-1 transform -translate-x-1/2 ${styles.sidePanel.container}`}
+          className={`absolute left-0 top-full mt-1 ${styles.sidePanel.container}`}
           data-shape-control="true"
           style={{ 
             zIndex: 1000, 
@@ -921,9 +798,8 @@ export function ShapeControls({
                 Enable Pose Prompt
               </label>
             </div>
-            <div className="flex items-center gap-2">
-              <span className={styles.sidePanel.label}>Strength</span>
-              <NumberInput
+            <div className="flex items-center w-full">
+              <SmallSlider
                 value={shape.poseStrength || 0.5}
                 onChange={(value) => {
                   updateShape(shape.id, { poseStrength: value });
@@ -931,7 +807,7 @@ export function ShapeControls({
                 min={0.05}
                 max={1.00}
                 step={0.05}
-                formatValue={(value) => value.toFixed(2)}
+                label="Strength"
               />
             </div>
           </div>

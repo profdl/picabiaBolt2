@@ -30,7 +30,7 @@ interface PreprocessingStates {
     edge?: boolean;
     pose?: boolean;
     sketch?: boolean;
-    remix?: boolean;
+    imagePrompt?: boolean;
   };
 }
 
@@ -43,7 +43,7 @@ interface PreProcessSlice {
   preprocessingStates: PreprocessingStates;
   generatePreprocessedImage: (
     shapeId: string,
-    processType: "depth" | "edge" | "pose" | "sketch" | "remix"
+    processType: "depth" | "edge" | "pose" | "sketch" | "imagePrompt"
   ) => Promise<void>;
   addGeneratingPrediction: (id: string) => void;
   removeGeneratingPrediction: (id: string) => void;
@@ -109,6 +109,11 @@ export const preProcessSlice: StateCreator<
   generatePreprocessedImage: async (shapeId, processType) => {
     console.log("Starting preprocessing:", { shapeId, processType });
     const state = get();
+
+    // Skip processing for imagePrompt
+    if (processType === "imagePrompt") {
+      return;
+    }
 
     try {
       const shape = state.shapes.find((s) => s.id === shapeId);

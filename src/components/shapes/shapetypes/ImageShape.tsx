@@ -182,15 +182,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
 
           subscriptionRef.current[channelName] = subscription;
         }
-      } else if (
-        subscriptionRef.current[`preprocessing_${shape.id}_${processType}`]
-      ) {
-        subscriptionRef.current[
-          `preprocessing_${shape.id}_${processType}`
-        ].unsubscribe();
-        delete subscriptionRef.current[
-          `preprocessing_${shape.id}_${processType}`
-        ];
       }
     });
 
@@ -204,17 +195,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
       });
       subscriptionRef.current = {};
     };
-  }, [
-    shape.id,
-    shape.showDepth,
-    shape.showEdges,
-    shape.showPose,
-    shape.showSketch,
-    shape.showRemix,
-    fetchCurrentState,
-    shape,
-    updateShape,
-  ]);
+  }, [shape, updateShape]);
 
   return (
     <div className="relative w-full h-full">
