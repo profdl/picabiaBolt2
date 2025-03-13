@@ -1,0 +1,71 @@
+import { Shape } from './shapes';
+
+export interface Project {
+  is_template: boolean | undefined;
+  id: string;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  user_id: string;
+  shapes: Shape[];
+  thumbnail: string | null;
+}
+
+export interface WorkflowState {
+  currentProject: Project | null;
+  isSaving: boolean;
+  isExporting: boolean;
+  isImporting: boolean;
+  isGenerating: boolean;
+  isProcessing: boolean;
+  isUploading: boolean;
+  isDownloading: boolean;
+  isSharing: boolean;
+  isCollaborating: boolean;
+  lastSaved: string | null;
+  lastExported: string | null;
+  lastImported: string | null;
+  lastGenerated: string | null;
+  lastProcessed: string | null;
+  lastUploaded: string | null;
+  lastDownloaded: string | null;
+  lastShared: string | null;
+  lastCollaborated: string | null;
+  error: string | null;
+  warning: string | null;
+  info: string | null;
+  success: string | null;
+  setCurrentProject: (project: Project | null) => void;
+  setIsSaving: (isSaving: boolean) => void;
+  setIsExporting: (isExporting: boolean) => void;
+  setIsImporting: (isImporting: boolean) => void;
+  setIsGenerating: (isGenerating: boolean) => void;
+  setIsProcessing: (isProcessing: boolean) => void;
+  setIsUploading: (isUploading: boolean) => void;
+  setIsDownloading: (isDownloading: boolean) => void;
+  setIsSharing: (isSharing: boolean) => void;
+  setIsCollaborating: (isCollaborating: boolean) => void;
+  setLastSaved: (timestamp: string | null) => void;
+  setLastExported: (timestamp: string | null) => void;
+  setLastImported: (timestamp: string | null) => void;
+  setLastGenerated: (timestamp: string | null) => void;
+  setLastProcessed: (timestamp: string | null) => void;
+  setLastUploaded: (timestamp: string | null) => void;
+  setLastDownloaded: (timestamp: string | null) => void;
+  setLastShared: (timestamp: string | null) => void;
+  setLastCollaborated: (timestamp: string | null) => void;
+  setError: (error: string | null) => void;
+  setWarning: (warning: string | null) => void;
+  setInfo: (info: string | null) => void;
+  setSuccess: (success: string | null) => void;
+  saveProject: () => Promise<void>;
+  exportProject: () => Promise<void>;
+  importProject: () => Promise<void>;
+  generateProject: () => Promise<void>;
+  processProject: () => Promise<void>;
+  uploadProject: () => Promise<void>;
+  downloadProject: () => Promise<void>;
+  shareProject: () => Promise<void>;
+  collaborateProject: () => Promise<void>;
+  clearMessages: () => void;
+} 
