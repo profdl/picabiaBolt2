@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useStore } from "../store";
+import { useStore } from "../../store";
 
 export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
   const {

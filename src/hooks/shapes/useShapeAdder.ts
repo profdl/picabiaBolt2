@@ -1,8 +1,8 @@
 // src/hooks/useShapeAdder.ts
-import { useStore } from '../store';
-import { Position, Shape } from '../types';
-import { DEFAULT_CONTROL_STRENGTHS } from '../constants/shapeControlSettings';
-import { getImageDimensions } from '../utils/image'; 
+import { useStore } from "../../store";
+import { Position, Shape } from "../../types";
+import { DEFAULT_CONTROL_STRENGTHS } from "../../constants/shapeControlSettings";
+import { getImageDimensions } from "../../utils/image"; 
 
 interface ShapeAddOptions {
   position?: Position;

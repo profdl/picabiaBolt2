@@ -6,7 +6,7 @@ import { ImageItem } from "../../shared/ImageGrid";
 import { ImageDetailsModal } from "../../layout/modals/ImageDetailsModal";
 import { useStore } from "../../../store";
 import { SavedImage } from '../../../types';
-import { useShapeAdder } from "../../../hooks/useShapeAdder";
+import { useShapeAdder } from "../../../hooks/shapes/useShapeAdder";
 import { getImageDimensions } from "../../../utils/image";
 
 interface GalleryDrawerProps {

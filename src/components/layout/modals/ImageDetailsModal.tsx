@@ -1,7 +1,7 @@
 import React from "react";
 import { format } from "date-fns";
 import { useThemeClass } from "../../../styles/useThemeClass";
-import { useShapeAdder } from "../../../hooks/useShapeAdder";
+import { useShapeAdder } from "../../../hooks/shapes/useShapeAdder";
 
 interface ImageDetailsModalProps {
   image: SavedImage | null;

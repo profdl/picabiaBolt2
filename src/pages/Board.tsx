@@ -6,7 +6,7 @@ import { Toolbar } from "../components/layout/toolbars/Toolbar";
 import { GalleryDrawer } from "../components/layout/drawers/GalleryDrawer";
 import { useStore } from "../store";
 import { useAuth } from "../contexts/AuthContext";
-import { useProjects } from "../hooks/useProjects";
+import { useProjects } from "../hooks/project/useProjects";
 import { calculateViewportFit } from "../utils/canvas";
 import { ShortcutsPanel } from "../components/shared/ShortcutsPanel";
 import { AssetsDrawer } from "../components/layout/drawers/AssetsDrawer";

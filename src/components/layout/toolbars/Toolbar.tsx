@@ -15,12 +15,12 @@ import { Tooltip } from "../../shared/Tooltip";
 import { UploadButton } from "../../shared/UploadButton";
 import { PropertiesToolbar } from "./PropertiesToolbar";
 import { ToolbarButton } from "../../shared/ToolbarButton";
-import { useToolbarBrush } from "../../../hooks/useToolbarBrush";
-import { useToolbarShapes } from "../../../hooks/useToolbarShapes";
-import { useToolbarGenerate } from "../../../hooks/useToolbarGenerate";
+import { useToolbarBrush } from "../../../hooks/toolbar/useToolbarBrush";
+import { useToolbarShapes } from "../../../hooks/toolbar/useToolbarShapes";
+import { useToolbarGenerate } from "../../../hooks/toolbar/useToolbarGenerate";
 import { useThemeClass } from "../../../styles/useThemeClass";
-import { useShapeAdder } from "../../../hooks/useShapeAdder";
-import { Brush, Eraser } from "lucide-react";
+import { useShapeAdder } from "../../../hooks/shapes/useShapeAdder";
+import { Brush } from "lucide-react";
 
 interface ToolbarProps {
   onShowImageGenerate: () => void;

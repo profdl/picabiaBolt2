@@ -7,20 +7,20 @@ import { ShapeControls } from "./ShapeControls";
 import { getShapeStyles } from "../../utils/shapeStyles";
 import { DiffusionSettingsPanel } from "./shapetypes/DiffusionSettingsPanel";
 import { ImageShape } from "./shapetypes/ImageShape";
-import { useShapeResize } from "../../hooks/useShapeResize";
+import { useShapeResize } from "../../hooks/shapes/useShapeResize";
 import { DrawingShape } from "./shapetypes/DrawingShape";
 import { SketchpadShape } from "./shapetypes/SketchpadShape";
 import { LoadingPlaceholder } from "../shared/LoadingPlaceholder";
 import { ThreeJSShape, ThreeJSShapeRef } from "./shapetypes/ThreeJSShape";
 import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
-import { useShapeDrag } from "../../hooks/useShapeDrag";
-import { useSketchpadEvents } from "../../hooks/useSketchpadEvents";
-import { useSketchpadShapeEvents } from "../../hooks/sketchpadShapeEvents";
-import { useShapeEvents } from "../../hooks/useShapeEvents";
+import { useShapeDrag } from "../../hooks/shapes/useShapeDrag";
+import { useSketchpadEvents } from "../../hooks/shapes/useSketchpadEvents";
+import { useSketchpadShapeEvents } from "../../hooks/shapes/sketchpadShapeEvents";
+import { useShapeEvents } from "../../hooks/shapes/useShapeEvents";
 import { useThemeClass } from "../../styles/useThemeClass";
 import { StickyNoteShape } from "./shapetypes/StickyNoteShape";
-import {useStickyNoteColor} from "../../hooks/useStickyNoteColor";
-import {TextShape} from "./shapetypes/TextShape"
+import { useStickyNoteColor } from "../../hooks/ui/useStickyNoteColor";
+import { TextShape } from "./shapetypes/TextShape";
 
 interface ShapeProps {
   shape: Shape;

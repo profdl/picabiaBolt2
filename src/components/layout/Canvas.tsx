@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "../../store";
 import { ShapeComponent } from "../shapes/Shape";
-import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
-import { useCanvasMouseHandlers } from "../../hooks/useCanvasMouseHandlers";
-import { useCanvasDragAndDrop } from "../../hooks/useCanvasDragAndDrop";
-import { useCanvasZoom } from "../../hooks/useCanvasZoom";
+import { useKeyboardShortcuts } from "../../hooks/ui/useKeyboardShortcuts";
+import { useCanvasMouseHandlers } from "../../hooks/canvas/useCanvasMouseHandlers";
+import { useCanvasDragAndDrop } from "../../hooks/canvas/useCanvasDragAndDrop";
+import { useCanvasZoom } from "../../hooks/canvas/useCanvasZoom";
 import { ZoomControl } from './ZoomControl';
 import { useThemeClass } from '../../styles/useThemeClass';
 
@@ -33,7 +33,6 @@ export function Canvas() {
     handleMouseUp,
     drawingShape,
     selectionBox,
-    getCanvasPoint,
   } = useCanvasMouseHandlers();
 
   const { shapes, isDragging, tool, gridEnabled, gridSize, setOffset } =

@@ -4,8 +4,7 @@ import { Shape } from "../../types";
 import { ImageActionDropdown } from "./ImageActionDropdown";
 import { generatePrompt } from "../../utils/prompt-generator";
 import { Tooltip } from "../shared/Tooltip";
-import { getControlDescription, ControlType } from "../../utils/tooltips";
-import { Brush, Eraser, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useThemeClass } from "../../styles/useThemeClass";
 
 interface ShapeControlsProps {
@@ -25,12 +24,25 @@ export function ShapeControls({
   handleResizeStart,
   threeJSRef,
 }: ShapeControlsProps) {
+  // All hooks must be at the top
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const { sendToBack, sendToFront, sendBackward, sendForward, deleteShape, updateShape, shapes, setSelectedShapes } = useStore();
+  const handleGenerateSubject = useStore((state) => state.handleGenerateSubject);
+  const generatePreprocessedImage = useStore((state) => state.generatePreprocessedImage);
+  const depthProcessing = useStore((state) => state.preprocessingStates[shape.id]?.depth);
+  const edgeProcessing = useStore((state) => state.preprocessingStates[shape.id]?.edge);
+  const poseProcessing = useStore((state) => state.preprocessingStates[shape.id]?.pose);
+  const sketchProcessing = useStore((state) => state.preprocessingStates[shape.id]?.sketch);
+  const remixProcessing = useStore((state) => state.preprocessingStates[shape.id]?.remix);
+
+  // Styles
   const styles = {
     controls: {
       panel: useThemeClass(["shape", "controls", "panel"]),
       panelMod: useThemeClass(["shape", "controls", "panelMod"]),
       group: useThemeClass(["shape", "controls", "group"]),
-      checkbox: useThemeClass(["forms", "checkbox"]), // Update to use forms.checkbox directly
+      checkbox: useThemeClass(["forms", "checkbox"]),
       label: useThemeClass(["shape", "controls", "label"]),
       slider: useThemeClass(["shape", "controls", "slider"]),
       tooltip: useThemeClass(["shape", "controls", "tooltip"]),
@@ -40,33 +52,17 @@ export function ShapeControls({
     sidePanel: {
       container: useThemeClass(["shape", "sidePanel", "container"]),
       group: useThemeClass(["shape", "sidePanel", "group"]),
-      checkbox: useThemeClass(["forms", "checkbox"]), // Update to use forms.checkbox directly
+      checkbox: useThemeClass(["forms", "checkbox"]),
       label: useThemeClass(["shape", "sidePanel", "label"]),
     },
     resizeHandle: useThemeClass(["shape", "resizeHandle"]),
     colorPicker: useThemeClass(["shape", "colorPicker"]),
   };
 
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { sendToBack, sendToFront, sendBackward, sendForward, deleteShape } =
-    useStore();
-  const { tool, setTool, setCurrentColor } = useStore((state) => ({
-    tool: state.tool,
-    setTool: state.setTool,
-    currentColor: state.currentColor,
-    setCurrentColor: state.setCurrentColor,
-    brushTexture: state.brushTexture,
-    setBrushTexture: state.setBrushTexture,
-    brushSize: state.brushSize,
-    setBrushSize: state.setBrushSize,
-    brushOpacity: state.brushOpacity,
-    setBrushOpacity: state.setBrushOpacity,
-  }));
-
+  // Effect hooks
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      // Check if click is outside the dropdown
       if (isDropdownOpen && !target.closest(".action-dropdown")) {
         setIsDropdownOpen(false);
       }
@@ -75,78 +71,7 @@ export function ShapeControls({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDropdownOpen]);
 
-  // Action handlers
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (shape.imageUrl) {
-      try {
-        const response = await fetch(shape.imageUrl);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `image-${shape.id}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error("Download failed:", error);
-      }
-    }
-    setIsDropdownOpen(false);
-  };
-
-  const handleSelectSubject = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (shape.imageUrl) {
-      try {
-        await handleGenerateSubject(shape);
-      } catch (error) {
-        console.error("Select subject failed:", error);
-      }
-    }
-    setIsDropdownOpen(false);
-  };
-
-  const handleCrop = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    updateShape(shape.id, { isImageEditing: true });
-    setIsDropdownOpen(false);
-  };
-
-  const { updateShape, shapes, setSelectedShapes, addShape } = useStore();
-
-  const handleGenerateSubject = useStore(
-    (state) => state.handleGenerateSubject
-  );
-
-  const generatePreprocessedImage = useStore(
-    (state) => state.generatePreprocessedImage
-  );
-  const depthProcessing = useStore(
-    (state) => state.preprocessingStates[shape.id]?.depth
-  );
-  const edgeProcessing = useStore(
-    (state) => state.preprocessingStates[shape.id]?.edge
-  );
-  const poseProcessing = useStore(
-    (state) => state.preprocessingStates[shape.id]?.pose
-  );
-  const sketchProcessing = useStore(
-    (state) => state.preprocessingStates[shape.id]?.sketch
-  );
-  const remixProcessing = useStore(
-    (state) => state.preprocessingStates[shape.id]?.remix
-  );
-
-  const [isHovering, setIsHovering] = useState(false);
+  // Constants and derived state
   const controls = [
     {
       type: "Original",
@@ -200,6 +125,7 @@ export function ShapeControls({
       preprocessor: "Remix",
     },
   ];
+
   const anyCheckboxChecked =
     shape.showDepth ||
     shape.showEdges ||
@@ -209,13 +135,13 @@ export function ShapeControls({
     shape.showNegativePrompt ||
     shape.showSketch ||
     shape.showRemix ||
-    (shape.type === "diffusionSettings" && shape.useSettings); 
+    (shape.type === "diffusionSettings" && shape.useSettings);
 
-    const showControlPanel = isSelected || anyCheckboxChecked;
-    const showManipulationControls = isSelected;
-  
-    if (!showControlPanel && !shape.isNew) return null;
-  
+  const showControlPanel = isSelected || anyCheckboxChecked;
+  const showManipulationControls = isSelected;
+
+  // Now we can safely return early if needed
+  if (!showControlPanel && !shape.isNew) return null;
 
   const handleCheckboxChange = async (
     control: (typeof controls)[0],
@@ -293,7 +219,18 @@ export function ShapeControls({
     }
   };
 
-  if (!showControlPanel && !shape.isNew) return null;
+  const handleSelectSubject = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (shape.imageUrl) {
+      try {
+        await handleGenerateSubject(shape);
+      } catch (error) {
+        console.error("Select subject failed:", error);
+      }
+    }
+    setIsDropdownOpen(false);
+  };
 
   return (
     <div
@@ -421,8 +358,29 @@ export function ShapeControls({
             isDropdownOpen={isDropdownOpen}
             setIsDropdownOpen={setIsDropdownOpen}
             onSelectSubject={handleSelectSubject}
-            onCrop={handleCrop}
-            onDownload={handleDownload}
+            onCrop={() => updateShape(shape.id, { isImageEditing: true })}
+            onDownload={async (e: React.MouseEvent) => {
+              e.preventDefault();
+              e.stopPropagation();
+
+              if (shape.imageUrl) {
+                try {
+                  const response = await fetch(shape.imageUrl);
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.download = `image-${shape.id}.png`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(url);
+                } catch (error) {
+                  console.error("Download failed:", error);
+                }
+              }
+              setIsDropdownOpen(false);
+            }}
             sendToBack={() => sendToBack()}
             sendToFront={() => sendToFront()}
             sendBackward={() => sendBackward()}

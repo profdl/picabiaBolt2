@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useStore } from "../store";
-import { Position, Shape } from "../types";
+import { useStore } from "../../store";
+import { Position, Shape } from "../../types";
 
 export function useCanvasMouseHandlers() {
   const [startPan, setStartPan] = useState<Position | null>(null);

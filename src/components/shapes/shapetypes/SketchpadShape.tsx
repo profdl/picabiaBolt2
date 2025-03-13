@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Shape } from "../../../types";
 import { useStore } from "../../../store";
-import { useSketchpadShapeEvents } from "../../../hooks/sketchpadShapeEvents";
+import { useSketchpadShapeEvents } from "../../../hooks/shapes/sketchpadShapeEvents";
 
 interface SketchpadShapeProps {
   shape: Shape & { assetId?: string };

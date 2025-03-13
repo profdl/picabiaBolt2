@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useStore } from '../store';
+import { useStore } from '../../store';
 
 export function useToolbarGenerate() {
   const { shapes, generatingPredictions, handleGenerate } = useStore();

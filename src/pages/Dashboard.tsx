@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react';
-import { useProjects } from '../hooks/useProjects';
+import { useProjects } from '../hooks/project/useProjects';
 import { ProjectCard } from '../components/shared/ProjectCard';
 import { useNavigate } from 'react-router-dom';
 import { useThemeClass } from '../styles/useThemeClass';

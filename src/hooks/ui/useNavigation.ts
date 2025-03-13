@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { useStore } from '../store';
-import { useProjects } from './useProjects';
-import { Project } from '../types';
+import { useStore } from '../../store';
+import { useProjects } from '../project/useProjects';
+import { Project } from '../../types';
 
 export function useNavigation(boardId: string | null) {
   const navigate = useNavigate();

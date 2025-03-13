@@ -1,8 +1,8 @@
 import { Shape } from '../../../types';
 import { useThemeClass } from '../../../styles/useThemeClass';
 import { useStore } from '../../../store';
-import { useStickyNoteColor } from '../../../hooks/useStickyNoteColor';
-import { useDarkMode } from '../../../hooks/useDarkMode';
+import { useStickyNoteColor } from '../../../hooks/ui/useStickyNoteColor';
+import { useDarkMode } from '../../../hooks/ui/useDarkMode';
 
 interface StickyNoteShapeProps {
   shape: Shape;

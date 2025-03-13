@@ -1,6 +1,6 @@
 import { RefObject, useCallback } from "react";
-import { Shape } from "../types";
-import { useStore } from "../store";
+import { Shape } from "../../types";
+import { useStore } from "../../store";
 
 interface UseSketchpadShapeEventsProps {
   shape: Shape;

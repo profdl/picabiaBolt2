@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useStore } from '../store';
+import { useStore } from '../../store';
 import { useProjects } from './useProjects';
-import { generateThumbnail } from '../utils/thumbnail';
-import { supabase } from '../lib/supabase';
+import { generateThumbnail } from '../../utils/thumbnail';
+import { supabase } from '../../lib/supabase';
 
 export function useProjectSave(boardId: string | null) {
   const [isSaving, setIsSaving] = useState(false);

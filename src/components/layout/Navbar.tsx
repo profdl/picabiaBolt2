@@ -3,13 +3,13 @@ import { useStore } from "../../store";
 import { Link, useLocation } from "react-router-dom";
 import { Save, EyeOff, Eye, Sun, Moon } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { useProjects } from "../../hooks/useProjects";
+import { useProjects } from "../../hooks/project/useProjects";
 import { Menu } from "lucide-react";
-import { useNavigation } from "../../hooks/useNavigation";
-import { useProjectName } from "../../hooks/useProjectName";
-import { useProjectSave } from "../../hooks/useProjectSave";
+import { useNavigation } from "../../hooks/ui/useNavigation";
+import { useProjectName } from "../../hooks/project/useProjectName";
+import { useProjectSave } from "../../hooks/project/useProjectSave";
 import { useThemeClass } from "../../styles/useThemeClass";
-import { useDarkMode } from "../../hooks/useDarkMode";
+import { useDarkMode } from "../../hooks/ui/useDarkMode";
 
 export const Navbar = () => {
   const { isDark, toggleDarkMode } = useDarkMode();

@@ -1,8 +1,8 @@
 // src/hooks/useShapeEvents.ts
 import { useState, useEffect } from 'react';
-import { Shape } from '../types';
-import { useStore } from '../store';
-import { createShapeContextMenu } from '../utils/shapeContextMenu';
+import { Shape } from '../../types';
+import { useStore } from '../../store';
+import { createShapeContextMenu } from '../../utils/shapeContextMenu';
 
 interface UseShapeEventsProps {
   shape: Shape;

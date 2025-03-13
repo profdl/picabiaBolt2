@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useStore } from '../store';
+import { useStore } from '../../store';
 import { useProjects } from './useProjects';
-import { Project } from '../types'; 
+import { Project } from '../../types'; 
 
 export function useProjectName(boardId: string | null, currentProject?: Project) {
   const [isEditingName, setIsEditingName] = useState(false);

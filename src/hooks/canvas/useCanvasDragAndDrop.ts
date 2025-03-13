@@ -1,8 +1,8 @@
 // src/hooks/useCanvasDragAndDrop.ts
 import { useState } from "react";
-import { useStore } from "../store";
-import { useImageUpload } from "./useImageUpload";
-import { Position } from "../types";
+import { useStore } from "../../store";
+import { useImageUpload } from "../useImageUpload";
+import { Position } from "../../types";
 
 interface ImageDimensions {
   width: number;

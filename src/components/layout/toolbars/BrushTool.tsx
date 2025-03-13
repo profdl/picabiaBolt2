@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import { useStore } from "../../../store";
-import { useMixboxBrush } from "../../../hooks/useMixbox";
+import { useMixboxBrush } from "../../../hooks/ui/useMixbox";
 const brushTextures = new Map<string, HTMLImageElement>();
 
 interface Point {

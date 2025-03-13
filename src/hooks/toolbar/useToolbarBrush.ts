@@ -1,4 +1,4 @@
-import { useStore } from '../store';
+import { useStore } from "../../store";
 import { useEffect } from 'react';
 
 type ToolType = 'select' | 'pan' | 'pen' | 'brush' | 'eraser';

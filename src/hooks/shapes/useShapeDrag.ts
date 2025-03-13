@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Shape, DragStart } from '../types';
-import { useStore } from '../store';
+import { Shape, DragStart } from '../../types';
+import { useStore } from '../../store';
 
 interface UseShapeDragProps {
   shape: Shape;

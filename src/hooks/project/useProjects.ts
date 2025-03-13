@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, handleSupabaseError } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
-import { Project } from '../types';
+import { supabase, handleSupabaseError } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { Project } from '../../types';
 
 
 

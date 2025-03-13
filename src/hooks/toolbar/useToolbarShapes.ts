@@ -1,7 +1,7 @@
 // src/hooks/useToolbarShapes.ts
-import { useStore } from '../store';
-import { Shape } from '../types';
-import { useShapeAdder } from './useShapeAdder';
+import { useStore } from "../../store";
+import { Shape } from "../../types";
+import { useShapeAdder } from "../shapes/useShapeAdder";
 
 interface UseToolbarShapesResult {
   handleAddShape: (type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'sketchpad' | 'diffusionSettings') => void;

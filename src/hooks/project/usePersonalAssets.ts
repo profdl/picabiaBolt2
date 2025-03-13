@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
-import { supabase } from "../lib/supabase";
-import { Asset } from "../types";
-import { useStore } from "../store";
+import { supabase } from "../../lib/supabase";
+import { Asset } from "../../types";
+import { useStore } from "../../store";
 
 export const usePersonalAssets = () => {
   const [assets, setAssets] = useState<Asset[]>([]);

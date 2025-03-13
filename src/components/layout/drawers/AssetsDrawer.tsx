@@ -6,11 +6,18 @@ import { Drawer } from "../../shared/Drawer";
 import ImageGrid from "../../shared/ImageGrid";
 import { Asset } from "../../../types";
 import { useFileUpload } from "../../../hooks/useFileUpload";
-import { usePersonalAssets } from "../../../hooks/usePersonalAssets";
-import { useSourcePlus } from "../../../hooks/useSourcePlus";
-import { useShapeAdder } from "../../../hooks/useShapeAdder";
+import { usePersonalAssets } from "../../../hooks/project/usePersonalAssets";
+import { useSourcePlus } from "../../../hooks/project/useSourcePlus";
+import { useShapeAdder } from "../../../hooks/shapes/useShapeAdder";
 import { getImageDimensions } from "../../../utils/image";
 import { useThemeClass } from "../../../styles/useThemeClass";
+
+interface SourcePlusImage {
+  id: string;
+  url: string;
+  thumbnail_url: string;
+  description?: string;
+}
 
 interface AssetsDrawerProps {
   isOpen: boolean;
@@ -207,7 +214,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
             <div className="flex-1 overflow-y-auto">
               <ImageGrid
                 images={
-                  sourcePlusImages?.map((img) => ({
+                  sourcePlusImages?.map((img: SourcePlusImage) => ({
                     id: img.id,
                     url: img.url,
                     thumbnailUrl: img.thumbnail_url,
@@ -219,7 +226,7 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
                 emptyMessage="No images found in collection"
                 onImageClick={(image) => {
                   const sourcePlusImage = sourcePlusImages.find(
-                    (img) => img.id === image.id
+                    (img: SourcePlusImage) => img.id === image.id
                   );
                   if (sourcePlusImage) {
                     handleSourcePlusClick(sourcePlusImage);
