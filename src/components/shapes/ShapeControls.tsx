@@ -149,20 +149,20 @@ export function ShapeControls({
             : {}),
         }}
       >
-        {/* Image Prompt controls panel */}
+        {/* Bottom Controls Container */}
         {(shape.type === "image" || shape.type === "sketchpad") && (isSelected || shape.showImagePrompt) && (
           <div
-            className={`absolute left-0 top-full mt-1 ${styles.sidePanel.container}`}
+            className="absolute left-0 right-0 top-full mt-1 flex gap-2"
             data-shape-control="true"
             style={{ 
               zIndex: 1000, 
-              pointerEvents: "all",
-              width: "160px"
+              pointerEvents: "all"
             }}
             onMouseDown={preventEvent}
             onClick={preventEvent}
           >
-            <div className="flex flex-col gap-1.5">
+            {/* Image Prompt Controls - Left Box */}
+            <div className="flex-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded p-2">
               <div className={styles.sidePanel.group}>
                 <input
                   type="checkbox"
@@ -188,7 +188,7 @@ export function ShapeControls({
                 </label>
               </div>
               {shape.showImagePrompt && (
-                <div className="flex items-center w-full">
+                <div className="flex items-center w-full mt-1">
                   <SmallSlider
                     value={shape.imagePromptStrength || 0.5}
                     onChange={(value) => {
@@ -202,224 +202,236 @@ export function ShapeControls({
                 </div>
               )}
             </div>
-          </div>
-        )}
 
-        {/* GET buttons panel */}
-        {(shape.type === "image" || shape.type === "sketchpad") && isSelected && (
-          <div
-            className={`absolute left-full top-0 ml-2`}
-            data-shape-control="true"
-            style={{ 
-              zIndex: 1000, 
-              pointerEvents: "all"
-            }}
-            onMouseDown={preventEvent}
-            onClick={preventEvent}
-          >
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs text-neutral-500 self-start mb-0.5">GET:</span>
-              <div className="flex flex-col gap-1">
-                <button
-                  className="w-14 px-1 py-0.5 text-[10px] text-neutral-700 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                  onClick={async (e) => {
-                    preventEvent(e);
-                    const newDepthShape: Shape = {
-                      id: Math.random().toString(36).substr(2, 9),
-                      type: "depth",
-                      position: {
-                        x: shape.position.x + shape.width + 20,
-                        y: shape.position.y,
-                      },
-                      width: shape.width,
-                      height: shape.height,
-                      rotation: 0,
-                      isUploading: false,
-                      isEditing: false,
-                      color: "transparent",
-                      sourceImageId: shape.id,
-                      showDepth: true,
-                      showEdges: false,
-                      showPose: false,
-                      depthStrength: 0.5,
-                      edgesStrength: 0.5,
-                      poseStrength: 0.5,
-                    };
-                    addShape(newDepthShape);
-                    setSelectedShapes([newDepthShape.id]);
-                    try {
-                      await generatePreprocessedImage(shape.id, "depth");
-                      const subscription = supabase
-                        .channel(`preprocessing_${shape.id}_depth`)
-                        .on(
-                          "postgres_changes",
-                          {
-                            event: "UPDATE",
-                            schema: "public",
-                            table: "preprocessed_images",
-                            filter: `shapeId=eq.${shape.id}`,
-                          },
-                          (payload) => {
-                            if (payload.new.status === "completed" && payload.new.processType === "depth") {
-                              updateShape(newDepthShape.id, {
-                                depthMapUrl: payload.new.depthUrl,
-                                depthPreviewUrl: payload.new.depthUrl,
-                              });
-                              useStore.setState((state) => ({
-                                preprocessingStates: {
-                                  ...state.preprocessingStates,
-                                  [shape.id]: {
-                                    ...state.preprocessingStates[shape.id],
-                                    depth: false,
-                                  },
+            {/* Create Maps Dropdown - Right Box */}
+            {isSelected && (
+              <div className="flex justify-end h-[38px]">
+                <div className="relative">
+                  <button
+                    className="w-32 h-full px-2 text-[10px] text-neutral-700 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 flex items-center justify-between"
+                    onClick={(e) => {
+                      preventEvent(e);
+                      setIsDropdownOpen(!isDropdownOpen);
+                    }}
+                  >
+                    <span>Create Maps</span>
+                    <svg
+                      className={`w-3 h-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {isDropdownOpen && (
+                    <div className="absolute left-0 top-full mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded shadow-lg z-50" style={{ width: "128px" }}>
+                      <button
+                        className="w-full px-2 py-1.5 text-[10px] text-left text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700"
+                        onClick={async (e) => {
+                          preventEvent(e);
+                          setIsDropdownOpen(false);
+                          const newDepthShape: Shape = {
+                            id: Math.random().toString(36).substr(2, 9),
+                            type: "depth",
+                            position: {
+                              x: shape.position.x + shape.width + 20,
+                              y: shape.position.y,
+                            },
+                            width: shape.width,
+                            height: shape.height,
+                            rotation: 0,
+                            isUploading: false,
+                            isEditing: false,
+                            color: "transparent",
+                            sourceImageId: shape.id,
+                            showDepth: true,
+                            showEdges: false,
+                            showPose: false,
+                            depthStrength: 0.5,
+                            edgesStrength: 0.5,
+                            poseStrength: 0.5,
+                          };
+                          addShape(newDepthShape);
+                          setSelectedShapes([newDepthShape.id]);
+                          try {
+                            await generatePreprocessedImage(shape.id, "depth");
+                            const subscription = supabase
+                              .channel(`preprocessing_${shape.id}_depth`)
+                              .on(
+                                "postgres_changes",
+                                {
+                                  event: "UPDATE",
+                                  schema: "public",
+                                  table: "preprocessed_images",
+                                  filter: `shapeId=eq.${shape.id}`,
                                 },
-                              }));
-                              subscription.unsubscribe();
-                            }
+                                (payload) => {
+                                  if (payload.new.status === "completed" && payload.new.processType === "depth") {
+                                    updateShape(newDepthShape.id, {
+                                      depthMapUrl: payload.new.depthUrl,
+                                      depthPreviewUrl: payload.new.depthUrl,
+                                    });
+                                    useStore.setState((state) => ({
+                                      preprocessingStates: {
+                                        ...state.preprocessingStates,
+                                        [shape.id]: {
+                                          ...state.preprocessingStates[shape.id],
+                                          depth: false,
+                                        },
+                                      },
+                                    }));
+                                    subscription.unsubscribe();
+                                  }
+                                }
+                              )
+                              .subscribe();
+                          } catch (error) {
+                            console.error("Failed to generate depth map:", error);
                           }
-                        )
-                        .subscribe();
-                    } catch (error) {
-                      console.error("Failed to generate depth map:", error);
-                    }
-                  }}
-                >
-                  DEPTH
-                </button>
-                <button
-                  className="w-14 px-1 py-0.5 text-[10px] text-neutral-700 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                  onClick={async (e) => {
-                    preventEvent(e);
-                    const newEdgesShape: Shape = {
-                      id: Math.random().toString(36).substr(2, 9),
-                      type: "edges",
-                      position: {
-                        x: shape.position.x + shape.width + 20,
-                        y: shape.position.y,
-                      },
-                      width: shape.width,
-                      height: shape.height,
-                      rotation: 0,
-                      isUploading: false,
-                      isEditing: false,
-                      color: "transparent",
-                      sourceImageId: shape.id,
-                      showDepth: false,
-                      showEdges: true,
-                      showPose: false,
-                      depthStrength: 0.5,
-                      edgesStrength: 0.5,
-                      poseStrength: 0.5,
-                    };
-                    addShape(newEdgesShape);
-                    setSelectedShapes([newEdgesShape.id]);
-                    try {
-                      await generatePreprocessedImage(shape.id, "edge");
-                      const subscription = supabase
-                        .channel(`preprocessing_${shape.id}_edge`)
-                        .on(
-                          "postgres_changes",
-                          {
-                            event: "UPDATE",
-                            schema: "public",
-                            table: "preprocessed_images",
-                            filter: `shapeId=eq.${shape.id}`,
-                          },
-                          (payload) => {
-                            if (payload.new.status === "completed" && payload.new.processType === "edge") {
-                              updateShape(newEdgesShape.id, {
-                                edgeMapUrl: payload.new.edgeUrl,
-                                edgePreviewUrl: payload.new.edgeUrl,
-                              });
-                              useStore.setState((state) => ({
-                                preprocessingStates: {
-                                  ...state.preprocessingStates,
-                                  [shape.id]: {
-                                    ...state.preprocessingStates[shape.id],
-                                    edge: false,
-                                  },
+                        }}
+                      >
+                        Depth Map
+                      </button>
+                      <button
+                        className="w-full px-2 py-1.5 text-[10px] text-left text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700"
+                        onClick={async (e) => {
+                          preventEvent(e);
+                          setIsDropdownOpen(false);
+                          const newEdgesShape: Shape = {
+                            id: Math.random().toString(36).substr(2, 9),
+                            type: "edges",
+                            position: {
+                              x: shape.position.x + shape.width + 20,
+                              y: shape.position.y,
+                            },
+                            width: shape.width,
+                            height: shape.height,
+                            rotation: 0,
+                            isUploading: false,
+                            isEditing: false,
+                            color: "transparent",
+                            sourceImageId: shape.id,
+                            showDepth: false,
+                            showEdges: true,
+                            showPose: false,
+                            depthStrength: 0.5,
+                            edgesStrength: 0.5,
+                            poseStrength: 0.5,
+                          };
+                          addShape(newEdgesShape);
+                          setSelectedShapes([newEdgesShape.id]);
+                          try {
+                            await generatePreprocessedImage(shape.id, "edge");
+                            const subscription = supabase
+                              .channel(`preprocessing_${shape.id}_edge`)
+                              .on(
+                                "postgres_changes",
+                                {
+                                  event: "UPDATE",
+                                  schema: "public",
+                                  table: "preprocessed_images",
+                                  filter: `shapeId=eq.${shape.id}`,
                                 },
-                              }));
-                              subscription.unsubscribe();
-                            }
+                                (payload) => {
+                                  if (payload.new.status === "completed" && payload.new.processType === "edge") {
+                                    updateShape(newEdgesShape.id, {
+                                      edgeMapUrl: payload.new.edgeUrl,
+                                      edgePreviewUrl: payload.new.edgeUrl,
+                                    });
+                                    useStore.setState((state) => ({
+                                      preprocessingStates: {
+                                        ...state.preprocessingStates,
+                                        [shape.id]: {
+                                          ...state.preprocessingStates[shape.id],
+                                          edge: false,
+                                        },
+                                      },
+                                    }));
+                                    subscription.unsubscribe();
+                                  }
+                                }
+                              )
+                              .subscribe();
+                          } catch (error) {
+                            console.error("Failed to generate edge map:", error);
                           }
-                        )
-                        .subscribe();
-                    } catch (error) {
-                      console.error("Failed to generate edge map:", error);
-                    }
-                  }}
-                >
-                  EDGES
-                </button>
-                <button
-                  className="w-14 px-1 py-0.5 text-[10px] text-neutral-700 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                  onClick={async (e) => {
-                    preventEvent(e);
-                    const newPoseShape: Shape = {
-                      id: Math.random().toString(36).substr(2, 9),
-                      type: "pose",
-                      position: {
-                        x: shape.position.x + shape.width + 20,
-                        y: shape.position.y,
-                      },
-                      width: shape.width,
-                      height: shape.height,
-                      rotation: 0,
-                      isUploading: false,
-                      isEditing: false,
-                      color: "transparent",
-                      sourceImageId: shape.id,
-                      showDepth: false,
-                      showEdges: false,
-                      showPose: true,
-                      depthStrength: 0.5,
-                      edgesStrength: 0.5,
-                      poseStrength: 0.5,
-                    };
-                    addShape(newPoseShape);
-                    setSelectedShapes([newPoseShape.id]);
-                    try {
-                      await generatePreprocessedImage(shape.id, "pose");
-                      const subscription = supabase
-                        .channel(`preprocessing_${shape.id}_pose`)
-                        .on(
-                          "postgres_changes",
-                          {
-                            event: "UPDATE",
-                            schema: "public",
-                            table: "preprocessed_images",
-                            filter: `shapeId=eq.${shape.id}`,
-                          },
-                          (payload) => {
-                            if (payload.new.status === "completed" && payload.new.processType === "pose") {
-                              updateShape(newPoseShape.id, {
-                                poseMapUrl: payload.new.poseUrl,
-                                posePreviewUrl: payload.new.poseUrl,
-                              });
-                              useStore.setState((state) => ({
-                                preprocessingStates: {
-                                  ...state.preprocessingStates,
-                                  [shape.id]: {
-                                    ...state.preprocessingStates[shape.id],
-                                    pose: false,
-                                  },
+                        }}
+                      >
+                        Edge Map
+                      </button>
+                      <button
+                        className="w-full px-2 py-1.5 text-[10px] text-left text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                        onClick={async (e) => {
+                          preventEvent(e);
+                          setIsDropdownOpen(false);
+                          const newPoseShape: Shape = {
+                            id: Math.random().toString(36).substr(2, 9),
+                            type: "pose",
+                            position: {
+                              x: shape.position.x + shape.width + 20,
+                              y: shape.position.y,
+                            },
+                            width: shape.width,
+                            height: shape.height,
+                            rotation: 0,
+                            isUploading: false,
+                            isEditing: false,
+                            color: "transparent",
+                            sourceImageId: shape.id,
+                            showDepth: false,
+                            showEdges: false,
+                            showPose: true,
+                            depthStrength: 0.5,
+                            edgesStrength: 0.5,
+                            poseStrength: 0.5,
+                          };
+                          addShape(newPoseShape);
+                          setSelectedShapes([newPoseShape.id]);
+                          try {
+                            await generatePreprocessedImage(shape.id, "pose");
+                            const subscription = supabase
+                              .channel(`preprocessing_${shape.id}_pose`)
+                              .on(
+                                "postgres_changes",
+                                {
+                                  event: "UPDATE",
+                                  schema: "public",
+                                  table: "preprocessed_images",
+                                  filter: `shapeId=eq.${shape.id}`,
                                 },
-                              }));
-                              subscription.unsubscribe();
-                            }
+                                (payload) => {
+                                  if (payload.new.status === "completed" && payload.new.processType === "pose") {
+                                    updateShape(newPoseShape.id, {
+                                      poseMapUrl: payload.new.poseUrl,
+                                      posePreviewUrl: payload.new.poseUrl,
+                                    });
+                                    useStore.setState((state) => ({
+                                      preprocessingStates: {
+                                        ...state.preprocessingStates,
+                                        [shape.id]: {
+                                          ...state.preprocessingStates[shape.id],
+                                          pose: false,
+                                        },
+                                      },
+                                    }));
+                                    subscription.unsubscribe();
+                                  }
+                                }
+                              )
+                              .subscribe();
+                          } catch (error) {
+                            console.error("Failed to generate pose map:", error);
                           }
-                        )
-                        .subscribe();
-                    } catch (error) {
-                      console.error("Failed to generate pose map:", error);
-                    }
-                  }}
-                >
-                  POSE
-                </button>
+                        }}
+                      >
+                        Pose Map
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
