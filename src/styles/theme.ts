@@ -92,31 +92,30 @@ export const theme = {
   shape: {
     base: "transition-shadow hover:shadow-xl relative",
     selected: "ring-2 ring-neutral-500 dark:ring-[#0d99ff]",
-    container: "absolute inset-0",
+    container: "absolute inset-0 bg-transparent",
     diffusionPanel: "bg-neutral-200 dark:bg-[#262626]",
     edge: {
-      container: "relative w-full h-full",
+      container: "relative w-full h-full bg-transparent",
       image: "absolute w-full h-full object-cover"
     },
     depth: {
-      container: "relative w-full h-full",
+      container: "relative w-full h-full bg-transparent",
       image: "absolute w-full h-full object-cover"
     },
     pose: {
-      container: "relative w-full h-full",
+      container: "relative w-full h-full bg-transparent",
       image: "absolute w-full h-full object-cover"
     },
     controls: {
       panel: "absolute left-full ml-1.5 top-0 z-[101]",
       panelMod: "absolute left-full ml-1.5 top-0 z-[101] bg-neutral-50 dark:bg-[#333] rounded-md",
       group: "p-2 border-b border-neutral-200 dark:border-[#404040] last:border-none",
-     checkbox: "forms.checkbox",
-        label: "text-xs text-neutral-700 dark:text-[#999999] whitespace-nowrap",
+      checkbox: "forms.checkbox",
+      label: "text-xs text-neutral-700 dark:text-[#999999] whitespace-nowrap",
       slider: "mini-slider",
       tooltip: "bg-neutral-500 dark:bg-[#2c2c2c] text-neutral-50 dark:text-white px-2 py-1 rounded text-xs shadow-sm",
       button: "p-2 bg-neutral-50 dark:bg-[#2c2c2c] border border-neutral-200 dark:border-[#404040] rounded-lg hover:bg-neutral-100 dark:hover:bg-[#3e3e3e]",
       buttonActive: "bg-neutral-100 dark:bg-[#3e3e3e] border-neutral-500 dark:border-[#0d99ff]",
-      
     },
     resizeHandle: "absolute -right-1.5 -bottom-1.5 w-3 h-3 bg-neutral-50 dark:bg-[#2c2c2c] border border-neutral-500 dark:border-[#0d99ff] rounded-full cursor-se-resize",
     colorPicker: "absolute -left-6 top-1/2 w-4 h-4 cursor-pointer transform -translate-y-1/2",

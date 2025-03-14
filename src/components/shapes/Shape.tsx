@@ -24,6 +24,7 @@ import { TextShape } from "./shapetypes/TextShape";
 import { DepthShape } from "./shapetypes/DepthShape";
 import { EdgeShape } from "./shapetypes/EdgeShape";
 import { PoseShape } from "./shapetypes/PoseShape";
+import { Loader2 } from "lucide-react";
 
 interface ShapeProps {
   shape: Shape;
@@ -59,11 +60,11 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const stickyNoteColor = useStickyNoteColor(shape);
 
   const {
-    selectedShapes,
+    tool,
     shapes,
+    selectedShapes,
     updateShape,
     updateShapes,
-    tool,
     zoom,
     generatingPredictions,
     setIsEditingText,
@@ -74,12 +75,17 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const isEditing = shape.isEditing && isEditingText;
   const textRef = useRef<HTMLTextAreaElement>(null);
 
+  // Add processing states at the top level
+  const depthProcessing = useStore((state) => state.preprocessingStates[shape.id]?.depth);
+  const edgeProcessing = useStore((state) => state.preprocessingStates[shape.id]?.edge);
+  const poseProcessing = useStore((state) => state.preprocessingStates[shape.id]?.pose);
+
   const threeJSRef = useRef<ThreeJSShapeRef>(null);
   const sketchPadRef = useRef<HTMLCanvasElement>(null);
 
   const { initDragStart } = useShapeDrag({
     shape,
-    isEditing,
+    isEditing: isEditing ?? false,
     zoom,
   });
 
@@ -100,7 +106,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     handleRotateStart,
   } = useShapeEvents({
     shape,
-    isEditing,
+    isEditing: isEditing ?? false,
     isSelected: selectedShapes.includes(shape.id),
     zoom,
     textRef,
@@ -121,6 +127,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
   });
 
   const isSelected = selectedShapes.includes(shape.id);
+  const shapeStyles = getShapeStyles(shape, isSelected, shapes, tool, Boolean(isEditing));
 
   const handleBlur = () => {
     if (shape.type === "sticky" || shape.type === "text") {
@@ -173,7 +180,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         {isSelected && tool === "select" && (
           <ShapeControls
             shape={shape}
-            isSelected={isSelected}
+            isSelected={Boolean(isSelected)}
             handleResizeStart={handleResizeStart}
           />
         )}
@@ -184,29 +191,29 @@ export function ShapeComponent({ shape }: ShapeProps) {
   if (shape.type === "depth") {
     const sourceShape = shapes.find(s => s.id === shape.sourceImageId);
     const aspectRatio = sourceShape ? sourceShape.width / sourceShape.height : 1;
+    const showDepth = Boolean(shape.showDepth);
     
     return (
       <div
         style={{
-          position: "absolute",
-          left: shape.position.x,
-          top: shape.position.y,
-          width: shape.width,
+          ...shapeStyles,
           height: shape.width / aspectRatio,
-          transform: `rotate(${shape.rotation}deg)`,
-          cursor: tool === "select" ? "move" : "default",
-          pointerEvents: tool === "select" ? "all" : "none",
-          zIndex: isSelected
-            ? 1000
-            : shapes.findIndex((s) => s.id === shape.id),
           overflow: "visible"
         }}
-        className="bg-gray-100 rounded-lg"
+        className="rounded-lg"
         onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
       >
+        {(!shape.depthMapUrl || depthProcessing) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-transparent">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <span className="text-sm text-neutral-300">Processing image...</span>
+            </div>
+          </div>
+        )}
         <DepthShape shape={shape} />
-        {(isSelected || Boolean(shape.showDepth)) && tool === "select" && (
+        {(isSelected || showDepth) && tool === "select" && (
           <ShapeControls
             shape={shape}
             isSelected={isSelected}
@@ -220,29 +227,29 @@ export function ShapeComponent({ shape }: ShapeProps) {
   if (shape.type === "edges") {
     const sourceShape = shapes.find(s => s.id === shape.sourceImageId);
     const aspectRatio = sourceShape ? sourceShape.width / sourceShape.height : 1;
+    const showEdges = Boolean(shape.showEdges);
     
     return (
       <div
         style={{
-          position: "absolute",
-          left: shape.position.x,
-          top: shape.position.y,
-          width: shape.width,
+          ...shapeStyles,
           height: shape.width / aspectRatio,
-          transform: `rotate(${shape.rotation}deg)`,
-          cursor: tool === "select" ? "move" : "default",
-          pointerEvents: tool === "select" ? "all" : "none",
-          zIndex: isSelected
-            ? 1000
-            : shapes.findIndex((s) => s.id === shape.id),
           overflow: "visible"
         }}
-        className="bg-gray-100 rounded-lg"
+        className="rounded-lg"
         onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
       >
+        {(!shape.edgeMapUrl || edgeProcessing) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-transparent">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <span className="text-sm text-neutral-300">Processing image...</span>
+            </div>
+          </div>
+        )}
         <EdgeShape shape={shape} />
-        {(isSelected || Boolean(shape.showEdges)) && tool === "select" && (
+        {(isSelected || showEdges) && tool === "select" && (
           <ShapeControls
             shape={shape}
             isSelected={isSelected}
@@ -256,29 +263,29 @@ export function ShapeComponent({ shape }: ShapeProps) {
   if (shape.type === "pose") {
     const sourceShape = shapes.find(s => s.id === shape.sourceImageId);
     const aspectRatio = sourceShape ? sourceShape.width / sourceShape.height : 1;
+    const showPose = Boolean(shape.showPose);
     
     return (
       <div
         style={{
-          position: "absolute",
-          left: shape.position.x,
-          top: shape.position.y,
-          width: shape.width,
+          ...shapeStyles,
           height: shape.width / aspectRatio,
-          transform: `rotate(${shape.rotation}deg)`,
-          cursor: tool === "select" ? "move" : "default",
-          pointerEvents: tool === "select" ? "all" : "none",
-          zIndex: isSelected
-            ? 1000
-            : shapes.findIndex((s) => s.id === shape.id),
           overflow: "visible"
         }}
-        className="bg-gray-100 rounded-lg"
+        className="rounded-lg"
         onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
       >
+        {(!shape.poseMapUrl || poseProcessing) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-transparent">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <span className="text-sm text-neutral-300">Processing image...</span>
+            </div>
+          </div>
+        )}
         <PoseShape shape={shape} />
-        {(isSelected || Boolean(shape.showPose)) && tool === "select" && (
+        {(isSelected || showPose) && tool === "select" && (
           <ShapeControls
             shape={shape}
             isSelected={isSelected}
@@ -327,21 +334,13 @@ export function ShapeComponent({ shape }: ShapeProps) {
         {isSelected && tool === "select" && (
           <ShapeControls
             shape={shape}
-            isSelected={isSelected}
+            isSelected={Boolean(isSelected)}
             handleResizeStart={handleResizeStart}
           />
         )}
       </div>
     );
   }
-
-  const shapeStyles = getShapeStyles(
-    shape,
-    isSelected,
-    shapes,
-    tool,
-    isEditing
-  );
 
   return (
     <div style={{ position: "absolute", width: 0, height: 0 }}>
@@ -402,7 +401,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         {shape.type === "sticky" && (
           <StickyNoteShape
             shape={shape}
-            isEditing={isEditing}
+            isEditing={isEditing || false}
             textRef={textRef}
             handleKeyDown={handleKeyDown}
             handleBlur={handleBlur}
@@ -412,7 +411,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         {shape.type === "text" && (
           <TextShape
             shape={shape}
-            isEditing={isEditing}
+            isEditing={isEditing || false}
             textRef={textRef}
             handleKeyDown={handleKeyDown}
             handleBlur={handleBlur}
@@ -446,7 +445,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         >
           <ShapeControls
             shape={shape}
-            isSelected={isSelected}
+            isSelected={Boolean(isSelected)}
             handleResizeStart={handleResizeStart}
           />
         </div>
