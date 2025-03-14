@@ -118,9 +118,24 @@ const findOpenSpace = (
   };
 };
 
+const calculateAverageAspectRatio = (shapes: Shape[]) => {
+  // Find the first enabled control shape
+  const enabledShape = shapes.find(shape => {
+    const isControlShape = shape.type === 'image' || shape.type === 'depth' || shape.type === 'edges' || shape.type === 'pose';
+    const isEnabled = (shape.type === 'image' && shape.showImagePrompt) ||
+                     (shape.type === 'depth' && shape.showDepth) ||
+                     (shape.type === 'edges' && shape.showEdges) ||
+                     (shape.type === 'pose' && shape.showPose);
+    return isControlShape && isEnabled;
+  });
 
+  if (enabledShape) {
+    // Return the aspect ratio of the first enabled control shape
+    return enabledShape.width / enabledShape.height;
+  }
 
-
+  return null;
+};
 
 export const generationHandlerSlice: StateCreator<
   StoreState & GenerationHandlerSlice,
@@ -141,13 +156,33 @@ export const generationHandlerSlice: StateCreator<
       guidanceScale: 4.5,
       scheduler: "dpmpp_2m_sde",
       seed: Math.floor(Math.random() * 32767),
-      outputWidth: 1024,
-      outputHeight: 1024,
+      outputWidth: null,  // Changed to null to ensure we calculate from control shapes
+      outputHeight: null, // Changed to null to ensure we calculate from control shapes
       model: "juggernautXL_v9",
       outputFormat: "png",
       outputQuality: 100,
       randomiseSeeds: true,
     };
+
+    // Calculate dimensions based on aspect ratio of enabled control shapes
+    const avgAspectRatio = calculateAverageAspectRatio(shapes);
+    if (avgAspectRatio) {
+      // Target approximately 1 megapixel area
+      const targetArea = 1024 * 1024;
+      let width = Math.round(Math.sqrt(targetArea * avgAspectRatio));
+      let height = Math.round(width / avgAspectRatio);
+      
+      // Ensure dimensions are multiples of 8
+      width = Math.round(width / 8) * 8;
+      height = Math.round(height / 8) * 8;
+      
+      activeSettings.outputWidth = width;
+      activeSettings.outputHeight = height;
+    } else {
+      // Default to 1024x1024 if no control shapes are enabled
+      activeSettings.outputWidth = 1024;
+      activeSettings.outputHeight = 1024;
+    }
 
     if (!activeSettings) {
       set({ error: "No settings selected. Please select a settings shape." });
@@ -170,7 +205,7 @@ export const generationHandlerSlice: StateCreator<
           shape.showEdges ||
           shape.showPose ||
           shape.showSketch ||
-          shape.showRemix)
+          shape.showImagePrompt)
     );
 
     const stickyWithPrompt = shapes.find(
@@ -232,21 +267,7 @@ export const generationHandlerSlice: StateCreator<
       const currentWorkflow: Workflow = { ...baseWorkflow };
       let currentPositiveNode = "6";
 
-      const controlShapes = shapes.filter(
-        (shape) =>
-          (shape.type === "image" || 
-           shape.type === "sketchpad" || 
-           shape.type === "depth" ||
-           shape.type === "edges" ||
-           shape.type === "pose") &&
-          (shape.showDepth ||
-            shape.showEdges ||
-            shape.showPose ||
-            shape.showSketch ||
-            shape.showRemix)
-      );
-
-      for (const controlShape of controlShapes) {
+      for (const controlShape of shapes) {
         if (controlShape.showEdges && controlShape.edgePreviewUrl) {
           currentWorkflow["12"] = {
             ...workflow["12"],
@@ -376,8 +397,8 @@ export const generationHandlerSlice: StateCreator<
         let ipAdapterCounter = 0;
 
         // First, collect all shapes with remix enabled
-        const remixShapes = controlShapes.filter(
-          (shape) => shape.showRemix && shape.imageUrl
+        const remixShapes = shapes.filter(
+          (shape) => shape.showImagePrompt && shape.imageUrl
         );
 
         // Then process each remix shape
@@ -408,7 +429,7 @@ export const generationHandlerSlice: StateCreator<
           // Add IP Adapter Advanced
           currentWorkflow[advancedNodeId] = {
             inputs: {
-              weight: controlShape.remixStrength || 1,
+              weight: controlShape.imagePromptStrength || 1,
               weight_type: "linear",
               combine_embeds: "concat",
               start_at: 0,
@@ -489,12 +510,12 @@ export const generationHandlerSlice: StateCreator<
             contentStrength: 0,
             poseStrength: 0,
             sketchStrength: 0,
-            remixStrength: 0,
+            imagePromptStrength: 0,
             showDepth: false,
             showEdges: false,
             showPose: false,
             showSketch: false,
-            showRemix: false,
+            showImagePrompt: false,
           };
           
 
@@ -531,7 +552,6 @@ export const generationHandlerSlice: StateCreator<
               get().updateShape(typedPayload.new.prediction_id, {
                 isUploading: false,
                 imageUrl: typedPayload.new.generated_01,
-                lastUpdated: typedPayload.new.updated_at,
               });
               get().removeGeneratingPrediction(typedPayload.new.prediction_id);
             } else if (
@@ -541,8 +561,7 @@ export const generationHandlerSlice: StateCreator<
               // Handle error states
               get().updateShape(typedPayload.new.prediction_id, {
                 isUploading: false,
-                lastUpdated: typedPayload.new.updated_at,
-                color: "#ffcccb", // Add a visual indicator for error
+                color: "#ffcccb" // Add a visual indicator for error
               });
               get().removeGeneratingPrediction(typedPayload.new.prediction_id);
               get().setError(
@@ -568,59 +587,59 @@ export const generationHandlerSlice: StateCreator<
         output_quality: activeSettings.outputQuality || 100,
         randomise_seeds: activeSettings.randomiseSeeds || false,
 
-        originalUrl: controlShapes
+        originalUrl: shapes
           .map((shape) => shape.imageUrl)
           .filter(Boolean)
           .join(","),
-        depthMapUrl: controlShapes
+        depthMapUrl: shapes
           .filter((shape) => shape.showDepth)
           .map((shape) => shape.depthPreviewUrl)
           .filter(Boolean)
           .join(","),
-        edgeMapUrl: controlShapes
+        edgeMapUrl: shapes
           .filter((shape) => shape.showEdges)
           .map((shape) => shape.edgePreviewUrl)
           .filter(Boolean)
           .join(","),
-        poseMapUrl: controlShapes
+        poseMapUrl: shapes
           .filter((shape) => shape.showPose)
           .map((shape) => shape.posePreviewUrl)
           .filter(Boolean)
           .join(","),
-        sketchMapUrl: controlShapes
+        sketchMapUrl: shapes
           .filter((shape) => shape.showSketch)
           .map((shape) => shape.imageUrl)
           .filter(Boolean)
           .join(","),
-        remixMapUrl: controlShapes
-          .filter((shape) => shape.showRemix)
+        imagePromptMapUrl: shapes
+          .filter((shape) => shape.showImagePrompt)
           .map((shape) => shape.imageUrl)
           .filter(Boolean)
           .join(","),
         depth_scale: Math.max(
-          ...controlShapes
+          ...shapes
             .filter((shape) => shape.showDepth)
             .map((shape) => shape.depthStrength || 0.5)
         ),
         edge_scale: Math.max(
-          ...controlShapes
+          ...shapes
             .filter((shape) => shape.showEdges)
             .map((shape) => shape.edgesStrength || 0.5)
         ),
         pose_scale: Math.max(
-          ...controlShapes
+          ...shapes
             .filter((shape) => shape.showPose)
             .map((shape) => shape.poseStrength || 0.5)
         ),
         sketch_scale: Math.max(
-          ...controlShapes
+          ...shapes
             .filter((shape) => shape.showSketch)
             .map((shape) => shape.sketchStrength || 0.5)
         ),
-        remix_scale: Math.max(
-          ...controlShapes
-            .filter((shape) => shape.showRemix)
-            .map((shape) => shape.remixStrength || 0.5)
+        image_prompt_scale: Math.max(
+          ...shapes
+            .filter((shape) => shape.showImagePrompt)
+            .map((shape) => shape.imagePromptStrength || 0.5)
         ),
         generated_01: "",
         generated_02: "",
