@@ -208,7 +208,7 @@ export function ShapeControls({
         {/* GET buttons panel */}
         {(shape.type === "image" || shape.type === "sketchpad") && isSelected && (
           <div
-            className={`absolute -right-[88px] top-0 ${styles.sidePanel.container}`}
+            className={`absolute left-full top-0 ml-2`}
             data-shape-control="true"
             style={{ 
               zIndex: 1000, 
@@ -217,11 +217,11 @@ export function ShapeControls({
             onMouseDown={preventEvent}
             onClick={preventEvent}
           >
-            <div className="flex flex-col gap-1">
-              <span className="text-xs text-neutral-500 self-start">GET:</span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-neutral-500 self-start mb-0.5">GET:</span>
               <div className="flex flex-col gap-1">
                 <button
-                  className="w-16 px-2 py-0.5 text-[10px] bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                  className="w-14 px-1 py-0.5 text-[10px] text-neutral-700 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
                   onClick={async (e) => {
                     preventEvent(e);
                     const newDepthShape: Shape = {
@@ -287,7 +287,7 @@ export function ShapeControls({
                   DEPTH
                 </button>
                 <button
-                  className="w-16 px-2 py-0.5 text-[10px] bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                  className="w-14 px-1 py-0.5 text-[10px] text-neutral-700 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
                   onClick={async (e) => {
                     preventEvent(e);
                     const newEdgesShape: Shape = {
@@ -353,7 +353,7 @@ export function ShapeControls({
                   EDGES
                 </button>
                 <button
-                  className="w-16 px-2 py-0.5 text-[10px] bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                  className="w-14 px-1 py-0.5 text-[10px] text-neutral-700 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
                   onClick={async (e) => {
                     preventEvent(e);
                     const newPoseShape: Shape = {
