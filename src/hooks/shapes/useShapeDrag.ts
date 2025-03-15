@@ -46,6 +46,19 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
           });
         }
       });
+
+      // If dragging a group, update the group's position
+      if (shape.type === "group") {
+        const initialPos = dragStart.initialPositions.get(shape.id);
+        if (initialPos) {
+          updateShape(shape.id, {
+            position: {
+              x: initialPos.x + totalDx,
+              y: initialPos.y + totalDy,
+            },
+          });
+        }
+      }
     };
 
     const handleMouseUp = () => {
