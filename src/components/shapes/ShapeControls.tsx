@@ -6,7 +6,7 @@ import { Tooltip } from "../shared/Tooltip";
 import { useThemeClass } from "../../styles/useThemeClass";
 import { supabase } from "../../lib/supabase";
 import { MiniToggle } from "../shared/MiniToggle";
-import { ControlPanel } from "../shared/ControlPanel";
+import { EnableReferencePanel } from "../shared/EnableReferencePanel";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -165,18 +165,18 @@ export function ShapeControls({
             <div className={`flex ${shape.width < 340 ? 'flex-col gap-1' : 'flex-row gap-2'}`}>
               {/* Image Prompt Controls - Left Box */}
               <div className="flex justify-start">
-                <ControlPanel
+                <EnableReferencePanel
                   id={`imagePrompt-${shape.id}`}
-                  label="Image Prompt"
+                  label="Use Image Reference"
                   checked={shape.showImagePrompt || false}
-                  onToggleChange={(checked) => {
+                  onToggleChange={(checked: boolean) => {
                     updateShape(shape.id, { 
                       showImagePrompt: checked,
                       imagePromptStrength: checked ? 0.5 : undefined 
                     });
                   }}
                   sliderValue={shape.imagePromptStrength || 0.5}
-                  onSliderChange={(value) => {
+                  onSliderChange={(value: number) => {
                     updateShape(shape.id, { imagePromptStrength: value });
                   }}
                   onMouseDown={preventEvent}
@@ -615,15 +615,15 @@ export function ShapeControls({
           data-shape-control="true"
           style={{ zIndex: 1000, pointerEvents: "all" }}
         >
-          <ControlPanel
+          <EnableReferencePanel
             id={`enable-depth-${shape.id}`}
             label="Use Depth Reference"
             checked={shape.showDepth || false}
-            onToggleChange={(checked) => {
+            onToggleChange={(checked: boolean) => {
               updateShape(shape.id, { showDepth: checked });
             }}
             sliderValue={shape.depthStrength || 0.5}
-            onSliderChange={(value) => {
+            onSliderChange={(value: number) => {
               updateShape(shape.id, { depthStrength: value });
             }}
             onMouseDown={preventEvent}
@@ -639,16 +639,16 @@ export function ShapeControls({
           data-shape-control="true"
           style={{ zIndex: 1000, pointerEvents: "all" }}
         >
-          <ControlPanel
+          <EnableReferencePanel
             id={`enable-edges-${shape.id}`}
             label="Use Edge Reference"
             checked={shape.showEdges || false}
-            onToggleChange={(checked) => {
+            onToggleChange={(checked: boolean) => {
               updateShape(shape.id, { showEdges: checked });
               setSelectedShapes([shape.id]);
             }}
             sliderValue={shape.edgesStrength || 0.5}
-            onSliderChange={(value) => {
+            onSliderChange={(value: number) => {
               updateShape(shape.id, { edgesStrength: value });
             }}
             onMouseDown={preventEvent}
@@ -664,16 +664,16 @@ export function ShapeControls({
           data-shape-control="true"
           style={{ zIndex: 1000, pointerEvents: "all" }}
         >
-          <ControlPanel
+          <EnableReferencePanel
             id={`enable-pose-${shape.id}`}
             label="Use Pose Reference"
             checked={shape.showPose || false}
-            onToggleChange={(checked) => {
+            onToggleChange={(checked: boolean) => {
               updateShape(shape.id, { showPose: checked });
               setSelectedShapes([shape.id]);
             }}
             sliderValue={shape.poseStrength || 0.5}
-            onSliderChange={(value) => {
+            onSliderChange={(value: number) => {
               updateShape(shape.id, { poseStrength: value });
             }}
             onMouseDown={preventEvent}

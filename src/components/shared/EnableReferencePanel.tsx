@@ -2,7 +2,7 @@ import { useThemeClass } from "../../styles/useThemeClass";
 import { MiniToggle } from "./MiniToggle";
 import { SmallSlider } from "./SmallSlider";
 
-interface ControlPanelProps {
+interface EnableReferencePanelProps {
   id: string;
   label: string;
   checked: boolean;
@@ -13,7 +13,7 @@ interface ControlPanelProps {
   onClick?: (e: React.MouseEvent) => void;
 }
 
-export function ControlPanel({
+export function EnableReferencePanel({
   id,
   label,
   checked,
@@ -22,7 +22,7 @@ export function ControlPanel({
   onSliderChange,
   onMouseDown,
   onClick
-}: ControlPanelProps) {
+}: EnableReferencePanelProps) {
   const styles = {
     sidePanel: {
       container: useThemeClass(["shape", "sidePanel", "container"]),
