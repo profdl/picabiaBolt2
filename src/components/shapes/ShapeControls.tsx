@@ -7,6 +7,7 @@ import { useThemeClass } from "../../styles/useThemeClass";
 import { supabase } from "../../lib/supabase";
 import { MiniToggle } from "../shared/MiniToggle";
 import { EnableReferencePanel } from "../shared/EnableReferencePanel";
+import { SmallSlider } from "../shared/SmallSlider";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -29,7 +30,12 @@ export function ShapeControls({
   const { updateShape, shapes, setSelectedShapes, updateShapes, addShape, generatePreprocessedImage } = useStore();
 
   // Add state for tracking pending updates
-  const [pendingUpdates, setPendingUpdates] = useState<{ id: string; isChecked: boolean; isTextPrompt: boolean } | null>(null);
+  const [pendingUpdates, setPendingUpdates] = useState<{ 
+    id: string; 
+    isChecked: boolean; 
+    isTextPrompt?: boolean;
+    isNegativePrompt?: boolean;
+  } | null>(null);
 
   // Styles
   const styles = {
@@ -268,7 +274,12 @@ export function ShapeControls({
                                 )
                                 .subscribe();
                             } catch (error) {
-                              console.error("Failed to generate depth map:", error);
+                              console.error("Failed to generate depth map:", {
+                                error,
+                                shapeId: shape.id,
+                                processType: "depth",
+                                message: error instanceof Error ? error.message : "Unknown error"
+                              });
                             }
                           }}
                         >
@@ -531,27 +542,22 @@ export function ShapeControls({
                   </div>
                 }
               >
-                <div 
-                  className={styles.sidePanel.group}
-                  data-shape-control="true"
-                  onMouseDown={preventEvent}
-                  onClick={preventEvent}
-                >
+                <div className={styles.sidePanel.group}>
                   <MiniToggle
                     id={`prompt-${shape.id}`}
                     checked={shape.isTextPrompt || false}
-                    onChange={(checked) => {
-                      const isChecked = checked;
-                      
+                    onChange={(checked: boolean) => {
                       // Single update for current shape
                       updateShape(shape.id, {
-                        isTextPrompt: isChecked,
-                        isNegativePrompt: isChecked ? false : shape.isNegativePrompt,
-                        color: isChecked ? "var(--sticky-green)" : (shape.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)")
+                        isTextPrompt: checked,
+                        isNegativePrompt: checked ? false : shape.isNegativePrompt,
+                        color: checked ? "var(--sticky-green)" : (shape.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)"),
+                        // Keep the existing strength value, or set to default if none exists
+                        textPromptStrength: shape.textPromptStrength || 8
                       });
                       
                       // Set pending updates for other shapes
-                      setPendingUpdates({ id: shape.id, isChecked, isTextPrompt: true });
+                      setPendingUpdates({ id: shape.id, isChecked: checked, isTextPrompt: true });
                       
                       // Keep the shape selected
                       setSelectedShapes([shape.id]);
@@ -560,6 +566,21 @@ export function ShapeControls({
                   />
                 </div>
               </Tooltip>
+
+              {shape.isTextPrompt && (
+                <div className="px-2">
+                  <SmallSlider
+                    value={shape.textPromptStrength || 8}
+                    onChange={(value) => {
+                      updateShape(shape.id, { textPromptStrength: value });
+                    }}
+                    min={1}
+                    max={10}
+                    step={0.1}
+                    label="Strength (CFG)"
+                  />
+                </div>
+              )}
 
               <Tooltip
                 side="bottom"
@@ -574,27 +595,20 @@ export function ShapeControls({
                   </div>
                 }
               >
-                <div 
-                  className={styles.sidePanel.group}
-                  data-shape-control="true"
-                  onMouseDown={preventEvent}
-                  onClick={preventEvent}
-                >
+                <div className={styles.sidePanel.group}>
                   <MiniToggle
                     id={`negative-${shape.id}`}
                     checked={shape.isNegativePrompt || false}
                     onChange={(checked) => {
-                      const isChecked = checked;
-                      
                       // Single update for current shape
                       updateShape(shape.id, {
-                        isNegativePrompt: isChecked,
-                        isTextPrompt: isChecked ? false : shape.isTextPrompt,
-                        color: isChecked ? "var(--sticky-red)" : (shape.isTextPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)")
+                        isNegativePrompt: checked,
+                        isTextPrompt: checked ? false : shape.isTextPrompt,
+                        color: checked ? "var(--sticky-red)" : (shape.isTextPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)")
                       });
                       
                       // Set pending updates for other shapes
-                      setPendingUpdates({ id: shape.id, isChecked, isTextPrompt: false });
+                      setPendingUpdates({ id: shape.id, isChecked: checked, isNegativePrompt: true });
                       
                       // Keep the shape selected
                       setSelectedShapes([shape.id]);

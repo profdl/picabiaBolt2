@@ -19,6 +19,7 @@ export interface Shape {
   contentStrength?: number;
   sketchStrength?: number;
   imagePromptStrength?: number;
+  textPromptStrength?: number;
   depthStrength?: number;
   edgesStrength?: number;
   poseStrength?: number;

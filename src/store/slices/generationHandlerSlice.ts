@@ -455,6 +455,13 @@ export const generationHandlerSlice: StateCreator<
         }
       }
 
+      // Apply text prompt strength if available
+      if (stickyWithPrompt && stickyWithPrompt.textPromptStrength !== undefined) {
+        // Use the text prompt strength directly as the CFG value
+        // The slider now ranges from 1-10, which maps directly to CFG values
+        workflow["3"].inputs.cfg = stickyWithPrompt.textPromptStrength;
+      }
+
       workflow["3"].inputs.positive = [currentPositiveNode, 0];
       workflow["3"].inputs.negative = ["7", 0];
 
