@@ -214,7 +214,7 @@ export function ShapeControls({
                       setIsDropdownOpen(!isDropdownOpen);
                     }}
                   >
-                    <span className={styles.sidePanel.label}>Create Maps</span>
+                    <span className={styles.sidePanel.label}>Analyze Image</span>
                     <svg
                       className={`w-3 h-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
                       fill="none"
@@ -291,7 +291,7 @@ export function ShapeControls({
                           }
                         }}
                       >
-                        Depth Map
+                        Depth Reference
                       </button>
                       <button
                         className={`w-full px-3 py-1.5 text-left ${styles.sidePanel.label} hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700`}
@@ -358,7 +358,7 @@ export function ShapeControls({
                           }
                         }}
                       >
-                        Edge Map
+                        Edge Reference
                       </button>
                       <button
                         className={`w-full px-3 py-1.5 text-left ${styles.sidePanel.label} hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700`}
@@ -425,7 +425,7 @@ export function ShapeControls({
                           }
                         }}
                       >
-                        Pose Map
+                        Pose Reference
                       </button>
                     </div>
                   )}
@@ -701,7 +701,7 @@ export function ShapeControls({
                 onMouseDown={preventEvent}
                 data-shape-control="true"
               >
-                Enable Depth Prompt
+                Use Depth Reference
               </label>
             </div>
             <div className="flex items-center w-full">
@@ -754,7 +754,7 @@ export function ShapeControls({
                 onMouseDown={preventEvent}
                 data-shape-control="true"
               >
-                Enable Edges Prompt
+                Use Edge Reference
               </label>
             </div>
             <div className="flex items-center w-full">
@@ -807,7 +807,7 @@ export function ShapeControls({
                 onMouseDown={preventEvent}
                 data-shape-control="true"
               >
-                Enable Pose Prompt
+                Use Pose Reference
               </label>
             </div>
             <div className="flex items-center w-full">
