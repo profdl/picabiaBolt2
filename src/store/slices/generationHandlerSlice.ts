@@ -4,6 +4,7 @@ import multiControlWorkflow from "../../lib/generateWorkflow.json";
 import { Shape, Position } from "../../types";
 import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { generateImageWithComfyUI } from "../../lib/comfyui";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -17,7 +18,9 @@ interface Workflow {
   };
 }
 
-interface StoreState {
+export type GenerationService = 'replicate' | 'comfyui';
+
+interface BaseState {
   shapes: Shape[];
   zoom: number;
   offset: Position;
@@ -35,12 +38,13 @@ interface StoreState {
   setIsGenerating: (isGenerating: boolean) => void;
   hasActivePrompt: boolean;
 }
+
 export interface GenerationHandlerSlice {
   subscription: RealtimeChannel | null;
+  generationService: GenerationService;
   handleGenerate: () => Promise<void>;
+  setGenerationService: (service: GenerationService) => void;
 }
-
-
 
 const findOccupiedSpaces = (shapes: Shape[]): Array<{
   x1: number;
@@ -138,102 +142,92 @@ const calculateAverageAspectRatio = (shapes: Shape[]) => {
 };
 
 export const generationHandlerSlice: StateCreator<
-  StoreState & GenerationHandlerSlice,
+  BaseState & GenerationHandlerSlice,
   [],
   [],
   GenerationHandlerSlice
 > = (set, get) => ({
   subscription: null,
+  generationService: 'replicate',
+  setGenerationService: (service) => set({ generationService: service }),
   handleGenerate: async () => {
-    const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
+    const workflow = JSON.parse(JSON.stringify(multiControlWorkflow)) as Workflow;
     const state = get();
-    const { shapes } = state;
+    const { shapes, generationService, zoom, offset } = state;
+    let subscription = null;
 
-    const activeSettings = shapes.find(
-      (shape) => shape.type === "diffusionSettings" && shape.useSettings
-    ) || {
-      steps: 30,
-      guidanceScale: 4.5,
-      scheduler: "dpmpp_2m_sde",
-      seed: Math.floor(Math.random() * 32767),
-      outputWidth: null,
-      outputHeight: null,
-      model: "juggernautXL_v9",
-      outputFormat: "png",
-      outputQuality: 100,
-      randomiseSeeds: true,
-    };
-
-    // Only calculate dimensions from control shapes if no DiffusionSettingsPanel is enabled
-    if (!activeSettings.outputWidth || !activeSettings.outputHeight) {
-      const avgAspectRatio = calculateAverageAspectRatio(shapes);
-      if (avgAspectRatio) {
-        // Target approximately 1 megapixel area
-        const targetArea = 1024 * 1024;
-        let width = Math.round(Math.sqrt(targetArea * avgAspectRatio));
-        let height = Math.round(width / avgAspectRatio);
-        
-        // Ensure dimensions are multiples of 8
-        width = Math.round(width / 8) * 8;
-        height = Math.round(height / 8) * 8;
-        
-        activeSettings.outputWidth = width;
-        activeSettings.outputHeight = height;
-      } else {
-        // Default to 1024x1024 if no control shapes are enabled
-        activeSettings.outputWidth = 1024;
-        activeSettings.outputHeight = 1024;
-      }
-    }
-
-    if (!activeSettings) {
-      set({ error: "No settings selected. Please select a settings shape." });
-      return;
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error("User must be authenticated");
-
-    const hasActiveControls = shapes.some(
-      (shape) =>
-        (shape.type === "image" || 
-         shape.type === "sketchpad" || 
-         shape.type === "depth" ||
-         shape.type === "edges" ||
-         shape.type === "pose") &&
-        (shape.showDepth ||
-          shape.showEdges ||
-          shape.showPose ||
-          shape.showSketch ||
-          shape.showImagePrompt)
-    );
-
-    const stickyWithPrompt = shapes.find(
-      (shape) => shape.type === "sticky" && shape.isTextPrompt && shape.content
-    );
-
-    if (!stickyWithPrompt?.content && !hasActiveControls) {
-      set({ error: "Please select either a text prompt or image controls." });
-      return;
-    }
-
-    const promptText = stickyWithPrompt?.content || "";
-    workflow["6"].inputs.text = promptText;
-
-    // In generationHandlerSlice
-    set((state) => ({
-      isGenerating: true,
-      hasActivePrompt: state.hasActivePrompt,
-    }));
-
-    let subscription: RealtimeChannel | null = null;
     try {
+      const activeSettings = shapes.find((shape: Shape) => shape.useSettings);
+      if (!activeSettings) {
+        throw new Error("No active settings found");
+      }
+
+      // Only calculate dimensions from control shapes if no DiffusionSettingsPanel is enabled
+      if (!activeSettings.outputWidth || !activeSettings.outputHeight) {
+        const avgAspectRatio = calculateAverageAspectRatio(shapes);
+        if (avgAspectRatio) {
+          // Target approximately 1 megapixel area
+          const targetArea = 1024 * 1024;
+          let width = Math.round(Math.sqrt(targetArea * avgAspectRatio));
+          let height = Math.round(width / avgAspectRatio);
+          
+          // Ensure dimensions are multiples of 8
+          width = Math.round(width / 8) * 8;
+          height = Math.round(height / 8) * 8;
+          
+          activeSettings.outputWidth = width;
+          activeSettings.outputHeight = height;
+        } else {
+          // Default to 1024x1024 if no control shapes are enabled
+          activeSettings.outputWidth = 1024;
+          activeSettings.outputHeight = 1024;
+        }
+      }
+
+      if (!activeSettings) {
+        set({ error: "No settings selected. Please select a settings shape." });
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("User must be authenticated");
+
+      const hasActiveControls = shapes.some(
+        (shape) =>
+          (shape.type === "image" || 
+           shape.type === "sketchpad" || 
+           shape.type === "depth" ||
+           shape.type === "edges" ||
+           shape.type === "pose") &&
+          (shape.showDepth ||
+            shape.showEdges ||
+            shape.showPose ||
+            shape.showSketch ||
+            shape.showImagePrompt)
+      );
+
+      const stickyWithPrompt = shapes.find(
+        (shape) => shape.type === "sticky" && shape.isTextPrompt && shape.content
+      );
+
+      if (!stickyWithPrompt?.content) {
+        set({ error: "Please add a text prompt." });
+        return;
+      }
+
+      const promptText = stickyWithPrompt.content;
+      
+      set((state) => ({
+        isGenerating: true,
+        hasActivePrompt: state.hasActivePrompt,
+      }));
+
+      // Update workflow based on settings
       workflow["3"].inputs.steps = activeSettings.steps || 20;
       workflow["3"].inputs.cfg = activeSettings.guidanceScale || 7.5;
-      workflow["3"].inputs.sampler_name =
-        activeSettings.scheduler || "dpmpp_2m_sde";
+      workflow["3"].inputs.sampler_name = activeSettings.scheduler || "dpmpp_2m_sde";
       workflow["3"].inputs.seed = activeSettings.randomiseSeeds
         ? Math.floor(Math.random() * 32767)
         : activeSettings.seed || Math.floor(Math.random() * 32767);
@@ -467,26 +461,6 @@ export const generationHandlerSlice: StateCreator<
       workflow["3"].inputs.positive = [currentPositiveNode, 0];
       workflow["3"].inputs.negative = ["7", 0];
 
-      const response = await fetch("/.netlify/functions/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workflow_json: currentWorkflow,
-          outputFormat: activeSettings.outputFormat,
-          outputQuality: activeSettings.outputQuality,
-          randomiseSeeds: activeSettings.randomiseSeeds,
-        }),
-      });
-
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
-
-      const responseData = await response.json();
-      const prediction_id = responseData.prediction.id;
-
-      const { zoom, offset } = get();
-  
-
       const maxDimension = 400;
       const aspectRatio = (activeSettings.outputWidth || 1360) / (activeSettings.outputHeight || 768);
       const [scaledWidth, scaledHeight] = aspectRatio > 1
@@ -498,111 +472,146 @@ export const generationHandlerSlice: StateCreator<
         y: (-offset.y + window.innerHeight / 2) / zoom,
       };
 
-          const position = findOpenSpace(shapes, scaledWidth, scaledHeight, viewCenter);
-
-          
-          const placeholderShape: Shape = {
-            id: prediction_id,
-            type: "image",
-            position,
-            width: scaledWidth,
-            height: scaledHeight,
-            isUploading: true,
-            imageUrl: "",
-            color: "transparent",
-            rotation: 0,
-            model: "",
-            useSettings: false,
-            isEditing: false,
-            depthStrength: 0,
-            edgesStrength: 0,
-            contentStrength: 0,
-            poseStrength: 0,
-            sketchStrength: 0,
-            imagePromptStrength: 0,
-            showDepth: false,
-            showEdges: false,
-            showPose: false,
-            showSketch: false,
-            showImagePrompt: false,
-          };
-          
-
-      get().addShape(placeholderShape);
-      get().setSelectedShapes([prediction_id]);
-      get().centerOnShape(prediction_id);
-      get().addGeneratingPrediction(prediction_id);
-
-      subscription = supabase
-        .channel("generated_images")
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "generated_images",
-          },
-          (payload: unknown) => {
-            const typedPayload = payload as {
-              new: {
-                status: string;
-                generated_01: string;
-                prediction_id: string;
-                updated_at: string;
-                error_message?: string;
-              };
-            };
-
-            // Handle completion regardless of window focus
-            if (
-              typedPayload.new.status === "completed" &&
-              typedPayload.new.generated_01
-            ) {
-              get().updateShape(typedPayload.new.prediction_id, {
-                isUploading: false,
-                imageUrl: typedPayload.new.generated_01,
-              });
-              get().removeGeneratingPrediction(typedPayload.new.prediction_id);
-            } else if (
-              typedPayload.new.status === "error" ||
-              typedPayload.new.status === "failed"
-            ) {
-              // Handle error states
-              get().updateShape(typedPayload.new.prediction_id, {
-                isUploading: false,
-                color: "#ffcccb" // Add a visual indicator for error
-              });
-              get().removeGeneratingPrediction(typedPayload.new.prediction_id);
-              get().setError(
-                typedPayload.new.error_message || "Generation failed"
-              );
-            }
-          }
-        )
-        .subscribe();
-
-      const insertData = {
-        id: crypto.randomUUID(),
-        user_id: user.id,
-        prompt: promptText,
-        aspect_ratio: state.aspectRatio,
-        created_at: new Date().toISOString(),
-        prediction_id: prediction_id,
-        status: "generating",
-        updated_at: new Date().toISOString(),
-        generated_01: "",
-        generated_02: "",
-        generated_03: "",
-        generated_04: "",
+      const position = findOpenSpace(shapes, scaledWidth, scaledHeight, viewCenter);
+      const shapeId = crypto.randomUUID();
+      
+      // Create placeholder shape
+      const placeholderShape: Shape = {
+        id: shapeId,
+        type: "image",
+        position,
+        width: scaledWidth,
+        height: scaledHeight,
+        isUploading: true,
+        imageUrl: "",
+        color: "transparent",
+        rotation: 0,
+        model: "",
+        useSettings: false,
+        isEditing: false,
+        depthStrength: 0,
+        edgesStrength: 0,
+        contentStrength: 0,
+        poseStrength: 0,
+        sketchStrength: 0,
+        imagePromptStrength: 0,
+        showDepth: false,
+        showEdges: false,
+        showPose: false,
+        showSketch: false,
+        showImagePrompt: false,
       };
 
-      const { error: dbError } = await supabase
-        .from("generated_images")
-        .insert(insertData)
-        .select()
-        .single();
+      get().addShape(placeholderShape);
+      get().setSelectedShapes([shapeId]);
+      get().centerOnShape(shapeId);
+      get().addGeneratingPrediction(shapeId);
 
-      if (dbError) throw dbError;
+      if (generationService === 'comfyui') {
+        try {
+          const imageUrl = await generateImageWithComfyUI(JSON.stringify(currentWorkflow));
+          get().updateShape(shapeId, {
+            isUploading: false,
+            imageUrl: imageUrl,
+          });
+          get().removeGeneratingPrediction(shapeId);
+        } catch (error) {
+          console.error('ComfyUI generation error:', error);
+          set({ error: error instanceof Error ? error.message : 'Failed to generate image with ComfyUI' });
+          get().removeGeneratingPrediction(shapeId);
+        }
+      } else {
+        // Replicate generation
+        const response = await fetch("/.netlify/functions/generate-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workflow_json: currentWorkflow,
+            outputFormat: activeSettings.outputFormat,
+            outputQuality: activeSettings.outputQuality,
+            randomiseSeeds: activeSettings.randomiseSeeds,
+          }),
+        });
+
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
+
+        const responseData = await response.json();
+        const prediction_id = responseData.prediction.id;
+
+        // Set up Supabase subscription for Replicate
+        subscription = supabase
+          .channel("generated_images")
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "generated_images",
+            },
+            (payload: unknown) => {
+              const typedPayload = payload as {
+                new: {
+                  status: string;
+                  generated_01: string;
+                  prediction_id: string;
+                  updated_at: string;
+                  error_message?: string;
+                };
+              };
+
+              // Handle completion regardless of window focus
+              if (
+                typedPayload.new.status === "completed" &&
+                typedPayload.new.generated_01
+              ) {
+                get().updateShape(typedPayload.new.prediction_id, {
+                  isUploading: false,
+                  imageUrl: typedPayload.new.generated_01,
+                });
+                get().removeGeneratingPrediction(typedPayload.new.prediction_id);
+              } else if (
+                typedPayload.new.status === "error" ||
+                typedPayload.new.status === "failed"
+              ) {
+                // Handle error states
+                get().updateShape(typedPayload.new.prediction_id, {
+                  isUploading: false,
+                  color: "#ffcccb" // Add a visual indicator for error
+                });
+                get().removeGeneratingPrediction(typedPayload.new.prediction_id);
+                get().setError(
+                  typedPayload.new.error_message || "Generation failed"
+                );
+              }
+            }
+          )
+          .subscribe();
+
+        // Create database record for Replicate
+        const insertData = {
+          id: crypto.randomUUID(),
+          user_id: user.id,
+          prompt: promptText,
+          aspect_ratio: state.aspectRatio,
+          created_at: new Date().toISOString(),
+          prediction_id: prediction_id,
+          status: "generating",
+          updated_at: new Date().toISOString(),
+          generated_01: "",
+          generated_02: "",
+          generated_03: "",
+          generated_04: "",
+        };
+
+        const { error: dbError } = await supabase
+          .from("generated_images")
+          .insert(insertData)
+          .select()
+          .single();
+
+        if (dbError) throw dbError;
+      }
     } catch (error) {
       console.error("Error generating image:", error);
       set({
@@ -615,6 +624,6 @@ export const generationHandlerSlice: StateCreator<
         set({ isGenerating: false });
       }
     }
-    set({ subscription: subscription });
+    set({ subscription });
   },
 });

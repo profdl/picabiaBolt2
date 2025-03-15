@@ -10,44 +10,44 @@ import { generationHandlerSlice } from "./slices/generationHandlerSlice";
 import { subjectGenerationSlice } from "./slices/subjectGenerationSlice";
 import { imageTrimSlice } from "./slices/imageTrimSlice";
 import { warmupSlice } from './slices/warmupSlice';
+import { GenerationSettingsSlice, generationSettingsSlice } from './slices/generationSettingsSlice';
+import { GenerationServiceSlice, generationServiceSlice } from './slices/generationServiceSlice';
+import { StoreState, GenerationService } from './types';
 
 type State = {
-  [K in keyof ReturnType<typeof shapeSlice>]: ReturnType<typeof shapeSlice>[K];
-} & {
-  [K in keyof ReturnType<typeof canvasSlice>]: ReturnType<
-    typeof canvasSlice
-  >[K];
-} & {
-  [K in keyof ReturnType<typeof drawerSlice>]: ReturnType<
-    typeof drawerSlice
-  >[K];
-} & {
-  [K in keyof ReturnType<typeof toolSlice>]: ReturnType<typeof toolSlice>[K];
-} & {
-  [K in keyof ReturnType<typeof preProcessSlice>]: ReturnType<
-    typeof preProcessSlice
-  >[K];
-} & {
-  [K in keyof ReturnType<typeof uiSlice>]: ReturnType<typeof uiSlice>[K];
-} & {
-  [K in keyof ReturnType<typeof generationHandlerSlice>]: ReturnType<
-    typeof generationHandlerSlice
-  >[K];
-} & {
-  [K in keyof ReturnType<typeof subjectGenerationSlice>]: ReturnType<
-    typeof subjectGenerationSlice
-  >[K];
-} & {
-  [K in keyof ReturnType<typeof imageTrimSlice>]: ReturnType<
-    typeof imageTrimSlice
-  >[K];
-} & {
-  [K in keyof ReturnType<typeof warmupSlice>]: ReturnType<typeof warmupSlice>[K];
+  generationService: 'replicate' | 'comfyui';
+  setGenerationService: (service: 'replicate' | 'comfyui') => void;
+} & ReturnType<typeof warmupSlice> &
+  ReturnType<typeof shapeSlice> &
+  ReturnType<typeof canvasSlice> &
+  ReturnType<typeof drawerSlice> &
+  ReturnType<typeof toolSlice> &
+  ReturnType<typeof preProcessSlice> &
+  ReturnType<typeof uiSlice> &
+  ReturnType<typeof generationHandlerSlice> &
+  ReturnType<typeof subjectGenerationSlice> &
+  ReturnType<typeof imageTrimSlice> &
+  ReturnType<typeof generationSettingsSlice> &
+  GenerationServiceSlice;
+
+const initialState: Partial<StoreState> = {
+  shapes: [],
+  zoom: 1,
+  offset: { x: 0, y: 0 },
+  error: null,
+  isGenerating: false,
+  aspectRatio: '1:1',
+  generatingPredictions: new Set(),
+  generationService: 'replicate',
+  hasActivePrompt: false,
 };
 
 export const useStore = create<State>()(
   devtools(
     (...a) => ({
+      generationService: 'replicate' as const,
+      setGenerationService: (service: 'replicate' | 'comfyui') =>
+        a[0]({ generationService: service }),
       ...warmupSlice(...a),
       ...shapeSlice(...a),
       ...canvasSlice(...a),
@@ -58,6 +58,8 @@ export const useStore = create<State>()(
       ...generationHandlerSlice(...a),
       ...subjectGenerationSlice(...a),
       ...imageTrimSlice(...a),
+      ...generationSettingsSlice(...a),
+      ...generationServiceSlice(...a),
     }),
     { name: "PicabiaBolt Store" }
   )
