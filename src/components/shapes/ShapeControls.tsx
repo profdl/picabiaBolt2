@@ -770,19 +770,18 @@ export function ShapeControls({
                     if (groupedShape.type === "diffusionSettings") {
                       updates.useSettings = true;
                     }
-                  } else {
-                    // When disabling the group, turn off all toggles
-                    if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
-                      updates.showImagePrompt = false;
-                    }
-                    if (groupedShape.type === "sticky") {
-                      updates.isTextPrompt = false;
-                      updates.isNegativePrompt = false;
-                      updates.color = "var(--sticky-yellow)";
-                    }
-                    if (groupedShape.type === "diffusionSettings") {
-                      updates.useSettings = false;
-                    }
+                  }
+                  // When disabling the group, turn off all toggles
+                  if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
+                    updates.showImagePrompt = false;
+                  }
+                  if (groupedShape.type === "sticky") {
+                    updates.isTextPrompt = false;
+                    updates.isNegativePrompt = false;
+                    updates.color = "var(--sticky-yellow)";
+                  }
+                  if (groupedShape.type === "diffusionSettings") {
+                    updates.useSettings = false;
                   }
                   
                   // Toggle all show properties
@@ -798,7 +797,7 @@ export function ShapeControls({
                   }
                 });
               }}
-              label="Enable All"
+              label="Enable"
             />
           </div>
         </div>
