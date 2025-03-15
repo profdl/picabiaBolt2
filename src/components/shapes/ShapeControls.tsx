@@ -162,33 +162,33 @@ export function ShapeControls({
             onClick={preventEvent}
           >
             {/* Image Prompt Controls - Left Box */}
-            <div className="flex-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded p-2">
-              <div className={styles.sidePanel.group}>
-                <input
-                  type="checkbox"
-                  id={`imagePrompt-${shape.id}`}
-                  checked={shape.showImagePrompt || false}
-                  onChange={(e) => {
-                    preventEvent(e);
-                    const isEnabled = e.target.checked;
-                    updateShape(shape.id, { 
-                      showImagePrompt: isEnabled,
-                      imagePromptStrength: isEnabled ? 0.5 : undefined 
-                    });
-                  }}
-                  className={styles.sidePanel.checkbox}
-                  onMouseDown={preventEvent}
-                />
-                <label
-                  htmlFor={`imagePrompt-${shape.id}`}
-                  className={styles.sidePanel.label}
-                  onMouseDown={preventEvent}
-                >
-                  Image Prompt
-                </label>
-              </div>
-              {shape.showImagePrompt && (
-                <div className="flex items-center w-full mt-1">
+            <div className={`${styles.sidePanel.container}`} style={{ width: "160px" }}>
+              <div className="flex flex-col gap-1.5">
+                <div className={styles.sidePanel.group}>
+                  <input
+                    type="checkbox"
+                    id={`imagePrompt-${shape.id}`}
+                    checked={shape.showImagePrompt || false}
+                    onChange={(e) => {
+                      preventEvent(e);
+                      const isEnabled = e.target.checked;
+                      updateShape(shape.id, { 
+                        showImagePrompt: isEnabled,
+                        imagePromptStrength: isEnabled ? 0.5 : undefined 
+                      });
+                    }}
+                    className={styles.sidePanel.checkbox}
+                    onMouseDown={preventEvent}
+                  />
+                  <label
+                    htmlFor={`imagePrompt-${shape.id}`}
+                    className={styles.sidePanel.label}
+                    onMouseDown={preventEvent}
+                  >
+                    Image Prompt
+                  </label>
+                </div>
+                <div className="flex items-center w-full">
                   <SmallSlider
                     value={shape.imagePromptStrength || 0.5}
                     onChange={(value) => {
@@ -200,21 +200,21 @@ export function ShapeControls({
                     label="Strength"
                   />
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Create Maps Dropdown - Right Box */}
             {isSelected && (
-              <div className="flex justify-end h-[38px]">
+              <div className="flex justify-end">
                 <div className="relative">
                   <button
-                    className="w-32 h-full px-2 text-[10px] text-neutral-700 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 flex items-center justify-between"
+                    className={`${styles.sidePanel.container} w-[160px] h-[34px] px-2 flex items-center justify-between`}
                     onClick={(e) => {
                       preventEvent(e);
                       setIsDropdownOpen(!isDropdownOpen);
                     }}
                   >
-                    <span>Create Maps</span>
+                    <span className={styles.sidePanel.label}>Create Maps</span>
                     <svg
                       className={`w-3 h-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
                       fill="none"
@@ -225,9 +225,9 @@ export function ShapeControls({
                     </svg>
                   </button>
                   {isDropdownOpen && (
-                    <div className="absolute left-0 top-full mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded shadow-lg z-50" style={{ width: "128px" }}>
+                    <div className={`${styles.sidePanel.container} absolute left-0 top-[34px] mt-1 shadow-lg z-50 w-[160px]`}>
                       <button
-                        className="w-full px-2 py-1.5 text-[10px] text-left text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700"
+                        className={`w-full px-3 py-1.5 text-left ${styles.sidePanel.label} hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700`}
                         onClick={async (e) => {
                           preventEvent(e);
                           setIsDropdownOpen(false);
@@ -294,7 +294,7 @@ export function ShapeControls({
                         Depth Map
                       </button>
                       <button
-                        className="w-full px-2 py-1.5 text-[10px] text-left text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700"
+                        className={`w-full px-3 py-1.5 text-left ${styles.sidePanel.label} hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700`}
                         onClick={async (e) => {
                           preventEvent(e);
                           setIsDropdownOpen(false);
@@ -361,7 +361,7 @@ export function ShapeControls({
                         Edge Map
                       </button>
                       <button
-                        className="w-full px-2 py-1.5 text-[10px] text-left text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                        className={`w-full px-3 py-1.5 text-left ${styles.sidePanel.label} hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700`}
                         onClick={async (e) => {
                           preventEvent(e);
                           setIsDropdownOpen(false);
