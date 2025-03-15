@@ -606,6 +606,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       const group_padding = 20;
       const control_padding = 40; // Extra padding for controls
       const sticky_control_padding = 100; // Extra padding for sticky note controls
+      const group_control_padding = 40; // Extra padding for group controls
 
       // Calculate bounds including controls
       const minX = Math.min(...groupedShapes.map((s) => s.position.x));
@@ -628,17 +629,8 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             s.type === "pose" || 
             s.type === "diffusionSettings";
 
-          // Check if sticky note has controls visible
-          const hasStickyControls = 
-            s.type === "sticky" && (
-              // When the shape is selected, it shows controls
-              state.selectedShapes.includes(s.id) ||
-              // When text/negative prompt is enabled
-              s.isTextPrompt || 
-              s.isNegativePrompt || 
-              s.showPrompt || 
-              s.showNegativePrompt
-            );
+          // Always add sticky control padding for sticky notes to maintain consistent spacing
+          const hasStickyControls = s.type === "sticky";
 
           return s.position.y + s.height + (hasStickyControls ? sticky_control_padding : hasBottomControls ? control_padding : 0);
         })
@@ -652,7 +644,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           y: minY - group_padding,
         },
         width: maxX - minX + group_padding * 2,
-        height: maxY - minY + group_padding * 2,
+        height: maxY - minY + group_padding * 2 + group_control_padding, // Add extra padding for group controls
         color: "transparent",
         rotation: 0,
         isUploading: false,
@@ -802,12 +794,9 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             };
           }
 
-          const updatedShape = {
-            ...shape,
-            ...props,
-          };
+          const updatedShape = { ...shape, ...props };
 
-          // If this shape is part of a group, we need to update the group's size
+          // If this shape is in a group, update the group's dimensions
           if (shape.groupId) {
             const groupShape = state.shapes.find((s) => s.id === shape.groupId);
             if (groupShape) {
@@ -815,6 +804,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
               const group_padding = 20;
               const control_padding = 40;
               const sticky_control_padding = 100;
+              const group_control_padding = 40; // Extra padding for group controls
 
               // Calculate new bounds including the updated shape
               const minX = Math.min(...groupedShapes.map((s) => s.position.x));
@@ -835,24 +825,8 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
                     s.type === "pose" || 
                     s.type === "diffusionSettings";
 
-                  // Check if sticky note has controls visible
-                  const hasStickyControls = 
-                    s.type === "sticky" && (
-                      // When the shape is selected, it shows controls
-                      state.selectedShapes.includes(s.id) ||
-                      // When text/negative prompt is enabled
-                      s.isTextPrompt || 
-                      s.isNegativePrompt || 
-                      s.showPrompt || 
-                      s.showNegativePrompt || 
-                      // When the shape is being updated with new control states
-                      (s.id === id && (
-                        props.isTextPrompt || 
-                        props.isNegativePrompt || 
-                        props.showPrompt || 
-                        props.showNegativePrompt
-                      ))
-                    );
+                  // Always add sticky control padding for sticky notes to maintain consistent spacing
+                  const hasStickyControls = s.type === "sticky";
 
                   return s.position.y + s.height + (hasStickyControls ? sticky_control_padding : hasBottomControls ? control_padding : 0);
                 })
@@ -868,7 +842,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
                         y: minY - group_padding,
                       },
                       width: maxX - minX + group_padding * 2,
-                      height: maxY - minY + group_padding * 2,
+                      height: maxY - minY + group_padding * 2 + group_control_padding, // Add extra padding for group controls
                     }
                   : s
               );

@@ -8,6 +8,9 @@ export const getShapeStyles = (
   isEditing?: boolean,
   isDark: boolean = false
 ): React.CSSProperties => {
+  // Find if this shape is in a disabled group
+  const isInDisabledGroup = shape.groupId && shapes.find(s => s.id === shape.groupId)?.groupEnabled === false;
+
   return {
     position: "absolute",
     left: shape.position.x,
@@ -23,7 +26,7 @@ export const getShapeStyles = (
         ? "transparent"
         : shape.color,
     overflow: "visible",
-    transition: "box-shadow 0.2s ease-in-out",
+    transition: "box-shadow 0.2s ease-in-out, opacity 0.2s ease-in-out",
     zIndex: shape.groupId
       ? 200 // Grouped objects always stay higher
       : shape.type === "group"
@@ -31,8 +34,9 @@ export const getShapeStyles = (
       : isSelected
       ? 1000 // Selected non-grouped objects go to top
       : shapes.findIndex((s) => s.id === shape.id),
-    pointerEvents: tool === "select" ? "all" : "none",
-    cursor: tool === "select" ? "move" : "default",
+    pointerEvents: isInDisabledGroup ? "none" : (tool === "select" ? "all" : "none"),
+    cursor: isInDisabledGroup ? "not-allowed" : (tool === "select" ? "move" : "default"),
+    opacity: isInDisabledGroup ? 0.5 : 1,
     border:
       shape.type === "group"
         ? isDark
