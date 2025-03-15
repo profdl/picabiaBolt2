@@ -46,6 +46,8 @@ interface ShapeSlice extends ShapeState {
   duplicate: () => void;
   createGroup: (shapeIds: string[]) => void;
   ungroup: (groupId: string) => void;
+  addToGroup: (shapeIds: string[], groupId: string) => void;
+  removeFromGroup: (shapeIds: string[]) => void;
   mergeImages: (shapeIds: string[]) => Promise<void>; 
   resetState: () => void;
   undo: () => void;
@@ -902,6 +904,153 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         // Here you might want to show a notification to the user
       }
     },
+
+  addToGroup: (shapeIds, groupId) =>
+    set((state) => {
+      const groupShape = state.shapes.find((s) => s.id === groupId);
+      if (!groupShape || groupShape.type !== "group") return state;
+
+      const shapesToAdd = state.shapes.filter((s) => shapeIds.includes(s.id));
+      const group_padding = 20;
+      const control_padding = 40;
+      const sticky_control_padding = 100;
+
+      // Calculate new bounds including the added shapes
+      const allGroupedShapes = [
+        ...state.shapes.filter((s) => s.groupId === groupId),
+        ...shapesToAdd,
+      ];
+
+      const minX = Math.min(...allGroupedShapes.map((s) => s.position.x));
+      const minY = Math.min(...allGroupedShapes.map((s) => s.position.y));
+      const maxX = Math.max(
+        ...allGroupedShapes.map((s) => {
+          const hasRightControls = s.type === "image" || s.type === "sketchpad";
+          return s.position.x + s.width + (hasRightControls ? control_padding : 0);
+        })
+      );
+      const maxY = Math.max(
+        ...allGroupedShapes.map((s) => {
+          const hasBottomControls = 
+            s.type === "image" || 
+            s.type === "sketchpad" || 
+            s.type === "depth" || 
+            s.type === "edges" || 
+            s.type === "pose" || 
+            s.type === "diffusionSettings";
+
+          const hasStickyControls = 
+            s.type === "sticky" && (
+              state.selectedShapes.includes(s.id) ||
+              s.isTextPrompt || 
+              s.isNegativePrompt || 
+              s.showPrompt || 
+              s.showNegativePrompt
+            );
+
+          return s.position.y + s.height + (hasStickyControls ? sticky_control_padding : hasBottomControls ? control_padding : 0);
+        })
+      );
+
+      // Update the group shape with new dimensions
+      const updatedGroupShape = {
+        ...groupShape,
+        position: {
+          x: minX - group_padding,
+          y: minY - group_padding,
+        },
+        width: maxX - minX + group_padding * 2,
+        height: maxY - minY + group_padding * 2,
+      };
+
+      // Update shapes with new groupId
+      const updatedShapes = state.shapes.map((shape) =>
+        shapeIds.includes(shape.id) ? { ...shape, groupId } : shape
+      );
+
+      return {
+        shapes: [updatedGroupShape, ...updatedShapes.filter(s => s.id !== groupId)],
+        history: [
+          ...state.history.slice(0, state.historyIndex + 1),
+          [updatedGroupShape, ...updatedShapes.filter(s => s.id !== groupId)],
+        ].slice(-MAX_HISTORY),
+        historyIndex: state.historyIndex + 1,
+      };
+    }),
+
+  removeFromGroup: (shapeIds) =>
+    set((state) => {
+      const shapesToRemove = state.shapes.filter((s) => shapeIds.includes(s.id));
+      const groupIds = [...new Set(shapesToRemove.map(s => s.groupId))].filter(Boolean);
+
+      // Update shapes by removing their groupId
+      const updatedShapes = state.shapes.map((shape) =>
+        shapeIds.includes(shape.id) ? { ...shape, groupId: undefined } : shape
+      );
+
+      // Update group shapes if needed
+      const updatedGroupShapes = groupIds.map(groupId => {
+        const groupShape = state.shapes.find(s => s.id === groupId);
+        if (!groupShape) return null;
+
+        const remainingGroupedShapes = updatedShapes.filter(s => s.groupId === groupId);
+        if (remainingGroupedShapes.length === 0) return null;
+
+        const group_padding = 20;
+        const control_padding = 40;
+        const sticky_control_padding = 100;
+
+        const minX = Math.min(...remainingGroupedShapes.map((s) => s.position.x));
+        const minY = Math.min(...remainingGroupedShapes.map((s) => s.position.y));
+        const maxX = Math.max(
+          ...remainingGroupedShapes.map((s) => {
+            const hasRightControls = s.type === "image" || s.type === "sketchpad";
+            return s.position.x + s.width + (hasRightControls ? control_padding : 0);
+          })
+        );
+        const maxY = Math.max(
+          ...remainingGroupedShapes.map((s) => {
+            const hasBottomControls = 
+              s.type === "image" || 
+              s.type === "sketchpad" || 
+              s.type === "depth" || 
+              s.type === "edges" || 
+              s.type === "pose" || 
+              s.type === "diffusionSettings";
+
+            const hasStickyControls = 
+              s.type === "sticky" && (
+                state.selectedShapes.includes(s.id) ||
+                s.isTextPrompt || 
+                s.isNegativePrompt || 
+                s.showPrompt || 
+                s.showNegativePrompt
+              );
+
+            return s.position.y + s.height + (hasStickyControls ? sticky_control_padding : hasBottomControls ? control_padding : 0);
+          })
+        );
+
+        return {
+          ...groupShape,
+          position: {
+            x: minX - group_padding,
+            y: minY - group_padding,
+          },
+          width: maxX - minX + group_padding * 2,
+          height: maxY - minY + group_padding * 2,
+        };
+      }).filter((shape): shape is Shape => shape !== null);
+
+      return {
+        shapes: [...updatedGroupShapes, ...updatedShapes.filter(s => !groupIds.includes(s.id))],
+        history: [
+          ...state.history.slice(0, state.historyIndex + 1),
+          [...updatedGroupShapes, ...updatedShapes.filter(s => !groupIds.includes(s.id))],
+        ].slice(-MAX_HISTORY),
+        historyIndex: state.historyIndex + 1,
+      };
+    }),
 });
 
 

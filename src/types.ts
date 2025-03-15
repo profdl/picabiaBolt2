@@ -9,6 +9,12 @@ export interface DragStart {
   initialPositions: Map<string, Position>;
 }
 
+export interface ContextMenuItem {
+  label: string;
+  action: () => void;
+  icon: React.ReactElement;
+}
+
 export interface Shape {
   id: string;
   type: "drawing" | "image" | "text" | "sticky" | "3d" | "sketchpad" | "diffusionSettings" | "group" | "depth" | "edges" | "pose";

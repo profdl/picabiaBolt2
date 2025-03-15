@@ -32,6 +32,8 @@ interface ShapePropertiesToolbarProps {
     deleteShape: (id: string) => void;
     createGroup: (ids: string[]) => void;
     ungroup: (id: string) => void;
+    addToGroup: (shapeIds: string[], groupId: string) => void;
+    removeFromGroup: (shapeIds: string[]) => void;
     mergeImages: (ids: string[]) => Promise<void>;
     onSelectSubject: (e: React.MouseEvent) => void;
     onCrop: (e: React.MouseEvent) => void;
@@ -60,6 +62,23 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
   const areAllImages =
     selectedShapeObjects.length > 1 &&
     selectedShapeObjects.every((s) => s.type === "image");
+
+  // Check if any selected shapes are in a group
+  const selectedShapesInGroup = selectedShapeObjects.some(s => s.groupId);
+
+  // Check if a group is selected
+  const isGroupSelected = selectedShapeObjects.some(s => s.type === "group");
+
+  // Check if we have both a group and non-group shapes selected
+  const hasGroupAndShapes = isGroupSelected && selectedShapeObjects.some(s => s.type !== "group");
+
+  // Get the selected group if one exists
+  const selectedGroup = selectedShapeObjects.find(s => s.type === "group");
+
+  // Get shapes that can be added to the group (non-group shapes)
+  const shapesToAdd = selectedShapeObjects
+    .filter(s => s.type !== "group")
+    .map(s => s.id);
 
   return (
     <div className={styles.container}>
@@ -164,15 +183,10 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
           />
         </Tooltip>
 
-        {selectedShapes.length > 1 && (
+        {selectedShapes.length > 1 && !selectedShapesInGroup && (
           <Tooltip content="Group Shapes" side="top">
             <ToolbarButton
-              icon={
-                <div className="flex items-center gap-1.5">
-                  <Group className="w-4 h-4" />
-                  <span className="text-sm">Group</span>
-                </div>
-              }
+              icon={<Group className="w-4 h-4" />}
               onClick={() => actions.createGroup(selectedShapes)}
               className={styles.button}
             />
@@ -184,6 +198,26 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
             <ToolbarButton
               icon={<Ungroup className="w-4 h-4" />}
               onClick={() => actions.ungroup(shape.id)}
+              className={styles.button}
+            />
+          </Tooltip>
+        )}
+
+        {selectedShapesInGroup && (
+          <Tooltip content="Remove from Group" side="top">
+            <ToolbarButton
+              icon={<Ungroup className="w-4 h-4" />}
+              onClick={() => actions.removeFromGroup(selectedShapes)}
+              className={styles.button}
+            />
+          </Tooltip>
+        )}
+
+        {hasGroupAndShapes && selectedGroup && shapesToAdd.length > 0 && (
+          <Tooltip content="Add to Group" side="top">
+            <ToolbarButton
+              icon={<Group className="w-4 h-4" />}
+              onClick={() => actions.addToGroup(shapesToAdd, selectedGroup.id)}
               className={styles.button}
             />
           </Tooltip>
