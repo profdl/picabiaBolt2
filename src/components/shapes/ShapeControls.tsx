@@ -718,21 +718,37 @@ export function ShapeControls({
                 const groupedShapes = shapes.filter(s => s.groupId === shape.id);
                 
                 if (!checked) {
-                  // When disabling the group, store the current state of sticky notes
-                  const stickyStates: { [shapeId: string]: { isTextPrompt: boolean; isNegativePrompt: boolean } } = {};
+                  // When disabling the group, store the current state of all controls
+                  const controlStates: { [shapeId: string]: {
+                    isTextPrompt: boolean;
+                    isNegativePrompt: boolean;
+                    showImagePrompt: boolean;
+                    showDepth: boolean;
+                    showEdges: boolean;
+                    showPose: boolean;
+                    showContent: boolean;
+                    showSketch: boolean;
+                    useSettings: boolean;
+                  } } = {};
+                  
                   groupedShapes.forEach(groupedShape => {
-                    if (groupedShape.type === "sticky") {
-                      stickyStates[groupedShape.id] = {
-                        isTextPrompt: groupedShape.isTextPrompt || false,
-                        isNegativePrompt: groupedShape.isNegativePrompt || false
-                      };
-                    }
+                    controlStates[groupedShape.id] = {
+                      isTextPrompt: groupedShape.isTextPrompt || false,
+                      isNegativePrompt: groupedShape.isNegativePrompt || false,
+                      showImagePrompt: groupedShape.showImagePrompt || false,
+                      showDepth: groupedShape.showDepth || false,
+                      showEdges: groupedShape.showEdges || false,
+                      showPose: groupedShape.showPose || false,
+                      showContent: groupedShape.showContent || false,
+                      showSketch: groupedShape.showSketch || false,
+                      useSettings: groupedShape.useSettings || false
+                    };
                   });
                   
-                  // Update the group's enabled state and store sticky states
+                  // Update the group's enabled state and store control states
                   updateShape(shape.id, { 
                     groupEnabled: false,
-                    stickyStates
+                    controlStates
                   });
                 } else {
                   // When enabling the group, restore from stored states
@@ -745,51 +761,55 @@ export function ShapeControls({
                   
                   if (checked) {
                     // When enabling the group, restore all toggles to their previous state
+                    const storedState = shape.controlStates?.[groupedShape.id];
+                    if (storedState) {
+                      // Restore sticky note states
+                      if (groupedShape.type === "sticky") {
+                        updates.isTextPrompt = storedState.isTextPrompt;
+                        updates.isNegativePrompt = storedState.isNegativePrompt;
+                        updates.color = storedState.isTextPrompt 
+                          ? "var(--sticky-green)" 
+                          : storedState.isNegativePrompt 
+                            ? "var(--sticky-red)" 
+                            : "var(--sticky-yellow)";
+                      }
+                      
+                      // Restore image/sketchpad states
+                      if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
+                        updates.showImagePrompt = storedState.showImagePrompt;
+                      }
+                      
+                      // Restore diffusion settings
+                      if (groupedShape.type === "diffusionSettings") {
+                        updates.useSettings = storedState.useSettings;
+                      }
+                      
+                      // Restore all show properties
+                      updates.showDepth = storedState.showDepth;
+                      updates.showEdges = storedState.showEdges;
+                      updates.showPose = storedState.showPose;
+                      updates.showContent = storedState.showContent;
+                      updates.showSketch = storedState.showSketch;
+                    }
+                  } else {
+                    // When disabling the group, turn off all toggles
                     if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
-                      updates.showImagePrompt = true;
+                      updates.showImagePrompt = false;
                     }
                     if (groupedShape.type === "sticky") {
-                      // Restore from stored state
-                      const storedState = shape.stickyStates?.[groupedShape.id];
-                      if (storedState) {
-                        if (storedState.isTextPrompt) {
-                          updates.isTextPrompt = true;
-                          updates.isNegativePrompt = false;
-                          updates.color = "var(--sticky-green)";
-                        } else if (storedState.isNegativePrompt) {
-                          updates.isTextPrompt = false;
-                          updates.isNegativePrompt = true;
-                          updates.color = "var(--sticky-red)";
-                        } else {
-                          updates.isTextPrompt = false;
-                          updates.isNegativePrompt = false;
-                          updates.color = "var(--sticky-yellow)";
-                        }
-                      }
+                      updates.isTextPrompt = false;
+                      updates.isNegativePrompt = false;
+                      updates.color = "var(--sticky-yellow)";
                     }
                     if (groupedShape.type === "diffusionSettings") {
-                      updates.useSettings = true;
+                      updates.useSettings = false;
                     }
+                    updates.showDepth = false;
+                    updates.showEdges = false;
+                    updates.showPose = false;
+                    updates.showContent = false;
+                    updates.showSketch = false;
                   }
-                  // When disabling the group, turn off all toggles
-                  if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
-                    updates.showImagePrompt = false;
-                  }
-                  if (groupedShape.type === "sticky") {
-                    updates.isTextPrompt = false;
-                    updates.isNegativePrompt = false;
-                    updates.color = "var(--sticky-yellow)";
-                  }
-                  if (groupedShape.type === "diffusionSettings") {
-                    updates.useSettings = false;
-                  }
-                  
-                  // Toggle all show properties
-                  updates.showDepth = checked;
-                  updates.showEdges = checked;
-                  updates.showPose = checked;
-                  updates.showContent = checked;
-                  updates.showSketch = checked;
                   
                   // Only update if there are properties to toggle
                   if (Object.keys(updates).length > 0) {

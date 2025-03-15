@@ -30,6 +30,17 @@ export interface Shape {
   useSettings?: boolean;
   groupEnabled?: boolean;
   stickyStates?: { [shapeId: string]: { isTextPrompt: boolean; isNegativePrompt: boolean } };
+  controlStates?: { [shapeId: string]: {
+    isTextPrompt: boolean;
+    isNegativePrompt: boolean;
+    showImagePrompt: boolean;
+    showDepth: boolean;
+    showEdges: boolean;
+    showPose: boolean;
+    showContent: boolean;
+    showSketch: boolean;
+    useSettings: boolean;
+  } };
   contentStrength?: number;
   sketchStrength?: number;
   imagePromptStrength?: number;
