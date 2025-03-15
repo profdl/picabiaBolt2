@@ -606,7 +606,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       const group_padding = 20;
       const control_padding = 40; // Extra padding for controls
       const sticky_control_padding = 100; // Extra padding for sticky note controls
-      const group_control_padding = 40; // Extra padding for group controls
+      const group_control_padding = 60; // Increased padding for group controls
 
       // Calculate bounds including controls
       const minX = Math.min(...groupedShapes.map((s) => s.position.x));
@@ -804,7 +804,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
               const group_padding = 20;
               const control_padding = 40;
               const sticky_control_padding = 100;
-              const group_control_padding = 40; // Extra padding for group controls
+              const group_control_padding = 60; // Extra padding for group controls
 
               // Calculate new bounds including the updated shape
               const minX = Math.min(...groupedShapes.map((s) => s.position.x));
@@ -888,6 +888,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       const group_padding = 20;
       const control_padding = 40;
       const sticky_control_padding = 100;
+      const group_control_padding = 60; // Increased padding for group controls
 
       // Calculate new bounds including the added shapes
       const allGroupedShapes = [
@@ -934,7 +935,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           y: minY - group_padding,
         },
         width: maxX - minX + group_padding * 2,
-        height: maxY - minY + group_padding * 2,
+        height: maxY - minY + group_padding * 2 + group_control_padding, // Add extra padding for group controls
       };
 
       // Update shapes with new groupId

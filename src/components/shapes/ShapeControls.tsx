@@ -27,7 +27,7 @@ export function ShapeControls({
 }: ShapeControlsProps) {
   // All hooks must be at the top
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { updateShape, shapes, setSelectedShapes, updateShapes, addShape, generatePreprocessedImage } = useStore();
+  const { updateShape, shapes, setSelectedShapes, selectedShapes, updateShapes, addShape, generatePreprocessedImage } = useStore();
 
   // Add state for tracking pending updates
   const [pendingUpdates, setPendingUpdates] = useState<{ 
@@ -239,7 +239,25 @@ export function ShapeControls({
                               edgesStrength: 0.5,
                               poseStrength: 0.5,
                             };
-                            addShape(newDepthShape);
+                            updateShape(newDepthShape.id, {
+                              ...newDepthShape,
+                              id: newDepthShape.id,
+                              type: "depth",
+                              position: { x: shape.position.x + shape.width + 20, y: shape.position.y },
+                              width: shape.width,
+                              height: shape.height,
+                              rotation: 0,
+                              isUploading: false,
+                              isEditing: false,
+                              color: "transparent",
+                              sourceImageId: shape.id,
+                              showDepth: true,
+                              showEdges: false,
+                              showPose: false,
+                              depthStrength: 0.5,
+                              edgesStrength: 0.5,
+                              poseStrength: 0.5,
+                            });
                             setSelectedShapes([newDepthShape.id]);
                             try {
                               await generatePreprocessedImage(shape.id, "depth");
@@ -311,7 +329,25 @@ export function ShapeControls({
                               edgesStrength: 0.5,
                               poseStrength: 0.5,
                             };
-                            addShape(newEdgesShape);
+                            updateShape(newEdgesShape.id, {
+                              ...newEdgesShape,
+                              id: newEdgesShape.id,
+                              type: "edges",
+                              position: { x: shape.position.x + shape.width + 20, y: shape.position.y },
+                              width: shape.width,
+                              height: shape.height,
+                              rotation: 0,
+                              isUploading: false,
+                              isEditing: false,
+                              color: "transparent",
+                              sourceImageId: shape.id,
+                              showDepth: false,
+                              showEdges: true,
+                              showPose: false,
+                              depthStrength: 0.5,
+                              edgesStrength: 0.5,
+                              poseStrength: 0.5,
+                            });
                             setSelectedShapes([newEdgesShape.id]);
                             try {
                               await generatePreprocessedImage(shape.id, "edge");
@@ -378,7 +414,25 @@ export function ShapeControls({
                               edgesStrength: 0.5,
                               poseStrength: 0.5,
                             };
-                            addShape(newPoseShape);
+                            updateShape(newPoseShape.id, {
+                              ...newPoseShape,
+                              id: newPoseShape.id,
+                              type: "pose",
+                              position: { x: shape.position.x + shape.width + 20, y: shape.position.y },
+                              width: shape.width,
+                              height: shape.height,
+                              rotation: 0,
+                              isUploading: false,
+                              isEditing: false,
+                              color: "transparent",
+                              sourceImageId: shape.id,
+                              showDepth: false,
+                              showEdges: false,
+                              showPose: true,
+                              depthStrength: 0.5,
+                              edgesStrength: 0.5,
+                              poseStrength: 0.5,
+                            });
                             setSelectedShapes([newPoseShape.id]);
                             try {
                               await generatePreprocessedImage(shape.id, "pose");
@@ -750,6 +804,10 @@ export function ShapeControls({
                     groupEnabled: false,
                     controlStates
                   });
+
+                  // Deselect all shapes in the group
+                  const groupedShapeIds = groupedShapes.map(s => s.id);
+                  setSelectedShapes(selectedShapes.filter((id: string) => !groupedShapeIds.includes(id)));
                 } else {
                   // When enabling the group, restore from stored states
                   updateShape(shape.id, { groupEnabled: true });

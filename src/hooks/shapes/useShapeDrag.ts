@@ -14,6 +14,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
   const group_padding = 20;
   const control_padding = 40; // Extra padding for controls
   const sticky_control_padding = 100; // Extra padding for sticky note controls
+  const group_control_padding = 60; // Increased padding for group controls
 
   useEffect(() => {
     if (!dragStart || isEditing) return;
@@ -83,7 +84,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
               y: minY - group_padding,
             },
             width: maxX - minX + group_padding * 2,
-            height: maxY - minY + group_padding * 2,
+            height: maxY - minY + group_padding * 2 + group_control_padding,
           });
         }
       }
