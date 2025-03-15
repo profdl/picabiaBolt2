@@ -581,83 +581,10 @@ export const generationHandlerSlice: StateCreator<
         prediction_id: prediction_id,
         status: "generating",
         updated_at: new Date().toISOString(),
-        image_index: 0,
-        model: activeSettings.model || "juggernautXL_v9",
-        output_format: activeSettings.outputFormat || "png",
-        output_quality: activeSettings.outputQuality || 100,
-        randomise_seeds: activeSettings.randomiseSeeds || false,
-
-        originalUrl: shapes
-          .map((shape) => shape.imageUrl)
-          .filter(Boolean)
-          .join(","),
-        depthMapUrl: shapes
-          .filter((shape) => shape.showDepth)
-          .map((shape) => shape.depthPreviewUrl)
-          .filter(Boolean)
-          .join(","),
-        edgeMapUrl: shapes
-          .filter((shape) => shape.showEdges)
-          .map((shape) => shape.edgePreviewUrl)
-          .filter(Boolean)
-          .join(","),
-        poseMapUrl: shapes
-          .filter((shape) => shape.showPose)
-          .map((shape) => shape.posePreviewUrl)
-          .filter(Boolean)
-          .join(","),
-        sketchMapUrl: shapes
-          .filter((shape) => shape.showSketch)
-          .map((shape) => shape.imageUrl)
-          .filter(Boolean)
-          .join(","),
-        imagePromptMapUrl: shapes
-          .filter((shape) => shape.showImagePrompt)
-          .map((shape) => shape.imageUrl)
-          .filter(Boolean)
-          .join(","),
-        depth_scale: Math.max(
-          ...shapes
-            .filter((shape) => shape.showDepth)
-            .map((shape) => shape.depthStrength || 0.5)
-        ),
-        edge_scale: Math.max(
-          ...shapes
-            .filter((shape) => shape.showEdges)
-            .map((shape) => shape.edgesStrength || 0.5)
-        ),
-        pose_scale: Math.max(
-          ...shapes
-            .filter((shape) => shape.showPose)
-            .map((shape) => shape.poseStrength || 0.5)
-        ),
-        sketch_scale: Math.max(
-          ...shapes
-            .filter((shape) => shape.showSketch)
-            .map((shape) => shape.sketchStrength || 0.5)
-        ),
-        image_prompt_scale: Math.max(
-          ...shapes
-            .filter((shape) => shape.showImagePrompt)
-            .map((shape) => shape.imagePromptStrength || 0.5)
-        ),
         generated_01: "",
         generated_02: "",
         generated_03: "",
         generated_04: "",
-        num_inference_steps: activeSettings.steps,
-        prompt_negative: negativePrompt,
-        width: activeSettings.outputWidth || 1360,
-        height: activeSettings.outputHeight || 768,
-        num_outputs: 1,
-        scheduler: activeSettings.scheduler,
-        guidance_scale: activeSettings.guidanceScale,
-        prompt_strength: 1.0,
-        seed: activeSettings.seed,
-        refine: "",
-        refine_steps: 0,
-        lora_scale: 1.0,
-        lora_weights: "",
       };
 
       const { error: dbError } = await supabase

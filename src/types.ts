@@ -96,4 +96,14 @@ export interface Shape {
     position: { x: number; y: number };
     color: string;
   };
+}
+
+export interface SavedImage {
+  id: string;
+  user_id: string;
+  image_url: string;
+  prompt: string;
+  aspect_ratio: number;
+  created_at: string;
+  // ... existing code ...
 } 
