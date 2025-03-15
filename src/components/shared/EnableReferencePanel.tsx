@@ -32,14 +32,14 @@ export function EnableReferencePanel({
 
   return (
     <div
-      className={`${styles.sidePanel.container}`}
-      style={{ minWidth: "160px", width: "fit-content" }}
+      className={`${styles.sidePanel.container} ${!checked && 'h-[34px]'} p-0`}
+      style={{ minWidth: "140px", width: "fit-content" }}
       data-shape-control="true"
       onMouseDown={onMouseDown}
       onClick={onClick}
     >
-      <div className="flex flex-col gap-1.5 pl-1 pr-2">
-        <div className={styles.sidePanel.group}>
+      <div className="h-[34px] flex">
+        <div className={`${styles.sidePanel.group} w-full px-2 -mt-[14px]`}>
           <MiniToggle
             id={id}
             checked={checked}
@@ -47,7 +47,9 @@ export function EnableReferencePanel({
             label={label}
           />
         </div>
-        <div className="flex items-center w-full -ml-1">
+      </div>
+      {checked && (
+        <div className="flex items-center w-full pl-[2px] pr-2 -mt-[6px]">
           <SmallSlider
             value={sliderValue}
             onChange={onSliderChange}
@@ -57,7 +59,7 @@ export function EnableReferencePanel({
             label="Strength"
           />
         </div>
-      </div>
+      )}
     </div>
   );
 } 
