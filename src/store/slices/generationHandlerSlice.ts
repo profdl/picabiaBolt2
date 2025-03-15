@@ -156,32 +156,34 @@ export const generationHandlerSlice: StateCreator<
       guidanceScale: 4.5,
       scheduler: "dpmpp_2m_sde",
       seed: Math.floor(Math.random() * 32767),
-      outputWidth: null,  // Changed to null to ensure we calculate from control shapes
-      outputHeight: null, // Changed to null to ensure we calculate from control shapes
+      outputWidth: null,
+      outputHeight: null,
       model: "juggernautXL_v9",
       outputFormat: "png",
       outputQuality: 100,
       randomiseSeeds: true,
     };
 
-    // Calculate dimensions based on aspect ratio of enabled control shapes
-    const avgAspectRatio = calculateAverageAspectRatio(shapes);
-    if (avgAspectRatio) {
-      // Target approximately 1 megapixel area
-      const targetArea = 1024 * 1024;
-      let width = Math.round(Math.sqrt(targetArea * avgAspectRatio));
-      let height = Math.round(width / avgAspectRatio);
-      
-      // Ensure dimensions are multiples of 8
-      width = Math.round(width / 8) * 8;
-      height = Math.round(height / 8) * 8;
-      
-      activeSettings.outputWidth = width;
-      activeSettings.outputHeight = height;
-    } else {
-      // Default to 1024x1024 if no control shapes are enabled
-      activeSettings.outputWidth = 1024;
-      activeSettings.outputHeight = 1024;
+    // Only calculate dimensions from control shapes if no DiffusionSettingsPanel is enabled
+    if (!activeSettings.outputWidth || !activeSettings.outputHeight) {
+      const avgAspectRatio = calculateAverageAspectRatio(shapes);
+      if (avgAspectRatio) {
+        // Target approximately 1 megapixel area
+        const targetArea = 1024 * 1024;
+        let width = Math.round(Math.sqrt(targetArea * avgAspectRatio));
+        let height = Math.round(width / avgAspectRatio);
+        
+        // Ensure dimensions are multiples of 8
+        width = Math.round(width / 8) * 8;
+        height = Math.round(height / 8) * 8;
+        
+        activeSettings.outputWidth = width;
+        activeSettings.outputHeight = height;
+      } else {
+        // Default to 1024x1024 if no control shapes are enabled
+        activeSettings.outputWidth = 1024;
+        activeSettings.outputHeight = 1024;
+      }
     }
 
     if (!activeSettings) {
