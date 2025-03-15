@@ -33,7 +33,7 @@ export function EnableReferencePanel({
   return (
     <div
       className={`${styles.sidePanel.container} ${!checked && 'h-[34px]'} p-0`}
-      style={{ minWidth: "140px", width: "fit-content" }}
+      style={{ minWidth: "140px", width: "max-content" }}
       data-shape-control="true"
       onMouseDown={onMouseDown}
       onClick={onClick}

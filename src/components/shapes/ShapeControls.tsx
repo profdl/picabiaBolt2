@@ -131,7 +131,7 @@ export function ShapeControls({
   const showManipulationControls = isSelected;
 
   // Now we can safely return early if needed
-  if (!showControlPanel && !shape.isNew) return null;
+  if (!showControlPanel && !shape.isNew && shape.type !== "group") return null;
 
   return (
     <>
@@ -159,7 +159,7 @@ export function ShapeControls({
         {/* Bottom Controls Container */}
         {(shape.type === "image" || shape.type === "sketchpad") && (isSelected || shape.showImagePrompt) && (
           <div
-            className="absolute left-2 right-0 top-full mt-1"
+            className="absolute left-2 top-full mt-1"
             data-shape-control="true"
             style={{ 
               zIndex: 1000, 
@@ -693,6 +693,114 @@ export function ShapeControls({
             onMouseDown={preventEvent}
             onClick={preventEvent}
           />
+        </div>
+      )}
+
+      {shape.type === "group" && (
+        <div
+          className={`absolute left-1/2 -bottom-10 transform -translate-x-1/2 ${styles.sidePanel.container}`}
+          data-shape-control="true"
+          style={{ zIndex: 1000, pointerEvents: "all", width: "160px" }}
+          onMouseDown={preventEvent}
+          onClick={preventEvent}
+        >
+          <div 
+            className={styles.sidePanel.group}
+            data-shape-control="true"
+            onMouseDown={preventEvent}
+            onClick={preventEvent}
+          >
+            <MiniToggle
+              id={`group-enabled-${shape.id}`}
+              checked={shape.groupEnabled || false}
+              onChange={(checked) => {
+                // Get all shapes in this group
+                const groupedShapes = shapes.filter(s => s.groupId === shape.id);
+                
+                if (!checked) {
+                  // When disabling the group, store the current state of sticky notes
+                  const stickyStates: { [shapeId: string]: { isTextPrompt: boolean; isNegativePrompt: boolean } } = {};
+                  groupedShapes.forEach(groupedShape => {
+                    if (groupedShape.type === "sticky") {
+                      stickyStates[groupedShape.id] = {
+                        isTextPrompt: groupedShape.isTextPrompt || false,
+                        isNegativePrompt: groupedShape.isNegativePrompt || false
+                      };
+                    }
+                  });
+                  
+                  // Update the group's enabled state and store sticky states
+                  updateShape(shape.id, { 
+                    groupEnabled: false,
+                    stickyStates
+                  });
+                } else {
+                  // When enabling the group, restore from stored states
+                  updateShape(shape.id, { groupEnabled: true });
+                }
+                
+                // Toggle all enabled properties of shapes in the group
+                groupedShapes.forEach(groupedShape => {
+                  const updates: Partial<Shape> = {};
+                  
+                  if (checked) {
+                    // When enabling the group, restore all toggles to their previous state
+                    if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
+                      updates.showImagePrompt = true;
+                    }
+                    if (groupedShape.type === "sticky") {
+                      // Restore from stored state
+                      const storedState = shape.stickyStates?.[groupedShape.id];
+                      if (storedState) {
+                        if (storedState.isTextPrompt) {
+                          updates.isTextPrompt = true;
+                          updates.isNegativePrompt = false;
+                          updates.color = "var(--sticky-green)";
+                        } else if (storedState.isNegativePrompt) {
+                          updates.isTextPrompt = false;
+                          updates.isNegativePrompt = true;
+                          updates.color = "var(--sticky-red)";
+                        } else {
+                          updates.isTextPrompt = false;
+                          updates.isNegativePrompt = false;
+                          updates.color = "var(--sticky-yellow)";
+                        }
+                      }
+                    }
+                    if (groupedShape.type === "diffusionSettings") {
+                      updates.useSettings = true;
+                    }
+                  } else {
+                    // When disabling the group, turn off all toggles
+                    if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
+                      updates.showImagePrompt = false;
+                    }
+                    if (groupedShape.type === "sticky") {
+                      updates.isTextPrompt = false;
+                      updates.isNegativePrompt = false;
+                      updates.color = "var(--sticky-yellow)";
+                    }
+                    if (groupedShape.type === "diffusionSettings") {
+                      updates.useSettings = false;
+                    }
+                  }
+                  
+                  // Toggle all show properties
+                  updates.showDepth = checked;
+                  updates.showEdges = checked;
+                  updates.showPose = checked;
+                  updates.showContent = checked;
+                  updates.showSketch = checked;
+                  
+                  // Only update if there are properties to toggle
+                  if (Object.keys(updates).length > 0) {
+                    updateShape(groupedShape.id, updates);
+                  }
+                });
+              }}
+              label="Enable All"
+            />
+          </div>
         </div>
       )}
     </>

@@ -5,7 +5,8 @@ export const getShapeStyles = (
   isSelected: boolean,
   shapes: Shape[],
   tool: "select" | "pan" | "pen" | "brush" | "eraser",
-  isEditing?: boolean
+  isEditing?: boolean,
+  isDark: boolean = false
 ): React.CSSProperties => {
   return {
     position: "absolute",
@@ -15,7 +16,9 @@ export const getShapeStyles = (
     height: shape.height,
     backgroundColor:
       shape.type === "group"
-        ? "white"
+        ? isDark 
+          ? "#2c2c2c"  // Dark mode group background
+          : "#f5f5f5"  // Light mode group background
         : shape.type === "image" || shape.color === "transparent"
         ? "transparent"
         : shape.color,
@@ -32,7 +35,9 @@ export const getShapeStyles = (
     cursor: tool === "select" ? "move" : "default",
     border:
       shape.type === "group"
-        ? "2px dashed #9CA3AF" // Gray dashed border for groups
+        ? isDark
+          ? "2px dashed #404040"  // Dark mode group border
+          : "2px dashed #9CA3AF"  // Light mode group border
         : shape.type === "sticky"
         ? isEditing
           ? "3px solid rgba(128, 128, 255, 1)"
@@ -47,7 +52,6 @@ export const getShapeStyles = (
     alignItems: "center",
     justifyContent: "center",
     userSelect: "none",
-    fontSize: shape.fontSize || 16,
     padding: "8px",
     boxShadow:
       shape.type === "sticky" ? "0 4px 6px rgba(0, 0, 0, 0.1)" : undefined,

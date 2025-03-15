@@ -3,6 +3,12 @@ export interface Position {
   y: number;
 }
 
+export interface DragStart {
+  x: number;
+  y: number;
+  initialPositions: Map<string, Position>;
+}
+
 export interface Shape {
   id: string;
   type: "drawing" | "image" | "text" | "sticky" | "3d" | "sketchpad" | "diffusionSettings" | "group" | "depth" | "edges" | "pose";
@@ -16,6 +22,8 @@ export interface Shape {
   isUploading?: boolean;
   model?: string;
   useSettings?: boolean;
+  groupEnabled?: boolean;
+  stickyStates?: { [shapeId: string]: { isTextPrompt: boolean; isNegativePrompt: boolean } };
   contentStrength?: number;
   sketchStrength?: number;
   imagePromptStrength?: number;

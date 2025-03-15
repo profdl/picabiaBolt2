@@ -602,13 +602,44 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       const groupId = Math.random().toString(36).substr(2, 9);
       const groupedShapes = state.shapes.filter((s) => shapeIds.includes(s.id));
       const group_padding = 20;
+      const control_padding = 40; // Extra padding for controls
+      const sticky_control_padding = 100; // Extra padding for sticky note controls
+
+      // Calculate bounds including controls
       const minX = Math.min(...groupedShapes.map((s) => s.position.x));
       const minY = Math.min(...groupedShapes.map((s) => s.position.y));
       const maxX = Math.max(
-        ...groupedShapes.map((s) => s.position.x + s.width)
+        ...groupedShapes.map((s) => {
+          // Add extra width for controls that appear to the right
+          const hasRightControls = s.type === "image" || s.type === "sketchpad";
+          return s.position.x + s.width + (hasRightControls ? control_padding : 0);
+        })
       );
       const maxY = Math.max(
-        ...groupedShapes.map((s) => s.position.y + s.height)
+        ...groupedShapes.map((s) => {
+          // Add extra height for controls that appear below
+          const hasBottomControls = 
+            s.type === "image" || 
+            s.type === "sketchpad" || 
+            s.type === "depth" || 
+            s.type === "edges" || 
+            s.type === "pose" || 
+            s.type === "diffusionSettings";
+
+          // Check if sticky note has controls visible
+          const hasStickyControls = 
+            s.type === "sticky" && (
+              // When the shape is selected, it shows controls
+              state.selectedShapes.includes(s.id) ||
+              // When text/negative prompt is enabled
+              s.isTextPrompt || 
+              s.isNegativePrompt || 
+              s.showPrompt || 
+              s.showNegativePrompt
+            );
+
+          return s.position.y + s.height + (hasStickyControls ? sticky_control_padding : hasBottomControls ? control_padding : 0);
+        })
       );
 
       const groupShape: Shape = {
@@ -626,6 +657,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         model: "",
         useSettings: false,
         isEditing: false,
+        groupEnabled: true,
         depthStrength: 0.75,
         edgesStrength: 0.75,
         contentStrength: 0.75,
@@ -755,8 +787,8 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
     }),
 
   updateShape: (id: string, props: Partial<Shape>) =>
-    set((state) => ({
-      shapes: state.shapes.map((shape) => {
+    set((state) => {
+      const newShapes = state.shapes.map((shape) => {
         if (shape.id === id) {
           // If this is a sketchpad with an existing assetId,
           // update the existing asset instead of creating new
@@ -767,14 +799,87 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
               ...props,
             };
           }
-          return {
+
+          const updatedShape = {
             ...shape,
             ...props,
           };
+
+          // If this shape is part of a group, we need to update the group's size
+          if (shape.groupId) {
+            const groupShape = state.shapes.find((s) => s.id === shape.groupId);
+            if (groupShape) {
+              const groupedShapes = state.shapes.filter((s) => s.groupId === shape.groupId);
+              const group_padding = 20;
+              const control_padding = 40;
+              const sticky_control_padding = 100;
+
+              // Calculate new bounds including the updated shape
+              const minX = Math.min(...groupedShapes.map((s) => s.position.x));
+              const minY = Math.min(...groupedShapes.map((s) => s.position.y));
+              const maxX = Math.max(
+                ...groupedShapes.map((s) => {
+                  const hasRightControls = s.type === "image" || s.type === "sketchpad";
+                  return s.position.x + s.width + (hasRightControls ? control_padding : 0);
+                })
+              );
+              const maxY = Math.max(
+                ...groupedShapes.map((s) => {
+                  const hasBottomControls = 
+                    s.type === "image" || 
+                    s.type === "sketchpad" || 
+                    s.type === "depth" || 
+                    s.type === "edges" || 
+                    s.type === "pose" || 
+                    s.type === "diffusionSettings";
+
+                  // Check if sticky note has controls visible
+                  const hasStickyControls = 
+                    s.type === "sticky" && (
+                      // When the shape is selected, it shows controls
+                      state.selectedShapes.includes(s.id) ||
+                      // When text/negative prompt is enabled
+                      s.isTextPrompt || 
+                      s.isNegativePrompt || 
+                      s.showPrompt || 
+                      s.showNegativePrompt || 
+                      // When the shape is being updated with new control states
+                      (s.id === id && (
+                        props.isTextPrompt || 
+                        props.isNegativePrompt || 
+                        props.showPrompt || 
+                        props.showNegativePrompt
+                      ))
+                    );
+
+                  return s.position.y + s.height + (hasStickyControls ? sticky_control_padding : hasBottomControls ? control_padding : 0);
+                })
+              );
+
+              // Update the group shape with new dimensions
+              state.shapes = state.shapes.map((s) =>
+                s.id === shape.groupId
+                  ? {
+                      ...s,
+                      position: {
+                        x: minX - group_padding,
+                        y: minY - group_padding,
+                      },
+                      width: maxX - minX + group_padding * 2,
+                      height: maxY - minY + group_padding * 2,
+                    }
+                  : s
+              );
+            }
+          }
+
+          return updatedShape;
         }
         return shape;
-      }),
-    })),
+      });
+
+      return { shapes: newShapes };
+    }),
 
   update3DSettings: (id: string, settings: Partial<Shape>) =>
     set((state) => ({

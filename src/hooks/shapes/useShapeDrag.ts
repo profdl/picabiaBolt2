@@ -12,6 +12,8 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
   const [dragStart, setDragStart] = useState<DragStart | null>(null);
   const { updateShape, shapes } = useStore();
   const group_padding = 20;
+  const control_padding = 40; // Extra padding for controls
+  const sticky_control_padding = 100; // Extra padding for sticky note controls
 
   useEffect(() => {
     if (!dragStart || isEditing) return;
@@ -52,8 +54,28 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
           const groupedShapes = shapes.filter((s) => s.groupId === shape.groupId);
           const minX = Math.min(...groupedShapes.map((s) => s.position.x));
           const minY = Math.min(...groupedShapes.map((s) => s.position.y));
-          const maxX = Math.max(...groupedShapes.map((s) => s.position.x + s.width));
-          const maxY = Math.max(...groupedShapes.map((s) => s.position.y + s.height));
+          const maxX = Math.max(
+            ...groupedShapes.map((s) => {
+              // Add extra width for controls that appear to the right
+              const hasRightControls = s.type === "image" || s.type === "sketchpad";
+              return s.position.x + s.width + (hasRightControls ? control_padding : 0);
+            })
+          );
+          const maxY = Math.max(
+            ...groupedShapes.map((s) => {
+              // Add extra height for controls that appear below
+              const hasBottomControls = 
+                s.type === "image" || 
+                s.type === "sketchpad" || 
+                s.type === "depth" || 
+                s.type === "edges" || 
+                s.type === "pose" || 
+                s.type === "diffusionSettings";
+              const hasStickyControls = 
+                s.type === "sticky" && (s.isTextPrompt || s.isNegativePrompt || s.showPrompt || s.showNegativePrompt);
+              return s.position.y + s.height + (hasStickyControls ? sticky_control_padding : hasBottomControls ? control_padding : 0);
+            })
+          );
 
           updateShape(shape.groupId, {
             position: {
