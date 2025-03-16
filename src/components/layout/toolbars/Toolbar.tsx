@@ -20,7 +20,6 @@ import { useToolbarShapes } from "../../../hooks/toolbar/useToolbarShapes";
 import { useToolbarGenerate } from "../../../hooks/toolbar/useToolbarGenerate";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { useShapeAdder } from "../../../hooks/shapes/useShapeAdder";
-import { Brush } from "lucide-react";
 import { Shape } from "../../../types";
 
 interface ToolbarProps {
@@ -475,38 +474,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
           {/* Tools Section */}
           <div className={styles.divider} />
-
-          <Tooltip content="Brush Tool" side="bottom">
-            <ToolbarButton
-              icon={<Brush />}
-              active={tool === "brush"}
-              onClick={() => {
-                setTool("brush");
-                setCurrentColor("#ffffff");
-              }}
-              title="Brush Tool (B)"
-              className={`${styles.button.base} ${
-                tool === "brush" ? styles.button.active : ""
-              }`}
-            />
-          </Tooltip>
-
-          {/* <Tooltip content="Eraser Tool" side="bottom">
-            <ToolbarButton
-              icon={<Eraser />}
-              active={tool === "eraser"}
-              onClick={() => {
-                setTool("eraser");
-                setCurrentColor("#000000");
-              }}
-              title="Eraser Tool (E)"
-              className={`${styles.button.base} ${
-                tool === "eraser" ? styles.button.active : ""
-              }`}
-            />
-          </Tooltip> */}
-
-          {/* <div className={styles.divider} /> */}
 
           <ToolbarButton
             icon={<MousePointer />}

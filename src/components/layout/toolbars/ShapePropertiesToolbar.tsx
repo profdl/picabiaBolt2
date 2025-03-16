@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -13,11 +13,13 @@ import {
   Download,
   Mountain,
   Box,
+  Brush,
 } from "lucide-react";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { Shape } from "../../../types";
 import { Tooltip } from "../../shared/Tooltip";
 import { ToolbarButton } from "../../shared/ToolbarButton";
+import { useStore } from "../../../store";
 
 interface ShapePropertiesToolbarProps {
   shape: Shape;
@@ -48,12 +50,18 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
   shapes,
   actions,
 }) => {
+  const { tool, setTool, setCurrentColor } = useStore();
+  const [showArrangeMenu, setShowArrangeMenu] = useState(false);
   const styles = {
     container:
       "absolute bottom-full mb-2.5 left-1/2 transform -translate-x-1/2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1.5",
     buttonGroup: "flex items-center gap-1",
     button: useThemeClass(["toolbar", "button", "base"]),
     divider: "w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1.5",
+    arrangeMenu: {
+      container: "absolute bottom-full mb-1 left-0 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1 min-w-[160px]",
+      item: "flex items-center gap-2 w-full px-2 py-1.5 text-sm text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded transition-colors",
+    },
   };
 
   const selectedShapeObjects = shapes.filter((s) =>
@@ -87,37 +95,88 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
           Arrange:
         </span> */}
 
-        <Tooltip content="Send Backward" side="top">
-          <ToolbarButton
-            icon={<ArrowDown className="w-4 h-4" />}
-            onClick={actions.sendBackward}
-            className={styles.button}
-          />
-        </Tooltip>
+        {/* Add brush tool button for image and sketchpad shapes */}
+        {(shape.type === "image" || shape.type === "sketchpad") && (
+          <>
+            <Tooltip content="Brush Tool (B)" side="top">
+              <ToolbarButton
+                icon={<Brush />}
+                active={tool === "brush"}
+                onClick={() => {
+                  setTool("brush");
+                  setCurrentColor("#ffffff");
+                }}
+                className={`${styles.button} ${
+                  tool === "brush" ? "bg-neutral-200 dark:bg-neutral-600" : ""
+                }`}
+              />
+            </Tooltip>
+            <div className={styles.divider} />
+          </>
+        )}
 
-        <Tooltip content="Send Forward" side="top">
-          <ToolbarButton
-            icon={<ArrowUp className="w-4 h-4" />}
-            onClick={actions.sendForward}
-            className={styles.button}
-          />
-        </Tooltip>
-
-        <Tooltip content="Send to Back" side="top">
-          <ToolbarButton
-            icon={<MoveDown className="w-4 h-4" />}
-            onClick={actions.sendToBack}
-            className={styles.button}
-          />
-        </Tooltip>
-
-        <Tooltip content="Send to Front" side="top">
-          <ToolbarButton
-            icon={<MoveUp className="w-4 h-4" />}
-            onClick={actions.sendToFront}
-            className={styles.button}
-          />
-        </Tooltip>
+        {/* Arrange Menu Button */}
+        <div className="relative">
+          <Tooltip content="Arrange" side="top">
+            <ToolbarButton
+              icon={<Layers className="w-4 h-4" />}
+              onClick={() => setShowArrangeMenu(!showArrangeMenu)}
+              active={showArrangeMenu}
+              className={styles.button}
+            />
+          </Tooltip>
+          
+          {showArrangeMenu && (
+            <>
+              <div
+                className="fixed inset-0"
+                onClick={() => setShowArrangeMenu(false)}
+              />
+              <div className={styles.arrangeMenu.container}>
+                <button
+                  className={styles.arrangeMenu.item}
+                  onClick={() => {
+                    actions.sendBackward();
+                    setShowArrangeMenu(false);
+                  }}
+                >
+                  <ArrowDown className="w-4 h-4" />
+                  Send Backward
+                </button>
+                <button
+                  className={styles.arrangeMenu.item}
+                  onClick={() => {
+                    actions.sendForward();
+                    setShowArrangeMenu(false);
+                  }}
+                >
+                  <ArrowUp className="w-4 h-4" />
+                  Send Forward
+                </button>
+                <button
+                  className={styles.arrangeMenu.item}
+                  onClick={() => {
+                    actions.sendToBack();
+                    setShowArrangeMenu(false);
+                  }}
+                >
+                  <MoveDown className="w-4 h-4" />
+                  Send to Back
+                </button>
+                <button
+                  className={styles.arrangeMenu.item}
+                  onClick={() => {
+                    actions.sendToFront();
+                    setShowArrangeMenu(false);
+                  }}
+                >
+                  <MoveUp className="w-4 h-4" />
+                  Send to Front
+                </button>
+              </div>
+            </>
+          )}
+        </div>
 
         <div className={styles.divider} />
 
