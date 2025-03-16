@@ -774,29 +774,56 @@ export function ShapeControls({
                 if (!checked) {
                   // When disabling the group, store the current state of all controls
                   const controlStates: { [shapeId: string]: {
-                    isTextPrompt: boolean;
-                    isNegativePrompt: boolean;
-                    showImagePrompt: boolean;
-                    showDepth: boolean;
-                    showEdges: boolean;
-                    showPose: boolean;
-                    showContent: boolean;
-                    showSketch: boolean;
-                    useSettings: boolean;
+                    isTextPrompt?: boolean;
+                    isNegativePrompt?: boolean;
+                    showImagePrompt?: boolean;
+                    showDepth?: boolean;
+                    showEdges?: boolean;
+                    showPose?: boolean;
+                    showContent?: boolean;
+                    showSketch?: boolean;
+                    useSettings?: boolean;
+                    color?: string;
                   } } = {};
                   
                   groupedShapes.forEach(groupedShape => {
-                    controlStates[groupedShape.id] = {
-                      isTextPrompt: groupedShape.isTextPrompt || false,
-                      isNegativePrompt: groupedShape.isNegativePrompt || false,
-                      showImagePrompt: groupedShape.showImagePrompt || false,
-                      showDepth: groupedShape.showDepth || false,
-                      showEdges: groupedShape.showEdges || false,
-                      showPose: groupedShape.showPose || false,
-                      showContent: groupedShape.showContent || false,
-                      showSketch: groupedShape.showSketch || false,
-                      useSettings: groupedShape.useSettings || false
-                    };
+                    // Only store states that are actually enabled
+                    const states: {
+                      isTextPrompt?: boolean;
+                      isNegativePrompt?: boolean;
+                      showImagePrompt?: boolean;
+                      showDepth?: boolean;
+                      showEdges?: boolean;
+                      showPose?: boolean;
+                      showContent?: boolean;
+                      showSketch?: boolean;
+                      useSettings?: boolean;
+                      color?: string;
+                    } = {};
+                    
+                    if (groupedShape.type === "sticky") {
+                      if (groupedShape.isTextPrompt) states.isTextPrompt = true;
+                      if (groupedShape.isNegativePrompt) states.isNegativePrompt = true;
+                      if (groupedShape.color) states.color = groupedShape.color;
+                    }
+                    
+                    if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
+                      if (groupedShape.showImagePrompt) states.showImagePrompt = true;
+                    }
+                    
+                    if (groupedShape.type === "diffusionSettings") {
+                      if (groupedShape.useSettings) states.useSettings = true;
+                    }
+                    
+                    if (groupedShape.showDepth) states.showDepth = true;
+                    if (groupedShape.showEdges) states.showEdges = true;
+                    if (groupedShape.showPose) states.showPose = true;
+                    if (groupedShape.showContent) states.showContent = true;
+                    if (groupedShape.showSketch) states.showSketch = true;
+                    
+                    if (Object.keys(states).length > 0) {
+                      controlStates[groupedShape.id] = states;
+                    }
                   });
                   
                   // Update the group's enabled state and store control states
@@ -816,39 +843,29 @@ export function ShapeControls({
                 // Toggle all enabled properties of shapes in the group
                 groupedShapes.forEach(groupedShape => {
                   const updates: Partial<Shape> = {};
+                  const storedState = shape.controlStates?.[groupedShape.id];
                   
-                  if (checked) {
-                    // When enabling the group, restore all toggles to their previous state
-                    const storedState = shape.controlStates?.[groupedShape.id];
-                    if (storedState) {
-                      // Restore sticky note states
-                      if (groupedShape.type === "sticky") {
-                        updates.isTextPrompt = storedState.isTextPrompt;
-                        updates.isNegativePrompt = storedState.isNegativePrompt;
-                        updates.color = storedState.isTextPrompt 
-                          ? "var(--sticky-green)" 
-                          : storedState.isNegativePrompt 
-                            ? "var(--sticky-red)" 
-                            : "var(--sticky-yellow)";
-                      }
-                      
-                      // Restore image/sketchpad states
-                      if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
-                        updates.showImagePrompt = storedState.showImagePrompt;
-                      }
-                      
-                      // Restore diffusion settings
-                      if (groupedShape.type === "diffusionSettings") {
-                        updates.useSettings = storedState.useSettings;
-                      }
-                      
-                      // Restore all show properties
-                      updates.showDepth = storedState.showDepth;
-                      updates.showEdges = storedState.showEdges;
-                      updates.showPose = storedState.showPose;
-                      updates.showContent = storedState.showContent;
-                      updates.showSketch = storedState.showSketch;
+                  if (checked && storedState) {
+                    // When enabling the group, restore only the stored states
+                    if (groupedShape.type === "sticky") {
+                      if (storedState.isTextPrompt) updates.isTextPrompt = true;
+                      if (storedState.isNegativePrompt) updates.isNegativePrompt = true;
+                      if (storedState.color) updates.color = storedState.color;
                     }
+                    
+                    if ((groupedShape.type === "image" || groupedShape.type === "sketchpad") && storedState.showImagePrompt) {
+                      updates.showImagePrompt = true;
+                    }
+                    
+                    if (groupedShape.type === "diffusionSettings" && storedState.useSettings) {
+                      updates.useSettings = true;
+                    }
+                    
+                    if (storedState.showDepth) updates.showDepth = true;
+                    if (storedState.showEdges) updates.showEdges = true;
+                    if (storedState.showPose) updates.showPose = true;
+                    if (storedState.showContent) updates.showContent = true;
+                    if (storedState.showSketch) updates.showSketch = true;
                   } else {
                     // When disabling the group, turn off all toggles
                     if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {

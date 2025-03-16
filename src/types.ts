@@ -40,6 +40,7 @@ export interface Shape {
     showContent: boolean;
     showSketch: boolean;
     useSettings: boolean;
+    color?: string;
   } };
   contentStrength?: number;
   sketchStrength?: number;

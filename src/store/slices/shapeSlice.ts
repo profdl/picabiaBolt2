@@ -603,10 +603,10 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
     set((state) => {
       const groupId = Math.random().toString(36).substr(2, 9);
       const groupedShapes = state.shapes.filter((s) => shapeIds.includes(s.id));
-      const group_padding = 20;
-      const control_padding = 40; // Extra padding for controls
-      const sticky_control_padding = 100; // Extra padding for sticky note controls
-      const group_control_padding = 60; // Increased padding for group controls
+      const group_padding = 16;
+      const control_padding = 32;
+      const sticky_control_padding = 80;
+      const group_control_padding = 48;
 
       // Calculate bounds including controls
       const minX = Math.min(...groupedShapes.map((s) => s.position.x));
@@ -801,10 +801,10 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             const groupShape = state.shapes.find((s) => s.id === shape.groupId);
             if (groupShape) {
               const groupedShapes = state.shapes.filter((s) => s.groupId === shape.groupId);
-              const group_padding = 20;
-              const control_padding = 40;
-              const sticky_control_padding = 100;
-              const group_control_padding = 60; // Extra padding for group controls
+              const group_padding = 16;
+              const control_padding = 32;
+              const sticky_control_padding = 80;
+              const group_control_padding = 48;
 
               // Calculate new bounds including the updated shape
               const minX = Math.min(...groupedShapes.map((s) => s.position.x));
@@ -885,10 +885,10 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       if (!groupShape || groupShape.type !== "group") return state;
 
       const shapesToAdd = state.shapes.filter((s) => shapeIds.includes(s.id));
-      const group_padding = 20;
-      const control_padding = 40;
-      const sticky_control_padding = 100;
-      const group_control_padding = 60; // Increased padding for group controls
+      const group_padding = 16;
+      const control_padding = 32;
+      const sticky_control_padding = 80;
+      const group_control_padding = 48;
 
       // Calculate new bounds including the added shapes
       const allGroupedShapes = [
@@ -971,9 +971,9 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         const remainingGroupedShapes = updatedShapes.filter(s => s.groupId === groupId);
         if (remainingGroupedShapes.length === 0) return null;
 
-        const group_padding = 20;
-        const control_padding = 40;
-        const sticky_control_padding = 100;
+        const group_padding = 16;
+        const control_padding = 32;
+        const sticky_control_padding = 80;
 
         const minX = Math.min(...remainingGroupedShapes.map((s) => s.position.x));
         const minY = Math.min(...remainingGroupedShapes.map((s) => s.position.y));

@@ -11,10 +11,10 @@ interface UseShapeDragProps {
 export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
   const [dragStart, setDragStart] = useState<DragStart | null>(null);
   const { updateShape, shapes } = useStore();
-  const group_padding = 20;
-  const control_padding = 40; // Extra padding for controls
-  const sticky_control_padding = 100; // Extra padding for sticky note controls
-  const group_control_padding = 60; // Increased padding for group controls
+  const group_padding = 16;
+  const control_padding = 32;
+  const sticky_control_padding = 80;
+  const group_control_padding = 48;
 
   useEffect(() => {
     if (!dragStart || isEditing) return;

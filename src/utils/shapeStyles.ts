@@ -36,12 +36,12 @@ export const getShapeStyles = (
       : shapes.findIndex((s) => s.id === shape.id),
     pointerEvents: isInDisabledGroup ? "none" : (tool === "select" ? "all" : "none"),
     cursor: isInDisabledGroup ? "not-allowed" : (tool === "select" ? "move" : "default"),
-    opacity: isInDisabledGroup ? 0.5 : 1,
+    opacity: isInDisabledGroup ? 0.7 : 1,
     border:
       shape.type === "group"
         ? isDark
-          ? "2px dashed #404040"  // Dark mode group border
-          : "2px dashed #9CA3AF"  // Light mode group border
+          ? "2px solid #404040"  // Dark mode group border - changed from dashed to solid
+          : "2px solid #9CA3AF"  // Light mode group border - changed from dashed to solid
         : shape.type === "sticky"
         ? isEditing
           ? "3px solid rgba(128, 128, 255, 1)"
