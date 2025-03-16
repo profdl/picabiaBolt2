@@ -1,0 +1,15 @@
+@keyframes groupAddBlink {
+  0% {
+    border-color: rgb(var(--primary-500));
+  }
+  50% {
+    border-color: transparent;
+  }
+  100% {
+    border-color: rgb(var(--primary-500));
+  }
+}
+
+.group-add-blink {
+  animation: groupAddBlink 0.5s ease-in-out;
+} 

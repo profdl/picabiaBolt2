@@ -13,6 +13,8 @@ interface ShapeControlsProps {
   shape: Shape;
   isSelected: boolean;
   handleResizeStart: (e: React.MouseEvent<HTMLDivElement>) => void;
+  hoveredGroup?: string | null;
+  isAddedToGroup?: boolean;
 }
 
 interface ShapeUpdate {
@@ -24,6 +26,8 @@ export function ShapeControls({
   shape,
   isSelected,
   handleResizeStart,
+  hoveredGroup,
+  isAddedToGroup,
 }: ShapeControlsProps) {
   // All hooks must be at the top
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -49,6 +53,7 @@ export function ShapeControls({
       tooltip: useThemeClass(["shape", "controls", "tooltip"]),
       button: useThemeClass(["shape", "controls", "button"]),
       buttonActive: useThemeClass(["shape", "controls", "buttonActive"]),
+      groupHover: useThemeClass(["shape", "controls", "groupHover"]),
     },
     sidePanel: {
       container: useThemeClass(["shape", "sidePanel", "container"]),
@@ -133,10 +138,24 @@ export function ShapeControls({
   // Now we can safely return early if needed
   if (!showControlPanel && !shape.isNew && shape.type !== "group") return null;
 
+  // Update the controlStates type to match the Shape interface
+  const controlStates: { [shapeId: string]: {
+    isTextPrompt: boolean;
+    isNegativePrompt: boolean;
+    showImagePrompt: boolean;
+    showDepth: boolean;
+    showEdges: boolean;
+    showPose: boolean;
+    showContent: boolean;
+    showSketch: boolean;
+    useSettings: boolean;
+    color?: string;
+  } } = {};
+
   return (
     <>
       <div
-        className="absolute inset-0"
+        className={`absolute inset-0 ${isAddedToGroup ? 'group-add-blink' : ''}`}
         data-shape-control="true"
         style={{
           pointerEvents: "none",
@@ -152,6 +171,13 @@ export function ShapeControls({
                 borderRadius: "8px",
                 backgroundColor: "transparent",
                 backgroundImage: "none",
+              }
+            : {}),
+          ...(shape.type === "group" && hoveredGroup === shape.id
+            ? {
+                border: "2px dashed rgb(var(--primary-500))",
+                backgroundColor: "rgba(var(--primary-500), 0.1)",
+                transition: "all 0.2s ease-in-out",
               }
             : {}),
         }}
@@ -787,43 +813,39 @@ export function ShapeControls({
                   } } = {};
                   
                   groupedShapes.forEach(groupedShape => {
-                    // Only store states that are actually enabled
-                    const states: {
-                      isTextPrompt?: boolean;
-                      isNegativePrompt?: boolean;
-                      showImagePrompt?: boolean;
-                      showDepth?: boolean;
-                      showEdges?: boolean;
-                      showPose?: boolean;
-                      showContent?: boolean;
-                      showSketch?: boolean;
-                      useSettings?: boolean;
-                      color?: string;
-                    } = {};
+                    // Initialize with default values
+                    controlStates[groupedShape.id] = {
+                      isTextPrompt: false,
+                      isNegativePrompt: false,
+                      showImagePrompt: false,
+                      showDepth: false,
+                      showEdges: false,
+                      showPose: false,
+                      showContent: false,
+                      showSketch: false,
+                      useSettings: false,
+                    };
                     
+                    // Update with actual values
                     if (groupedShape.type === "sticky") {
-                      if (groupedShape.isTextPrompt) states.isTextPrompt = true;
-                      if (groupedShape.isNegativePrompt) states.isNegativePrompt = true;
-                      if (groupedShape.color) states.color = groupedShape.color;
+                      if (groupedShape.isTextPrompt) controlStates[groupedShape.id].isTextPrompt = true;
+                      if (groupedShape.isNegativePrompt) controlStates[groupedShape.id].isNegativePrompt = true;
+                      if (groupedShape.color) controlStates[groupedShape.id].color = groupedShape.color;
                     }
                     
                     if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
-                      if (groupedShape.showImagePrompt) states.showImagePrompt = true;
+                      if (groupedShape.showImagePrompt) controlStates[groupedShape.id].showImagePrompt = true;
                     }
                     
                     if (groupedShape.type === "diffusionSettings") {
-                      if (groupedShape.useSettings) states.useSettings = true;
+                      if (groupedShape.useSettings) controlStates[groupedShape.id].useSettings = true;
                     }
                     
-                    if (groupedShape.showDepth) states.showDepth = true;
-                    if (groupedShape.showEdges) states.showEdges = true;
-                    if (groupedShape.showPose) states.showPose = true;
-                    if (groupedShape.showContent) states.showContent = true;
-                    if (groupedShape.showSketch) states.showSketch = true;
-                    
-                    if (Object.keys(states).length > 0) {
-                      controlStates[groupedShape.id] = states;
-                    }
+                    if (groupedShape.showDepth) controlStates[groupedShape.id].showDepth = true;
+                    if (groupedShape.showEdges) controlStates[groupedShape.id].showEdges = true;
+                    if (groupedShape.showPose) controlStates[groupedShape.id].showPose = true;
+                    if (groupedShape.showContent) controlStates[groupedShape.id].showContent = true;
+                    if (groupedShape.showSketch) controlStates[groupedShape.id].showSketch = true;
                   });
                   
                   // Update the group's enabled state and store control states

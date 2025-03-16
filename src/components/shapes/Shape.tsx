@@ -85,9 +85,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const threeJSRef = useRef<ThreeJSShapeRef>(null);
   const sketchPadRef = useRef<HTMLCanvasElement>(null);
 
-  const { initDragStart } = useShapeDrag({
+  const { initDragStart, hoveredGroup, isAddedToGroup } = useShapeDrag({
     shape,
-    isEditing: isEditing ?? false,
+    isEditing: isEditingText,
     zoom,
   });
 
@@ -184,6 +184,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={Boolean(isSelected)}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         )}
       </div>
@@ -220,6 +222,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={isSelected}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         )}
       </div>
@@ -256,6 +260,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={isSelected}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         )}
       </div>
@@ -292,6 +298,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={isSelected}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         )}
       </div>
@@ -338,6 +346,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={Boolean(isSelected)}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         )}
       </div>
@@ -449,6 +459,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={Boolean(isSelected)}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         </div>
       )}
