@@ -36,7 +36,7 @@ export const getShapeStyles = (
       : shapes.findIndex((s) => s.id === shape.id),
     pointerEvents: isInDisabledGroup ? "none" : (tool === "select" ? "all" : "none"),
     cursor: isInDisabledGroup ? "not-allowed" : (tool === "select" ? "move" : "default"),
-    opacity: isInDisabledGroup ? 0.7 : 1,
+    opacity: isInDisabledGroup ? 0.3 : 1,
     border:
       shape.type === "group"
         ? isDark

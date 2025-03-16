@@ -35,7 +35,9 @@ export function useShapeEvents({
     createGroup,
     ungroup,
     shapes,
-    mergeImages
+    mergeImages,
+    removeFromGroup,
+    addToGroup
   } = useStore();
 
   const [rotateStart, setRotateStart] = useState<{
@@ -118,7 +120,9 @@ export function useShapeEvents({
       deleteShape,
       createGroup,
       ungroup,
-      mergeImages
+      mergeImages,
+      removeFromGroup,
+      addToGroup
     }, shapes);
 
     setContextMenu({
