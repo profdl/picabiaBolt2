@@ -20,7 +20,7 @@ export const getShapeStyles = (
     backgroundColor:
       shape.type === "group"
         ? isDark 
-          ? "#2c2c2c"  // Dark mode group background
+          ? "#1f1f1f"  // Dark mode group background - darker than panel/toolbar
           : "#f5f5f5"  // Light mode group background
         : shape.type === "image" || shape.color === "transparent"
         ? "transparent"
@@ -40,7 +40,7 @@ export const getShapeStyles = (
     border:
       shape.type === "group"
         ? isDark
-          ? "2px solid #404040"  // Dark mode group border - changed from dashed to solid
+          ? "2px solid #333333"  // Dark mode group border - darker to match background
           : "2px solid #9CA3AF"  // Light mode group border - changed from dashed to solid
         : shape.type === "sticky"
         ? isEditing
