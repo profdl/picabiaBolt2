@@ -113,7 +113,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     e.preventDefault();
     e.stopPropagation();
     if (selectedShape) {
-      updateShape(selectedShape.id, { isEditing: true });
+      updateShape(selectedShape.id, { isImageEditing: true });
     }
   };
 

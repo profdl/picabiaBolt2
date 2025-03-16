@@ -49,6 +49,7 @@ export interface Shape {
   edgesStrength?: number;
   poseStrength?: number;
   isEditing?: boolean;
+  isImageEditing?: boolean;
   content?: string;
   imageUrl?: string;
   isOrbiting?: boolean;
