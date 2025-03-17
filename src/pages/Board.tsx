@@ -239,7 +239,7 @@ export const Board = () => {
     };
   }, [id, user, LOCAL_STORAGE_KEY, isSaving, updateProject]);
 
-  // Modify the loadProject function to check localStorage first
+  // Modify the loadProject function to properly handle shape loading
   const loadProject = useCallback(async () => {
     if (!id || !user) {
       console.log("Missing id or user:", { id, userId: user?.id });
@@ -250,47 +250,49 @@ export const Board = () => {
       setLoading(true);
       setError(null);
 
-      // Try to load from localStorage first
-      const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (localData) {
-        try {
-          const localShapes = JSON.parse(localData);
-          setShapes(localShapes);
-        } catch (e) {
-          console.warn("Error parsing localStorage data:", e);
-        }
-      }
-
-      // Load from Supabase
+      // Load from Supabase first
       const project = await fetchProject(id);
+      console.log('Loaded project from Supabase:', project);
 
       if (!project) {
-        setError("Project not found...");
+        setError("Project not found");
         return;
       }
 
-      // Compare timestamps if available and use the most recent version
-      if (Array.isArray(project.shapes)) {
-        const serverShapes = project.shapes;
-        if (
-          !localData ||
-          project.updated_at > JSON.parse(localData).updated_at
-        ) {
-          setShapes(serverShapes);
-          localStorage.setItem(
-            LOCAL_STORAGE_KEY,
-            JSON.stringify({
-              shapes: serverShapes,
-              updated_at: project.updated_at,
-            })
-          );
+      // Check if we have shapes in the project
+      if (Array.isArray(project.shapes) && project.shapes.length > 0) {
+        console.log('Setting shapes from Supabase:', project.shapes.length);
+        setShapes(project.shapes);
+        
+        // Update localStorage with the latest data
+        localStorage.setItem(
+          LOCAL_STORAGE_KEY,
+          JSON.stringify({
+            shapes: project.shapes,
+            updated_at: project.updated_at
+          })
+        );
+      } else {
+        // If no shapes in Supabase, try loading from localStorage
+        console.log('No shapes in Supabase, checking localStorage');
+        const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (localData) {
+          try {
+            const { shapes: localShapes } = JSON.parse(localData);
+            if (Array.isArray(localShapes) && localShapes.length > 0) {
+              console.log('Setting shapes from localStorage:', localShapes.length);
+              setShapes(localShapes);
+            }
+          } catch (e) {
+            console.warn("Error parsing localStorage data:", e);
+          }
         }
-        lastSavedRef.current = JSON.stringify(serverShapes);
       }
 
       initialFitDone.current = false;
     } catch (err) {
       console.error("Project load error:", err);
+      setError(err instanceof Error ? err.message : "Failed to load project");
     } finally {
       setLoading(false);
     }

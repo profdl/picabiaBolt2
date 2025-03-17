@@ -7,6 +7,83 @@ interface GenerateImageResponse {
 
 import multiControlWorkflow from './multiControl_API.json';
 
+export interface ReplicateWorkflow {
+  version: string;
+  input: {
+    prompt?: string;
+    negative_prompt?: string;
+    width?: number;
+    height?: number;
+    num_outputs?: number;
+    scheduler?: string;
+    num_inference_steps?: number;
+    guidance_scale?: number;
+    [key: string]: any;
+  };
+}
+
+export interface ReplicateResponse {
+  id: string;
+  version: string;
+  urls: {
+    get: string;
+    cancel: string;
+  };
+  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
+  output?: string[];
+  error?: string;
+  metrics?: {
+    predict_time?: number;
+  };
+}
+
+const REPLICATE_API_URL = 'https://api.replicate.com/v1';
+const REPLICATE_API_TOKEN = import.meta.env.VITE_REPLICATE_API_TOKEN;
+
+export async function createPrediction(workflow: ReplicateWorkflow): Promise<ReplicateResponse> {
+  const response = await fetch(`${REPLICATE_API_URL}/predictions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(workflow),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Replicate API error: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function getPrediction(id: string): Promise<ReplicateResponse> {
+  const response = await fetch(`${REPLICATE_API_URL}/predictions/${id}`, {
+    headers: {
+      'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Replicate API error: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function cancelPrediction(id: string): Promise<void> {
+  const response = await fetch(`${REPLICATE_API_URL}/predictions/${id}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to cancel prediction: ${response.statusText}`);
+  }
+}
+
 export async function generateImage(
   workflowJson: string,
   inputImage?: string,

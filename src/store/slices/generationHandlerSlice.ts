@@ -509,15 +509,116 @@ export const generationHandlerSlice: StateCreator<
 
       if (generationService === 'comfyui') {
         try {
+          // Create database record first, just like Replicate
+          const insertData = {
+            id: shapeId,
+            user_id: user.id,
+            prompt: promptText,
+            aspect_ratio: state.aspectRatio,
+            created_at: new Date().toISOString(),
+            prediction_id: shapeId,
+            status: "generating",
+            updated_at: new Date().toISOString(),
+            generated_01: "",
+            generated_02: "",
+            generated_03: "",
+            generated_04: ""
+          };
+
+          // Insert the initial record
+          const { error: dbError } = await supabase
+            .from("generated_images")
+            .insert(insertData)
+            .select()
+            .single();
+
+          if (dbError) throw dbError;
+
+          // Set up the same subscription as Replicate
+          subscription = supabase
+            .channel("generated_images")
+            .on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "generated_images",
+              },
+              (payload: unknown) => {
+                const typedPayload = payload as {
+                  new: {
+                    status: string;
+                    generated_01: string;
+                    prediction_id: string;
+                    updated_at: string;
+                    error_message?: string;
+                  };
+                };
+
+                console.log('Received ComfyUI update:', typedPayload.new);
+
+                // Handle completion regardless of window focus
+                if (
+                  typedPayload.new.status === "completed" &&
+                  typedPayload.new.generated_01
+                ) {
+                  console.log('Generation completed, updating shape with URL:', typedPayload.new.generated_01);
+                  get().updateShape(shapeId, {
+                    isUploading: false,
+                    imageUrl: typedPayload.new.generated_01,
+                  });
+                  get().removeGeneratingPrediction(shapeId);
+                } else if (
+                  typedPayload.new.status === "error" ||
+                  typedPayload.new.status === "failed"
+                ) {
+                  // Handle error states
+                  console.error('Generation failed:', typedPayload.new.error_message);
+                  get().updateShape(shapeId, {
+                    isUploading: false,
+                    color: "#ffcccb"
+                  });
+                  get().removeGeneratingPrediction(shapeId);
+                  get().setError(
+                    typedPayload.new.error_message || "Generation failed"
+                  );
+                }
+              }
+            )
+            .subscribe();
+
+          // Generate the image with ComfyUI
           const imageUrl = await generateImageWithComfyUI(JSON.stringify(currentWorkflow));
-          get().updateShape(shapeId, {
-            isUploading: false,
-            imageUrl: imageUrl,
-          });
-          get().removeGeneratingPrediction(shapeId);
+
+          // Update the database with the generated image URL
+          const { error: updateError } = await supabase
+            .from("generated_images")
+            .update({
+              status: "completed",
+              generated_01: imageUrl,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", shapeId);
+
+          if (updateError) throw updateError;
+
         } catch (error) {
           console.error('ComfyUI generation error:', error);
+          // Update database record with error status
+          await supabase
+            .from("generated_images")
+            .update({
+              status: "failed",
+              error_message: error instanceof Error ? error.message : 'Failed to generate image with ComfyUI',
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", shapeId);
+
           set({ error: error instanceof Error ? error.message : 'Failed to generate image with ComfyUI' });
+          get().updateShape(shapeId, {
+            isUploading: false,
+            color: "#ffcccb"
+          });
           get().removeGeneratingPrediction(shapeId);
         }
       } else {
@@ -560,26 +661,30 @@ export const generationHandlerSlice: StateCreator<
                 };
               };
 
+              console.log('Received Replicate update:', typedPayload.new);
+
               // Handle completion regardless of window focus
               if (
                 typedPayload.new.status === "completed" &&
                 typedPayload.new.generated_01
               ) {
-                get().updateShape(typedPayload.new.prediction_id, {
+                console.log('Generation completed, updating shape with URL:', typedPayload.new.generated_01);
+                get().updateShape(shapeId, {
                   isUploading: false,
                   imageUrl: typedPayload.new.generated_01,
                 });
-                get().removeGeneratingPrediction(typedPayload.new.prediction_id);
+                get().removeGeneratingPrediction(shapeId);
               } else if (
                 typedPayload.new.status === "error" ||
                 typedPayload.new.status === "failed"
               ) {
                 // Handle error states
-                get().updateShape(typedPayload.new.prediction_id, {
+                console.error('Generation failed:', typedPayload.new.error_message);
+                get().updateShape(shapeId, {
                   isUploading: false,
                   color: "#ffcccb" // Add a visual indicator for error
                 });
-                get().removeGeneratingPrediction(typedPayload.new.prediction_id);
+                get().removeGeneratingPrediction(shapeId);
                 get().setError(
                   typedPayload.new.error_message || "Generation failed"
                 );
@@ -590,7 +695,7 @@ export const generationHandlerSlice: StateCreator<
 
         // Create database record for Replicate
         const insertData = {
-          id: crypto.randomUUID(),
+          id: shapeId, // Use shapeId as the record ID
           user_id: user.id,
           prompt: promptText,
           aspect_ratio: state.aspectRatio,

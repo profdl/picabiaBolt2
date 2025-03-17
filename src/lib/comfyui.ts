@@ -1,3 +1,10 @@
+export interface ComfyUIWorkflow {
+  [key: string]: {
+    class_type: string;
+    inputs: Record<string, any>;
+  };
+}
+
 interface ComfyUIResponse {
   prompt_id?: string;
   number?: number;
@@ -21,13 +28,6 @@ interface ComfyUIHistoryResponse {
     };
     prompt: unknown;
     outputs_waiting: number;
-  };
-}
-
-interface ComfyUIWorkflow {
-  [key: string]: {
-    inputs: Record<string, unknown>;
-    class_type: string;
   };
 }
 
@@ -609,4 +609,51 @@ export async function isComfyUIAvailable(): Promise<boolean> {
     });
     return false;
   }
-} 
+}
+
+export async function queuePrompt(workflow: ComfyUIWorkflow): Promise<ComfyUIResponse> {
+  console.log('Queueing workflow to ComfyUI:', {
+    url: `${COMFYUI_URL}/prompt`,
+    workflowNodeCount: Object.keys(workflow).length,
+    workflow: JSON.stringify(workflow).slice(0, 200) + '...' // Log first 200 chars
+  });
+
+  const response = await fetchWithErrorHandling(`${COMFYUI_URL}/prompt`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      prompt: workflow,
+      client_id: WS_URL.split('clientId=')[1],
+      extra_data: {
+        preview: {
+          output_node: Object.entries(workflow)
+            .find(([_, node]) => node.class_type === 'SaveImage')?.[0]
+        }
+      }
+    }),
+  });
+
+  const responseText = await response.text();
+  console.log('ComfyUI Queue Response:', {
+    status: response.status,
+    statusText: response.statusText,
+    headers: Object.fromEntries(response.headers.entries()),
+    responseText: responseText.slice(0, 200) + '...' // Log first 200 chars
+  });
+
+  let data: ComfyUIResponse;
+  try {
+    data = JSON.parse(responseText);
+    console.log('Parsed response data:', data);
+    return data;
+  } catch (error) {
+    const parseError = error as Error;
+    return {
+      error: `Failed to parse ComfyUI response: ${parseError.message}`
+    };
+  }
+}
+
+export { waitForWebSocketMessage }; 

@@ -122,6 +122,17 @@ export const Navbar = () => {
                       >
                         New Project
                       </Link>
+                      <button
+                        className={`${styles.dropdown.item} w-full flex items-center justify-between`}
+                        onClick={async () => {
+                          await handleSave();
+                          setIsMenuOpen(false);
+                          menuRef.current?.blur();
+                        }}
+                      >
+                        <span>Save Project</span>
+                        <Save className="w-4 h-4" />
+                      </button>
                       <Link
                         to="#"
                         className={styles.dropdown.item}

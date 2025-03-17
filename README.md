@@ -220,3 +220,86 @@ The application uses multiple Zustand slices to manage state:
 - **generationHandlerSlice**: Handles image generation workflow
 - **shapeSlice**: Manages shapes and their properties
 
+## ComfyUI Setup
+
+### Prerequisites
+
+1. Install ComfyUI by following the [official installation guide](https://github.com/comfyanonymous/ComfyUI)
+2. Download the following required models and place them in your ComfyUI's `models` directory:
+
+Required Models:
+- Stable Diffusion XL Checkpoints (in `models/checkpoints`):
+  - `sd_xl_base_1.0.safetensors`
+  - `Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors`
+- IP-Adapter Models (in `models/ipadapter`):
+  - `ip-adapter-plus-face_sdxl_vit-h.safetensors`
+  - `ip-adapter-plus_sdxl_vit-h.safetensors`
+
+The application uses SDXL (Stable Diffusion XL) models for higher quality image generation, along with specialized IP-Adapter models for better image-to-image control.
+
+### Directory Structure
+```
+ComfyUI/
+└── models/
+    ├── checkpoints/           # Base SDXL models
+    ├── ipadapter/            # IP-Adapter models for image control
+    ├── clip_vision/          # CLIP vision models
+    ├── controlnet/           # ControlNet models
+    └── ... other model directories
+```
+
+### Running ComfyUI with Ngrok
+
+1. Start ComfyUI with CORS enabled:
+```bash
+python main.py --listen --cors
+```
+
+2. Install ngrok if you haven't already:
+```bash
+# macOS with Homebrew
+brew install ngrok
+
+# Or download from https://ngrok.com/download
+```
+
+3. Set up ngrok authentication:
+```bash
+ngrok config add-authtoken YOUR_NGROK_AUTH_TOKEN
+```
+
+4. Create an ngrok configuration file `ngrok.yml`:
+```yaml
+version: "2"
+authtoken: YOUR_NGROK_AUTH_TOKEN
+tunnels:
+  comfyui:
+    addr: 8188
+    proto: http
+    schemes:
+      - https
+```
+
+5. Start ngrok tunnel:
+```bash
+ngrok start --config ngrok.yml comfyui
+```
+
+6. Copy the ngrok HTTPS URL (e.g., `https://xxxxxxxxxxxx.ngrok.app`) and update your `.env` file.
+
+### Troubleshooting
+
+1. If you see WebSocket connection errors:
+   - Ensure ComfyUI is running with the `--cors` flag
+   - Verify the ngrok tunnel is active and using HTTPS
+   - Check that the VITE_COMFYUI_URL in your .env matches the ngrok URL
+
+2. If images fail to generate:
+   - Verify all required models are in the correct directories
+   - Check ComfyUI console for any model loading errors
+   - Ensure the workflow JSON includes a SaveImage node
+
+3. If you get Mixed Content errors:
+   - Make sure you're using the HTTPS ngrok URL
+   - Set VITE_COMFYUI_INSECURE=false in your .env
+
