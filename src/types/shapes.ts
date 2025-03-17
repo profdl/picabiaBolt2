@@ -19,6 +19,8 @@ export interface Shape {
   isNew?: boolean;
   model: string;
   useSettings: boolean;
+  makeVariations?: boolean;
+  variationStrength?: number;
   id: string;
   type:
     | "rectangle"

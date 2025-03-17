@@ -124,6 +124,8 @@ export interface Shape {
     position: { x: number; y: number };
     color: string;
   };
+  makeVariations?: boolean;
+  variationStrength?: number;
 }
 
 export interface SavedImage {

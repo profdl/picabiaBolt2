@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useStore } from "../../store";
 import { Shape } from "../../types";
-import { generatePrompt } from "../../utils/prompt-generator";
+import { MiniToggle } from "../shared/MiniToggle";
+import { SmallSlider } from "../shared/SmallSlider";
 import { Tooltip } from "../shared/Tooltip";
+import { generatePrompt } from "../../utils/prompt-generator";
+import { EnableReferencePanel } from "../shared/EnableReferencePanel";
 import { useThemeClass } from "../../styles/useThemeClass";
 import { supabase } from "../../lib/supabase";
-import { MiniToggle } from "../shared/MiniToggle";
-import { EnableReferencePanel } from "../shared/EnableReferencePanel";
-import { SmallSlider } from "../shared/SmallSlider";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -15,11 +15,6 @@ interface ShapeControlsProps {
   handleResizeStart: (e: React.MouseEvent<HTMLDivElement>) => void;
   hoveredGroup?: string | null;
   isAddedToGroup?: boolean;
-}
-
-interface ShapeUpdate {
-  id: string;
-  shape: Partial<Shape>;
 }
 
 export function ShapeControls({
@@ -33,16 +28,22 @@ export function ShapeControls({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const {
     updateShape,
+    updateShapes,
     shapes,
     addShape,
     generatePreprocessedImage,
-    updateShapes,
-    sendToBack,
-    sendToFront,
-    sendBackward,
-    sendForward,
-    deleteShape,
+    setSelectedShapes,
   } = useStore();
+
+  // Define theme classes
+  const styles = {
+    resizeHandle: useThemeClass(["shape", "resizeHandle"]),
+    sidePanel: {
+      container: useThemeClass(["shape", "sidePanel", "container"]),
+      group: useThemeClass(["shape", "sidePanel", "group"]),
+      label: useThemeClass(["shape", "sidePanel", "label"])
+    }
+  };
 
   // Add state for tracking pending updates
   const [pendingUpdates, setPendingUpdates] = useState<{ 
@@ -52,35 +53,10 @@ export function ShapeControls({
     isNegativePrompt?: boolean;
   } | null>(null);
 
-  // Styles
-  const styles = {
-    controls: {
-      panel: useThemeClass(["shape", "controls", "panel"]),
-      panelMod: useThemeClass(["shape", "controls", "panelMod"]),
-      group: useThemeClass(["shape", "controls", "group"]),
-      checkbox: useThemeClass(["forms", "checkbox"]),
-      label: useThemeClass(["shape", "controls", "label"]),
-      slider: useThemeClass(["shape", "controls", "slider"]),
-      tooltip: useThemeClass(["shape", "controls", "tooltip"]),
-      button: useThemeClass(["shape", "controls", "button"]),
-      buttonActive: useThemeClass(["shape", "controls", "buttonActive"]),
-      groupHover: useThemeClass(["shape", "controls", "groupHover"]),
-    },
-    sidePanel: {
-      container: useThemeClass(["shape", "sidePanel", "container"]),
-      group: useThemeClass(["shape", "sidePanel", "group"]),
-      checkbox: useThemeClass(["forms", "checkbox"]),
-      label: useThemeClass(["shape", "sidePanel", "label"]),
-    },
-    resizeHandle: useThemeClass(["shape", "resizeHandle"]),
-  };
-
   // Utility function to prevent event propagation
-  const preventEvent = (e: React.MouseEvent | React.ChangeEvent<HTMLInputElement>) => {
-    if ('preventDefault' in e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  const preventEvent = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
   };
 
   // Effect hooks
@@ -97,40 +73,33 @@ export function ShapeControls({
 
   // Effect to handle updates to other shapes
   useEffect(() => {
-    if (!pendingUpdates) return;
-
-    const { id, isChecked, isTextPrompt } = pendingUpdates;
-    
-    if (isChecked) {
-      const updates: ShapeUpdate[] = [];
-      shapes.forEach((otherShape) => {
-        if (
-          otherShape.id !== id &&
-          otherShape.type === "sticky" &&
-          // Only uncheck the same type of prompt that was checked
-          (isTextPrompt ? otherShape.isTextPrompt : otherShape.isNegativePrompt)
-        ) {
-          updates.push({
-            id: otherShape.id,
-            shape: {
-              // Only update the relevant prompt type
-              ...(isTextPrompt ? { isTextPrompt: false } : { isNegativePrompt: false }),
-              // Update color based on remaining prompt state
-              color: isTextPrompt 
-                ? (otherShape.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)")
-                : (otherShape.isTextPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)")
-            }
-          });
-        }
-      });
+    if (pendingUpdates) {
+      const updates = shapes
+        .filter((s) => {
+          if (pendingUpdates.isTextPrompt) {
+            return s.type === "sticky" && s.isTextPrompt && s.id !== pendingUpdates.id;
+          }
+          if (pendingUpdates.isNegativePrompt) {
+            return s.type === "sticky" && s.isNegativePrompt && s.id !== pendingUpdates.id;
+          }
+          return false;
+        })
+        .map((s) => ({
+          id: s.id,
+          shape: {
+            isTextPrompt: pendingUpdates.isTextPrompt ? false : s.isTextPrompt,
+            isNegativePrompt: pendingUpdates.isNegativePrompt ? false : s.isNegativePrompt,
+            color: "var(--sticky-yellow)"
+          }
+        }));
       
       if (updates.length > 0) {
-        updateShape(updates);
+        updateShapes(updates);
       }
     }
     
     setPendingUpdates(null);
-  }, [pendingUpdates, shapes, updateShape]);
+  }, [pendingUpdates, shapes, updateShape, updateShapes]);
 
   // Constants and derived state
   const anyCheckboxChecked =
@@ -376,7 +345,7 @@ export function ShapeControls({
       )}
 
       {/* Image Prompt Controls */}
-      {((shape.type === "image" || shape.type === "sketchpad") && (shape.showImagePrompt || isSelected)) && (
+      {((shape.type === "image" && isSelected) || (shape.type === "sketchpad" && (shape.showImagePrompt || isSelected))) && (
         <div
           className="absolute left-2 top-full mt-1"
           data-shape-control="true"
@@ -404,6 +373,19 @@ export function ShapeControls({
                 }}
                 onMouseDown={preventEvent}
                 onClick={preventEvent}
+                showVariations={shape.type === "image"}
+                makeVariations={shape.makeVariations}
+                onVariationsToggleChange={(checked: boolean) => {
+                  updateShape(shape.id, {
+                    makeVariations: checked,
+                    variationStrength: checked ? 0.75 : shape.variationStrength || 0.75
+                  });
+                }}
+                variationStrength={shape.variationStrength || 0.75}
+                onVariationStrengthChange={(value: number) => {
+                  updateShape(shape.id, { variationStrength: value });
+                }}
+                showSlider={shape.showImagePrompt}
               />
             </div>
 

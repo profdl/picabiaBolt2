@@ -17,10 +17,10 @@ export function useToolbarGenerate() {
           return true;
         }
 
-        // Check for image reference or controls
+        // Check for image reference, controls, or variations
         if (shape.type === "image" || shape.type === "sketchpad") {
           return shape.showImagePrompt || shape.showDepth || shape.showEdges || 
-                 shape.showPose || shape.showSketch;
+                 shape.showPose || shape.showSketch || shape.makeVariations;
         }
 
         // Check for reference shapes (depth, edges, pose)

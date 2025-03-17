@@ -187,6 +187,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
   const { toggleGallery } = useStore();
 
+  // Check for any image shapes with makeVariations enabled
+  const hasVariationsEnabled = shapes.some(
+    (shape) => shape.type === "image" && shape.makeVariations
+  );
+
+  // Combine with existing hasActivePrompt
+  const shouldEnableGenerate = hasActivePrompt || hasVariationsEnabled;
+
   useStore((state) => ({
     showAssets: state.showAssets,
     toggleAssets: state.toggleAssets,
@@ -235,21 +243,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
       "diffusionSettings",
       {
         useSettings: true, // Set useSettings to true for the new shape
-      },
-      "",
-      {
-        centerOnShape: true,
-        setSelected: true,
-        defaultWidth: 300,
-      }
-    );
-  };
-
-  const handleAddImagePlaceholder = async () => {
-    await addNewShape(
-      "image",
-      {
-        isUploading: true,
       },
       "",
       {
@@ -411,8 +404,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           {/* Generate Button */}
           <Tooltip
             content={
-              !hasActivePrompt || generatingPredictions.size > 0 ? (
-                "Add a text or image prompt to activate. Make sure Text Prompt is checked on a Sticky Note that has a prompt written. Or add an image and check a control type such as Remix"
+              !shouldEnableGenerate || generatingPredictions.size > 0 ? (
+                "Add a text or image prompt to activate. Make sure Text Prompt is checked on a Sticky Note that has a prompt written. Or add an image and check a control type such as Remix or Make Variations"
               ) : (
                 <div>
                   <p>
@@ -439,15 +432,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
               label={
                 generatingPredictions.size > 0 ? "Generating..." : "Generate"
               }
-              disabled={!hasActivePrompt || generatingPredictions.size > 0}
+              disabled={!shouldEnableGenerate || generatingPredictions.size > 0}
               onClick={async () => {
-                if (!hasActivePrompt) {
-                  await handleAddImagePlaceholder();
-                }
+                // If we have variations enabled or other active prompts, proceed with generation
                 handleGenerate();
               }}
               className={`${styles.button.base} ${styles.button.primary} ${
-                !hasActivePrompt || generatingPredictions.size > 0
+                !shouldEnableGenerate || generatingPredictions.size > 0
                   ? "opacity-50"
                   : ""
               }`}

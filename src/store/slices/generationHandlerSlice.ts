@@ -207,7 +207,8 @@ export const generationHandlerSlice: StateCreator<
           shape.showEdges ||
           shape.showPose ||
           shape.showSketch ||
-          shape.showImagePrompt)
+          shape.showImagePrompt ||
+          shape.makeVariations)
     );
 
     const stickyWithPrompt = shapes.find(
@@ -215,7 +216,7 @@ export const generationHandlerSlice: StateCreator<
     );
 
     if (!stickyWithPrompt?.content && !hasActiveControls) {
-      set({ error: "Please select either a text prompt or image controls." });
+      set({ error: "Please select either a text prompt, image controls, or enable variations." });
       return;
     }
 
@@ -263,8 +264,40 @@ export const generationHandlerSlice: StateCreator<
         "7": workflow["7"],
         "8": workflow["8"],
         "9": workflow["9"],
-        "34": workflow["34"],
       };
+
+      // Check if any image has makeVariations enabled
+      const variationShape = shapes.find(s => s.type === "image" && s.makeVariations);
+      
+      if (variationShape) {
+        // Use VAEEncode on the input image instead of EmptyLatentImage
+        baseWorkflow["36"] = {
+          ...workflow["36"],
+          inputs: {
+            image: variationShape.imageUrl,
+            upload: "image",
+          },
+          class_type: "LoadImage",
+        };
+        
+        baseWorkflow["35"] = {
+          ...workflow["35"],
+          inputs: {
+            pixels: ["36", 0],
+            vae: ["4", 2]
+          },
+          class_type: "VAEEncode",
+        };
+        
+        // Set the latent_image input to the encoded image and adjust denoise strength
+        workflow["3"].inputs.latent_image = ["35", 0];
+        workflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+      } else {
+        // Use EmptyLatentImage as before
+        baseWorkflow["34"] = workflow["34"];
+        workflow["3"].inputs.latent_image = ["34", 0];
+        workflow["3"].inputs.denoise = 1;
+      }
 
       const currentWorkflow: Workflow = { ...baseWorkflow };
       let currentPositiveNode = "6";
@@ -475,6 +508,11 @@ export const generationHandlerSlice: StateCreator<
           outputFormat: activeSettings.outputFormat,
           outputQuality: activeSettings.outputQuality,
           randomiseSeeds: activeSettings.randomiseSeeds,
+          // Add variation settings if any image has makeVariations enabled
+          variations: shapes.find(s => s.type === "image" && s.makeVariations) ? {
+            imageId: shapes.find(s => s.type === "image" && s.makeVariations)?.id,
+            strength: shapes.find(s => s.type === "image" && s.makeVariations)?.variationStrength || 0.75
+          } : undefined
         }),
       });
 

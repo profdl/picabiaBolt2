@@ -167,13 +167,24 @@
       "title": "Empty Latent Image"
     }
   },
+  "35": {
+    "inputs": {
+      "pixels": ["36", 0],
+      "vae": ["4", 2]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
   "36": {
     "inputs": {
-      "control_net_name": "controlnet-openpose-sdxl-1.0.safetensors"
+      "image": "",
+      "upload": "image"
     },
-    "class_type": "ControlNetLoader",
+    "class_type": "LoadImage",
     "_meta": {
-      "title": "Load ControlNet Model"
+      "title": "Load Source Image"
     }
   },
   "37": {
