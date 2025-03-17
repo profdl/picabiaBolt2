@@ -2,7 +2,7 @@ import { StateCreator } from "zustand";
 import { createClient } from "@supabase/supabase-js";
 import multiControlWorkflow from "../../lib/generateWorkflow.json";
 import { Shape, Position } from "../../types";
-import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
+import { uploadCanvasToSupabase, mergeImageWithStrokes } from "../../utils/canvasUtils";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -179,6 +179,32 @@ export const generationHandlerSlice: StateCreator<
       // Use the dimensions from the variation source image
       activeSettings.outputWidth = Math.round(variationShape.width);
       activeSettings.outputHeight = Math.round(variationShape.height);
+
+      // Merge the image with brush strokes
+      const mergedImageUrl = await mergeImageWithStrokes(variationShape);
+
+      // Use VAEEncode on the merged image instead of EmptyLatentImage
+      workflow["36"] = {
+        ...workflow["36"],
+        inputs: {
+          image: mergedImageUrl,
+          upload: "image",
+        },
+        class_type: "LoadImage",
+      };
+      
+      workflow["35"] = {
+        ...workflow["35"],
+        inputs: {
+          pixels: ["36", 0],
+          vae: ["4", 2]
+        },
+        class_type: "VAEEncode",
+      };
+      
+      // Set the latent_image input to the encoded image and adjust denoise strength
+      workflow["3"].inputs.latent_image = ["35", 0];
+      workflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
     }
     // Only calculate dimensions from control shapes if no variations and no DiffusionSettingsPanel is enabled
     else if (!activeSettings.outputWidth || !activeSettings.outputHeight) {
@@ -286,11 +312,15 @@ export const generationHandlerSlice: StateCreator<
       const variationShape = shapes.find(s => s.type === "image" && s.makeVariations);
       
       if (variationShape) {
-        // Use VAEEncode on the input image instead of EmptyLatentImage
+        // Merge the image with brush strokes
+        const mergedImageUrl = await mergeImageWithStrokes(variationShape);
+        console.log('Merged image URL for variations:', mergedImageUrl);
+
+        // Use VAEEncode on the merged image instead of EmptyLatentImage
         baseWorkflow["36"] = {
           ...workflow["36"],
           inputs: {
-            image: variationShape.imageUrl,
+            image: mergedImageUrl,
             upload: "image",
           },
           class_type: "LoadImage",
@@ -306,13 +336,16 @@ export const generationHandlerSlice: StateCreator<
         };
         
         // Set the latent_image input to the encoded image and adjust denoise strength
-        workflow["3"].inputs.latent_image = ["35", 0];
-        workflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+        baseWorkflow["3"].inputs.latent_image = ["35", 0];
+        baseWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+
+        // Ensure the workflow is using the correct nodes
+        delete baseWorkflow["34"]; // Remove EmptyLatentImage node if it exists
       } else {
         // Use EmptyLatentImage as before
         baseWorkflow["34"] = workflow["34"];
-        workflow["3"].inputs.latent_image = ["34", 0];
-        workflow["3"].inputs.denoise = 1;
+        baseWorkflow["3"].inputs.latent_image = ["34", 0];
+        baseWorkflow["3"].inputs.denoise = 1;
       }
 
       const currentWorkflow: Workflow = { ...baseWorkflow };
@@ -468,10 +501,11 @@ export const generationHandlerSlice: StateCreator<
             class_type: "IPAdapterUnifiedLoader",
           };
 
-          // Add Image Loader
+          // Add Image Loader with merged image
+          const mergedImageUrl = await mergeImageWithStrokes(controlShape);
           currentWorkflow[imageNodeId] = {
             inputs: {
-              image: controlShape.imageUrl,
+              image: mergedImageUrl,
               upload: "image",
             },
             class_type: "LoadImage",
@@ -504,6 +538,34 @@ export const generationHandlerSlice: StateCreator<
         } else {
           workflow["3"].inputs.model = ["4", 0];
         }
+      }
+
+      // Check for image reference
+      const imageReferenceShape = shapes.find(s => s.type === "image" && s.showImagePrompt);
+      if (imageReferenceShape) {
+        // Merge the image with brush strokes
+        const mergedImageUrl = await mergeImageWithStrokes(imageReferenceShape);
+
+        // Add image reference to the workflow
+        currentWorkflow["37"] = {
+          ...workflow["37"],
+          inputs: {
+            image: mergedImageUrl,
+            upload: "image",
+          },
+          class_type: "LoadImage",
+        };
+
+        // Add the image reference to the positive prompt
+        currentPositiveNode = "38";
+        currentWorkflow["38"] = {
+          ...workflow["38"],
+          inputs: {
+            image: ["37", 0],
+            strength: imageReferenceShape.imagePromptStrength || 0.5,
+          },
+          class_type: "ImagePrompt",
+        };
       }
 
       // Apply text prompt strength if available

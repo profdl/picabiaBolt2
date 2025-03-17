@@ -21,6 +21,8 @@ import { useToolbarGenerate } from "../../../hooks/toolbar/useToolbarGenerate";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { useShapeAdder } from "../../../hooks/shapes/useShapeAdder";
 import { Shape } from "../../../types";
+import { mergeImageWithStrokes } from "../../../utils/canvasUtils";
+import { supabase } from "../../../lib/supabase";
 
 interface ToolbarProps {
   onShowImageGenerate: () => void;
@@ -67,6 +69,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     addToGroup,
     removeFromGroup,
     mergeImages,
+    addShape,
+    setSelectedShapes,
   } = useStore((state) => ({
     handleGenerateSubject: state.handleGenerateSubject,
     create3DDepth: state.create3DDepth as (shape: Shape, position: { x: number; y: number }) => void,
@@ -84,6 +88,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     addToGroup: state.addToGroup,
     removeFromGroup: state.removeFromGroup,
     mergeImages: state.mergeImages,
+    addShape: state.addShape,
+    setSelectedShapes: state.setSelectedShapes,
   }));
 
   const selectedShape = shapes.find((s) => selectedShapes.includes(s.id));
@@ -253,6 +259,95 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     );
   };
 
+  const handleFlatten = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!selectedShape) return;
+
+    try {
+      // Find the preview canvas for the selected shape
+      const previewCanvas = document.querySelector(`canvas[data-shape-id="${selectedShape.id}"]`) as HTMLCanvasElement;
+      if (!previewCanvas) {
+        console.error('Preview canvas not found');
+        return;
+      }
+
+      // Create a blob from the preview canvas
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        previewCanvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create blob from canvas'));
+          }
+        }, 'image/png', 1.0);
+      });
+
+      // Upload to Supabase
+      const fileName = `flattened_${Math.random().toString(36).substring(2)}.png`;
+      const arrayBuffer = await blob.arrayBuffer();
+      const fileData = new Uint8Array(arrayBuffer);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User must be authenticated');
+
+      const { error: uploadError } = await supabase.storage
+        .from("assets")
+        .upload(fileName, fileData, {
+          contentType: 'image/png',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("assets")
+        .getPublicUrl(fileName);
+
+      // Insert record in assets table
+      await supabase.from("assets").insert([
+        {
+          url: publicUrl,
+          user_id: user.id,
+        },
+      ]);
+
+      // Create a new image shape with the flattened image
+      const newShape: Shape = {
+        id: Math.random().toString(36).substr(2, 9),
+        type: "image",
+        position: {
+          x: selectedShape.position.x + selectedShape.width + 20,
+          y: selectedShape.position.y,
+        },
+        width: selectedShape.width,
+        height: selectedShape.height,
+        rotation: 0,
+        imageUrl: publicUrl,
+        isUploading: false,
+        model: "",
+        useSettings: false,
+        isEditing: false,
+        color: "#ffffff",
+        depthStrength: 0.75,
+        edgesStrength: 0.75,
+        contentStrength: 0.75,
+        poseStrength: 0.75,
+        sketchStrength: 0.75,
+        imagePromptStrength: 0.75,
+        showDepth: false,
+        showEdges: false,
+        showPose: false,
+      };
+
+      // Add the new shape
+      addShape(newShape);
+      setSelectedShapes([newShape.id]);
+    } catch (error) {
+      console.error("Error flattening image:", error);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className="max-w-screen-2xl mx-auto relative flex items-center justify-between">
@@ -317,6 +412,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 onCrop: handleCrop,
                 onDownload: handleDownload,
                 create3DDepth: create3DDepthAction,
+                onFlatten: handleFlatten,
               }}
             />
           )}
@@ -364,6 +460,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 },
                 onCrop: handleCrop,
                 onDownload: handleDownload,
+                onFlatten: handleFlatten,
                 create3DDepth: (shapeOrEvent: Shape | React.MouseEvent, position?: { x: number; y: number }) => {
                   if ('preventDefault' in shapeOrEvent) {
                     // Handle as event

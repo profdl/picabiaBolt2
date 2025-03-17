@@ -41,6 +41,7 @@ interface ShapePropertiesToolbarProps {
     onCrop: (e: React.MouseEvent) => void;
     onDownload: (e: React.MouseEvent) => void;
     create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
+    onFlatten: (e: React.MouseEvent) => void;
   };
 }
 
@@ -113,6 +114,7 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
                 }`}
               />
             </Tooltip>
+            
             <div className={styles.divider} />
           </>
         )}
@@ -243,6 +245,17 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
             className={styles.button}
           />
         </Tooltip>
+
+        {/* Flatten - show for all image shapes */}
+        {shape.type === "image" && (
+          <Tooltip content="Flatten Image" side="top">
+            <ToolbarButton
+              icon={<Layers className="w-4 h-4" />}
+              onClick={actions.onFlatten}
+              className={styles.button}
+            />
+          </Tooltip>
+        )}
 
         {selectedShapes.length > 1 && !selectedShapesInGroup && (
           <Tooltip content="Group Shapes" side="top">

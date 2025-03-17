@@ -59,7 +59,7 @@ export function EnableReferencePanel({
               min={0.05}
               max={1.00}
               step={0.05}
-              label="Strength"
+              label="Variation Amount"
             />
           </div>
         )}

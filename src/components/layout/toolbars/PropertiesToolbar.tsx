@@ -35,6 +35,7 @@ interface PropertiesToolbarProps {
     onCrop: (e: React.MouseEvent) => void;
     onDownload: (e: React.MouseEvent) => void;
     create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
+    onFlatten: (e: React.MouseEvent) => void;
   };
 }
 
