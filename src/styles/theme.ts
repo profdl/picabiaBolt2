@@ -107,9 +107,10 @@ export const theme = {
       image: "absolute w-full h-full object-cover"
     },
     controls: {
-      panel: "absolute left-full ml-1.5 top-0 z-[101]",
-      panelMod: "absolute left-full ml-1.5 top-0 z-[101] bg-neutral-50 dark:bg-[#333] rounded-md",
-      group: "p-2 border-b border-neutral-200 dark:border-[#404040] last:border-none",
+      panel: "absolute -top-8 left-0 flex items-center gap-1 bg-white dark:bg-[#2c2c2c] rounded-md shadow-sm p-1",
+      panelMod: "absolute -top-8 right-0 flex items-center gap-1 bg-white dark:bg-[#2c2c2c] rounded-md shadow-sm p-1",
+      group: "text-neutral-600 dark:text-[#999999] hover:text-neutral-900 dark:hover:text-white",
+      groupHover: "bg-neutral-100 dark:bg-[#3e3e3e]",
       checkbox: "forms.checkbox",
       label: "text-xs text-neutral-700 dark:text-[#999999] whitespace-nowrap",
       slider: "mini-slider",

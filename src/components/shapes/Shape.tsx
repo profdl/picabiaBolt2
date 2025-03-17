@@ -354,6 +354,35 @@ export function ShapeComponent({ shape }: ShapeProps) {
     );
   }
 
+  if (shape.type === "image") {
+    return (
+      <div
+        style={{
+          ...shapeStyles,
+          overflow: "visible"
+        }}
+        className="rounded-lg"
+        onMouseDown={handleMouseDown}
+        onContextMenu={handleContextMenu}
+      >
+        <ImageShape 
+          shape={shape} 
+          tool={tool}
+          handleContextMenu={handleContextMenu}
+        />
+        {isSelected && tool === "select" && (
+          <ShapeControls
+            shape={shape}
+            isSelected={isSelected}
+            handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{ position: "absolute", width: 0, height: 0 }}>
       <div
@@ -407,8 +436,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
             }}
           />
         )}
-  
-        {shape.type === "image" && <ImageShape shape={shape} />}
   
         {shape.type === "sticky" && (
           <StickyNoteShape

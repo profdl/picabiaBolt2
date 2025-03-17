@@ -1,6 +1,7 @@
 import { useRef, useEffect } from "react";
 import { useStore } from "../../../store";
 import { useMixboxBrush } from "../../../hooks/ui/useMixbox";
+
 const brushTextures = new Map<string, HTMLImageElement>();
 
 interface Point {
@@ -9,63 +10,65 @@ interface Point {
   angle?: number;
 }
 
-const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
+interface BrushProps {
+  backgroundCanvasRef: React.RefObject<HTMLCanvasElement>;
+  permanentStrokesCanvasRef: React.RefObject<HTMLCanvasElement>;
+  activeStrokeCanvasRef: React.RefObject<HTMLCanvasElement>;
+}
+
+interface BrushHandlers {
+  handlePointerDown: (e: React.PointerEvent<HTMLCanvasElement>) => void;
+  handlePointerMove: (e: React.PointerEvent<HTMLCanvasElement>) => void;
+  handlePointerUpOrLeave: () => void;
+}
+
+export const useBrush = ({
+  backgroundCanvasRef,
+  permanentStrokesCanvasRef,
+  activeStrokeCanvasRef
+}: BrushProps): BrushHandlers => {
   const isDrawing = useRef(false);
   const lastPoint = useRef<Point | null>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const strokeCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const accumulatedDistance = useRef(0); // Accumulates distance between points
+  const accumulatedDistance = useRef(0);
+
   const {
-    brushFollowPath,
+    tool,
     currentColor,
+    brushTexture,
     brushSize,
     brushOpacity,
-    tool,
-    brushTexture,
-    brushSpacing,
     brushRotation,
-    brushHardness,
-  } = useStore();
+    brushFollowPath,
+    brushSpacing,
+    brushHardness
+  } = useStore((state) => ({
+    tool: state.tool,
+    currentColor: state.currentColor,
+    brushTexture: state.brushTexture,
+    brushSize: state.brushSize,
+    brushOpacity: state.brushOpacity,
+    brushRotation: state.brushRotation,
+    brushFollowPath: state.brushFollowPath,
+    brushSpacing: state.brushSpacing,
+    brushHardness: state.brushHardness
+  }));
 
+  // Preload brush textures
   useEffect(() => {
-    if (!canvasRef.current) return;
-  
-    // Initialize overlay canvas
-    overlayCanvasRef.current = document.createElement("canvas");
-    overlayCanvasRef.current.width = 512;
-    overlayCanvasRef.current.height = 512;
-    overlayCanvasRef.current.getContext('2d', { willReadFrequently: true });
-  
-    // Initialize stroke canvas
-    strokeCanvasRef.current = document.createElement("canvas");
-    strokeCanvasRef.current.width = 512;
-    strokeCanvasRef.current.height = 512;
-  
-    // Initialize with black background
-    const strokeCtx = strokeCanvasRef.current.getContext("2d", { willReadFrequently: true });
-    if (strokeCtx) {
-      strokeCtx.fillStyle = "#000000";
-      strokeCtx.fillRect(0, 0, 512, 512);
-    }
-
-    // Preload brush textures
     const BRUSH_TEXTURES = ["basic", "fur", "ink", "marker"];
     BRUSH_TEXTURES.forEach((texture) => {
-      const img = new Image();
-      img.src = `/brushes/${texture}.png`;
-      img.onload = () => {
-        brushTextures.set(texture, img);
-      };
-      img.onerror = () => {
-        console.error(`Failed to load texture: ${texture}`);
-      };
+      if (!brushTextures.has(texture)) {
+        const img = new Image();
+        img.src = `/brushes/${texture}.png`;
+        img.onload = () => {
+          brushTextures.set(texture, img);
+        };
+      }
     });
-  }, [canvasRef]);
+  }, []);
 
-  const getScaledPoint = (
-    e: React.PointerEvent<HTMLCanvasElement>
-  ): Point | null => {
-    const canvas = canvasRef.current;
+  const getScaledPoint = (e: React.PointerEvent<HTMLCanvasElement>): Point | null => {
+    const canvas = e.currentTarget;
     if (!canvas) return null;
 
     const rect = canvas.getBoundingClientRect();
@@ -74,252 +77,172 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
 
     return {
       x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
+      y: (e.clientY - rect.top) * scaleY
     };
+  };
+
+  const applyBrushTexture = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    color: string,
+    size: number
+  ) => {
+    // Create a temporary canvas for the brush stamp
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = size;
+    tempCanvas.height = size;
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+    if (!tempCtx) return;
+
+    // Draw the color using mixbox - use full opacity for the stamp
+    drawMixboxStamp({
+      ctx: tempCtx,
+      x: size / 2,
+      y: size / 2,
+      color,
+      opacity: 1, // Always use full opacity for individual stamps
+      size
+    });
+
+    if (brushTexture === 'soft') {
+      // For soft brush, use a radial gradient as the mask
+      const gradient = tempCtx.createRadialGradient(
+        size / 2, size / 2, 0,
+        size / 2, size / 2, size / 2
+      );
+      
+      const hardnessFactor = 1 - Math.max(0.01, brushHardness);
+      
+      gradient.addColorStop(0, 'rgba(255,255,255,1)');
+      gradient.addColorStop(Math.min(1, 1 - hardnessFactor), 'rgba(255,255,255,0.5)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+      
+      // Apply the gradient mask
+      tempCtx.globalCompositeOperation = 'destination-in';
+      tempCtx.fillStyle = gradient;
+      tempCtx.fillRect(0, 0, size, size);
+    } else {
+      // For other brushes, use the texture image as mask
+      const textureImg = brushTextures.get(brushTexture);
+      if (textureImg && textureImg.complete) {
+        tempCtx.globalCompositeOperation = 'destination-in';
+        tempCtx.drawImage(textureImg, 0, 0, size, size);
+      }
+    }
+
+    // Draw the final result
+    ctx.drawImage(tempCanvas, x - size / 2, y - size / 2);
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (tool !== "brush" && tool !== "eraser") return;
-    e.preventDefault();
-
     const point = getScaledPoint(e);
     if (!point) return;
 
     isDrawing.current = true;
     lastPoint.current = point;
 
-    // Clear overlay canvas at the start of a new stroke
-    const overlayCtx = overlayCanvasRef.current?.getContext("2d");
-    if (overlayCtx) {
-      overlayCtx.clearRect(0, 0, 512, 512);
+    // Clear active stroke canvas at the start of a new stroke
+    const activeCtx = activeStrokeCanvasRef.current?.getContext("2d", { willReadFrequently: true });
+    if (activeCtx && activeStrokeCanvasRef.current) {
+      activeCtx.clearRect(0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height);
+      drawBrushDot(activeStrokeCanvasRef.current, point);
     }
-
-    // Draw initial dot
-    drawBrushDot(overlayCanvasRef.current!, point);
-
-    // Update display
-    updateMainCanvas();
   };
 
-  // // Handle pointer move
-  // const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-  //   if (!isDrawing.current || !lastPoint.current) return;
-  //   if (tool !== "brush" && tool !== "eraser") return;
-  //   e.preventDefault();
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing.current || !lastPoint.current) return;
+    if (tool !== "brush" && tool !== "eraser") return;
 
-  //   const point = getScaledPoint(e);
-  //   if (!point) return;
+    const point = getScaledPoint(e);
+    if (!point) return;
 
-  //   const dx = point.x - lastPoint.current.x;
-  //   const dy = point.y - lastPoint.current.y;
-  //   const distance = Math.sqrt(dx * dx + dy * dy);
-  //   accumulatedDistance.current += distance;
+    const dx = point.x - lastPoint.current.x;
+    const dy = point.y - lastPoint.current.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    accumulatedDistance.current += distance;
 
-  //   // Determine the number of stamps needed based on accumulated distance and brush spacing
-  //   const spacing = Math.max(brushSize * brushSpacing, 1);
-  //   if (accumulatedDistance.current >= spacing) {
-  //     // Draw the stroke segment directly onto the overlay canvas
-  //     const overlayCtx = overlayCanvasRef.current?.getContext("2d");
-  //     if (overlayCtx && lastPoint.current) {
-  //       // Draw stamps along the accumulated distance path
-  //       drawBrushStroke(
-  //         overlayCtx,
-  //         lastPoint.current,
-  //         point,
-  //         accumulatedDistance.current
-  //       );
-  //     }
+    const spacing = Math.max(brushSize * brushSpacing, 1);
+    if (accumulatedDistance.current >= spacing) {
+      const activeCtx = activeStrokeCanvasRef.current?.getContext("2d", { willReadFrequently: true });
+      if (activeCtx && lastPoint.current) {
+        if (tool === "eraser") {
+          activeCtx.globalCompositeOperation = "destination-out";
+        } else {
+          activeCtx.globalCompositeOperation = "source-over";
+        }
+        
+        drawBrushStroke(
+          activeCtx,
+          lastPoint.current,
+          point
+        );
+      }
+      accumulatedDistance.current = 0;
+    }
 
-  //     // Reset accumulated distance after drawing
-  //     accumulatedDistance.current = 0;
-  //   }
-
-  //   // Update main canvas display
-  //   updateMainCanvas();
-
-  //   lastPoint.current = point;
-  // };
+    lastPoint.current = point;
+  };
 
   const handlePointerUpOrLeave = () => {
     if (!isDrawing.current) return;
 
-    // Merge the complete stroke from overlay to stroke canvas
-    const strokeCtx = strokeCanvasRef.current?.getContext("2d");
-    if (strokeCtx && overlayCanvasRef.current) {
-      strokeCtx.save();
-      strokeCtx.globalAlpha = brushOpacity;
-      strokeCtx.drawImage(overlayCanvasRef.current, 0, 0);
-      strokeCtx.restore();
+    // Get the permanent strokes canvas context
+    const permanentCtx = permanentStrokesCanvasRef.current?.getContext("2d", { willReadFrequently: true });
+    if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current) return;
+
+    // Merge the active stroke onto the permanent strokes canvas
+    permanentCtx.save();
+    if (tool === "eraser") {
+      permanentCtx.globalCompositeOperation = "destination-out";
+    } else {
+      permanentCtx.globalCompositeOperation = "source-over";
+    }
+    permanentCtx.globalAlpha = brushOpacity;
+    permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+    permanentCtx.restore();
+
+    // Clear the active stroke canvas
+    const activeCtx = activeStrokeCanvasRef.current.getContext("2d", { willReadFrequently: true });
+    if (activeCtx) {
+      activeCtx.clearRect(0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height);
     }
 
-    // Clear the overlay canvas
-    const overlayCtx = overlayCanvasRef.current?.getContext("2d");
-    if (overlayCtx) {
-      overlayCtx.clearRect(0, 0, 512, 512);
+    // Save the canvas data after the stroke is complete
+    const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;
+    if (shapeId) {
+      const canvasData = permanentStrokesCanvasRef.current.toDataURL("image/png");
+      useStore.getState().updateShape(shapeId, { canvasData });
     }
-
-    // Final update to main canvas
-    updateMainCanvas();
 
     isDrawing.current = false;
     lastPoint.current = null;
-
-    // Save the canvas data after the stroke is complete
-    if (canvasRef.current) {
-      const canvasData = canvasRef.current.toDataURL("image/png");
-      useStore
-        .getState()
-        .updateShape(canvasRef.current.dataset.shapeId!, { canvasData });
-    }
-  };
-  const updateMainCanvas = () => {
-    const ctx = canvasRef.current?.getContext("2d", { willReadFrequently: true });
-    if (!ctx || !strokeCanvasRef.current || !overlayCanvasRef.current) return;
-
-    // Clear main canvas
-    ctx.clearRect(0, 0, 512, 512);
-
-    // Draw black background
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, 512, 512);
-
-    // Draw completed strokes
-    ctx.drawImage(strokeCanvasRef.current, 0, 0);
-
-    // Draw curre nt stroke with opacity
-    ctx.save();
-    ctx.globalAlpha = brushOpacity;
-    ctx.drawImage(overlayCanvasRef.current, 0, 0);
-    ctx.restore();
-  };
-
-  const drawBrushDot = (canvas: HTMLCanvasElement, point: Point) => {
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    const textureImg = brushTextures.get(brushTexture);
-    if (!ctx) return;
-  
-    ctx.save();
-    if (tool === "eraser") {
-      ctx.globalCompositeOperation = "destination-out";
-    } else {
-      ctx.globalCompositeOperation = "source-over";
-  
-      // Apply rotation transformation
-      ctx.translate(point.x, point.y);
-      ctx.rotate((brushRotation * Math.PI) / 180);
-      ctx.translate(-brushSize / 2, -brushSize / 2);
-  
-      if (brushTexture === 'soft') {
-        // Reset transformation for radial gradient
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        
-        const gradient = ctx.createRadialGradient(
-          point.x, point.y, 0,
-          point.x, point.y, brushSize / 2
-        );
-        
-        const alpha = brushOpacity;
-        const hardnessFactor = 1 - Math.max(0.01, brushHardness);
-        
-        gradient.addColorStop(0, `rgba(255,255,255,${alpha})`);
-        gradient.addColorStop(Math.min(1, 1 - hardnessFactor), `rgba(255,255,255,${alpha * 0.5})`);
-        gradient.addColorStop(1, 'rgba(255,255,255,0)');
-        
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (textureImg && textureImg.complete) {
-        // Use drawMixboxStamp for the initial dot to maintain consistency
-        drawMixboxStamp({
-          ctx,
-          x: brushSize / 2,
-          y: brushSize / 2,
-          color: currentColor,
-          opacity: brushOpacity,
-          size: brushSize
-        });
-  
-        // Apply texture after the mixbox stamp
-        const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = brushSize;
-        tempCanvas.height = brushSize;
-        const tempCtx = tempCanvas.getContext("2d");
-        if (tempCtx) {
-          // Copy the mixbox result
-          tempCtx.drawImage(canvas, point.x - brushSize/2, point.y - brushSize/2, brushSize, brushSize, 0, 0, brushSize, brushSize);
-          
-          // Apply texture as mask
-          tempCtx.globalCompositeOperation = "destination-in";
-          tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
-  
-          // Clear original area and draw the textured result
-          ctx.clearRect(0, 0, brushSize, brushSize);
-          ctx.drawImage(tempCanvas, 0, 0);
-        }
-      }
-    }
-    ctx.restore();
-  };
-  
-  const drawBrushStamp = (
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number
-  ) => {
-    const textureImg = brushTextures.get(brushTexture);
-  
-    if (brushTexture === 'soft') {
-      const gradient = ctx.createRadialGradient(
-        x, y, 0,
-        x, y, brushSize / 2
-      );
-      
-      const alpha = brushOpacity;
-      const hardnessFactor = 1 - Math.max(0.01, brushHardness);
-      
-      gradient.addColorStop(0, `rgba(255,255,255,${alpha})`);
-      gradient.addColorStop(Math.min(1, 1 - hardnessFactor), `rgba(255,255,255,${alpha * 0.5})`);
-      gradient.addColorStop(1, 'rgba(255,255,255,0)');
-      
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (textureImg && textureImg.complete) {
-      // Create temporary canvas for colored texture
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = brushSize;
-      tempCanvas.height = brushSize;
-      const tempCtx = tempCanvas.getContext('2d');
-  
-      if (tempCtx) {
-        // Draw mixed color using Mixbox
-        drawMixboxStamp({
-          ctx: tempCtx,
-          x: brushSize / 2,
-          y: brushSize / 2,
-          color: currentColor,
-          opacity: brushOpacity,
-          size: brushSize
-        });
-  
-        // Apply texture
-        tempCtx.globalCompositeOperation = 'destination-in';
-        tempCtx.drawImage(textureImg, 0, 0, brushSize, brushSize);
-  
-        // Draw the final result
-        ctx.drawImage(tempCanvas, x - brushSize/2, y - brushSize/2);
-      }
-    }
   };
 
   const { drawMixboxStamp } = useMixboxBrush({
-    canvasRef,
-    strokeCanvasRef,
-    overlayCanvasRef
+    backgroundCanvasRef,
+    permanentStrokesCanvasRef,
+    activeStrokeCanvasRef
   });
 
+  const drawBrushDot = (canvas: HTMLCanvasElement, point: Point) => {
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    ctx.save();
+    if (tool === "eraser") {
+      ctx.globalCompositeOperation = "destination-out";
+      const radius = brushSize / 2;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      applyBrushTexture(ctx, point.x, point.y, currentColor, brushSize);
+    }
+    ctx.restore();
+  };
 
   const drawBrushStroke = (
     ctx: CanvasRenderingContext2D,
@@ -330,82 +253,40 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     const dy = end.y - start.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     const spacing = Math.max(brushSize * brushSpacing, 1);
-    const pathAngle = Math.atan2(dy, dx);
     const steps = Math.ceil(distance / spacing);
-  
+    const pathAngle = Math.atan2(dy, dx);
+
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
       const x = start.x + dx * t;
       const y = start.y + dy * t;
-  
-      if (brushTexture === 'soft') {
-        const gradient = ctx.createRadialGradient(
-          x, y, 0,
-          x, y, brushSize / 2
-        );
-        
-        const alpha = brushOpacity;
-        const hardnessFactor = 1 - Math.max(0.01, brushHardness);
-        
-        gradient.addColorStop(0, `rgba(255,255,255,${alpha})`);
-        gradient.addColorStop(Math.min(1, 1 - hardnessFactor), `rgba(255,255,255,${alpha * 0.5})`);
-        gradient.addColorStop(1, 'rgba(255,255,255,0)');
-        
-        ctx.fillStyle = gradient;
+
+      ctx.save();
+      if (tool === "eraser") {
+        ctx.globalCompositeOperation = "destination-out";
+        const radius = brushSize / 2;
         ctx.beginPath();
-        ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        ctx.save();
+        ctx.globalCompositeOperation = "source-over";
         ctx.translate(x, y);
-  
+
         const rotation = brushFollowPath
           ? pathAngle
           : (brushRotation * Math.PI) / 180;
-  
+
         ctx.rotate(rotation);
-        ctx.translate(-brushSize / 2, -brushSize / 2);
-  
-        drawBrushStamp(ctx, brushSize / 2, brushSize / 2);
-        ctx.restore();
-      }
-    }
-  };
-  
-  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!isDrawing.current || !lastPoint.current) return;
-    if (tool !== "brush" && tool !== "eraser") return;
-    e.preventDefault();
-  
-    const point = getScaledPoint(e);
-    if (!point) return;
-  
-    const dx = point.x - lastPoint.current.x;
-    const dy = point.y - lastPoint.current.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    accumulatedDistance.current += distance;
-  
-    const spacing = Math.max(brushSize * brushSpacing, 1);
-    if (accumulatedDistance.current >= spacing) {
-      const overlayCtx = overlayCanvasRef.current?.getContext("2d");
-      if (overlayCtx && lastPoint.current) {
-        if (tool === "eraser") {
-          overlayCtx.globalCompositeOperation = "destination-out";
-        } else {
-          overlayCtx.globalCompositeOperation = "source-over";
-        }
-        
-        drawBrushStroke(
-          overlayCtx,
-          lastPoint.current,
-          point
+        applyBrushTexture(
+          ctx, 
+          0, 
+          0, 
+          currentColor, 
+          brushSize
         );
       }
-      accumulatedDistance.current = 0;
+      ctx.restore();
     }
-  
-    updateMainCanvas();
-    lastPoint.current = point;
   };
 
   return {
@@ -414,5 +295,3 @@ const useBrush = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     handlePointerUpOrLeave,
   };
 };
-
-export { useBrush };

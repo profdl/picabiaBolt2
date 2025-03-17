@@ -1,13 +1,16 @@
-import { useEffect, useRef, useCallback } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { useStore } from "../../../store";
 import { Shape } from "../../../types";
 import { supabase } from "../../../lib/supabase";
 import { ImageEditor } from "./ImageEditor";
+import { useBrush } from "../../layout/toolbars/BrushTool";
 
 interface ImageShapeProps {
   shape: Shape;
+  tool: "select" | "pan" | "pen" | "brush" | "eraser";
+  handleContextMenu: (e: React.MouseEvent) => void;
 }
+
 interface PreprocessedImagePayload {
   new: {
     status: string;
@@ -17,130 +20,102 @@ interface PreprocessedImagePayload {
   };
 }
 
-export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
+export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleContextMenu }) => {
   const updateShape = useStore((state) => state.updateShape);
-  const preprocessingStates = useStore((state) => state.preprocessingStates);
+  
+  // Create refs for our canvas layers
+  const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
+  const permanentStrokesCanvasRef = useRef<HTMLCanvasElement>(null);
+  const activeStrokeCanvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Create mutable object to store canvas references
+  const canvasRefs = useRef({
+    background: document.createElement('canvas'),
+    permanent: document.createElement('canvas'),
+    active: document.createElement('canvas')
+  });
+
   const subscriptionRef = useRef<{
     [key: string]: ReturnType<typeof supabase.channel>;
   }>({});
 
-  // Fetch current state on mount and visibility change
-  const fetchCurrentState = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("preprocessed_images")
-        .select("*")
-        .eq("shapeId", shape.id)
-        .in("status", ["processing", "completed"]);
+  const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush({
+    backgroundCanvasRef,
+    permanentStrokesCanvasRef,
+    activeStrokeCanvasRef
+  });
 
-      if (error) throw error;
-
-      if (data) {
-        data.forEach((record) => {
-          if (record.status === "completed" && record.processType) {
-            const urlKey = `${record.processType}Url`;
-            const previewUrlKey = `${record.processType}Url`;
-
-            updateShape(shape.id, {
-              [previewUrlKey]: record[urlKey],
-            });
-
-            useStore.setState((state) => ({
-              preprocessingStates: {
-                ...state.preprocessingStates,
-                [shape.id]: {
-                  ...state.preprocessingStates[shape.id],
-                  [record.processType]: false,
-                },
-              },
-            }));
-          }
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching current state:", error);
-    }
-  }, [shape.id, updateShape]);
-
-  // Handle visibility changes
+  // Initialize canvases with image
   useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === "visible") {
-        try {
-          // Fetch all preprocessed images for this shape
-          const { data, error } = await supabase
-            .from("preprocessed_images")
-            .select("*")
-            .eq("shapeId", shape.id)
-            .order('created_at', { ascending: false });
-  
-          if (error) throw error;
-  
-          if (data) {
-            // Process each record and update the UI accordingly
-            data.forEach((record) => {
-              if (record.status === "completed" && record.processType) {
-                const urlKey = `${record.processType}Url`;
-                const previewUrlKey = `${record.processType}Url`;
-  
-                // Update shape with the processed image URL
-                updateShape(shape.id, {
-                  [previewUrlKey]: record[urlKey],
-                });
-  
-                // Clear the processing state
-                useStore.setState((state) => ({
-                  preprocessingStates: {
-                    ...state.preprocessingStates,
-                    [shape.id]: {
-                      ...state.preprocessingStates[shape.id],
-                      [record.processType]: false,
-                    },
-                  },
-                }));
-              } else if (record.status === "failed") {
-                // Handle failed processing
-                useStore.setState((state) => ({
-                  preprocessingStates: {
-                    ...state.preprocessingStates,
-                    [shape.id]: {
-                      ...state.preprocessingStates[shape.id],
-                      [record.processType]: false,
-                    },
-                  },
-                }));
-              }
-            });
-          }
-        } catch (error) {
-          console.error("Error fetching preprocessed images:", error);
-        }
+    if (!backgroundCanvasRef.current || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current || !shape.imageUrl) return;
+
+    const backgroundCanvas = backgroundCanvasRef.current;
+    const permanentCanvas = permanentStrokesCanvasRef.current;
+    const activeCanvas = activeStrokeCanvasRef.current;
+    
+    const bgCtx = backgroundCanvas.getContext('2d');
+    const permanentCtx = permanentCanvas.getContext('2d');
+    const activeCtx = activeCanvas.getContext('2d');
+    
+    if (!bgCtx || !permanentCtx || !activeCtx) return;
+
+    // Load and draw the image
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      // Set canvas dimensions to match the image's aspect ratio
+      const aspectRatio = img.width / img.height;
+      const width = 512;
+      const height = 512 / aspectRatio;
+
+      // Set dimensions for all canvases
+      [backgroundCanvas, permanentCanvas, activeCanvas].forEach(canvas => {
+        canvas.width = width;
+        canvas.height = height;
+      });
+
+      // Draw image on background canvas
+      bgCtx.drawImage(img, 0, 0, width, height);
+
+      // Initialize auxiliary canvases
+      canvasRefs.current.background.width = width;
+      canvasRefs.current.background.height = height;
+      canvasRefs.current.permanent.width = width;
+      canvasRefs.current.permanent.height = height;
+      canvasRefs.current.active.width = width;
+      canvasRefs.current.active.height = height;
+
+      // If we have existing canvas data, restore it to the permanent canvas
+      if (shape.canvasData) {
+        const savedImg = new Image();
+        savedImg.onload = () => {
+          permanentCtx.drawImage(savedImg, 0, 0);
+        };
+        savedImg.src = shape.canvasData;
       }
     };
+    img.src = shape.imageUrl;
+  }, [shape.imageUrl, updateShape, shape.id, shape.canvasData]);
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-  
-    // Immediately check current state on mount
-    handleVisibilityChange();
-
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [shape.id, updateShape]);
+  // Handle clearing strokes
+  const handleClear = () => {
+    if (!permanentStrokesCanvasRef.current) return;
+    const ctx = permanentStrokesCanvasRef.current.getContext('2d');
+    if (!ctx) return;
+    
+    ctx.clearRect(0, 0, permanentStrokesCanvasRef.current.width, permanentStrokesCanvasRef.current.height);
+    
+    // Save the cleared state
+    const canvasData = permanentStrokesCanvasRef.current.toDataURL("image/png");
+    updateShape(shape.id, { canvasData });
+  };
 
   // Set up subscriptions for each process type
   useEffect(() => {
-    const processTypes = ["depth", "edge", "pose", "sketch", "remix"];
+    const processTypes = ["depth", "edge", "pose", "sketch"];
 
     processTypes.forEach((processType) => {
-      if (
-        shape[
-          `show${
-            processType.charAt(0).toUpperCase() + processType.slice(1)
-          }` as keyof Shape
-        ]
-      ) {
+      if (shape[`show${processType.charAt(0).toUpperCase() + processType.slice(1)}` as keyof Shape]) {
         const channelName = `preprocessing_${shape.id}_${processType}`;
 
         if (!subscriptionRef.current[channelName]) {
@@ -160,21 +135,11 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
                   payload.new.processType === processType
                 ) {
                   const urlKey = `${processType}Url`;
-                  const previewUrlKey = `${processType}Url`;
+                  const previewUrlKey = `${processType}PreviewUrl`;
 
                   updateShape(shape.id, {
                     [previewUrlKey]: payload.new[urlKey],
                   });
-
-                  useStore.setState((state) => ({
-                    preprocessingStates: {
-                      ...state.preprocessingStates,
-                      [shape.id]: {
-                        ...state.preprocessingStates[shape.id],
-                        [processType]: false,
-                      },
-                    },
-                  }));
                 }
               }
             )
@@ -185,13 +150,11 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
       }
     });
 
-    // Fetch current state on mount
-    fetchCurrentState();
-
-    // Cleanup subscriptions
     return () => {
       Object.values(subscriptionRef.current).forEach((subscription) => {
-        subscription.unsubscribe();
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe();
+        }
       });
       subscriptionRef.current = {};
     };
@@ -203,46 +166,87 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape }) => {
         <ImageEditor shape={shape} updateShape={updateShape} />
       ) : (
         <>
-          <img
-            src={shape.imageUrl}
-            alt="Original image"
+          <canvas
+            ref={backgroundCanvasRef}
             className="absolute w-full h-full object-cover"
-            draggable={false}
+            style={{
+              touchAction: "none",
+              pointerEvents: "none"
+            }}
           />
-          {/* Rest of your existing layers */}
+          <canvas
+            ref={permanentStrokesCanvasRef}
+            className="absolute w-full h-full object-cover"
+            style={{
+              touchAction: "none",
+              pointerEvents: "none"
+            }}
+          />
+          <canvas
+            ref={activeStrokeCanvasRef}
+            data-shape-id={shape.id}
+            className="absolute w-full h-full object-cover"
+            style={{
+              touchAction: "none",
+              pointerEvents: tool === "select" ? "none" : "all"
+            }}
+            onContextMenu={handleContextMenu}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              e.currentTarget.setPointerCapture(e.pointerId);
+              handlePointerDown(e);
+            }}
+            onPointerMove={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              handlePointerMove(e);
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }
+              handlePointerUpOrLeave();
+            }}
+            onPointerLeave={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }
+              handlePointerUpOrLeave();
+            }}
+            onPointerCancel={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }
+              handlePointerUpOrLeave();
+            }}
+          />
+          {/* Processed layers (depth, edge, pose, etc.) */}
+          {shape.showSketch && shape.sketchPreviewUrl && (
+            <img
+              src={shape.sketchPreviewUrl}
+              alt="Sketch"
+              className="absolute w-full h-full object-cover"
+              style={{ opacity: shape.sketchStrength || 0.5 }}
+              draggable={false}
+            />
+          )}
+          {(tool === "brush" || tool === "eraser") && (
+            <button
+              className="absolute -bottom-6 right-0 text-xs px-1.5 py-0.5 bg-gray-300 text-gray-800 rounded hover:bg-red-600 transition-colors"
+              style={{ pointerEvents: "all" }}
+              onClick={handleClear}
+            >
+              Reset
+            </button>
+          )}
         </>
-      )}
-      {/* Base image */}
-      <img
-        src={shape.imageUrl}
-        alt="Original image"
-        className="absolute w-full h-full object-cover"
-        draggable={false}
-      />
-
-      {shape.showSketch && shape.sketchPreviewUrl && (
-        <img
-          src={shape.sketchPreviewUrl}
-          alt="Sketch"
-          className="absolute w-full h-full object-cover"
-          style={{ opacity: shape.sketchStrength || 0.5 }}
-          draggable={false}
-        />
-      )}
-
-      {shape.showRemix && shape.remixPreviewUrl && (
-        <img
-          src={shape.remixPreviewUrl}
-          alt="Remix"
-          className="absolute w-full h-full object-cover"
-          style={{ opacity: shape.remixStrength || 0.5 }}
-          draggable={false}
-        />
-      )}
-      {shape.isProcessingSubject && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        </div>
       )}
     </div>
   );

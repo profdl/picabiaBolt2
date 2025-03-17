@@ -1,11 +1,10 @@
-
 import {  useCallback } from 'react';
 import Mixbox from 'mixbox';
 
 interface MixboxBrushProps {
-  canvasRef: React.RefObject<HTMLCanvasElement>;
-  strokeCanvasRef: React.RefObject<HTMLCanvasElement>;
-  overlayCanvasRef: React.RefObject<HTMLCanvasElement>;
+  backgroundCanvasRef: React.RefObject<HTMLCanvasElement>;
+  permanentStrokesCanvasRef: React.RefObject<HTMLCanvasElement>;
+  activeStrokeCanvasRef: React.RefObject<HTMLCanvasElement>;
 }
 
 interface MixboxDrawProps {
@@ -23,7 +22,9 @@ interface StrokeLayer {
   color: string;
 }
 
-export const useMixboxBrush = ({ strokeCanvasRef }: MixboxBrushProps) => {
+export const useMixboxBrush = ({
+  activeStrokeCanvasRef
+}: MixboxBrushProps) => {
   // Convert RGB color to Mixbox color
   const rgbToMixbox = useCallback((color: string) => {
     const rgb = hexToRgb(color);
@@ -51,12 +52,12 @@ export const useMixboxBrush = ({ strokeCanvasRef }: MixboxBrushProps) => {
 
   // Sample color from canvas
   const sampleColor = useCallback((x: number, y: number): string => {
-    const ctx = strokeCanvasRef.current?.getContext('2d', { willReadFrequently: true });
+    const ctx = activeStrokeCanvasRef.current?.getContext('2d', { willReadFrequently: true });
     if (!ctx) return '#000000';
     
     const pixel = ctx.getImageData(x, y, 1, 1).data;
     return rgbToHex(pixel[0], pixel[1], pixel[2]);
-  }, [strokeCanvasRef]);
+  }, [activeStrokeCanvasRef]);
 
    // New function to mix with background considering opacity
    const mixWithBackground = useCallback((foregroundColor: string, x: number, y: number, opacity: number) => {
@@ -129,7 +130,7 @@ export const useMixboxBrush = ({ strokeCanvasRef }: MixboxBrushProps) => {
     const bgCtx = backgroundLayer.canvas.getContext('2d');
     if (bgCtx) {
       bgCtx.drawImage(
-        strokeCanvasRef.current!, 
+        activeStrokeCanvasRef.current!, 
         x - size/2, y - size/2, size, size,
         0, 0, size, size
       );
@@ -155,7 +156,7 @@ export const useMixboxBrush = ({ strokeCanvasRef }: MixboxBrushProps) => {
       ctx.fillStyle = blendedColor;
     }
     ctx.fillRect(x - size/2, y - size/2, size, size);
-  }, [createStrokeLayer, blendLayers, sampleColor, strokeCanvasRef]);
+  }, [createStrokeLayer, blendLayers, sampleColor, activeStrokeCanvasRef]);
 
 
   return {
