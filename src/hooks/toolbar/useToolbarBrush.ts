@@ -1,5 +1,4 @@
 import { useStore } from "../../store";
-import { useEffect } from 'react';
 
 type ToolType = 'select' | 'pan' | 'pen' | 'brush' | 'eraser';
 
@@ -46,12 +45,6 @@ export function useToolbarBrush(): BrushControls {
     tool,
     setTool
   } = useStore();
-
-  useEffect(() => {
-    if (tool === "brush") {
-      setCurrentColor("#ffffff");
-    }
-  }, [setCurrentColor, tool]);
 
   return {
     currentColor,

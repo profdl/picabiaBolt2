@@ -739,7 +739,6 @@ export function ShapeControlsProperties({
               <button
                 onClick={() => {
                   setTool("brush");
-                  setCurrentColor("#ffffff");
                 }}
                 className={`${styles.controls.button} ${
                   tool === "brush" ? styles.controls.buttonActive : ""

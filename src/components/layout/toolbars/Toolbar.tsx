@@ -1,3 +1,4 @@
+import React from "react";
 import {
   BookImageIcon,
   Grid,
@@ -10,7 +11,6 @@ import {
   StickyNote,
 } from "lucide-react";
 import { useStore } from "../../../store";
-import { useEffect } from "react";
 import { Tooltip } from "../../shared/Tooltip";
 import { UploadButton } from "../../shared/UploadButton";
 import { PropertiesToolbar } from "./PropertiesToolbar";
@@ -191,12 +191,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     showAssets: state.showAssets,
     toggleAssets: state.toggleAssets,
   }));
-
-  useEffect(() => {
-    if (tool === "brush") {
-      setCurrentColor("#ffffff");
-    }
-  }, [setCurrentColor, tool]);
 
   const handleAddSticky = async () => {
     await addNewShape(

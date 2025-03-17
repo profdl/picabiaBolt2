@@ -50,7 +50,10 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
   shapes,
   actions,
 }) => {
-  const { tool, setTool, setCurrentColor } = useStore();
+  const { tool, setTool } = useStore((state) => ({
+    tool: state.tool,
+    setTool: state.setTool,
+  }));
   const [showArrangeMenu, setShowArrangeMenu] = useState(false);
   const styles = {
     container:
@@ -104,7 +107,6 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
                 active={tool === "brush"}
                 onClick={() => {
                   setTool("brush");
-                  setCurrentColor("#ffffff");
                 }}
                 className={`${styles.button} ${
                   tool === "brush" ? "bg-neutral-200 dark:bg-neutral-600" : ""
