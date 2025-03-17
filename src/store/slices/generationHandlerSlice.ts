@@ -312,15 +312,47 @@ export const generationHandlerSlice: StateCreator<
       const variationShape = shapes.find(s => s.type === "image" && s.makeVariations);
       
       if (variationShape) {
-        // Merge the image with brush strokes
-        const mergedImageUrl = await mergeImageWithStrokes(variationShape);
-        console.log('Merged image URL for variations:', mergedImageUrl);
+        // Get the preview canvas for the variation shape
+        const previewCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"]`) as HTMLCanvasElement;
+        if (!previewCanvas) {
+          console.error('Preview canvas not found for variation shape');
+          return;
+        }
 
-        // Use VAEEncode on the merged image instead of EmptyLatentImage
+        // Create a blob from the preview canvas
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          previewCanvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create blob from canvas'));
+            }
+          }, 'image/png', 1.0);
+        });
+
+        // Upload to Supabase
+        const fileName = `variation_source_${Math.random().toString(36).substring(2)}.png`;
+        const arrayBuffer = await blob.arrayBuffer();
+        const fileData = new Uint8Array(arrayBuffer);
+
+        const { error: uploadError } = await supabase.storage
+          .from("assets")
+          .upload(fileName, fileData, {
+            contentType: 'image/png',
+            upsert: false,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("assets")
+          .getPublicUrl(fileName);
+
+        // Use VAEEncode on the screenshot instead of EmptyLatentImage
         baseWorkflow["36"] = {
           ...workflow["36"],
           inputs: {
-            image: mergedImageUrl,
+            image: publicUrl,
             upload: "image",
           },
           class_type: "LoadImage",
