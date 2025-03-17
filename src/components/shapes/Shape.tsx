@@ -370,7 +370,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
           tool={tool}
           handleContextMenu={handleContextMenu}
         />
-        {isSelected && tool === "select" && (
+        {(isSelected || shape.showImagePrompt) && tool === "select" && (
           <ShapeControls
             shape={shape}
             isSelected={isSelected}

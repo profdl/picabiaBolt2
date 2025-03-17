@@ -96,12 +96,10 @@ export interface CanvasState {
       isEdgeProcessing?: boolean;
       isPoseProcessing?: boolean;
       isSketchProcessing?: boolean;
-      isRemixProcessing?: boolean;
       hasDepthGenerated?: boolean;
       hasEdgeGenerated?: boolean;
       hasPoseGenerated?: boolean;
       hasSketchGenerated?: boolean;
-      hasRemixGenerated?: boolean;
     }
   ) => void;
   updateShapeUrls: (
@@ -111,12 +109,10 @@ export interface CanvasState {
       edgeMapUrl?: string;
       poseMapUrl?: string;
       sketchMapUrl?: string;
-      remixMapUrl?: string;
       depthPreviewUrl?: string;
       edgePreviewUrl?: string;
       posePreviewUrl?: string;
       sketchPreviewUrl?: string;
-      remixPreviewUrl?: string;
     }
   ) => void;
   updateShapeStrengths: (
@@ -127,7 +123,7 @@ export interface CanvasState {
       contentStrength?: number;
       poseStrength?: number;
       sketchStrength?: number;
-      remixStrength?: number;
+      imagePromptStrength?: number;
     }
   ) => void;
   updateShapeVisibility: (
@@ -140,7 +136,8 @@ export interface CanvasState {
       showContent?: boolean;
       showPose?: boolean;
       showSketch?: boolean;
-      showRemix?: boolean;
+      showImagePrompt?: boolean;
+      imagePromptStrength?: number;
     }
   ) => void;
   updateShapeGenerationSettings: (

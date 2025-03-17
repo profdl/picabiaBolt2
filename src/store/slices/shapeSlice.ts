@@ -791,10 +791,37 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             return {
               ...shape,
               ...props,
+              showDepth: props.showDepth ?? shape.showDepth ?? false,
+              showEdges: props.showEdges ?? shape.showEdges ?? false,
+              showPose: props.showPose ?? shape.showPose ?? false,
+              showSketch: props.showSketch ?? shape.showSketch ?? false,
+              showImagePrompt: props.showImagePrompt ?? shape.showImagePrompt ?? false,
+              showPrompt: props.showPrompt ?? shape.showPrompt ?? false,
+              // Preserve strength values when toggling off
+              imagePromptStrength: props.showImagePrompt === false ? shape.imagePromptStrength : (props.imagePromptStrength ?? shape.imagePromptStrength ?? 0.5),
+              depthStrength: props.showDepth === false ? shape.depthStrength : (props.depthStrength ?? shape.depthStrength ?? 0.5),
+              edgesStrength: props.showEdges === false ? shape.edgesStrength : (props.edgesStrength ?? shape.edgesStrength ?? 0.5),
+              poseStrength: props.showPose === false ? shape.poseStrength : (props.poseStrength ?? shape.poseStrength ?? 0.5),
+              sketchStrength: props.showSketch === false ? shape.sketchStrength : (props.sketchStrength ?? shape.sketchStrength ?? 0.5),
             };
           }
 
-          const updatedShape = { ...shape, ...props };
+          const updatedShape = {
+            ...shape,
+            ...props,
+            showDepth: props.showDepth ?? shape.showDepth ?? false,
+            showEdges: props.showEdges ?? shape.showEdges ?? false,
+            showPose: props.showPose ?? shape.showPose ?? false,
+            showSketch: props.showSketch ?? shape.showSketch ?? false,
+            showImagePrompt: props.showImagePrompt ?? shape.showImagePrompt ?? false,
+            showPrompt: props.showPrompt ?? shape.showPrompt ?? false,
+            // Preserve strength values when toggling off
+            imagePromptStrength: props.showImagePrompt === false ? shape.imagePromptStrength : (props.imagePromptStrength ?? shape.imagePromptStrength ?? 0.5),
+            depthStrength: props.showDepth === false ? shape.depthStrength : (props.depthStrength ?? shape.depthStrength ?? 0.5),
+            edgesStrength: props.showEdges === false ? shape.edgesStrength : (props.edgesStrength ?? shape.edgesStrength ?? 0.5),
+            poseStrength: props.showPose === false ? shape.poseStrength : (props.poseStrength ?? shape.poseStrength ?? 0.5),
+            sketchStrength: props.showSketch === false ? shape.sketchStrength : (props.sketchStrength ?? shape.sketchStrength ?? 0.5),
+          };
 
           // If this shape is in a group, update the group's dimensions
           if (shape.groupId) {

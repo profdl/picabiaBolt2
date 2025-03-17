@@ -141,8 +141,8 @@ export function ShapeControlsProperties({
   const sketchProcessing = useStore(
     (state) => state.preprocessingStates[shape.id]?.sketch
   );
-  const remixProcessing = useStore(
-    (state) => state.preprocessingStates[shape.id]?.remix
+  const imagePromptProcessing = useStore(
+    (state) => state.preprocessingStates[shape.id]?.imagePrompt
   );
 
   const [isHovering, setIsHovering] = useState(false);
@@ -190,13 +190,13 @@ export function ShapeControlsProperties({
       preprocessor: "Sketch",
     },
     {
-      type: "Remix",
-      preview: shape.remixPreviewUrl,
-      showKey: "showRemix",
-      strengthKey: "remixStrength",
-      isProcessing: remixProcessing,
-      processType: "remix",
-      preprocessor: "Remix",
+      type: "Image",
+      preview: shape.imageUrl,
+      showKey: "showImagePrompt",
+      strengthKey: "imagePromptStrength",
+      isProcessing: imagePromptProcessing,
+      processType: "image",
+      preprocessor: "Image",
     },
   ];
   const anyCheckboxChecked =
@@ -207,7 +207,7 @@ export function ShapeControlsProperties({
     shape.showPrompt ||
     shape.showNegativePrompt ||
     shape.showSketch ||
-    shape.showRemix ||
+    shape.showImagePrompt ||
     (shape.type === "diffusionSettings" && shape.useSettings); 
 
     const showControlPanel = isSelected || anyCheckboxChecked;
@@ -255,10 +255,9 @@ export function ShapeControlsProperties({
     }
 
     // For remix control, set remixPreviewUrl
-    if (control.processType === "remix") {
+    if (control.processType === "image") {
       updateShape(shape.id, {
         [control.showKey]: isChecked,
-        remixPreviewUrl: isChecked ? shape.imageUrl : undefined,
       });
       return;
     }
@@ -267,7 +266,7 @@ export function ShapeControlsProperties({
     const previewUrl = shape[`${control.processType}PreviewUrl` as keyof Shape];
     updateShape(shape.id, { [control.showKey]: isChecked });
 
-    if (control.processType !== "remix") {
+    if (control.processType !== "image") {
       shapes.forEach((otherShape) => {
         if (otherShape.id !== shape.id && otherShape.type === "image") {
           const showKey = control.showKey as keyof Shape;
@@ -283,7 +282,7 @@ export function ShapeControlsProperties({
       try {
         await generatePreprocessedImage(
           shape.id,
-          control.processType as "depth" | "edge" | "pose" | "sketch" | "remix"
+          control.processType as "depth" | "edge" | "pose" | "sketch" | "imagePrompt"
         );
       } catch (error) {
         console.error("Failed to generate preprocessed image:", error);
@@ -295,28 +294,58 @@ export function ShapeControlsProperties({
   if (!showControlPanel && !shape.isNew) return null;
 
   return (
-    <div
-      className="absolute inset-0"
-      style={{
-        pointerEvents: "none",
-        ...(isSelected && shape.type === "3d"
-          ? {
-              border: "2px solid rgb(var(--neutral-500))",
-              borderRadius: "4px",
-            }
-          : {}),
-        ...(isSelected && shape.type === "diffusionSettings"
-          ? {
-              border: "2px solid rgb(var(--neutral-500))",
-              borderRadius: "8px",
-              backgroundColor: "transparent",
-              backgroundImage: "none",
-            }
-          : {}),
-      }}
-    >
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          pointerEvents: "none",
+          ...(isSelected && shape.type === "3d"
+            ? {
+                border: "2px solid rgb(var(--neutral-500))",
+                borderRadius: "4px",
+              }
+            : {}),
+          ...(isSelected && shape.type === "diffusionSettings"
+            ? {
+                border: "2px solid rgb(var(--neutral-500))",
+                borderRadius: "8px",
+                backgroundColor: "transparent",
+                backgroundImage: "none",
+              }
+            : {}),
+        }}
+      >
+        {/* Only show resize handle when selected */}
+        {showManipulationControls && (
+          <div
+            className={styles.resizeHandle}
+            style={{ zIndex: 101, pointerEvents: "all" }}
+            onMouseDown={handleResizeStart}
+          />
+        )}
+
+        {shape.type !== "image" &&
+          shape.type !== "sketchpad" &&
+          shape.type !== "group" &&
+          shape.type !== "sticky" &&
+          shape.type !== "3d" &&
+          shape.type !== "diffusionSettings" && (
+            <input
+              type="color"
+              value={shape.color}
+              onChange={(e) => updateShape(shape.id, { color: e.target.value })}
+              className={styles.colorPicker}
+              style={{ zIndex: 101, pointerEvents: "all" }}
+            />
+          )}
+      </div>
+
+      {/* Move image controls outside the main container */}
       {(shape.type === "image" || shape.type === "sketchpad") && (
-        <div className={styles.controls.panel}>
+        <div 
+          className={`absolute left-2 top-full mt-1 ${styles.controls.panel}`}
+          style={{ zIndex: 1000, pointerEvents: "all" }}
+        >
           {(isSelected
             ? controls.filter((control) => control.processType)
             : controls.filter(
@@ -424,6 +453,8 @@ export function ShapeControlsProperties({
           ))}
         </div>
       )}
+
+      {/* Rest of the controls */}
       {shape.type === "image" && shape.imageUrl && isSelected && (
         <div
           className="absolute -left-0 -bottom-7 action-dropdown"
@@ -445,31 +476,7 @@ export function ShapeControlsProperties({
         </div>
       )}
 
-      {/* Only show resize handle when selected */}
-      {showManipulationControls && (
-        <div
-          className={styles.resizeHandle}
-          style={{ zIndex: 101, pointerEvents: "all" }}
-          onMouseDown={handleResizeStart}
-        />
-      )}
-
-      {shape.type !== "image" &&
-        shape.type !== "sketchpad" &&
-        shape.type !== "group" &&
-        shape.type !== "sticky" &&
-        shape.type !== "3d" &&
-        shape.type !== "diffusionSettings" && (
-          <input
-            type="color"
-            value={shape.color}
-            onChange={(e) => updateShape(shape.id, { color: e.target.value })}
-            className={styles.colorPicker}
-            style={{ zIndex: 101, pointerEvents: "all" }}
-          />
-        )}
-
-{shape.type === "diffusionSettings" && (
+      {shape.type === "diffusionSettings" && (
         <div
           className={`absolute left-1/2 -bottom-10 transform -translate-x-1/2 ${styles.sidePanel.container}`}
           style={{ zIndex: 101, pointerEvents: "all", width: "160px" }}
@@ -803,6 +810,6 @@ export function ShapeControlsProperties({
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }
