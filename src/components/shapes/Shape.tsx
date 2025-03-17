@@ -355,6 +355,14 @@ export function ShapeComponent({ shape }: ShapeProps) {
   }
 
   if (shape.type === "image") {
+    const showControls = isSelected || 
+      shape.showImagePrompt || 
+      shape.makeVariations || 
+      shape.showDepth || 
+      shape.showEdges || 
+      shape.showPose || 
+      shape.showSketch;
+
     return (
       <div
         style={{
@@ -370,7 +378,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
           tool={tool}
           handleContextMenu={handleContextMenu}
         />
-        {(isSelected || shape.showImagePrompt) && tool === "select" && (
+        {showControls && tool === "select" && (
           <ShapeControls
             shape={shape}
             isSelected={isSelected}

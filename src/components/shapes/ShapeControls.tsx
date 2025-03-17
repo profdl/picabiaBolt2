@@ -109,7 +109,7 @@ export function ShapeControls({
     shape.showContent ||
     shape.isTextPrompt ||
     shape.isNegativePrompt ||
-    (shape.type === "image" && shape.showImagePrompt) ||
+    (shape.type === "image" && (shape.showImagePrompt || shape.makeVariations)) ||
     (shape.type === "diffusionSettings" && shape.useSettings);
 
   const showControlPanel = isSelected || anyCheckboxChecked;
@@ -117,7 +117,7 @@ export function ShapeControls({
 
   // Only return null if there's nothing to show at all
   const hasExternalControls = 
-    ((shape.type === "image" || shape.type === "sketchpad") && shape.showImagePrompt) ||
+    ((shape.type === "image" || shape.type === "sketchpad") && (shape.showImagePrompt || (shape.type === "image" && shape.makeVariations))) ||
     (shape.type === "depth" && shape.showDepth) ||
     (shape.type === "edges" && shape.showEdges) ||
     (shape.type === "pose" && shape.showPose);
@@ -345,7 +345,7 @@ export function ShapeControls({
       )}
 
       {/* Image Prompt Controls */}
-      {((shape.type === "image" && isSelected) || (shape.type === "sketchpad" && (shape.showImagePrompt || isSelected))) && (
+      {shape.type === "image" && (
         <div
           className="absolute left-2 top-full mt-1"
           data-shape-control="true"
@@ -354,40 +354,64 @@ export function ShapeControls({
           onClick={preventEvent}
         >
           <div className={`flex ${shape.width < 340 ? 'flex-col gap-1' : 'flex-row gap-2'}`}>
-            {/* Image Prompt Controls - Left Box */}
-            <div className="flex justify-start">
-              <EnableReferencePanel
-                id={`imagePrompt-${shape.id}`}
-                label="Use Image Reference"
-                checked={shape.showImagePrompt || false}
-                onToggleChange={(checked: boolean) => {
-                  updateShape(shape.id, { 
-                    showImagePrompt: checked,
-                    imagePromptStrength: checked ? 0.5 : shape.imagePromptStrength || 0.5  // Preserve existing strength or use default
-                  });
-                  setSelectedShapes([shape.id]); // Keep shape selected when toggling
-                }}
-                sliderValue={shape.imagePromptStrength || 0.5}
-                onSliderChange={(value: number) => {
-                  updateShape(shape.id, { imagePromptStrength: value });
-                }}
-                onMouseDown={preventEvent}
-                onClick={preventEvent}
-                showVariations={shape.type === "image"}
-                makeVariations={shape.makeVariations}
-                onVariationsToggleChange={(checked: boolean) => {
-                  updateShape(shape.id, {
-                    makeVariations: checked,
-                    variationStrength: checked ? 0.75 : shape.variationStrength || 0.75
-                  });
-                }}
-                variationStrength={shape.variationStrength || 0.75}
-                onVariationStrengthChange={(value: number) => {
-                  updateShape(shape.id, { variationStrength: value });
-                }}
-                showSlider={shape.showImagePrompt}
-              />
-            </div>
+            {/* Image Reference Controls */}
+            {(isSelected || shape.showImagePrompt) && (
+              <div className="flex justify-start">
+                <EnableReferencePanel
+                  id={`imagePrompt-${shape.id}`}
+                  label="Use Image Reference"
+                  checked={shape.showImagePrompt || false}
+                  onToggleChange={(checked: boolean) => {
+                    updateShape(shape.id, { 
+                      showImagePrompt: checked,
+                      imagePromptStrength: checked ? 0.5 : shape.imagePromptStrength || 0.5  // Preserve existing strength or use default
+                    });
+                    setSelectedShapes([shape.id]); // Keep shape selected when toggling
+                  }}
+                  sliderValue={shape.imagePromptStrength || 0.5}
+                  onSliderChange={(value: number) => {
+                    updateShape(shape.id, { imagePromptStrength: value });
+                  }}
+                  onMouseDown={preventEvent}
+                  onClick={preventEvent}
+                  showSlider={true}
+                />
+              </div>
+            )}
+
+            {/* Variations Controls - Only show for image type */}
+            {(isSelected || shape.makeVariations) && (
+              <div className="flex justify-start">
+                <EnableReferencePanel
+                  id={`variations-${shape.id}`}
+                  label="Make Variations"
+                  checked={shape.makeVariations || false}
+                  onToggleChange={(checked: boolean) => {
+                    // If enabling variations, disable it on all other images first
+                    if (checked) {
+                      shapes.forEach((otherShape) => {
+                        if (otherShape.type === "image" && otherShape.id !== shape.id) {
+                          updateShape(otherShape.id, { makeVariations: false });
+                        }
+                      });
+                    }
+                    
+                    updateShape(shape.id, {
+                      makeVariations: checked,
+                      variationStrength: checked ? 0.75 : shape.variationStrength || 0.75
+                    });
+                    setSelectedShapes([shape.id]); // Keep shape selected when toggling
+                  }}
+                  sliderValue={shape.variationStrength || 0.75}
+                  onSliderChange={(value: number) => {
+                    updateShape(shape.id, { variationStrength: value });
+                  }}
+                  onMouseDown={preventEvent}
+                  onClick={preventEvent}
+                  showSlider={true}
+                />
+              </div>
+            )}
 
             {/* Create Maps Dropdown - Right Box */}
             {isSelected && (

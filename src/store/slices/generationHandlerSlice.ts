@@ -147,7 +147,16 @@ export const generationHandlerSlice: StateCreator<
   handleGenerate: async () => {
     const workflow = JSON.parse(JSON.stringify(multiControlWorkflow));
     const state = get();
-    const { shapes } = state;
+    const { shapes, updateShape } = state;
+
+    // Check if multiple images have makeVariations enabled
+    const variationShapes = shapes.filter(s => s.type === "image" && s.makeVariations);
+    if (variationShapes.length > 1) {
+      // Keep the last enabled one and disable the rest
+      variationShapes.slice(0, -1).forEach(shape => {
+        updateShape(shape.id, { makeVariations: false });
+      });
+    }
 
     const activeSettings = shapes.find(
       (shape) => shape.type === "diffusionSettings" && shape.useSettings
