@@ -164,8 +164,15 @@ export const generationHandlerSlice: StateCreator<
       randomiseSeeds: true,
     };
 
-    // Only calculate dimensions from control shapes if no DiffusionSettingsPanel is enabled
-    if (!activeSettings.outputWidth || !activeSettings.outputHeight) {
+    // Check for variations first since it should take precedence
+    const variationShape = shapes.find(s => s.type === "image" && s.makeVariations);
+    if (variationShape) {
+      // Use the dimensions from the variation source image
+      activeSettings.outputWidth = Math.round(variationShape.width);
+      activeSettings.outputHeight = Math.round(variationShape.height);
+    }
+    // Only calculate dimensions from control shapes if no variations and no DiffusionSettingsPanel is enabled
+    else if (!activeSettings.outputWidth || !activeSettings.outputHeight) {
       const avgAspectRatio = calculateAverageAspectRatio(shapes);
       if (avgAspectRatio) {
         // Target approximately 1 megapixel area
