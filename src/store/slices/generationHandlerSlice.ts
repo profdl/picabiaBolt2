@@ -308,71 +308,12 @@ export const generationHandlerSlice: StateCreator<
         "9": workflow["9"],
       };
 
-      // Check if any image has makeVariations enabled
-      const variationShape = shapes.find(s => s.type === "image" && s.makeVariations);
-      
+      // Add variation nodes if needed
       if (variationShape) {
-        // Get the preview canvas for the variation shape
-        const previewCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"]`) as HTMLCanvasElement;
-        if (!previewCanvas) {
-          console.error('Preview canvas not found for variation shape');
-          return;
-        }
-
-        // Create a blob from the preview canvas
-        const blob = await new Promise<Blob>((resolve, reject) => {
-          previewCanvas.toBlob((blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to create blob from canvas'));
-            }
-          }, 'image/png', 1.0);
-        });
-
-        // Upload to Supabase
-        const fileName = `variation_source_${Math.random().toString(36).substring(2)}.png`;
-        const arrayBuffer = await blob.arrayBuffer();
-        const fileData = new Uint8Array(arrayBuffer);
-
-        const { error: uploadError } = await supabase.storage
-          .from("assets")
-          .upload(fileName, fileData, {
-            contentType: 'image/png',
-            upsert: false,
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("assets")
-          .getPublicUrl(fileName);
-
-        // Use VAEEncode on the screenshot instead of EmptyLatentImage
-        baseWorkflow["36"] = {
-          ...workflow["36"],
-          inputs: {
-            image: publicUrl,
-            upload: "image",
-          },
-          class_type: "LoadImage",
-        };
-        
-        baseWorkflow["35"] = {
-          ...workflow["35"],
-          inputs: {
-            pixels: ["36", 0],
-            vae: ["4", 2]
-          },
-          class_type: "VAEEncode",
-        };
-        
-        // Set the latent_image input to the encoded image and adjust denoise strength
-        baseWorkflow["3"].inputs.latent_image = ["35", 0];
-        baseWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
-
-        // Ensure the workflow is using the correct nodes
-        delete baseWorkflow["34"]; // Remove EmptyLatentImage node if it exists
+        baseWorkflow["35"] = workflow["35"];
+        baseWorkflow["36"] = workflow["36"];
+        // Remove EmptyLatentImage node since we're using VAEEncode
+        delete baseWorkflow["34"];
       } else {
         // Use EmptyLatentImage as before
         baseWorkflow["34"] = workflow["34"];
@@ -575,14 +516,47 @@ export const generationHandlerSlice: StateCreator<
       // Check for image reference
       const imageReferenceShape = shapes.find(s => s.type === "image" && s.showImagePrompt);
       if (imageReferenceShape) {
-        // Merge the image with brush strokes
-        const mergedImageUrl = await mergeImageWithStrokes(imageReferenceShape);
+        // Get the preview canvas for the image reference shape
+        const previewCanvas = document.querySelector(`canvas[data-shape-id="${imageReferenceShape.id}"]`) as HTMLCanvasElement;
+        if (!previewCanvas) {
+          console.error('Preview canvas not found for image reference shape');
+          return;
+        }
+
+        // Create a blob from the preview canvas
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          previewCanvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create blob from canvas'));
+            }
+          }, 'image/png', 1.0);
+        });
+
+        // Upload to Supabase
+        const fileName = `reference_source_${Math.random().toString(36).substring(2)}.png`;
+        const arrayBuffer = await blob.arrayBuffer();
+        const fileData = new Uint8Array(arrayBuffer);
+
+        const { error: uploadError } = await supabase.storage
+          .from("assets")
+          .upload(fileName, fileData, {
+            contentType: 'image/png',
+            upsert: false,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("assets")
+          .getPublicUrl(fileName);
 
         // Add image reference to the workflow
         currentWorkflow["37"] = {
           ...workflow["37"],
           inputs: {
-            image: mergedImageUrl,
+            image: publicUrl,
             upload: "image",
           },
           class_type: "LoadImage",
@@ -618,10 +592,9 @@ export const generationHandlerSlice: StateCreator<
           outputFormat: activeSettings.outputFormat,
           outputQuality: activeSettings.outputQuality,
           randomiseSeeds: activeSettings.randomiseSeeds,
-          // Add variation settings if any image has makeVariations enabled
-          variations: shapes.find(s => s.type === "image" && s.makeVariations) ? {
-            imageId: shapes.find(s => s.type === "image" && s.makeVariations)?.id,
-            strength: shapes.find(s => s.type === "image" && s.makeVariations)?.variationStrength || 0.75
+          variations: variationShape ? {
+            imageId: variationShape.id,
+            strength: variationShape.variationStrength || 0.75
           } : undefined
         }),
       });

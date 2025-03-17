@@ -93,6 +93,14 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       canvasRefs.current.preview.width = width;
       canvasRefs.current.preview.height = height;
 
+      // Clear all canvases except background
+      [permanentCanvas, activeCanvas, previewCanvas].forEach(canvas => {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, width, height);
+        }
+      });
+
       // If we have existing canvas data, restore it to the permanent canvas
       if (shape.canvasData) {
         const savedImg = new Image();
@@ -117,9 +125,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     ctx.clearRect(0, 0, permanentStrokesCanvasRef.current.width, permanentStrokesCanvasRef.current.height);
     previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
     
-    // Save the cleared state
-    const canvasData = permanentStrokesCanvasRef.current.toDataURL("image/png");
-    updateShape(shape.id, { canvasData });
+    // When clearing strokes, set canvasData to undefined
+    updateShape(shape.id, { canvasData: undefined });
   };
 
   // Set up subscriptions for each process type
