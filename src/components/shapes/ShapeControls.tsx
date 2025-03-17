@@ -13,6 +13,8 @@ interface ShapeControlsProps {
   shape: Shape;
   isSelected: boolean;
   handleResizeStart: (e: React.MouseEvent<HTMLDivElement>) => void;
+  hoveredGroup?: string | null;
+  isAddedToGroup?: boolean;
 }
 
 interface ShapeUpdate {
@@ -24,10 +26,12 @@ export function ShapeControls({
   shape,
   isSelected,
   handleResizeStart,
+  hoveredGroup,
+  isAddedToGroup,
 }: ShapeControlsProps) {
   // All hooks must be at the top
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { updateShape, shapes, setSelectedShapes, updateShapes, addShape, generatePreprocessedImage } = useStore();
+  const { updateShape, shapes, setSelectedShapes, selectedShapes, updateShapes, addShape, generatePreprocessedImage } = useStore();
 
   // Add state for tracking pending updates
   const [pendingUpdates, setPendingUpdates] = useState<{ 
@@ -49,6 +53,7 @@ export function ShapeControls({
       tooltip: useThemeClass(["shape", "controls", "tooltip"]),
       button: useThemeClass(["shape", "controls", "button"]),
       buttonActive: useThemeClass(["shape", "controls", "buttonActive"]),
+      groupHover: useThemeClass(["shape", "controls", "groupHover"]),
     },
     sidePanel: {
       container: useThemeClass(["shape", "sidePanel", "container"]),
@@ -131,12 +136,26 @@ export function ShapeControls({
   const showManipulationControls = isSelected;
 
   // Now we can safely return early if needed
-  if (!showControlPanel && !shape.isNew) return null;
+  if (!showControlPanel && !shape.isNew && shape.type !== "group") return null;
+
+  // Update the controlStates type to match the Shape interface
+  const controlStates: { [shapeId: string]: {
+    isTextPrompt: boolean;
+    isNegativePrompt: boolean;
+    showImagePrompt: boolean;
+    showDepth: boolean;
+    showEdges: boolean;
+    showPose: boolean;
+    showContent: boolean;
+    showSketch: boolean;
+    useSettings: boolean;
+    color?: string;
+  } } = {};
 
   return (
     <>
       <div
-        className="absolute inset-0"
+        className={`absolute inset-0 ${isAddedToGroup ? 'group-add-blink' : ''}`}
         data-shape-control="true"
         style={{
           pointerEvents: "none",
@@ -154,12 +173,19 @@ export function ShapeControls({
                 backgroundImage: "none",
               }
             : {}),
+          ...(shape.type === "group" && hoveredGroup === shape.id
+            ? {
+                border: "2px dashed rgb(var(--primary-500))",
+                backgroundColor: "rgba(var(--primary-500), 0.1)",
+                transition: "all 0.2s ease-in-out",
+              }
+            : {}),
         }}
       >
         {/* Bottom Controls Container */}
         {(shape.type === "image" || shape.type === "sketchpad") && (isSelected || shape.showImagePrompt) && (
           <div
-            className="absolute left-2 right-0 top-full mt-1"
+            className="absolute left-2 top-full mt-1"
             data-shape-control="true"
             style={{ 
               zIndex: 1000, 
@@ -239,7 +265,25 @@ export function ShapeControls({
                               edgesStrength: 0.5,
                               poseStrength: 0.5,
                             };
-                            addShape(newDepthShape);
+                            updateShape(newDepthShape.id, {
+                              ...newDepthShape,
+                              id: newDepthShape.id,
+                              type: "depth",
+                              position: { x: shape.position.x + shape.width + 20, y: shape.position.y },
+                              width: shape.width,
+                              height: shape.height,
+                              rotation: 0,
+                              isUploading: false,
+                              isEditing: false,
+                              color: "transparent",
+                              sourceImageId: shape.id,
+                              showDepth: true,
+                              showEdges: false,
+                              showPose: false,
+                              depthStrength: 0.5,
+                              edgesStrength: 0.5,
+                              poseStrength: 0.5,
+                            });
                             setSelectedShapes([newDepthShape.id]);
                             try {
                               await generatePreprocessedImage(shape.id, "depth");
@@ -311,7 +355,25 @@ export function ShapeControls({
                               edgesStrength: 0.5,
                               poseStrength: 0.5,
                             };
-                            addShape(newEdgesShape);
+                            updateShape(newEdgesShape.id, {
+                              ...newEdgesShape,
+                              id: newEdgesShape.id,
+                              type: "edges",
+                              position: { x: shape.position.x + shape.width + 20, y: shape.position.y },
+                              width: shape.width,
+                              height: shape.height,
+                              rotation: 0,
+                              isUploading: false,
+                              isEditing: false,
+                              color: "transparent",
+                              sourceImageId: shape.id,
+                              showDepth: false,
+                              showEdges: true,
+                              showPose: false,
+                              depthStrength: 0.5,
+                              edgesStrength: 0.5,
+                              poseStrength: 0.5,
+                            });
                             setSelectedShapes([newEdgesShape.id]);
                             try {
                               await generatePreprocessedImage(shape.id, "edge");
@@ -378,7 +440,25 @@ export function ShapeControls({
                               edgesStrength: 0.5,
                               poseStrength: 0.5,
                             };
-                            addShape(newPoseShape);
+                            updateShape(newPoseShape.id, {
+                              ...newPoseShape,
+                              id: newPoseShape.id,
+                              type: "pose",
+                              position: { x: shape.position.x + shape.width + 20, y: shape.position.y },
+                              width: shape.width,
+                              height: shape.height,
+                              rotation: 0,
+                              isUploading: false,
+                              isEditing: false,
+                              color: "transparent",
+                              sourceImageId: shape.id,
+                              showDepth: false,
+                              showEdges: false,
+                              showPose: true,
+                              depthStrength: 0.5,
+                              edgesStrength: 0.5,
+                              poseStrength: 0.5,
+                            });
                             setSelectedShapes([newPoseShape.id]);
                             try {
                               await generatePreprocessedImage(shape.id, "pose");
@@ -693,6 +773,150 @@ export function ShapeControls({
             onMouseDown={preventEvent}
             onClick={preventEvent}
           />
+        </div>
+      )}
+
+      {shape.type === "group" && (
+        <div
+          className={`absolute left-1/2 -bottom-10 transform -translate-x-1/2 ${styles.sidePanel.container}`}
+          data-shape-control="true"
+          style={{ zIndex: 1000, pointerEvents: "all", width: "160px" }}
+          onMouseDown={preventEvent}
+          onClick={preventEvent}
+        >
+          <div 
+            className={styles.sidePanel.group}
+            data-shape-control="true"
+            onMouseDown={preventEvent}
+            onClick={preventEvent}
+          >
+            <MiniToggle
+              id={`group-enabled-${shape.id}`}
+              checked={shape.groupEnabled || false}
+              onChange={(checked) => {
+                // Get all shapes in this group
+                const groupedShapes = shapes.filter(s => s.groupId === shape.id);
+                
+                if (!checked) {
+                  // When disabling the group, store the current state of all controls
+                  const controlStates: { [shapeId: string]: {
+                    isTextPrompt?: boolean;
+                    isNegativePrompt?: boolean;
+                    showImagePrompt?: boolean;
+                    showDepth?: boolean;
+                    showEdges?: boolean;
+                    showPose?: boolean;
+                    showContent?: boolean;
+                    showSketch?: boolean;
+                    useSettings?: boolean;
+                    color?: string;
+                  } } = {};
+                  
+                  groupedShapes.forEach(groupedShape => {
+                    // Initialize with default values
+                    controlStates[groupedShape.id] = {
+                      isTextPrompt: false,
+                      isNegativePrompt: false,
+                      showImagePrompt: false,
+                      showDepth: false,
+                      showEdges: false,
+                      showPose: false,
+                      showContent: false,
+                      showSketch: false,
+                      useSettings: false,
+                    };
+                    
+                    // Update with actual values
+                    if (groupedShape.type === "sticky") {
+                      if (groupedShape.isTextPrompt) controlStates[groupedShape.id].isTextPrompt = true;
+                      if (groupedShape.isNegativePrompt) controlStates[groupedShape.id].isNegativePrompt = true;
+                      if (groupedShape.color) controlStates[groupedShape.id].color = groupedShape.color;
+                    }
+                    
+                    if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
+                      if (groupedShape.showImagePrompt) controlStates[groupedShape.id].showImagePrompt = true;
+                    }
+                    
+                    if (groupedShape.type === "diffusionSettings") {
+                      if (groupedShape.useSettings) controlStates[groupedShape.id].useSettings = true;
+                    }
+                    
+                    if (groupedShape.showDepth) controlStates[groupedShape.id].showDepth = true;
+                    if (groupedShape.showEdges) controlStates[groupedShape.id].showEdges = true;
+                    if (groupedShape.showPose) controlStates[groupedShape.id].showPose = true;
+                    if (groupedShape.showContent) controlStates[groupedShape.id].showContent = true;
+                    if (groupedShape.showSketch) controlStates[groupedShape.id].showSketch = true;
+                  });
+                  
+                  // Update the group's enabled state and store control states
+                  updateShape(shape.id, { 
+                    groupEnabled: false,
+                    controlStates
+                  });
+
+                  // Deselect all shapes in the group
+                  const groupedShapeIds = groupedShapes.map(s => s.id);
+                  setSelectedShapes(selectedShapes.filter((id: string) => !groupedShapeIds.includes(id)));
+                } else {
+                  // When enabling the group, restore from stored states
+                  updateShape(shape.id, { groupEnabled: true });
+                }
+                
+                // Toggle all enabled properties of shapes in the group
+                groupedShapes.forEach(groupedShape => {
+                  const updates: Partial<Shape> = {};
+                  const storedState = shape.controlStates?.[groupedShape.id];
+                  
+                  if (checked && storedState) {
+                    // When enabling the group, restore only the stored states
+                    if (groupedShape.type === "sticky") {
+                      if (storedState.isTextPrompt) updates.isTextPrompt = true;
+                      if (storedState.isNegativePrompt) updates.isNegativePrompt = true;
+                      if (storedState.color) updates.color = storedState.color;
+                    }
+                    
+                    if ((groupedShape.type === "image" || groupedShape.type === "sketchpad") && storedState.showImagePrompt) {
+                      updates.showImagePrompt = true;
+                    }
+                    
+                    if (groupedShape.type === "diffusionSettings" && storedState.useSettings) {
+                      updates.useSettings = true;
+                    }
+                    
+                    if (storedState.showDepth) updates.showDepth = true;
+                    if (storedState.showEdges) updates.showEdges = true;
+                    if (storedState.showPose) updates.showPose = true;
+                    if (storedState.showContent) updates.showContent = true;
+                    if (storedState.showSketch) updates.showSketch = true;
+                  } else {
+                    // When disabling the group, turn off all toggles
+                    if (groupedShape.type === "image" || groupedShape.type === "sketchpad") {
+                      updates.showImagePrompt = false;
+                    }
+                    if (groupedShape.type === "sticky") {
+                      updates.isTextPrompt = false;
+                      updates.isNegativePrompt = false;
+                      updates.color = "var(--sticky-yellow)";
+                    }
+                    if (groupedShape.type === "diffusionSettings") {
+                      updates.useSettings = false;
+                    }
+                    updates.showDepth = false;
+                    updates.showEdges = false;
+                    updates.showPose = false;
+                    updates.showContent = false;
+                    updates.showSketch = false;
+                  }
+                  
+                  // Only update if there are properties to toggle
+                  if (Object.keys(updates).length > 0) {
+                    updateShape(groupedShape.id, updates);
+                  }
+                });
+              }}
+              label="Enable"
+            />
+          </div>
         </div>
       )}
     </>

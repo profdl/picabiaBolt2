@@ -3,6 +3,18 @@ export interface Position {
   y: number;
 }
 
+export interface DragStart {
+  x: number;
+  y: number;
+  initialPositions: Map<string, Position>;
+}
+
+export interface ContextMenuItem {
+  label: string;
+  action: () => void;
+  icon: React.ReactElement;
+}
+
 export interface Shape {
   id: string;
   type: "drawing" | "image" | "text" | "sticky" | "3d" | "sketchpad" | "diffusionSettings" | "group" | "depth" | "edges" | "pose";
@@ -16,6 +28,20 @@ export interface Shape {
   isUploading?: boolean;
   model?: string;
   useSettings?: boolean;
+  groupEnabled?: boolean;
+  stickyStates?: { [shapeId: string]: { isTextPrompt: boolean; isNegativePrompt: boolean } };
+  controlStates?: { [shapeId: string]: {
+    isTextPrompt: boolean;
+    isNegativePrompt: boolean;
+    showImagePrompt: boolean;
+    showDepth: boolean;
+    showEdges: boolean;
+    showPose: boolean;
+    showContent: boolean;
+    showSketch: boolean;
+    useSettings: boolean;
+    color?: string;
+  } };
   contentStrength?: number;
   sketchStrength?: number;
   imagePromptStrength?: number;
@@ -24,6 +50,7 @@ export interface Shape {
   edgesStrength?: number;
   poseStrength?: number;
   isEditing?: boolean;
+  isImageEditing?: boolean;
   content?: string;
   imageUrl?: string;
   isOrbiting?: boolean;

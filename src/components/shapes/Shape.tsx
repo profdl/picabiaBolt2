@@ -25,12 +25,14 @@ import { DepthShape } from "./shapetypes/DepthShape";
 import { EdgeShape } from "./shapetypes/EdgeShape";
 import { PoseShape } from "./shapetypes/PoseShape";
 import { Loader2 } from "lucide-react";
+import { useDarkMode } from "../../hooks/ui/useDarkMode";
 
 interface ShapeProps {
   shape: Shape;
 }
 
 export function ShapeComponent({ shape }: ShapeProps) {
+  const { isDark } = useDarkMode();
   const styles = {
     base: useThemeClass(["shape", "base"]),
     selected: useThemeClass(["shape", "selected"]),
@@ -83,9 +85,9 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const threeJSRef = useRef<ThreeJSShapeRef>(null);
   const sketchPadRef = useRef<HTMLCanvasElement>(null);
 
-  const { initDragStart } = useShapeDrag({
+  const { initDragStart, hoveredGroup, isAddedToGroup } = useShapeDrag({
     shape,
-    isEditing: isEditing ?? false,
+    isEditing: isEditingText,
     zoom,
   });
 
@@ -127,7 +129,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
   });
 
   const isSelected = selectedShapes.includes(shape.id);
-  const shapeStyles = getShapeStyles(shape, isSelected, shapes, tool, Boolean(isEditing));
+  const shapeStyles = getShapeStyles(shape, isSelected, shapes, tool, Boolean(isEditing), isDark);
 
   const handleBlur = () => {
     if (shape.type === "sticky" || shape.type === "text") {
@@ -182,6 +184,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={Boolean(isSelected)}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         )}
       </div>
@@ -218,6 +222,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={isSelected}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         )}
       </div>
@@ -254,6 +260,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={isSelected}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         )}
       </div>
@@ -290,6 +298,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={isSelected}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         )}
       </div>
@@ -336,6 +346,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={Boolean(isSelected)}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         )}
       </div>
@@ -447,6 +459,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
             shape={shape}
             isSelected={Boolean(isSelected)}
             handleResizeStart={handleResizeStart}
+            hoveredGroup={hoveredGroup}
+            isAddedToGroup={isAddedToGroup}
           />
         </div>
       )}

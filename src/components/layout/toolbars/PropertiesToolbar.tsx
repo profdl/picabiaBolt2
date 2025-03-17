@@ -28,6 +28,8 @@ interface PropertiesToolbarProps {
     deleteShape: (id: string) => void;
     createGroup: (ids: string[]) => void;
     ungroup: (id: string) => void;
+    addToGroup: (shapeIds: string[], groupId: string) => void;
+    removeFromGroup: (shapeIds: string[]) => void;
     mergeImages: (ids: string[]) => Promise<void>;
     onSelectSubject: (e: React.MouseEvent) => void;
     onCrop: (e: React.MouseEvent) => void;

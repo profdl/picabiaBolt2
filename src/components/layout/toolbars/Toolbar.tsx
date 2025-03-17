@@ -20,7 +20,7 @@ import { useToolbarShapes } from "../../../hooks/toolbar/useToolbarShapes";
 import { useToolbarGenerate } from "../../../hooks/toolbar/useToolbarGenerate";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { useShapeAdder } from "../../../hooks/shapes/useShapeAdder";
-import { Brush } from "lucide-react";
+import { Shape } from "../../../types";
 
 interface ToolbarProps {
   onShowImageGenerate: () => void;
@@ -52,7 +52,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
   const {
     handleGenerateSubject,
-    create3DDepth,
+    create3DDepth: create3DDepthAction,
     updateShape,
     selectedShapes,
     shapes,
@@ -64,8 +64,27 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     deleteShape,
     createGroup,
     ungroup,
+    addToGroup,
+    removeFromGroup,
     mergeImages,
-  } = useStore();
+  } = useStore((state) => ({
+    handleGenerateSubject: state.handleGenerateSubject,
+    create3DDepth: state.create3DDepth as (shape: Shape, position: { x: number; y: number }) => void,
+    updateShape: state.updateShape,
+    selectedShapes: state.selectedShapes,
+    shapes: state.shapes,
+    sendBackward: state.sendBackward,
+    sendForward: state.sendForward,
+    sendToBack: state.sendToBack,
+    sendToFront: state.sendToFront,
+    duplicate: state.duplicate,
+    deleteShape: state.deleteShape,
+    createGroup: state.createGroup,
+    ungroup: state.ungroup,
+    addToGroup: state.addToGroup,
+    removeFromGroup: state.removeFromGroup,
+    mergeImages: state.mergeImages,
+  }));
 
   const selectedShape = shapes.find((s) => selectedShapes.includes(s.id));
 
@@ -200,7 +219,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     await addNewShape(
       "sketchpad",
       {
-        locked: true,
         showSketch: true,
       },
       "",
@@ -284,9 +302,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           </Tooltip>
 
           {/* Image Properties Toolbar */}
-          {tool === "select" && selectedShape?.type === "image" && (
+          {tool === "select" && selectedShape && (
             <PropertiesToolbar
-              type="image"
+              type={selectedShape.type === "image" ? "image" : "shape"}
               shape={selectedShape}
               selectedShapes={selectedShapes}
               shapes={shapes}
@@ -299,11 +317,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 deleteShape,
                 createGroup,
                 ungroup,
+                addToGroup,
+                removeFromGroup,
                 mergeImages,
-                onSelectSubject: () => handleGenerateSubject(selectedShape),
+                onSelectSubject: (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (selectedShape) {
+                    handleGenerateSubject(selectedShape);
+                  }
+                },
                 onCrop: handleCrop,
                 onDownload: handleDownload,
-                create3DDepth,
+                create3DDepth: create3DDepthAction,
               }}
             />
           )}
@@ -311,18 +337,66 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           {/* Brush Properties Toolbar */}
           {(tool === "brush" || tool === "eraser") && (
             <PropertiesToolbar
-              type={tool}
-              properties={{
-                color: currentColor,
-                texture: brushTexture,
-                size: brushSize,
-                opacity: brushOpacity,
-                rotation: brushRotation,
-                followPath: brushFollowPath,
-                spacing: brushSpacing,
-                hardness: brushHardness,
-              }}
+              type={tool === "brush" ? "brush" : tool === "eraser" ? "eraser" : "shape"}
+              properties={
+                tool === "brush" || tool === "eraser"
+                  ? {
+                      color: currentColor,
+                      texture: brushTexture,
+                      size: brushSize,
+                      opacity: brushOpacity,
+                      rotation: brushRotation,
+                      followPath: brushFollowPath,
+                      spacing: brushSpacing,
+                      hardness: brushHardness,
+                    }
+                  : undefined
+              }
               onPropertyChange={handlePropertyChange}
+              shape={selectedShape}
+              selectedShapes={selectedShapes}
+              shapes={shapes}
+              actions={{
+                sendBackward,
+                sendForward,
+                sendToBack,
+                sendToFront,
+                duplicate,
+                deleteShape,
+                createGroup,
+                ungroup,
+                addToGroup,
+                removeFromGroup,
+                mergeImages,
+                onSelectSubject: (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (selectedShape) {
+                    handleGenerateSubject(selectedShape);
+                  }
+                },
+                onCrop: handleCrop,
+                onDownload: handleDownload,
+                create3DDepth: (shapeOrEvent: Shape | React.MouseEvent, position?: { x: number; y: number }) => {
+                  if ('preventDefault' in shapeOrEvent) {
+                    // Handle as event
+                    shapeOrEvent.preventDefault();
+                    shapeOrEvent.stopPropagation();
+                    if (selectedShape?.type === "image" && selectedShape.depthPreviewUrl) {
+                      const newX = selectedShape.position.x + selectedShape.width + 20;
+                      create3DDepthAction(selectedShape, {
+                        x: newX,
+                        y: selectedShape.position.y,
+                      });
+                    }
+                  } else {
+                    // Handle as direct function call
+                    if (position) {
+                      create3DDepthAction(shapeOrEvent, position);
+                    }
+                  }
+                },
+              }}
             />
           )}
           {/* Sketchpad */}
@@ -400,38 +474,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
           {/* Tools Section */}
           <div className={styles.divider} />
-
-          <Tooltip content="Brush Tool" side="bottom">
-            <ToolbarButton
-              icon={<Brush />}
-              active={tool === "brush"}
-              onClick={() => {
-                setTool("brush");
-                setCurrentColor("#ffffff");
-              }}
-              title="Brush Tool (B)"
-              className={`${styles.button.base} ${
-                tool === "brush" ? styles.button.active : ""
-              }`}
-            />
-          </Tooltip>
-
-          {/* <Tooltip content="Eraser Tool" side="bottom">
-            <ToolbarButton
-              icon={<Eraser />}
-              active={tool === "eraser"}
-              onClick={() => {
-                setTool("eraser");
-                setCurrentColor("#000000");
-              }}
-              title="Eraser Tool (E)"
-              className={`${styles.button.base} ${
-                tool === "eraser" ? styles.button.active : ""
-              }`}
-            />
-          </Tooltip> */}
-
-          {/* <div className={styles.divider} /> */}
 
           <ToolbarButton
             icon={<MousePointer />}

@@ -35,7 +35,9 @@ export function useShapeEvents({
     createGroup,
     ungroup,
     shapes,
-    mergeImages
+    mergeImages,
+    removeFromGroup,
+    addToGroup
   } = useStore();
 
   const [rotateStart, setRotateStart] = useState<{
@@ -52,6 +54,13 @@ export function useShapeEvents({
   const handleMouseDown = (e: React.MouseEvent) => {
     // Early return for specific cases
     if (tool === "pan" || (isEditing && !shape.isNew)) return;
+    
+    // Check if shape is in a disabled group
+    const isInDisabledGroup = shape.groupId && shapes.find(s => s.id === shape.groupId)?.groupEnabled === false;
+    if (isInDisabledGroup) {
+      e.stopPropagation();
+      return;
+    }
     
     // Check for sticky note controls or checkboxes
     const isStickyControlsElement = (e.target as Element).closest('[data-sticky-controls]');
@@ -111,7 +120,9 @@ export function useShapeEvents({
       deleteShape,
       createGroup,
       ungroup,
-      mergeImages
+      mergeImages,
+      removeFromGroup,
+      addToGroup
     }, shapes);
 
     setContextMenu({
