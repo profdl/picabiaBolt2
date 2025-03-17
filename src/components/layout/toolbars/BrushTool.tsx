@@ -14,6 +14,7 @@ interface BrushProps {
   backgroundCanvasRef: React.RefObject<HTMLCanvasElement>;
   permanentStrokesCanvasRef: React.RefObject<HTMLCanvasElement>;
   activeStrokeCanvasRef: React.RefObject<HTMLCanvasElement>;
+  previewCanvasRef: React.RefObject<HTMLCanvasElement>;
 }
 
 interface BrushHandlers {
@@ -25,7 +26,8 @@ interface BrushHandlers {
 export const useBrush = ({
   backgroundCanvasRef,
   permanentStrokesCanvasRef,
-  activeStrokeCanvasRef
+  activeStrokeCanvasRef,
+  previewCanvasRef
 }: BrushProps): BrushHandlers => {
   const isDrawing = useRef(false);
   const lastPoint = useRef<Point | null>(null);
@@ -135,6 +137,37 @@ export const useBrush = ({
     ctx.drawImage(tempCanvas, x - size / 2, y - size / 2);
   };
 
+  const updatePreview = () => {
+    const previewCtx = previewCanvasRef.current?.getContext("2d", { willReadFrequently: true });
+    if (!previewCtx || !previewCanvasRef.current || !activeStrokeCanvasRef.current) return;
+
+    // Clear the preview canvas
+    previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
+
+    // Draw background image first
+    if (backgroundCanvasRef.current) {
+      previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
+    }
+
+    // Draw permanent strokes at full opacity
+    if (permanentStrokesCanvasRef.current) {
+      previewCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
+    }
+
+    // Draw active stroke with current opacity
+    if (activeStrokeCanvasRef.current) {
+      previewCtx.save();
+      if (tool === "eraser") {
+        previewCtx.globalCompositeOperation = "destination-out";
+      } else {
+        previewCtx.globalCompositeOperation = "source-over";
+      }
+      previewCtx.globalAlpha = brushOpacity;
+      previewCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+      previewCtx.restore();
+    }
+  };
+
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (tool !== "brush" && tool !== "eraser") return;
     const point = getScaledPoint(e);
@@ -146,8 +179,14 @@ export const useBrush = ({
     // Clear active stroke canvas at the start of a new stroke
     const activeCtx = activeStrokeCanvasRef.current?.getContext("2d", { willReadFrequently: true });
     if (activeCtx && activeStrokeCanvasRef.current) {
+      // Clear both active and preview canvases
       activeCtx.clearRect(0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height);
+      
+      // Draw the initial dot at full opacity on active canvas
       drawBrushDot(activeStrokeCanvasRef.current, point);
+      
+      // Update preview with proper opacity
+      updatePreview();
     }
   };
 
@@ -167,6 +206,7 @@ export const useBrush = ({
     if (accumulatedDistance.current >= spacing) {
       const activeCtx = activeStrokeCanvasRef.current?.getContext("2d", { willReadFrequently: true });
       if (activeCtx && lastPoint.current) {
+        // Draw stroke at full opacity on active canvas
         if (tool === "eraser") {
           activeCtx.globalCompositeOperation = "destination-out";
         } else {
@@ -178,6 +218,9 @@ export const useBrush = ({
           lastPoint.current,
           point
         );
+
+        // Update preview with proper opacity
+        updatePreview();
       }
       accumulatedDistance.current = 0;
     }
@@ -208,6 +251,9 @@ export const useBrush = ({
     if (activeCtx) {
       activeCtx.clearRect(0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height);
     }
+
+    // Update preview to show only permanent strokes
+    updatePreview();
 
     // Save the canvas data after the stroke is complete
     const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;

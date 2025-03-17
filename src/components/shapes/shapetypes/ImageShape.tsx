@@ -27,12 +27,14 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
   const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
   const permanentStrokesCanvasRef = useRef<HTMLCanvasElement>(null);
   const activeStrokeCanvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   
   // Create mutable object to store canvas references
   const canvasRefs = useRef({
     background: document.createElement('canvas'),
     permanent: document.createElement('canvas'),
-    active: document.createElement('canvas')
+    active: document.createElement('canvas'),
+    preview: document.createElement('canvas')
   });
 
   const subscriptionRef = useRef<{
@@ -42,22 +44,26 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush({
     backgroundCanvasRef,
     permanentStrokesCanvasRef,
-    activeStrokeCanvasRef
+    activeStrokeCanvasRef,
+    previewCanvasRef
   });
 
   // Initialize canvases with image
   useEffect(() => {
-    if (!backgroundCanvasRef.current || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current || !shape.imageUrl) return;
+    if (!backgroundCanvasRef.current || !permanentStrokesCanvasRef.current || 
+        !activeStrokeCanvasRef.current || !previewCanvasRef.current || !shape.imageUrl) return;
 
     const backgroundCanvas = backgroundCanvasRef.current;
     const permanentCanvas = permanentStrokesCanvasRef.current;
     const activeCanvas = activeStrokeCanvasRef.current;
+    const previewCanvas = previewCanvasRef.current;
     
-    const bgCtx = backgroundCanvas.getContext('2d');
-    const permanentCtx = permanentCanvas.getContext('2d');
-    const activeCtx = activeCanvas.getContext('2d');
+    const bgCtx = backgroundCanvas.getContext('2d', { willReadFrequently: true });
+    const permanentCtx = permanentCanvas.getContext('2d', { willReadFrequently: true });
+    const activeCtx = activeCanvas.getContext('2d', { willReadFrequently: true });
+    const previewCtx = previewCanvas.getContext('2d', { willReadFrequently: true });
     
-    if (!bgCtx || !permanentCtx || !activeCtx) return;
+    if (!bgCtx || !permanentCtx || !activeCtx || !previewCtx) return;
 
     // Load and draw the image
     const img = new Image();
@@ -69,7 +75,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       const height = 512 / aspectRatio;
 
       // Set dimensions for all canvases
-      [backgroundCanvas, permanentCanvas, activeCanvas].forEach(canvas => {
+      [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas].forEach(canvas => {
         canvas.width = width;
         canvas.height = height;
       });
@@ -84,12 +90,16 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       canvasRefs.current.permanent.height = height;
       canvasRefs.current.active.width = width;
       canvasRefs.current.active.height = height;
+      canvasRefs.current.preview.width = width;
+      canvasRefs.current.preview.height = height;
 
       // If we have existing canvas data, restore it to the permanent canvas
       if (shape.canvasData) {
         const savedImg = new Image();
         savedImg.onload = () => {
           permanentCtx.drawImage(savedImg, 0, 0);
+          // Also draw to preview canvas initially
+          previewCtx.drawImage(savedImg, 0, 0);
         };
         savedImg.src = shape.canvasData;
       }
@@ -99,11 +109,13 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
 
   // Handle clearing strokes
   const handleClear = () => {
-    if (!permanentStrokesCanvasRef.current) return;
-    const ctx = permanentStrokesCanvasRef.current.getContext('2d');
-    if (!ctx) return;
+    if (!permanentStrokesCanvasRef.current || !previewCanvasRef.current) return;
+    const ctx = permanentStrokesCanvasRef.current.getContext('2d', { willReadFrequently: true });
+    const previewCtx = previewCanvasRef.current.getContext('2d', { willReadFrequently: true });
+    if (!ctx || !previewCtx) return;
     
     ctx.clearRect(0, 0, permanentStrokesCanvasRef.current.width, permanentStrokesCanvasRef.current.height);
+    previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
     
     // Save the cleared state
     const canvasData = permanentStrokesCanvasRef.current.toDataURL("image/png");
@@ -184,6 +196,14 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
           />
           <canvas
             ref={activeStrokeCanvasRef}
+            className="absolute w-full h-full object-cover"
+            style={{
+              touchAction: "none",
+              pointerEvents: "none"
+            }}
+          />
+          <canvas
+            ref={previewCanvasRef}
             data-shape-id={shape.id}
             className="absolute w-full h-full object-cover"
             style={{
