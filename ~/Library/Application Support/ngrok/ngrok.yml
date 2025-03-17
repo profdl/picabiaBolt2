@@ -1,0 +1,15 @@
+version: "2"
+authtoken: YOUR_AUTH_TOKEN  # Replace this with your actual authtoken from ngrok dashboard
+tunnels:
+  frontend:
+    addr: 8888
+    proto: http
+  comfyui:
+    addr: 8189
+    proto: http
+    bind_tls: true
+    schemes:
+      - https
+    inspect: true
+    allow_websockets: true
+    websocket_tcp_converter: true 
