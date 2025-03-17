@@ -33,35 +33,37 @@ export function EnableReferencePanel({
   };
 
   return (
-    <div
-      className={`${styles.sidePanel.container} p-0`}
-      style={{ minWidth: "140px", width: "max-content" }}
-      data-shape-control="true"
-      onMouseDown={onMouseDown}
-      onClick={onClick}
-    >
-      <div className="h-[34px] flex">
-        <div className={`${styles.sidePanel.group} w-full px-2 -mt-[14px]`}>
-          <MiniToggle
-            id={id}
-            checked={checked}
-            onChange={onToggleChange}
-            label={label}
-          />
+    <div className="mb-1">
+      <div
+        className={`${styles.sidePanel.container} p-0`}
+        style={{ minWidth: "140px", width: "max-content" }}
+        data-shape-control="true"
+        onMouseDown={onMouseDown}
+        onClick={onClick}
+      >
+        <div className="py-[2px]">
+          <div className={`${styles.sidePanel.group} w-full px-1`}>
+            <MiniToggle
+              id={id}
+              checked={checked}
+              onChange={onToggleChange}
+              label={label}
+            />
+          </div>
         </div>
+        {checked && showSlider && (
+          <div className="w-full pl-[2px] pr-2 pt-1 pb-2">
+            <SmallSlider
+              value={sliderValue}
+              onChange={onSliderChange}
+              min={0.05}
+              max={1.00}
+              step={0.05}
+              label="Strength"
+            />
+          </div>
+        )}
       </div>
-      {checked && showSlider && (
-        <div className="flex items-center w-full pl-[2px] pr-2 -mt-[6px]">
-          <SmallSlider
-            value={sliderValue}
-            onChange={onSliderChange}
-            min={0.05}
-            max={1.00}
-            step={0.05}
-            label="Strength"
-          />
-        </div>
-      )}
     </div>
   );
 } 
