@@ -65,6 +65,14 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     
     if (!bgCtx || !permanentCtx || !activeCtx || !previewCtx) return;
 
+    // Clear all canvases first
+    [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas].forEach(canvas => {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    });
+
     // Load and draw the image
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -113,7 +121,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       }
     };
     img.src = shape.imageUrl;
-  }, [shape.imageUrl, updateShape, shape.id, shape.canvasData]);
+  }, [shape.imageUrl, updateShape, shape.id, shape.canvasData, shape.isImageEditing]);
 
   // Handle clearing strokes
   const handleClear = () => {
