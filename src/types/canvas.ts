@@ -16,10 +16,8 @@ export interface CanvasState {
   clipboard: Shape[];
   currentColor: string;
   strokeWidth: number;
-  isEraser: boolean;
   isEditingText: boolean;
   setIsEditingText: (isEditing: boolean) => void;
-  setIsEraser: (isEraser: boolean) => void;
   setShapes: (shapes: Shape[]) => void;
   addShape: (shape: Shape) => void;
   addShapes: (shapes: Shape[]) => void;

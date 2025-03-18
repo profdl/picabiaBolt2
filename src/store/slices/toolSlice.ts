@@ -2,6 +2,8 @@ import { StateCreator } from "zustand";
 import { Shape } from "../../types";
 
 interface ToolState {
+  tool: "select" | "pan" | "pen" | "brush" | "eraser";
+  setTool: (tool: "select" | "pan" | "pen" | "brush" | "eraser") => void;
   shapes: Shape[];
   addShape: (shape: Shape) => void;
   currentColor: string;
@@ -24,7 +26,6 @@ interface ToolSlice {
   brushSpacing: number;
   brushRotation: number;
   brushFollowPath: boolean;
-  isEraser: boolean;
   brushHardness: number;
   setTool: (tool: "select" | "pan" | "pen" | "brush" | "eraser") => void;
   setCurrentColor: (color: string) => void;
@@ -35,9 +36,23 @@ interface ToolSlice {
   setBrushSpacing: (spacing: number) => void;
   setBrushRotation: (rotation: number) => void;
   setBrushFollowPath: (value: boolean) => void;
-  setIsEraser: (isEraser: boolean) => void;
   setBrushHardness: (hardness: number) => void;
 }
+
+export const createToolSlice: StateCreator<ToolState> = (set) => ({
+  tool: "select" as "select" | "pan" | "pen" | "brush" | "eraser",
+  setTool: (tool) => set({ tool }),
+  shapes: [],
+  addShape: (shape) => set((state) => ({ shapes: [...state.shapes, shape] })),
+  currentColor: "#000000",
+  brushTexture: "basic",
+  brushSize: 20,
+  brushOpacity: 1,
+  brushRotation: 0,
+  brushSpacing: 0.1,
+  brushFollowPath: false,
+  brushHardness: 0.5,
+});
 
 export const toolSlice: StateCreator<
   ToolState & ToolSlice,
@@ -54,7 +69,6 @@ export const toolSlice: StateCreator<
   brushSpacing: 0.2,
   brushRotation: 0,
   brushFollowPath: false,
-  isEraser: false,
   brushHardness: 1,
   setTool: (tool) => set({ tool }),
   setCurrentColor: (color) => set({ currentColor: color }),
@@ -65,6 +79,5 @@ export const toolSlice: StateCreator<
   setBrushSpacing: (spacing) => set({ brushSpacing: spacing }),
   setBrushRotation: (rotation) => set({ brushRotation: rotation }),
   setBrushFollowPath: (value) => set(() => ({ brushFollowPath: value })),
-  setIsEraser: (isEraser) => set({ isEraser }),
   setBrushHardness: (hardness) => set({ brushHardness: hardness }),
 });

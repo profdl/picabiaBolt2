@@ -144,28 +144,32 @@ export const useBrush = ({
     // Clear the preview canvas
     previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
 
+    // Create a temporary canvas for compositing
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = previewCanvasRef.current.width;
+    tempCanvas.height = previewCanvasRef.current.height;
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+    if (!tempCtx) return;
+
     // Draw background image first
     if (backgroundCanvasRef.current) {
-      previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
+      tempCtx.drawImage(backgroundCanvasRef.current, 0, 0);
     }
 
-    // Draw permanent strokes at full opacity
+    // Draw permanent strokes
     if (permanentStrokesCanvasRef.current) {
-      previewCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
+      tempCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
     }
 
-    // Draw active stroke with current opacity
+    // Apply active stroke (including eraser)
     if (activeStrokeCanvasRef.current) {
-      previewCtx.save();
-      if (tool === "eraser") {
-        previewCtx.globalCompositeOperation = "destination-out";
-      } else {
-        previewCtx.globalCompositeOperation = "source-over";
-      }
-      previewCtx.globalAlpha = brushOpacity;
-      previewCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-      previewCtx.restore();
+      tempCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
+      tempCtx.globalAlpha = tool === "eraser" ? 1 : brushOpacity;
+      tempCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
     }
+
+    // Draw the final result to the preview canvas
+    previewCtx.drawImage(tempCanvas, 0, 0);
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -206,20 +210,32 @@ export const useBrush = ({
     if (accumulatedDistance.current >= spacing) {
       const activeCtx = activeStrokeCanvasRef.current?.getContext("2d", { willReadFrequently: true });
       if (activeCtx && lastPoint.current) {
-        // Draw stroke at full opacity on active canvas
+        activeCtx.save();
+        activeCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
+        
         if (tool === "eraser") {
-          activeCtx.globalCompositeOperation = "destination-out";
+          // Draw simple circles along the path for eraser
+          const steps = Math.max(Math.ceil(distance / (brushSize / 4)), 1); // Smaller spacing for smoother erasing
+          for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const x = lastPoint.current.x + dx * t;
+            const y = lastPoint.current.y + dy * t;
+            
+            activeCtx.beginPath();
+            activeCtx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+            activeCtx.fillStyle = "rgba(255, 255, 255, 1)";
+            activeCtx.fill();
+          }
         } else {
-          activeCtx.globalCompositeOperation = "source-over";
+          // For brush, use the normal texture system
+          drawBrushStroke(
+            activeCtx,
+            lastPoint.current,
+            point
+          );
         }
         
-        drawBrushStroke(
-          activeCtx,
-          lastPoint.current,
-          point
-        );
-
-        // Update preview with proper opacity
+        activeCtx.restore();
         updatePreview();
       }
       accumulatedDistance.current = 0;
@@ -233,18 +249,40 @@ export const useBrush = ({
 
     // Get the permanent strokes canvas context
     const permanentCtx = permanentStrokesCanvasRef.current?.getContext("2d", { willReadFrequently: true });
-    if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current) return;
+    const bgCtx = backgroundCanvasRef.current?.getContext("2d", { willReadFrequently: true });
+    
+    if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current || 
+        !bgCtx || !backgroundCanvasRef.current) return;
 
-    // Merge the active stroke onto the permanent strokes canvas
-    permanentCtx.save();
     if (tool === "eraser") {
+      // For eraser, we need to erase from both background and permanent strokes
+      // Create a temporary canvas for the composite operation
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = backgroundCanvasRef.current.width;
+      tempCanvas.height = backgroundCanvasRef.current.height;
+      const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+      if (!tempCtx) return;
+
+      // Draw background
+      tempCtx.drawImage(backgroundCanvasRef.current, 0, 0);
+      
+      // Apply eraser
+      tempCtx.globalCompositeOperation = "destination-out";
+      tempCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+      
+      // Update background canvas
+      bgCtx.clearRect(0, 0, backgroundCanvasRef.current.width, backgroundCanvasRef.current.height);
+      bgCtx.drawImage(tempCanvas, 0, 0);
+      
+      // Also apply to permanent strokes
       permanentCtx.globalCompositeOperation = "destination-out";
+      permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
     } else {
+      // For brush strokes, merge onto permanent strokes canvas as before
       permanentCtx.globalCompositeOperation = "source-over";
+      permanentCtx.globalAlpha = brushOpacity;
+      permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
     }
-    permanentCtx.globalAlpha = brushOpacity;
-    permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-    permanentCtx.restore();
 
     // Clear the active stroke canvas
     const activeCtx = activeStrokeCanvasRef.current.getContext("2d", { willReadFrequently: true });
@@ -258,7 +296,21 @@ export const useBrush = ({
     // Save the canvas data after the stroke is complete
     const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;
     if (shapeId) {
-      const canvasData = permanentStrokesCanvasRef.current.toDataURL("image/png");
+      // Create a temporary canvas to combine background and permanent strokes
+      const saveCanvas = document.createElement('canvas');
+      saveCanvas.width = backgroundCanvasRef.current.width;
+      saveCanvas.height = backgroundCanvasRef.current.height;
+      const saveCtx = saveCanvas.getContext('2d', { willReadFrequently: true });
+      if (!saveCtx) return;
+
+      // Draw background first
+      saveCtx.drawImage(backgroundCanvasRef.current, 0, 0);
+      
+      // Draw permanent strokes on top
+      saveCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
+      
+      // Save the combined result
+      const canvasData = saveCanvas.toDataURL("image/png");
       useStore.getState().updateShape(shapeId, { canvasData });
     }
 
@@ -277,16 +329,19 @@ export const useBrush = ({
     if (!ctx) return;
 
     ctx.save();
+    ctx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
+    
     if (tool === "eraser") {
-      ctx.globalCompositeOperation = "destination-out";
-      const radius = brushSize / 2;
+      // Simple circular eraser
       ctx.beginPath();
-      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      ctx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 1)";
       ctx.fill();
     } else {
-      ctx.globalCompositeOperation = "source-over";
+      // For brush, use the normal texture system
       applyBrushTexture(ctx, point.x, point.y, currentColor, brushSize);
     }
+    
     ctx.restore();
   };
 
@@ -308,29 +363,21 @@ export const useBrush = ({
       const y = start.y + dy * t;
 
       ctx.save();
-      if (tool === "eraser") {
-        ctx.globalCompositeOperation = "destination-out";
-        const radius = brushSize / 2;
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.translate(x, y);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.translate(x, y);
 
-        const rotation = brushFollowPath
-          ? pathAngle
-          : (brushRotation * Math.PI) / 180;
+      const rotation = brushFollowPath
+        ? pathAngle
+        : (brushRotation * Math.PI) / 180;
 
-        ctx.rotate(rotation);
-        applyBrushTexture(
-          ctx, 
-          0, 
-          0, 
-          currentColor, 
-          brushSize
-        );
-      }
+      ctx.rotate(rotation);
+      applyBrushTexture(
+        ctx, 
+        0, 
+        0, 
+        currentColor, 
+        brushSize
+      );
       ctx.restore();
     }
   };

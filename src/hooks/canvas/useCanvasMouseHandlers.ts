@@ -74,7 +74,7 @@ export function useCanvasMouseHandlers() {
     canvasRef: React.RefObject<HTMLDivElement>,
     spacePressed: boolean
   ) => {
-    if (tool === "brush" || tool === "eraser") {
+    if (tool === "brush") {
       const clickedElement = e.target as HTMLElement;
       const isSketchpad = clickedElement.closest("canvas");
       if (!isSketchpad) {
@@ -84,22 +84,22 @@ export function useCanvasMouseHandlers() {
     }
 
     // Check if clicking on a shape or its controls
- // Check if clicking on an ImageShape
- const clickedShape = (e.target as Element).closest("[id]");
- if (clickedShape && tool === "select") {
-   const shape = shapes.find(s => s.id === clickedShape.id);
-   if (shape?.type === "image") {
-     setSelectedShapes([shape.id]);
-     // Update tool state to indicate we're in image editing mode
-     useStore.setState(state => ({
-       ...state,
-       activeToolContext: {
-         type: 'image',
-         shapeId: shape.id
-       }
-     }));
-   }
- }    const controlsPanel = (e.target as Element)?.closest("[data-controls-panel]");
+    const clickedShape = (e.target as Element).closest("[id]");
+    if (clickedShape && tool === "select") {
+      const shape = shapes.find(s => s.id === clickedShape.id);
+      if (shape?.type === "image") {
+        setSelectedShapes([shape.id]);
+        // Update tool state to indicate we're in image editing mode
+        useStore.setState(state => ({
+          ...state,
+          activeToolContext: {
+            type: 'image',
+            shapeId: shape.id
+          }
+        }));
+      }
+    }
+    const controlsPanel = (e.target as Element)?.closest("[data-controls-panel]");
     const isTextArea = (e.target as Element).tagName.toLowerCase() === 'textarea';
     
     if (isTextArea) {

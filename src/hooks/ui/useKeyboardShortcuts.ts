@@ -68,6 +68,16 @@ export function useKeyboardShortcuts() {
             setTool("select");
             break;
          
+          case "b":
+            e.preventDefault();
+            setTool("brush");
+            break;
+         
+          case "e":
+            e.preventDefault();
+            setTool("eraser");
+            break;
+         
           case "escape":
             e.preventDefault();
             setSelectedShapes([]);

@@ -65,14 +65,26 @@ export function ShapeComponent({ shape }: ShapeProps) {
     tool,
     shapes,
     selectedShapes,
+    setSelectedShapes,
     updateShape,
-    updateShapes,
+    setIsEditingText,
     zoom,
     generatingPredictions,
-    setIsEditingText,
-    setSelectedShapes,
     isEditingText,
-  } = useStore();
+  } = useStore((state) => ({
+    tool: state.tool as "select" | "pan" | "pen" | "brush" | "eraser",
+    shapes: state.shapes,
+    selectedShapes: state.selectedShapes,
+    setSelectedShapes: state.setSelectedShapes,
+    updateShape: state.updateShape,
+    deleteShape: state.deleteShape,
+    setContextMenu: state.setContextMenu,
+    setIsEditingText: state.setIsEditingText,
+    setTool: state.setTool,
+    zoom: state.zoom,
+    generatingPredictions: state.generatingPredictions,
+    isEditingText: state.isEditingText,
+  }));
 
   const isEditing = shape.isEditing && isEditingText;
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -84,6 +96,10 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
   const threeJSRef = useRef<ThreeJSShapeRef>(null);
   const sketchPadRef = useRef<HTMLCanvasElement>(null);
+  const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
+  const permanentStrokesCanvasRef = useRef<HTMLCanvasElement>(null);
+  const activeStrokeCanvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const { initDragStart, hoveredGroup, isAddedToGroup } = useShapeDrag({
     shape,
@@ -95,7 +111,10 @@ export function ShapeComponent({ shape }: ShapeProps) {
     shape,
     zoom,
     updateShape,
-    updateShapes
+    (updates) => {
+      const ids = updates.map(update => update.id);
+      setSelectedShapes(ids);
+    }
   );
 
   useSketchpadShapeEvents({ shape, sketchPadRef });
@@ -116,7 +135,12 @@ export function ShapeComponent({ shape }: ShapeProps) {
   });
 
   const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } =
-    useBrush(sketchPadRef);
+    useBrush({
+      backgroundCanvasRef,
+      permanentStrokesCanvasRef,
+      activeStrokeCanvasRef,
+      previewCanvasRef
+    });
 
   const {
     handleSketchpadPointerDown,
@@ -469,7 +493,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
       {/* Controls layer */}
       {(tool === "select" ||
         (shape.type === "sketchpad" &&
-          (tool === "brush" || tool === "eraser"))) && (
+          tool === "brush")) && (
         <div
           data-controls-panel={shape.id}
           style={{

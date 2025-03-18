@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../../store";
 import { Shape } from "../../types";
-import { ImageActionDropdown } from "./ImageActionDropdown";
 import { generatePrompt } from "../../utils/prompt-generator";
 import { Tooltip } from "../shared/Tooltip";
 import { getControlDescription, ControlType } from "../../utils/tooltips";
-import { Brush, Eraser, Trash2 } from "lucide-react";
+import { Brush, Trash2, Eraser } from "lucide-react";
 import { useThemeClass } from "../../styles/useThemeClass";
 
 interface ShapeControlsProps {
@@ -47,19 +46,10 @@ export function ShapeControlsProperties({
   };
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { sendToBack, sendToFront, sendBackward, sendForward, deleteShape } =
-    useStore();
-  const { tool, setTool, setCurrentColor } = useStore((state) => ({
+
+  const { tool, setTool } = useStore((state) => ({
     tool: state.tool,
     setTool: state.setTool,
-    currentColor: state.currentColor,
-    setCurrentColor: state.setCurrentColor,
-    brushTexture: state.brushTexture,
-    setBrushTexture: state.setBrushTexture,
-    brushSize: state.brushSize,
-    setBrushSize: state.setBrushSize,
-    brushOpacity: state.brushOpacity,
-    setBrushOpacity: state.setBrushOpacity,
   }));
 
   useEffect(() => {
@@ -75,56 +65,11 @@ export function ShapeControlsProperties({
   }, [isDropdownOpen]);
 
   // Action handlers
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
 
-    if (shape.imageUrl) {
-      try {
-        const response = await fetch(shape.imageUrl);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `image-${shape.id}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error("Download failed:", error);
-      }
-    }
-    setIsDropdownOpen(false);
-  };
 
-  const handleSelectSubject = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (shape.imageUrl) {
-      try {
-        await handleGenerateSubject(shape);
-      } catch (error) {
-        console.error("Select subject failed:", error);
-      }
-    }
-    setIsDropdownOpen(false);
-  };
-
-  const handleCrop = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    updateShape(shape.id, { isImageEditing: true });
-    setIsDropdownOpen(false);
-  };
 
   const { updateShape, shapes, setSelectedShapes, addShape } = useStore();
 
-  const handleGenerateSubject = useStore(
-    (state) => state.handleGenerateSubject
-  );
 
   const generatePreprocessedImage = useStore(
     (state) => state.generatePreprocessedImage
@@ -460,19 +405,7 @@ export function ShapeControlsProperties({
           className="absolute -left-0 -bottom-7 action-dropdown"
           style={{ zIndex: 101, pointerEvents: "all" }}
         >
-          <ImageActionDropdown
-            shape={shape}
-            isDropdownOpen={isDropdownOpen}
-            setIsDropdownOpen={setIsDropdownOpen}
-            onSelectSubject={handleSelectSubject}
-            onCrop={handleCrop}
-            onDownload={handleDownload}
-            sendToBack={() => sendToBack()}
-            sendToFront={() => sendToFront()}
-            sendBackward={() => sendBackward()}
-            sendForward={() => sendForward()}
-            deleteShape={() => deleteShape(shape.id)}
-          />
+         
         </div>
       )}
 
@@ -742,7 +675,7 @@ export function ShapeControlsProperties({
             className="absolute left-3 -bottom-9 flex gap-2"
             style={{ zIndex: 101, pointerEvents: "all" }}
           >
-            <Tooltip content="Brush Tool" side="bottom">
+            <Tooltip content="Brush Tool (B)" side="bottom">
               <button
                 onClick={() => {
                   setTool("brush");
@@ -754,11 +687,11 @@ export function ShapeControlsProperties({
                 <Brush className="w-5 h-5" />
               </button>
             </Tooltip>
-            <Tooltip content="Eraser Tool" side="bottom">
+
+            <Tooltip content="Eraser Tool (E)" side="bottom">
               <button
                 onClick={() => {
                   setTool("eraser");
-                  setCurrentColor("#000000");
                 }}
                 className={`${styles.controls.button} ${
                   tool === "eraser" ? styles.controls.buttonActive : ""
@@ -784,7 +717,6 @@ export function ShapeControlsProperties({
                     height: shape.height,
                     color: "#000000",
                     rotation: shape.rotation,
-                    locked: true,
                     isUploading: false,
                     isEditing: false,
                     model: "",
@@ -794,11 +726,9 @@ export function ShapeControlsProperties({
                     contentStrength: 0.25,
                     poseStrength: 0.25,
                     sketchStrength: 0.25,
-                    remixStrength: 0.25,
                     canvasData: undefined,
                     showSketch: true,
                   };
-                  deleteShape(shape.id);
                   addShape(newShape);
                   setTool("brush");
                 }}

@@ -21,7 +21,6 @@ import { useToolbarGenerate } from "../../../hooks/toolbar/useToolbarGenerate";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { useShapeAdder } from "../../../hooks/shapes/useShapeAdder";
 import { Shape } from "../../../types";
-import { mergeImageWithStrokes } from "../../../utils/canvasUtils";
 import { supabase } from "../../../lib/supabase";
 
 interface ToolbarProps {
@@ -143,34 +142,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     }
   };
 
-  const handlePropertyChange = (property: string, value: unknown) => {
-    switch (property) {
-      case "color":
-        setCurrentColor(value as string);
-        break;
-      case "texture":
-        setBrushTexture(value as string);
-        break;
-      case "size":
-        setBrushSize(value as number);
-        break;
-      case "opacity":
-        setBrushOpacity(value as number);
-        break;
-      case "rotation":
-        setBrushRotation(value as number);
-        break;
-      case "followPath":
-        setBrushFollowPath(value as boolean);
-        break;
-      case "spacing":
-        setBrushSpacing(value as number);
-        break;
-      case "hardness":
-        setBrushHardness(value as number);
-        break;
-    }
-  };
+
 
   const {
     currentColor,
@@ -420,66 +392,44 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           {/* Brush Properties Toolbar */}
           {(tool === "brush" || tool === "eraser") && (
             <PropertiesToolbar
-              type={tool === "brush" ? "brush" : tool === "eraser" ? "eraser" : "shape"}
-              properties={
-                tool === "brush" || tool === "eraser"
-                  ? {
-                      color: currentColor,
-                      texture: brushTexture,
-                      size: brushSize,
-                      opacity: brushOpacity,
-                      rotation: brushRotation,
-                      followPath: brushFollowPath,
-                      spacing: brushSpacing,
-                      hardness: brushHardness,
-                    }
-                  : undefined
-              }
-              onPropertyChange={handlePropertyChange}
-              shape={selectedShape}
-              selectedShapes={selectedShapes}
-              shapes={shapes}
-              actions={{
-                sendBackward,
-                sendForward,
-                sendToBack,
-                sendToFront,
-                duplicate,
-                deleteShape,
-                createGroup,
-                ungroup,
-                addToGroup,
-                removeFromGroup,
-                mergeImages,
-                onSelectSubject: (e: React.MouseEvent) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (selectedShape) {
-                    handleGenerateSubject(selectedShape);
-                  }
-                },
-                onCrop: handleCrop,
-                onDownload: handleDownload,
-                onFlatten: handleFlatten,
-                create3DDepth: (shapeOrEvent: Shape | React.MouseEvent, position?: { x: number; y: number }) => {
-                  if ('preventDefault' in shapeOrEvent) {
-                    // Handle as event
-                    shapeOrEvent.preventDefault();
-                    shapeOrEvent.stopPropagation();
-                    if (selectedShape?.type === "image" && selectedShape.depthPreviewUrl) {
-                      const newX = selectedShape.position.x + selectedShape.width + 20;
-                      create3DDepthAction(selectedShape, {
-                        x: newX,
-                        y: selectedShape.position.y,
-                      });
-                    }
-                  } else {
-                    // Handle as direct function call
-                    if (position) {
-                      create3DDepthAction(shapeOrEvent, position);
-                    }
-                  }
-                },
+              type={tool === "brush" ? "brush" : "eraser"}
+              properties={{
+                color: currentColor,
+                texture: brushTexture,
+                size: brushSize,
+                opacity: brushOpacity,
+                rotation: brushRotation,
+                followPath: brushFollowPath,
+                spacing: brushSpacing,
+                hardness: brushHardness,
+              }}
+              onPropertyChange={(property, value) => {
+                switch (property) {
+                  case "color":
+                    setCurrentColor(value as string);
+                    break;
+                  case "texture":
+                    setBrushTexture(value as string);
+                    break;
+                  case "size":
+                    setBrushSize(value as number);
+                    break;
+                  case "opacity":
+                    setBrushOpacity(value as number);
+                    break;
+                  case "rotation":
+                    setBrushRotation(value as number);
+                    break;
+                  case "followPath":
+                    setBrushFollowPath(value as boolean);
+                    break;
+                  case "spacing":
+                    setBrushSpacing(value as number);
+                    break;
+                  case "hardness":
+                    setBrushHardness(value as number);
+                    break;
+                }
               }}
             />
           )}
