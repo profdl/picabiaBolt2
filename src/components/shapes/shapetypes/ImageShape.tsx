@@ -125,7 +125,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       handleEraserStroke(e);
     } else {
       originalHandlePointerDown(e);
-      reapplyMask();
     }
   };
 
@@ -136,18 +135,17 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       handleEraserStroke(e);
     } else {
       originalHandlePointerMove(e);
-      if (isDrawing.current) {
-        reapplyMask();
-      }
     }
   };
 
   const handlePointerUpOrLeave = () => {
     isDrawing.current = false;
-    if (tool !== 'eraser') {
-      originalHandlePointerUpOrLeave();
-      reapplyMask();
+    if (tool === 'eraser') {
+      // For eraser tool, we've already updated the mask during the stroke
+      return;
     }
+    // For brush tool, just handle the brush stroke completion
+    originalHandlePointerUpOrLeave();
   };
 
   const subscriptionRef = useRef<{
