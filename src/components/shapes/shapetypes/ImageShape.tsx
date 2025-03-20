@@ -29,6 +29,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
   const activeStrokeCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
+  const redBackgroundCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Add isDrawing ref to track drawing state
   const isDrawing = useRef(false);
@@ -143,6 +144,24 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     [key: string]: ReturnType<typeof supabase.channel>;
   }>({});
 
+  const generateNoise = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const imageData = ctx.createImageData(width, height);
+    const data = imageData.data;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      // Random noise value
+      const noise = Math.random() * 255;
+      
+      // Set RGB values - using red with some variation
+      data[i] = noise;     // Red channel
+      data[i + 1] = 0;     // Green channel
+      data[i + 2] = 0;     // Blue channel
+      data[i + 3] = 50;    // Alpha channel (very transparent)
+    }
+    
+    return imageData;
+  };
+
   // Initialize canvases with image
   useEffect(() => {
     console.log('ImageShape initialization started:', {
@@ -152,30 +171,33 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
         permanent: !!permanentStrokesCanvasRef.current,
         active: !!activeStrokeCanvasRef.current,
         preview: !!previewCanvasRef.current,
-        mask: !!maskCanvasRef.current
+        mask: !!maskCanvasRef.current,
+        redBackground: !!redBackgroundCanvasRef.current
       }
     });
 
     if (!backgroundCanvasRef.current || !permanentStrokesCanvasRef.current || 
         !activeStrokeCanvasRef.current || !previewCanvasRef.current || 
-        !maskCanvasRef.current || !shape.imageUrl) return;
+        !maskCanvasRef.current || !redBackgroundCanvasRef.current || !shape.imageUrl) return;
 
     const backgroundCanvas = backgroundCanvasRef.current;
     const permanentCanvas = permanentStrokesCanvasRef.current;
     const activeCanvas = activeStrokeCanvasRef.current;
     const previewCanvas = previewCanvasRef.current;
     const maskCanvas = maskCanvasRef.current;
+    const redBackgroundCanvas = redBackgroundCanvasRef.current;
     
     const bgCtx = backgroundCanvas.getContext('2d', { willReadFrequently: true });
     const permanentCtx = permanentCanvas.getContext('2d', { willReadFrequently: true });
     const activeCtx = activeCanvas.getContext('2d', { willReadFrequently: true });
     const previewCtx = previewCanvas.getContext('2d', { willReadFrequently: true });
     const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+    const redBgCtx = redBackgroundCanvas.getContext('2d', { willReadFrequently: true });
     
-    if (!bgCtx || !permanentCtx || !activeCtx || !previewCtx || !maskCtx) return;
+    if (!bgCtx || !permanentCtx || !activeCtx || !previewCtx || !maskCtx || !redBgCtx) return;
 
     // Clear all canvases first
-    [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas].forEach(canvas => {
+    [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas, redBackgroundCanvas].forEach(canvas => {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -203,10 +225,14 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       });
 
       // Set dimensions for all canvases
-      [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas].forEach(canvas => {
+      [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas, redBackgroundCanvas].forEach(canvas => {
         canvas.width = width;
         canvas.height = height;
       });
+
+      // Fill red background canvas with noise
+      const noisePattern = generateNoise(redBgCtx, width, height);
+      redBgCtx.putImageData(noisePattern, 0, 0);
 
       // Draw image on background canvas
       if (!bgCtx || !previewCtx || !permanentCtx || !maskCtx) return;
@@ -321,6 +347,16 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
         <ImageEditor shape={shape} updateShape={updateShape} />
       ) : (
         <>
+          <canvas
+            ref={redBackgroundCanvasRef}
+            className="absolute w-full h-full object-cover"
+            style={{
+              touchAction: "none",
+              pointerEvents: "none",
+              visibility: "visible",
+              zIndex: 0
+            }}
+          />
           <canvas
             ref={backgroundCanvasRef}
             className="absolute w-full h-full object-cover"
