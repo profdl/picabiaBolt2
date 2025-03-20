@@ -22,6 +22,8 @@ interface PreprocessedImagePayload {
 
 export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleContextMenu }) => {
   const updateShape = useStore((state) => state.updateShape);
+  const selectedShapes = useStore((state) => state.selectedShapes);
+  const setTool = useStore((state) => state.setTool);
   
   // Create refs for our canvas layers
   const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,6 +35,14 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
 
   // Add isDrawing ref to track drawing state
   const isDrawing = useRef(false);
+
+  // Add effect to handle tool state on deselection
+  useEffect(() => {
+    const isSelected = selectedShapes.includes(shape.id);
+    if (!isSelected && tool === 'eraser') {
+      setTool('select');
+    }
+  }, [selectedShapes, tool, shape.id]);
 
   // Store the initial mask dimensions
   const maskDimensionsRef = useRef<{ width: number; height: number; gradient: CanvasGradient | null }>({
