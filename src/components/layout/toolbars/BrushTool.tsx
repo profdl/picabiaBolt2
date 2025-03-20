@@ -144,32 +144,14 @@ export const useBrush = ({
     // Clear the preview canvas
     previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
 
-    // Create a temporary canvas for compositing
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = previewCanvasRef.current.width;
-    tempCanvas.height = previewCanvasRef.current.height;
-    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-    if (!tempCtx) return;
-
-    // Draw background image first
-    if (backgroundCanvasRef.current) {
-      tempCtx.drawImage(backgroundCanvasRef.current, 0, 0);
-    }
-
-    // Draw permanent strokes
-    if (permanentStrokesCanvasRef.current) {
-      tempCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
-    }
-
+    // Draw directly to preview canvas without toggling visibility
+    previewCtx.drawImage(backgroundCanvasRef.current!, 0, 0);
+    previewCtx.drawImage(permanentStrokesCanvasRef.current!, 0, 0);
+    
     // Apply active stroke (including eraser)
-    if (activeStrokeCanvasRef.current) {
-      tempCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
-      tempCtx.globalAlpha = tool === "eraser" ? 1 : brushOpacity;
-      tempCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-    }
-
-    // Draw the final result to the preview canvas
-    previewCtx.drawImage(tempCanvas, 0, 0);
+    previewCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
+    previewCtx.globalAlpha = tool === "eraser" ? 1 : brushOpacity;
+    previewCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -215,7 +197,7 @@ export const useBrush = ({
         
         if (tool === "eraser") {
           // Draw simple circles along the path for eraser
-          const steps = Math.max(Math.ceil(distance / (brushSize / 4)), 1); // Smaller spacing for smoother erasing
+          const steps = Math.max(Math.ceil(distance / (brushSize / 4)), 1);
           for (let i = 0; i <= steps; i++) {
             const t = i / steps;
             const x = lastPoint.current.x + dx * t;

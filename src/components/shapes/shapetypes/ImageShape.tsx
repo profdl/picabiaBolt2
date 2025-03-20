@@ -65,6 +65,14 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     
     if (!bgCtx || !permanentCtx || !activeCtx || !previewCtx) return;
 
+    // Log initial canvas visibility state
+    console.log('Canvas Visibility State (ImageShape Initialized):', {
+      background: backgroundCanvas.style.visibility,
+      permanent: permanentCanvas.style.visibility,
+      active: activeCanvas.style.visibility,
+      preview: previewCanvas.style.visibility
+    });
+
     // Clear all canvases first
     [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas].forEach(canvas => {
       const ctx = canvas.getContext('2d');
@@ -91,6 +99,19 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       // Draw image on background canvas
       bgCtx.drawImage(img, 0, 0, width, height);
 
+      // Update preview canvas with the background image
+      if (backgroundCanvasRef.current) {
+        previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
+      }
+
+      // Log visibility state after drawing image
+      console.log('Canvas Visibility State (After Image Load):', {
+        background: backgroundCanvasRef.current?.style.visibility,
+        permanent: permanentCanvas.style.visibility,
+        active: activeCanvas.style.visibility,
+        preview: previewCanvas.style.visibility
+      });
+
       // Initialize auxiliary canvases
       canvasRefs.current.background.width = width;
       canvasRefs.current.background.height = height;
@@ -101,8 +122,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       canvasRefs.current.preview.width = width;
       canvasRefs.current.preview.height = height;
 
-      // Clear all canvases except background
-      [permanentCanvas, activeCanvas, previewCanvas].forEach(canvas => {
+      // Clear only permanent and active canvases
+      [permanentCanvas, activeCanvas].forEach(canvas => {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.clearRect(0, 0, width, height);
@@ -116,6 +137,14 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
           permanentCtx.drawImage(savedImg, 0, 0);
           // Also draw to preview canvas initially
           previewCtx.drawImage(savedImg, 0, 0);
+          
+          // Log visibility state after restoring canvas data
+          console.log('Canvas Visibility State (After Restoring Canvas Data):', {
+            background: backgroundCanvas.style.visibility,
+            permanent: permanentCanvas.style.visibility,
+            active: activeCanvas.style.visibility,
+            preview: previewCanvas.style.visibility
+          });
         };
         savedImg.src = shape.canvasData;
       }
@@ -198,7 +227,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
-              pointerEvents: "none"
+              pointerEvents: "none",
+              visibility: "hidden"
             }}
           />
           <canvas
@@ -206,7 +236,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
-              pointerEvents: "none"
+              pointerEvents: "none",
+              visibility: "hidden"
             }}
           />
           <canvas
@@ -214,7 +245,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
-              pointerEvents: "none"
+              pointerEvents: "none",
+              visibility: "hidden"
             }}
           />
           <canvas
@@ -223,7 +255,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
-              pointerEvents: tool === "select" ? "none" : "all"
+              pointerEvents: tool === "select" ? "none" : "all",
+              visibility: "visible"
             }}
             onContextMenu={handleContextMenu}
             onPointerDown={(e) => {
