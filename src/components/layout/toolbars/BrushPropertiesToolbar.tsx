@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { BrushSettingsPanel } from "./BrushShapeSelector";
 import { OKColorPicker } from "../../shared/hsl-color-picker";
 import { NumberInput } from "../../shared/NumberInput";
+import { useStore } from "../../../store";
 
 interface BrushPropertiesToolbarProps {
   properties: {
@@ -22,6 +23,9 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
   onPropertyChange,
 }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const { tool } = useStore((state) => ({
+    tool: state.tool,
+  }));
 
   const styles = {
     buttonGroup: "flex items-center gap-1",
@@ -47,41 +51,44 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
 
   return (
     <div className="flex items-center gap-3">
-      <div className="flex items-center gap-3 relative">
-        <div
-          className={styles.colorPicker.trigger}
-          onClick={() => setShowColorPicker(!showColorPicker)}
-          style={{ backgroundColor: properties.color }}
-        />
-
-        {showColorPicker && (
-          <div className={styles.colorPicker.popup}>
+      {tool === "brush" && (
+        <>
+          <div className="flex items-center gap-3 relative">
             <div
-              className="fixed inset-0"
-              onClick={() => setShowColorPicker(false)}
+              className={styles.colorPicker.trigger}
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              style={{ backgroundColor: properties.color }}
             />
-            <OKColorPicker
-              value={properties.color}
-              onChange={handleColorChange}
-              defaultColor={{
-                hue: 0,
-                saturation: 100,
-                lightness: 50,
-              }}
+
+            {showColorPicker && (
+              <div className={styles.colorPicker.popup}>
+                <div
+                  className="fixed inset-0"
+                  onClick={() => setShowColorPicker(false)}
+                />
+                <OKColorPicker
+                  value={properties.color}
+                  onChange={handleColorChange}
+                  defaultColor={{
+                    hue: 0,
+                    saturation: 100,
+                    lightness: 50,
+                  }}
+                />
+              </div>
+            )}
+            <BrushSettingsPanel
+              currentTexture={properties.texture || "basic"}
+              rotation={properties.rotation}
+              spacing={properties.spacing}
+              followPath={properties.followPath}
+              onTextureSelect={(texture) => onPropertyChange("texture", texture)}
+              onPropertyChange={onPropertyChange}
             />
           </div>
-        )}
-        <BrushSettingsPanel
-          currentTexture={properties.texture || "basic"}
-          rotation={properties.rotation}
-          spacing={properties.spacing}
-          followPath={properties.followPath}
-          onTextureSelect={(texture) => onPropertyChange("texture", texture)}
-          onPropertyChange={onPropertyChange}
-        />
-      </div>
-
-      <div className={styles.divider} />
+          <div className={styles.divider} />
+        </>
+      )}
 
       <div className="flex items-center gap-6">
         <div className={styles.controlGroup.container}>
@@ -96,18 +103,20 @@ export const BrushPropertiesToolbar: React.FC<BrushPropertiesToolbarProps> = ({
           />
         </div>
 
-        <div className={styles.controlGroup.container}>
-          <span className={styles.controlGroup.label}>Opacity</span>
-          <NumberInput
-            value={(properties.opacity || 0) * 100}
-            onChange={(value) => onPropertyChange("opacity", value / 100)}
-            min={0}
-            max={100}
-            step={1}
-            formatValue={(v) => `${Math.round(v)}%`}
-          />
-        </div>
-        {properties.texture === 'soft' && (
+        {tool === "brush" && (
+          <div className={styles.controlGroup.container}>
+            <span className={styles.controlGroup.label}>Opacity</span>
+            <NumberInput
+              value={(properties.opacity || 0) * 100}
+              onChange={(value) => onPropertyChange("opacity", value / 100)}
+              min={0}
+              max={100}
+              step={1}
+              formatValue={(v) => `${Math.round(v)}%`}
+            />
+          </div>
+        )}
+        {tool === "brush" && properties.texture === 'soft' && (
           <div className={styles.controlGroup.container}>
             <span className={styles.controlGroup.label}>Hardness</span>
             <NumberInput

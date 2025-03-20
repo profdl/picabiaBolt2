@@ -14,7 +14,7 @@ import {
   Mountain,
   Box,
   Brush,
-  Wand
+  Eraser
 } from "lucide-react";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { Shape } from "../../../types";
@@ -137,7 +137,7 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
 
           <Tooltip content="Eraser Tool (E)" side="top">
             <ToolbarButton
-              icon={<Wand />}
+              icon={<Eraser />}
               active={tool === "eraser"}
               onClick={() => {
                 setTool("eraser");
