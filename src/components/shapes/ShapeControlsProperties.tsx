@@ -688,7 +688,7 @@ export function ShapeControlsProperties({
               </button>
             </Tooltip>
 
-            <Tooltip content="Mask Tool (E)" side="bottom">
+            <Tooltip content="Eraser Tool (E)" side="bottom">
               <button
                 onClick={() => {
                   setTool("eraser");

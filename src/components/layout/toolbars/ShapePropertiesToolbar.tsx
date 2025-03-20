@@ -116,7 +116,7 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
               />
             </Tooltip>
 
-            <Tooltip content="Mask Tool (E)" side="top">
+            <Tooltip content="Eraser Tool (E)" side="top">
               <ToolbarButton
                 icon={<Wand />}
                 active={tool === "eraser"}
