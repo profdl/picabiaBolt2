@@ -193,14 +193,14 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     const data = imageData.data;
     
     for (let i = 0; i < data.length; i += 4) {
-      // Random noise value
-      const noise = Math.random() * 255;
+      // Random noise value with higher minimum for brighter red
+      const noise = 128 + Math.random() * 127; // This ensures red is always at least 128 (half brightness)
       
-      // Set RGB values - using red with some variation
-      data[i] = noise;     // Red channel
+      // Set RGB values - using brighter red with some variation
+      data[i] = noise;     // Red channel (now brighter)
       data[i + 1] = 0;     // Green channel
       data[i + 2] = 0;     // Blue channel
-      data[i + 3] = 50;    // Alpha channel (very transparent)
+      data[i + 3] = 0;    // Alpha channel (more transparent, reduced from 50)
     }
     
     return imageData;

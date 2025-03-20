@@ -29,6 +29,8 @@ export interface Shape {
   model?: string;
   useSettings?: boolean;
   groupEnabled?: boolean;
+  mergedFrom?: string[];
+  isMerged?: boolean;
   stickyStates?: { [shapeId: string]: { isTextPrompt: boolean; isNegativePrompt: boolean } };
   controlStates?: { [shapeId: string]: {
     isTextPrompt: boolean;

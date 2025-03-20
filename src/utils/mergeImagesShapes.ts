@@ -8,41 +8,10 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
     const minX = Math.min(...images.map(img => img.position.x));
     const minY = Math.min(...images.map(img => img.position.y));
 
-    // Create new canvases for each image
-    const imagePromises = images.map(shape => {
-      return new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => resolve(img);
-        img.onerror = (e) => {
-          console.error('Image load error:', e);
-          reject(new Error(`Failed to load image`));
-        };
-        
-        if (!shape.imageUrl) {
-          reject(new Error('Image URL is missing'));
-          return;
-        }
-
-        if (shape.imageUrl.startsWith('data:image')) {
-          img.src = shape.imageUrl;
-        } else {
-          const cleanUrl = shape.imageUrl.split('?')[0];
-          const timestamp = new Date().getTime();
-          const urlWithTimestamp = `${cleanUrl}?t=${timestamp}`;
-          img.src = urlWithTimestamp;
-        }
-      });
-    });
-
-    const loadedImages = await Promise.all(imagePromises);
-
-    // Calculate canvas dimensions based on the relative positions and sizes of all images
+    // Create new canvas for the merged result
+    const canvas = document.createElement('canvas');
     const maxRight = Math.max(...images.map(img => img.position.x + img.width)) - minX;
     const maxBottom = Math.max(...images.map(img => img.position.y + img.height)) - minY;
-
-    // Create a canvas large enough to fit all images
-    const canvas = document.createElement('canvas');
     canvas.width = maxRight;
     canvas.height = maxBottom;
     const ctx = canvas.getContext('2d');
@@ -53,24 +22,55 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw each image at its relative position
-    loadedImages.forEach((img, index) => {
-      const shape = images[index];
-      
+    // Process each image
+    for (const shape of images) {
+      // Get the preview canvas which contains all layers composited
+      const previewCanvas = document.querySelector(`canvas[data-shape-id="${shape.id}"]`) as HTMLCanvasElement;
+      if (!previewCanvas) {
+        console.error('Preview canvas not found for shape:', shape.id);
+        continue;
+      }
+
+      // Get the mask canvas
+      const shapeContainer = previewCanvas.parentElement;
+      const maskCanvas = shapeContainer?.querySelector('canvas[style*="visibility: hidden"][style*="z-index: 1"]') as HTMLCanvasElement;
+
+      // Create a temporary canvas to combine preview and mask
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = previewCanvas.width;
+      tempCanvas.height = previewCanvas.height;
+      const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+      if (!tempCtx) {
+        console.error('Could not get temp canvas context');
+        continue;
+      }
+
+      // Draw the preview canvas first
+      tempCtx.drawImage(previewCanvas, 0, 0);
+
+      // Apply mask if it exists
+      if (maskCanvas) {
+        tempCtx.globalCompositeOperation = 'destination-in';
+        tempCtx.drawImage(maskCanvas, 0, 0);
+        tempCtx.globalCompositeOperation = 'source-over';
+      }
+
       // Calculate position relative to the top-left most image
       const relativeX = shape.position.x - minX;
       const relativeY = shape.position.y - minY;
-      
-      ctx.globalAlpha = 1;
+
+      // Draw the masked preview at the correct position
       ctx.drawImage(
-        img,
+        tempCanvas,
         relativeX,
         relativeY,
         shape.width,
         shape.height
       );
-    });
+    }
 
+    // Convert the merged image to a blob
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
         (blob) => {
@@ -129,6 +129,7 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
       y: averageY,
     };
 
+    // Create the new shape with the merged image
     const newShape: Shape = {
       id: Math.random().toString(36).substr(2, 9),
       type: 'image',
@@ -136,7 +137,7 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
       width: maxRight,
       height: maxBottom,
       rotation: 0,
-      imageUrl: publicUrl, // Use the Supabase public URL instead of Blob URL
+      imageUrl: publicUrl,
       isUploading: false,
       model: '',
       useSettings: false,
@@ -147,7 +148,6 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
       contentStrength: 0.75,
       poseStrength: 0.75,
       sketchStrength: 0.75,
-      remixStrength: 0.75,
       mergedFrom: images.map(img => img.id),
       isMerged: true
     };
@@ -157,4 +157,4 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
     console.error('Error merging images:', error);
     throw error;
   }
-};
+}
