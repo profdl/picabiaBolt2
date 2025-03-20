@@ -28,6 +28,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
   const permanentStrokesCanvasRef = useRef<HTMLCanvasElement>(null);
   const activeStrokeCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const maskCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const subscriptionRef = useRef<{
     [key: string]: ReturnType<typeof supabase.channel>;
@@ -37,7 +38,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     backgroundCanvasRef,
     permanentStrokesCanvasRef,
     activeStrokeCanvasRef,
-    previewCanvasRef
+    previewCanvasRef,
+    maskCanvasRef
   });
 
   // Initialize canvases with image
@@ -48,27 +50,31 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
         background: !!backgroundCanvasRef.current,
         permanent: !!permanentStrokesCanvasRef.current,
         active: !!activeStrokeCanvasRef.current,
-        preview: !!previewCanvasRef.current
+        preview: !!previewCanvasRef.current,
+        mask: !!maskCanvasRef.current
       }
     });
 
     if (!backgroundCanvasRef.current || !permanentStrokesCanvasRef.current || 
-        !activeStrokeCanvasRef.current || !previewCanvasRef.current || !shape.imageUrl) return;
+        !activeStrokeCanvasRef.current || !previewCanvasRef.current || 
+        !maskCanvasRef.current || !shape.imageUrl) return;
 
     const backgroundCanvas = backgroundCanvasRef.current;
     const permanentCanvas = permanentStrokesCanvasRef.current;
     const activeCanvas = activeStrokeCanvasRef.current;
     const previewCanvas = previewCanvasRef.current;
+    const maskCanvas = maskCanvasRef.current;
     
     const bgCtx = backgroundCanvas.getContext('2d', { willReadFrequently: true });
     const permanentCtx = permanentCanvas.getContext('2d', { willReadFrequently: true });
     const activeCtx = activeCanvas.getContext('2d', { willReadFrequently: true });
     const previewCtx = previewCanvas.getContext('2d', { willReadFrequently: true });
+    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
     
-    if (!bgCtx || !permanentCtx || !activeCtx || !previewCtx) return;
+    if (!bgCtx || !permanentCtx || !activeCtx || !previewCtx || !maskCtx) return;
 
     // Clear all canvases first
-    [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas].forEach(canvas => {
+    [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas].forEach(canvas => {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -96,60 +102,45 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       });
 
       // Set dimensions for all canvases
-      [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas].forEach(canvas => {
+      [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas].forEach(canvas => {
         canvas.width = width;
         canvas.height = height;
       });
 
       // Draw image on background canvas
-      if (!bgCtx || !previewCtx || !permanentCtx) return;
+      if (!bgCtx || !previewCtx || !permanentCtx || !maskCtx) return;
 
       bgCtx.drawImage(img, 0, 0, width, height);
       console.log('Background canvas drawn');
+
+      // Create and apply the mask
+      maskCtx.clearRect(0, 0, width, height);
+      
+      // Create a radial gradient for the mask
+      const gradient = maskCtx.createRadialGradient(
+        width/2, height/2, 0,
+        width/2, height/2, width/3
+      );
+      gradient.addColorStop(0, 'white');  // Fully visible center
+      gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.5)');  // Semi-transparent middle
+      gradient.addColorStop(1, 'transparent');  // Fully transparent edges
+      
+      maskCtx.fillStyle = gradient;
+      maskCtx.fillRect(0, 0, width, height);
+      console.log('Mask canvas drawn');
 
       // Clear preview canvas
       previewCtx.clearRect(0, 0, width, height);
       
       // Draw the background image to preview canvas
+      previewCtx.save();
       previewCtx.drawImage(backgroundCanvas, 0, 0);
-      console.log('Preview canvas: background image drawn');
-
-      // Apply the radial gradient mask to the preview canvas
-      previewCanvas.style.mask = 'radial-gradient(circle at center, transparent 25%, black 25.1%)';
-      previewCanvas.style.webkitMask = 'radial-gradient(circle at center, transparent 25%, black 25.1%)';
-      console.log('Preview canvas: radial gradient mask applied');
-
-      // Log canvas states
-      console.log('Canvas states:', {
-        background: {
-          width: backgroundCanvas.width,
-          height: backgroundCanvas.height,
-          hasContent: bgCtx.getImageData(0, 0, width, height).data.some(pixel => pixel !== 0)
-        },
-        preview: {
-          width: previewCanvas.width,
-          height: previewCanvas.height,
-          hasContent: previewCtx.getImageData(0, 0, width, height).data.some(pixel => pixel !== 0),
-          style: {
-            visibility: previewCanvas.style.visibility,
-            mask: previewCanvas.style.mask,
-            webkitMask: previewCanvas.style.webkitMask
-          }
-        }
-      });
-
-      // If we have existing canvas data, restore it to the permanent canvas
-      if (shape.canvasData) {
-        console.log('Restoring existing canvas data');
-        const savedImg = new Image();
-        savedImg.onload = () => {
-          if (!permanentCtx || !previewCtx) return;
-          permanentCtx.drawImage(savedImg, 0, 0);
-          previewCtx.drawImage(savedImg, 0, 0);
-          console.log('Existing canvas data restored');
-        };
-        savedImg.src = shape.canvasData || '';
-      }
+      
+      // Apply the mask
+      previewCtx.globalCompositeOperation = 'destination-in';
+      previewCtx.drawImage(maskCanvas, 0, 0);
+      previewCtx.restore();
+      console.log('Preview canvas: background drawn and masked');
     };
     img.src = shape.imageUrl;
   }, [shape.imageUrl, updateShape, shape.id, shape.canvasData, shape.isImageEditing]);
@@ -252,13 +243,24 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             }}
           />
           <canvas
+            ref={maskCanvasRef}
+            className="absolute w-full h-full object-cover"
+            style={{
+              touchAction: "none",
+              pointerEvents: "none",
+              visibility: "hidden",
+              zIndex: 1
+            }}
+          />
+          <canvas
             ref={previewCanvasRef}
             data-shape-id={shape.id}
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
               pointerEvents: tool === "select" ? "none" : "all",
-              visibility: "visible"
+              visibility: "visible",
+              zIndex: 2
             }}
             onContextMenu={handleContextMenu}
             onPointerDown={(e) => {
