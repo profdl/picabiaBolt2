@@ -431,6 +431,33 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                     break;
                 }
               }}
+              shape={selectedShape}
+              selectedShapes={selectedShapes}
+              shapes={shapes}
+              actions={{
+                sendBackward,
+                sendForward,
+                sendToBack,
+                sendToFront,
+                duplicate,
+                deleteShape,
+                createGroup,
+                ungroup,
+                addToGroup,
+                removeFromGroup,
+                mergeImages,
+                onSelectSubject: (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (selectedShape) {
+                    handleGenerateSubject(selectedShape);
+                  }
+                },
+                onCrop: handleCrop,
+                onDownload: handleDownload,
+                create3DDepth: create3DDepthAction,
+                onFlatten: handleFlatten,
+              }}
             />
           )}
           {/* Sketchpad */}

@@ -1,6 +1,5 @@
 import React from "react";
 import { Shape } from "../../../types";
-import { BrushPropertiesToolbar } from "./BrushPropertiesToolbar";
 import { ShapePropertiesToolbar } from "./ShapePropertiesToolbar";
 
 interface PropertiesToolbarProps {
@@ -48,27 +47,28 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
   shapes = [],
   actions,
 }) => {
-  if (type === "image" || type === "shape") {
-    if (!shape || !actions) return null;
-    return (
-      <ShapePropertiesToolbar
-        shape={shape}
-        selectedShapes={selectedShapes}
-        shapes={shapes}
-        actions={actions}
-      />
-    );
-  }
+  // Show shape properties if we have a shape and actions
+  const showShapeProperties = (type === "image" || type === "shape") && shape && actions;
+  // Show brush properties when brush/eraser is active and we have the required props
+  const showBrushProperties = (type === "brush" || type === "eraser") && properties && onPropertyChange;
+  
+  // Show toolbar if either shape or brush properties should be shown
+  const showToolbar = showShapeProperties || showBrushProperties;
 
-  if (type === "brush" || type === "eraser") {
-    if (!properties || !onPropertyChange) return null;
-    return (
-      <BrushPropertiesToolbar
-        properties={properties}
-        onPropertyChange={onPropertyChange}
-      />
-    );
-  }
-
-  return null;
+  return (
+    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 flex flex-col gap-2 mb-2">
+      {showToolbar && (
+        <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1.5">
+          <ShapePropertiesToolbar
+            shape={shape!}
+            selectedShapes={selectedShapes}
+            shapes={shapes}
+            actions={actions!}
+            brushProperties={showBrushProperties ? properties : undefined}
+            onBrushPropertyChange={showBrushProperties ? onPropertyChange : undefined}
+          />
+        </div>
+      )}
+    </div>
+  );
 };
