@@ -15,6 +15,7 @@ interface BrushProps {
   permanentStrokesCanvasRef: React.RefObject<HTMLCanvasElement>;
   activeStrokeCanvasRef: React.RefObject<HTMLCanvasElement>;
   previewCanvasRef: React.RefObject<HTMLCanvasElement>;
+  maskCanvasRef: React.RefObject<HTMLCanvasElement>;
 }
 
 interface BrushHandlers {
@@ -27,7 +28,8 @@ export const useBrush = ({
   backgroundCanvasRef,
   permanentStrokesCanvasRef,
   activeStrokeCanvasRef,
-  previewCanvasRef
+  previewCanvasRef,
+  maskCanvasRef
 }: BrushProps): BrushHandlers => {
   const isDrawing = useRef(false);
   const lastPoint = useRef<Point | null>(null);
@@ -152,6 +154,12 @@ export const useBrush = ({
     previewCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
     previewCtx.globalAlpha = tool === "eraser" ? 1 : brushOpacity;
     previewCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+
+    // Update the mask image on the preview canvas
+    if (previewCanvasRef.current && maskCanvasRef.current) {
+      previewCanvasRef.current.style.webkitMaskImage = `url(${maskCanvasRef.current.toDataURL()})`;
+      previewCanvasRef.current.style.maskImage = `url(${maskCanvasRef.current.toDataURL()})`;
+    }
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -196,28 +204,21 @@ export const useBrush = ({
         activeCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
         
         if (tool === "eraser") {
-          // Draw simple circles along the path for eraser
-          const steps = Math.max(Math.ceil(distance / (brushSize / 4)), 1);
-          for (let i = 0; i <= steps; i++) {
-            const t = i / steps;
-            const x = lastPoint.current.x + dx * t;
-            const y = lastPoint.current.y + dy * t;
-            
-            activeCtx.beginPath();
-            activeCtx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
-            activeCtx.fillStyle = "rgba(255, 255, 255, 1)";
-            activeCtx.fill();
+          // For eraser, draw to both active and mask canvases
+          const maskCtx = maskCanvasRef.current?.getContext("2d", { willReadFrequently: true });
+          if (maskCtx && maskCanvasRef.current) {
+            maskCtx.save();
+            maskCtx.globalCompositeOperation = "destination-out";
+            maskCtx.globalAlpha = brushOpacity;
+            drawBrushStroke(maskCtx, lastPoint.current, point);
+            maskCtx.restore();
           }
-        } else {
-          // For brush, use the normal texture system
-          drawBrushStroke(
-            activeCtx,
-            lastPoint.current,
-            point
-          );
         }
         
+        // Draw to active canvas for preview
+        drawBrushStroke(activeCtx, lastPoint.current, point);
         activeCtx.restore();
+        
         updatePreview();
       }
       accumulatedDistance.current = 0;
@@ -231,36 +232,14 @@ export const useBrush = ({
 
     // Get the permanent strokes canvas context
     const permanentCtx = permanentStrokesCanvasRef.current?.getContext("2d", { willReadFrequently: true });
-    const bgCtx = backgroundCanvasRef.current?.getContext("2d", { willReadFrequently: true });
     
-    if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current || 
-        !bgCtx || !backgroundCanvasRef.current) return;
+    if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current) return;
 
     if (tool === "eraser") {
-      // For eraser, we need to erase from both background and permanent strokes
-      // Create a temporary canvas for the composite operation
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = backgroundCanvasRef.current.width;
-      tempCanvas.height = backgroundCanvasRef.current.height;
-      const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-      if (!tempCtx) return;
-
-      // Draw background
-      tempCtx.drawImage(backgroundCanvasRef.current, 0, 0);
-      
-      // Apply eraser
-      tempCtx.globalCompositeOperation = "destination-out";
-      tempCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-      
-      // Update background canvas
-      bgCtx.clearRect(0, 0, backgroundCanvasRef.current.width, backgroundCanvasRef.current.height);
-      bgCtx.drawImage(tempCanvas, 0, 0);
-      
-      // Also apply to permanent strokes
-      permanentCtx.globalCompositeOperation = "destination-out";
-      permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+      // For eraser, we don't need to do anything with permanent strokes
+      // The mask layer is already handling the erasing effect
     } else {
-      // For brush strokes, merge onto permanent strokes canvas as before
+      // For brush strokes, merge onto permanent strokes canvas
       permanentCtx.globalCompositeOperation = "source-over";
       permanentCtx.globalAlpha = brushOpacity;
       permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
@@ -280,13 +259,13 @@ export const useBrush = ({
     if (shapeId) {
       // Create a temporary canvas to combine background and permanent strokes
       const saveCanvas = document.createElement('canvas');
-      saveCanvas.width = backgroundCanvasRef.current.width;
-      saveCanvas.height = backgroundCanvasRef.current.height;
+      saveCanvas.width = backgroundCanvasRef.current!.width;
+      saveCanvas.height = backgroundCanvasRef.current!.height;
       const saveCtx = saveCanvas.getContext('2d', { willReadFrequently: true });
       if (!saveCtx) return;
 
       // Draw background first
-      saveCtx.drawImage(backgroundCanvasRef.current, 0, 0);
+      saveCtx.drawImage(backgroundCanvasRef.current!, 0, 0);
       
       // Draw permanent strokes on top
       saveCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);

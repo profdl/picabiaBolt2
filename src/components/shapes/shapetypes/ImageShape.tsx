@@ -28,15 +28,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
   const permanentStrokesCanvasRef = useRef<HTMLCanvasElement>(null);
   const activeStrokeCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Create mutable object to store canvas references
-  const canvasRefs = useRef({
-    background: document.createElement('canvas'),
-    permanent: document.createElement('canvas'),
-    active: document.createElement('canvas'),
-    preview: document.createElement('canvas')
-  });
-
   const subscriptionRef = useRef<{
     [key: string]: ReturnType<typeof supabase.channel>;
   }>({});
@@ -45,36 +38,42 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     backgroundCanvasRef,
     permanentStrokesCanvasRef,
     activeStrokeCanvasRef,
-    previewCanvasRef
+    previewCanvasRef,
+    maskCanvasRef
   });
 
   // Initialize canvases with image
   useEffect(() => {
+    console.log('ImageShape initialization started:', {
+      hasImageUrl: !!shape.imageUrl,
+      canvasRefs: {
+        background: !!backgroundCanvasRef.current,
+        permanent: !!permanentStrokesCanvasRef.current,
+        active: !!activeStrokeCanvasRef.current,
+        preview: !!previewCanvasRef.current,
+        mask: !!maskCanvasRef.current
+      }
+    });
+
     if (!backgroundCanvasRef.current || !permanentStrokesCanvasRef.current || 
-        !activeStrokeCanvasRef.current || !previewCanvasRef.current || !shape.imageUrl) return;
+        !activeStrokeCanvasRef.current || !previewCanvasRef.current || !maskCanvasRef.current || !shape.imageUrl) return;
 
     const backgroundCanvas = backgroundCanvasRef.current;
     const permanentCanvas = permanentStrokesCanvasRef.current;
     const activeCanvas = activeStrokeCanvasRef.current;
     const previewCanvas = previewCanvasRef.current;
+    const maskCanvas = maskCanvasRef.current;
     
     const bgCtx = backgroundCanvas.getContext('2d', { willReadFrequently: true });
     const permanentCtx = permanentCanvas.getContext('2d', { willReadFrequently: true });
     const activeCtx = activeCanvas.getContext('2d', { willReadFrequently: true });
     const previewCtx = previewCanvas.getContext('2d', { willReadFrequently: true });
+    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
     
-    if (!bgCtx || !permanentCtx || !activeCtx || !previewCtx) return;
-
-    // Log initial canvas visibility state
-    console.log('Canvas Visibility State (ImageShape Initialized):', {
-      background: backgroundCanvas.style.visibility,
-      permanent: permanentCanvas.style.visibility,
-      active: activeCanvas.style.visibility,
-      preview: previewCanvas.style.visibility
-    });
+    if (!bgCtx || !permanentCtx || !activeCtx || !previewCtx || !maskCtx) return;
 
     // Clear all canvases first
-    [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas].forEach(canvas => {
+    [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas].forEach(canvas => {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -85,68 +84,151 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
+      console.log('Image loaded:', {
+        originalWidth: img.width,
+        originalHeight: img.height
+      });
+
       // Set canvas dimensions to match the image's aspect ratio
       const aspectRatio = img.width / img.height;
       const width = 512;
       const height = 512 / aspectRatio;
 
+      console.log('Setting canvas dimensions:', {
+        width,
+        height,
+        aspectRatio
+      });
+
       // Set dimensions for all canvases
-      [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas].forEach(canvas => {
+      [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas].forEach(canvas => {
         canvas.width = width;
         canvas.height = height;
       });
 
       // Draw image on background canvas
+      if (!bgCtx || !maskCtx || !previewCtx || !permanentCtx) return;
+
       bgCtx.drawImage(img, 0, 0, width, height);
+      console.log('Background canvas drawn');
 
-      // Update preview canvas with the background image
-      if (backgroundCanvasRef.current) {
-        previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
+      // Initialize mask canvas with white circle on black background
+      maskCtx.fillStyle = 'black';
+      maskCtx.fillRect(0, 0, width, height);
+      maskCtx.fillStyle = 'white';
+      maskCtx.beginPath();
+      maskCtx.arc(width/2, height/2, width/4, 0, Math.PI * 2);
+      maskCtx.fill();
+      console.log('Mask canvas initialized with circle');
+
+      // Clear preview canvas
+      previewCtx.clearRect(0, 0, width, height);
+      
+      // Draw the background image to preview canvas
+      previewCtx.drawImage(backgroundCanvas, 0, 0);
+      console.log('Preview canvas: background image drawn');
+
+      // Create an SVG element that will contain our mask
+      const svgElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svgElement.setAttribute('width', '100%');
+      svgElement.setAttribute('height', '100%');
+      svgElement.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svgElement.style.position = 'absolute';
+      svgElement.style.top = '0';
+      svgElement.style.left = '0';
+      svgElement.style.width = '100%';
+      svgElement.style.height = '100%';
+      svgElement.style.pointerEvents = 'none';
+      svgElement.style.zIndex = '1';
+      
+      // Create the mask element
+      const maskElement = document.createElementNS('http://www.w3.org/2000/svg', 'mask');
+      maskElement.id = `mask-${shape.id}`;
+      
+      // Create a white rectangle as the base of the mask
+      const whiteRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      whiteRect.setAttribute('width', '100%');
+      whiteRect.setAttribute('height', '100%');
+      whiteRect.setAttribute('fill', 'white');
+      maskElement.appendChild(whiteRect);
+      
+      // Create a black circle to mask out the area
+      const blackCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      blackCircle.setAttribute('cx', '50%');
+      blackCircle.setAttribute('cy', '50%');
+      blackCircle.setAttribute('r', '25%');
+      blackCircle.setAttribute('fill', 'black');
+      maskElement.appendChild(blackCircle);
+      
+      // Add the mask to the SVG
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      defs.appendChild(maskElement);
+      svgElement.appendChild(defs);
+      
+      // Find the shape's container and append the SVG to it
+      const shapeContainer = previewCanvas.parentElement;
+      if (shapeContainer) {
+        shapeContainer.appendChild(svgElement);
       }
+      
+      // Apply the mask to the preview canvas
+      previewCanvas.style.mask = `url(#mask-${shape.id})`;
+      previewCanvas.style.webkitMask = `url(#mask-${shape.id})`;
+      console.log('Preview canvas: SVG mask applied');
 
-      // Log visibility state after drawing image
-      console.log('Canvas Visibility State (After Image Load):', {
-        background: backgroundCanvasRef.current?.style.visibility,
-        permanent: permanentCanvas.style.visibility,
-        active: activeCanvas.style.visibility,
-        preview: previewCanvas.style.visibility
-      });
+      // Clean up any existing SVG masks with the same ID
+      return () => {
+        const existingSvg = document.querySelector(`svg:has(#mask-${shape.id})`);
+        if (existingSvg) {
+          existingSvg.remove();
+        }
+      };
 
-      // Initialize auxiliary canvases
-      canvasRefs.current.background.width = width;
-      canvasRefs.current.background.height = height;
-      canvasRefs.current.permanent.width = width;
-      canvasRefs.current.permanent.height = height;
-      canvasRefs.current.active.width = width;
-      canvasRefs.current.active.height = height;
-      canvasRefs.current.preview.width = width;
-      canvasRefs.current.preview.height = height;
-
-      // Clear only permanent and active canvases
-      [permanentCanvas, activeCanvas].forEach(canvas => {
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.clearRect(0, 0, width, height);
+      // Log canvas states
+      console.log('Canvas states:', {
+        background: {
+          width: backgroundCanvas.width,
+          height: backgroundCanvas.height,
+          hasContent: bgCtx.getImageData(0, 0, width, height).data.some(pixel => pixel !== 0)
+        },
+        mask: {
+          width: maskCanvas.width,
+          height: maskCanvas.height,
+          hasContent: maskCtx.getImageData(0, 0, width, height).data.some(pixel => pixel !== 0)
+        },
+        preview: {
+          width: previewCanvas.width,
+          height: previewCanvas.height,
+          hasContent: previewCtx.getImageData(0, 0, width, height).data.some(pixel => pixel !== 0),
+          style: {
+            visibility: previewCanvas.style.visibility,
+            mask: previewCanvas.style.mask,
+            webkitMask: previewCanvas.style.webkitMask,
+            position: previewCanvas.style.position,
+            top: previewCanvas.style.top,
+            left: previewCanvas.style.left
+          }
+        },
+        svg: {
+          width: svgElement.getAttribute('width'),
+          height: svgElement.getAttribute('height'),
+          position: svgElement.style.position,
+          top: svgElement.style.top,
+          left: svgElement.style.left
         }
       });
 
       // If we have existing canvas data, restore it to the permanent canvas
       if (shape.canvasData) {
+        console.log('Restoring existing canvas data');
         const savedImg = new Image();
         savedImg.onload = () => {
+          if (!permanentCtx || !previewCtx) return;
           permanentCtx.drawImage(savedImg, 0, 0);
-          // Also draw to preview canvas initially
           previewCtx.drawImage(savedImg, 0, 0);
-          
-          // Log visibility state after restoring canvas data
-          console.log('Canvas Visibility State (After Restoring Canvas Data):', {
-            background: backgroundCanvas.style.visibility,
-            permanent: permanentCanvas.style.visibility,
-            active: activeCanvas.style.visibility,
-            preview: previewCanvas.style.visibility
-          });
+          console.log('Existing canvas data restored');
         };
-        savedImg.src = shape.canvasData;
+        savedImg.src = shape.canvasData || '';
       }
     };
     img.src = shape.imageUrl;
@@ -242,6 +324,15 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
           />
           <canvas
             ref={activeStrokeCanvasRef}
+            className="absolute w-full h-full object-cover"
+            style={{
+              touchAction: "none",
+              pointerEvents: "none",
+              visibility: "hidden"
+            }}
+          />
+          <canvas
+            ref={maskCanvasRef}
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
