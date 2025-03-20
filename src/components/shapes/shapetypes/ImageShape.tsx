@@ -128,61 +128,10 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       previewCtx.drawImage(backgroundCanvas, 0, 0);
       console.log('Preview canvas: background image drawn');
 
-      // Create an SVG element that will contain our mask
-      const svgElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svgElement.setAttribute('width', '100%');
-      svgElement.setAttribute('height', '100%');
-      svgElement.setAttribute('viewBox', `0 0 ${width} ${height}`);
-      svgElement.style.position = 'absolute';
-      svgElement.style.top = '0';
-      svgElement.style.left = '0';
-      svgElement.style.width = '100%';
-      svgElement.style.height = '100%';
-      svgElement.style.pointerEvents = 'none';
-      svgElement.style.zIndex = '1';
-      
-      // Create the mask element
-      const maskElement = document.createElementNS('http://www.w3.org/2000/svg', 'mask');
-      maskElement.id = `mask-${shape.id}`;
-      
-      // Create a white rectangle as the base of the mask
-      const whiteRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      whiteRect.setAttribute('width', '100%');
-      whiteRect.setAttribute('height', '100%');
-      whiteRect.setAttribute('fill', 'white');
-      maskElement.appendChild(whiteRect);
-      
-      // Create a black circle to mask out the area
-      const blackCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      blackCircle.setAttribute('cx', '50%');
-      blackCircle.setAttribute('cy', '50%');
-      blackCircle.setAttribute('r', '25%');
-      blackCircle.setAttribute('fill', 'black');
-      maskElement.appendChild(blackCircle);
-      
-      // Add the mask to the SVG
-      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      defs.appendChild(maskElement);
-      svgElement.appendChild(defs);
-      
-      // Find the shape's container and append the SVG to it
-      const shapeContainer = previewCanvas.parentElement;
-      if (shapeContainer) {
-        shapeContainer.appendChild(svgElement);
-      }
-      
-      // Apply the mask to the preview canvas
-      previewCanvas.style.mask = `url(#mask-${shape.id})`;
-      previewCanvas.style.webkitMask = `url(#mask-${shape.id})`;
-      console.log('Preview canvas: SVG mask applied');
-
-      // Clean up any existing SVG masks with the same ID
-      return () => {
-        const existingSvg = document.querySelector(`svg:has(#mask-${shape.id})`);
-        if (existingSvg) {
-          existingSvg.remove();
-        }
-      };
+      // Apply the radial gradient mask to the preview canvas
+      previewCanvas.style.mask = 'radial-gradient(circle at center, transparent 25%, black 25.1%)';
+      previewCanvas.style.webkitMask = 'radial-gradient(circle at center, transparent 25%, black 25.1%)';
+      console.log('Preview canvas: radial gradient mask applied');
 
       // Log canvas states
       console.log('Canvas states:', {
@@ -203,18 +152,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
           style: {
             visibility: previewCanvas.style.visibility,
             mask: previewCanvas.style.mask,
-            webkitMask: previewCanvas.style.webkitMask,
-            position: previewCanvas.style.position,
-            top: previewCanvas.style.top,
-            left: previewCanvas.style.left
+            webkitMask: previewCanvas.style.webkitMask
           }
-        },
-        svg: {
-          width: svgElement.getAttribute('width'),
-          height: svgElement.getAttribute('height'),
-          position: svgElement.style.position,
-          top: svgElement.style.top,
-          left: svgElement.style.left
         }
       });
 
