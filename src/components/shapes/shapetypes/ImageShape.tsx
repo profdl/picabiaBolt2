@@ -49,14 +49,15 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
     if (!maskCtx) return;
 
-    // Ensure mask canvas maintains original dimensions
-    maskCanvas.width = maskDimensionsRef.current.width;
-    maskCanvas.height = maskDimensionsRef.current.height;
+    // When using eraser, we don't want to reset the mask
+    if (tool !== 'eraser') {
+      // Ensure mask canvas maintains original dimensions
+      maskCanvas.width = maskDimensionsRef.current.width;
+      maskCanvas.height = maskDimensionsRef.current.height;
 
-    // Clear and redraw mask with stored gradient
-    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-    if (maskDimensionsRef.current.gradient) {
-      maskCtx.fillStyle = maskDimensionsRef.current.gradient;
+      // Clear and fill mask with white
+      maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+      maskCtx.fillStyle = 'white';
       maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
     }
 
@@ -70,6 +71,34 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     previewCanvas.style.maskPosition = 'center';
   };
 
+  // Function to handle eraser strokes on mask
+  const handleEraserStroke = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const maskCanvas = maskCanvasRef.current;
+    if (!maskCanvas) return;
+
+    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+    if (!maskCtx) return;
+
+    // Get the position relative to the canvas
+    const rect = maskCanvas.getBoundingClientRect();
+    const scaleX = maskCanvas.width / rect.width;
+    const scaleY = maskCanvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    // Draw transparent/black circle at the eraser position to hide the image
+    maskCtx.save();
+    maskCtx.globalCompositeOperation = 'destination-out';  // This will erase from the mask
+    const brushSize = useStore.getState().brushSize;
+    maskCtx.beginPath();
+    maskCtx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+    maskCtx.fill();
+    maskCtx.restore();
+
+    // Update the mask
+    reapplyMask();
+  };
+
   // Modify brush handlers to use reapplyMask
   const { handlePointerDown: originalHandlePointerDown, handlePointerMove: originalHandlePointerMove, handlePointerUpOrLeave: originalHandlePointerUpOrLeave } = useBrush({
     backgroundCanvasRef,
@@ -81,21 +110,33 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     isDrawing.current = true;
-    originalHandlePointerDown(e);
-    reapplyMask();
+    if (tool === 'eraser') {
+      handleEraserStroke(e);
+    } else {
+      originalHandlePointerDown(e);
+      reapplyMask();
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    originalHandlePointerMove(e);
-    if (isDrawing.current) {
-      reapplyMask();
+    if (!isDrawing.current) return;
+    
+    if (tool === 'eraser') {
+      handleEraserStroke(e);
+    } else {
+      originalHandlePointerMove(e);
+      if (isDrawing.current) {
+        reapplyMask();
+      }
     }
   };
 
   const handlePointerUpOrLeave = () => {
     isDrawing.current = false;
-    originalHandlePointerUpOrLeave();
-    reapplyMask();
+    if (tool !== 'eraser') {
+      originalHandlePointerUpOrLeave();
+      reapplyMask();
+    }
   };
 
   const subscriptionRef = useRef<{
@@ -176,24 +217,17 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       // Create and apply the mask
       maskCtx.clearRect(0, 0, width, height);
       
-      // Create a radial gradient for the mask
-      const gradient = maskCtx.createRadialGradient(
-        width/2, height/2, 0,
-        width/2, height/2, width/3
-      );
-      gradient.addColorStop(0, 'white');  // Fully visible center
-      gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.5)');  // Semi-transparent middle
-      gradient.addColorStop(1, 'transparent');  // Fully transparent edges
+      // Fill mask with white to make image fully visible initially
+      maskCtx.fillStyle = 'white';
+      maskCtx.fillRect(0, 0, width, height);
       
-      // Store the initial dimensions and gradient
+      // Store the initial dimensions (without gradient)
       maskDimensionsRef.current = {
         width,
         height,
-        gradient
+        gradient: null
       };
       
-      maskCtx.fillStyle = gradient;
-      maskCtx.fillRect(0, 0, width, height);
       console.log('Mask canvas drawn');
 
       // Clear preview canvas
