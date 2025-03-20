@@ -2,10 +2,8 @@ import React from "react";
 import {
   BookImageIcon,
   Grid,
-  Hand,
   Image as ImageIcon,
   Loader2,
-  MousePointer,
   Settings,
   Sparkles,
   StickyNote,
@@ -111,52 +109,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     setBrushSpacing: state.setBrushSpacing,
     setBrushHardness: state.setBrushHardness,
   }));
-
-  // Add handlers for image actions
-  const handleCrop = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (selectedShape) {
-      updateShape(selectedShape.id, { isImageEditing: true });
-    }
-  };
-
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (selectedShape?.imageUrl) {
-      try {
-        const response = await fetch(selectedShape.imageUrl);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `image-${selectedShape.id}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error("Download failed:", error);
-      }
-    }
-  };
-
-
-
-  const {
-    currentColor,
-    setCurrentColor,
-    brushTexture,
-    brushSize,
-    brushOpacity,
-    brushRotation,
-    brushFollowPath,
-    brushSpacing,
-    brushHardness,
-    tool,
-    setTool,
-  } = useToolbarBrush();
 
   const { showAssets, toggleAssets } = useToolbarShapes();
 
@@ -320,6 +272,49 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     }
   };
 
+  // Add handlers for image actions
+  const handleCrop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (selectedShape) {
+      updateShape(selectedShape.id, { isImageEditing: true });
+    }
+  };
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (selectedShape?.imageUrl) {
+      try {
+        const response = await fetch(selectedShape.imageUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `image-${selectedShape.id}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Download failed:", error);
+      }
+    }
+  };
+
+  const {
+    currentColor,
+    setCurrentColor,
+    brushTexture,
+    brushSize,
+    brushOpacity,
+    brushRotation,
+    brushFollowPath,
+    brushSpacing,
+    brushHardness,
+    tool,
+  } = useToolbarBrush();
+
   return (
     <div className={styles.container}>
       <div className="max-w-screen-2xl mx-auto relative flex items-center justify-between">
@@ -356,10 +351,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           </Tooltip>
 
           {/* Image Properties Toolbar */}
-          {tool === "select" && selectedShape && (
+          {(tool === "select" && selectedShape) || tool === "pan" ? (
             <PropertiesToolbar
-              type={selectedShape.type === "image" ? "image" : "shape"}
-              shape={selectedShape}
+              type={selectedShape?.type === "image" ? "image" : selectedShape?.type === "sketchpad" ? "sketchpad" : "shape"}
+              shape={selectedShape || {
+                id: "pan-tool",
+                type: "group",
+                position: { x: 0, y: 0 },
+                width: 0,
+                height: 0,
+                rotation: 0,
+                color: "transparent",
+                groupEnabled: true,
+              }}
               selectedShapes={selectedShapes}
               shapes={shapes}
               actions={{
@@ -387,7 +391,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 onFlatten: handleFlatten,
               }}
             />
-          )}
+          ) : null}
 
           {/* Brush Properties Toolbar */}
           {(tool === "brush" || tool === "eraser") && (
@@ -533,26 +537,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
           {/* Tools Section */}
           <div className={styles.divider} />
-
-          <ToolbarButton
-            icon={<MousePointer />}
-            active={tool === "select"}
-            onClick={() => setTool("select")}
-            title="Select Tool (V)"
-            className={`${styles.button.base} ${
-              tool === "select" ? styles.button.active : ""
-            }`}
-          />
-
-          <ToolbarButton
-            icon={<Hand />}
-            active={tool === "pan"}
-            onClick={() => setTool("pan")}
-            title="Pan Tool (Space)"
-            className={`${styles.button.base} ${
-              tool === "pan" ? styles.button.active : ""
-            }`}
-          />
         </div>
 
         {/* Right section */}

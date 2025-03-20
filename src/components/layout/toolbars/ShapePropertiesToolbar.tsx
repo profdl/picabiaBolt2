@@ -14,7 +14,9 @@ import {
   Mountain,
   Box,
   Brush,
-  Eraser
+  Eraser,
+  MousePointer,
+  Hand
 } from "lucide-react";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { Shape } from "../../../types";
@@ -115,9 +117,31 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
 
   return (
     <div className={styles.buttonGroup}>
-      {/* <span className="text-sm text-neutral-500 dark:text-neutral-400 mr-2">
-        Arrange:
-      </span> */}
+      {/* Add select tool button */}
+      <Tooltip content="Select Tool (V)" side="top">
+        <ToolbarButton
+          icon={<MousePointer />}
+          active={tool === "select"}
+          onClick={() => setTool("select")}
+          className={`${styles.button} ${
+            tool === "select" ? "bg-neutral-200 dark:bg-neutral-600" : ""
+          }`}
+        />
+      </Tooltip>
+
+      {/* Add pan tool button */}
+      <Tooltip content="Pan Tool (Space)" side="top">
+        <ToolbarButton
+          icon={<Hand />}
+          active={tool === "pan"}
+          onClick={() => setTool("pan")}
+          className={`${styles.button} ${
+            tool === "pan" ? "bg-neutral-200 dark:bg-neutral-600" : ""
+          }`}
+        />
+      </Tooltip>
+
+      <div className={styles.divider} />
 
       {/* Add brush tool button for image and sketchpad shapes */}
       {(shape.type === "image" || shape.type === "sketchpad") && (
