@@ -15,7 +15,7 @@ interface BrushProps {
   permanentStrokesCanvasRef: React.RefObject<HTMLCanvasElement>;
   activeStrokeCanvasRef: React.RefObject<HTMLCanvasElement>;
   previewCanvasRef: React.RefObject<HTMLCanvasElement>;
-  maskCanvasRef: React.RefObject<HTMLCanvasElement>;
+  maskCanvasRef?: React.RefObject<HTMLCanvasElement>;
 }
 
 interface BrushHandlers {
@@ -156,7 +156,7 @@ export const useBrush = ({
     previewCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
 
     // Update the mask image on the preview canvas
-    if (previewCanvasRef.current && maskCanvasRef.current) {
+    if (previewCanvasRef.current && maskCanvasRef && maskCanvasRef.current) {
       previewCanvasRef.current.style.webkitMaskImage = `url(${maskCanvasRef.current.toDataURL()})`;
       previewCanvasRef.current.style.maskImage = `url(${maskCanvasRef.current.toDataURL()})`;
     }
@@ -205,8 +205,8 @@ export const useBrush = ({
         
         if (tool === "eraser") {
           // For eraser, draw to both active and mask canvases
-          const maskCtx = maskCanvasRef.current?.getContext("2d", { willReadFrequently: true });
-          if (maskCtx && maskCanvasRef.current) {
+          const maskCtx = maskCanvasRef?.current?.getContext("2d", { willReadFrequently: true });
+          if (maskCtx && maskCanvasRef && maskCanvasRef.current) {
             maskCtx.save();
             maskCtx.globalCompositeOperation = "destination-out";
             maskCtx.globalAlpha = brushOpacity;
