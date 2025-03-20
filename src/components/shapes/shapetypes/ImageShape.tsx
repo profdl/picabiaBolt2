@@ -30,17 +30,77 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  const subscriptionRef = useRef<{
-    [key: string]: ReturnType<typeof supabase.channel>;
-  }>({});
+  // Add isDrawing ref to track drawing state
+  const isDrawing = useRef(false);
 
-  const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } = useBrush({
+  // Store the initial mask dimensions
+  const maskDimensionsRef = useRef<{ width: number; height: number; gradient: CanvasGradient | null }>({
+    width: 0,
+    height: 0,
+    gradient: null
+  });
+
+  // Function to reapply mask with original dimensions
+  const reapplyMask = () => {
+    const maskCanvas = maskCanvasRef.current;
+    const previewCanvas = previewCanvasRef.current;
+    if (!maskCanvas || !previewCanvas) return;
+
+    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+    if (!maskCtx) return;
+
+    // Ensure mask canvas maintains original dimensions
+    maskCanvas.width = maskDimensionsRef.current.width;
+    maskCanvas.height = maskDimensionsRef.current.height;
+
+    // Clear and redraw mask with stored gradient
+    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    if (maskDimensionsRef.current.gradient) {
+      maskCtx.fillStyle = maskDimensionsRef.current.gradient;
+      maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+    }
+
+    // Apply mask using CSS properties with proper scaling
+    const maskDataUrl = maskCanvas.toDataURL();
+    previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
+    previewCanvas.style.maskImage = `url(${maskDataUrl})`;
+    previewCanvas.style.webkitMaskSize = 'cover';
+    previewCanvas.style.maskSize = 'cover';
+    previewCanvas.style.webkitMaskPosition = 'center';
+    previewCanvas.style.maskPosition = 'center';
+  };
+
+  // Modify brush handlers to use reapplyMask
+  const { handlePointerDown: originalHandlePointerDown, handlePointerMove: originalHandlePointerMove, handlePointerUpOrLeave: originalHandlePointerUpOrLeave } = useBrush({
     backgroundCanvasRef,
     permanentStrokesCanvasRef,
     activeStrokeCanvasRef,
     previewCanvasRef,
     maskCanvasRef
   });
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    isDrawing.current = true;
+    originalHandlePointerDown(e);
+    reapplyMask();
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    originalHandlePointerMove(e);
+    if (isDrawing.current) {
+      reapplyMask();
+    }
+  };
+
+  const handlePointerUpOrLeave = () => {
+    isDrawing.current = false;
+    originalHandlePointerUpOrLeave();
+    reapplyMask();
+  };
+
+  const subscriptionRef = useRef<{
+    [key: string]: ReturnType<typeof supabase.channel>;
+  }>({});
 
   // Initialize canvases with image
   useEffect(() => {
@@ -125,6 +185,13 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.5)');  // Semi-transparent middle
       gradient.addColorStop(1, 'transparent');  // Fully transparent edges
       
+      // Store the initial dimensions and gradient
+      maskDimensionsRef.current = {
+        width,
+        height,
+        gradient
+      };
+      
       maskCtx.fillStyle = gradient;
       maskCtx.fillRect(0, 0, width, height);
       console.log('Mask canvas drawn');
@@ -135,11 +202,16 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       // Draw the background image to preview canvas
       previewCtx.save();
       previewCtx.drawImage(backgroundCanvas, 0, 0);
-      
-      // Apply the mask
-      previewCtx.globalCompositeOperation = 'destination-in';
-      previewCtx.drawImage(maskCanvas, 0, 0);
       previewCtx.restore();
+      
+      // Apply the initial mask using CSS
+      const maskDataUrl = maskCanvas.toDataURL();
+      previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
+      previewCanvas.style.maskImage = `url(${maskDataUrl})`;
+      previewCanvas.style.webkitMaskSize = 'cover';
+      previewCanvas.style.maskSize = 'cover';
+      previewCanvas.style.webkitMaskPosition = 'center';
+      previewCanvas.style.maskPosition = 'center';
       console.log('Preview canvas: background drawn and masked');
     };
     img.src = shape.imageUrl;
