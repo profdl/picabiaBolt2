@@ -192,22 +192,41 @@ export const useBrush = ({
     const previewCtx = previewCanvasRef.current?.getContext("2d", { willReadFrequently: true });
     if (!previewCtx || !previewCanvasRef.current || !activeStrokeCanvasRef.current) return;
 
-    // Clear the preview canvas
+    // 1. Clear the preview canvas
     previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
 
-    // Draw directly to preview canvas without toggling visibility
-    previewCtx.drawImage(backgroundCanvasRef.current!, 0, 0);
-    previewCtx.drawImage(permanentStrokesCanvasRef.current!, 0, 0);
+    // 2. Draw background and permanent strokes with NO opacity changes
+    previewCtx.globalAlpha = 1;
+    previewCtx.globalCompositeOperation = 'source-over';
+    if (backgroundCanvasRef.current) {
+        previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
+    }
+    if (permanentStrokesCanvasRef.current) {
+        previewCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
+    }
+
+    // 3. Create a temporary canvas for the active stroke with opacity
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = activeStrokeCanvasRef.current.width;
+    tempCanvas.height = activeStrokeCanvasRef.current.height;
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
     
-    // Apply active stroke (including eraser)
-    previewCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
-    previewCtx.globalAlpha = tool === "eraser" ? 1 : brushOpacity;
-    previewCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+    if (tempCtx) {
+        // Draw active stroke to temp canvas
+        tempCtx.globalAlpha = brushOpacity;
+        tempCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
+        tempCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+        
+        // Draw temp canvas (with opacity) onto preview
+        previewCtx.globalAlpha = 1; // Keep preview at full opacity
+        previewCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
+        previewCtx.drawImage(tempCanvas, 0, 0);
+    }
 
     // Update the mask image on the preview canvas
     if (previewCanvasRef.current && maskCanvasRef && maskCanvasRef.current) {
-      previewCanvasRef.current.style.webkitMaskImage = `url(${maskCanvasRef.current.toDataURL()})`;
-      previewCanvasRef.current.style.maskImage = `url(${maskCanvasRef.current.toDataURL()})`;
+        previewCanvasRef.current.style.webkitMaskImage = `url(${maskCanvasRef.current.toDataURL()})`;
+        previewCanvasRef.current.style.maskImage = `url(${maskCanvasRef.current.toDataURL()})`;
     }
   };
 
@@ -279,49 +298,64 @@ export const useBrush = ({
   const handlePointerUpOrLeave = () => {
     if (!isDrawing.current) return;
 
-    // Get the permanent strokes canvas context
     const permanentCtx = permanentStrokesCanvasRef.current?.getContext("2d", { willReadFrequently: true });
     
     if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current) return;
 
     if (tool === "eraser") {
-      // For eraser, we don't need to do anything with permanent strokes
-      // The mask layer is already handling the erasing effect
+        // Handle eraser with mask
+        const maskCtx = maskCanvasRef?.current?.getContext("2d", { willReadFrequently: true });
+        if (maskCtx && maskCanvasRef?.current) {
+            maskCtx.globalCompositeOperation = "destination-out";
+            maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+        }
     } else {
-      // For brush strokes, merge onto permanent strokes canvas
-      permanentCtx.globalCompositeOperation = "source-over";
-      permanentCtx.globalAlpha = brushOpacity;
-      permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+        // Create temporary canvas for opacity handling
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = activeStrokeCanvasRef.current.width;
+        tempCanvas.height = activeStrokeCanvasRef.current.height;
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+        
+        if (tempCtx) {
+            // Apply opacity to stroke on temp canvas
+            tempCtx.globalAlpha = brushOpacity;
+            tempCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+            
+            // Draw to permanent canvas at full opacity
+            permanentCtx.globalAlpha = 1;
+            permanentCtx.globalCompositeOperation = "source-over";
+            permanentCtx.drawImage(tempCanvas, 0, 0);
+        }
     }
 
-    // Clear the active stroke canvas
+    // Clear active stroke
     const activeCtx = activeStrokeCanvasRef.current.getContext("2d", { willReadFrequently: true });
     if (activeCtx) {
-      activeCtx.clearRect(0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height);
+        activeCtx.clearRect(0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height);
     }
 
-    // Update preview to show only permanent strokes
+    // Update preview
     updatePreview();
 
     // Save the canvas data after the stroke is complete
     const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;
     if (shapeId) {
-      // Create a temporary canvas to combine background and permanent strokes
-      const saveCanvas = document.createElement('canvas');
-      saveCanvas.width = backgroundCanvasRef.current!.width;
-      saveCanvas.height = backgroundCanvasRef.current!.height;
-      const saveCtx = saveCanvas.getContext('2d', { willReadFrequently: true });
-      if (!saveCtx) return;
+        // Create a temporary canvas to combine background and permanent strokes
+        const saveCanvas = document.createElement('canvas');
+        saveCanvas.width = backgroundCanvasRef.current!.width;
+        saveCanvas.height = backgroundCanvasRef.current!.height;
+        const saveCtx = saveCanvas.getContext('2d', { willReadFrequently: true });
+        if (!saveCtx) return;
 
-      // Draw background first
-      saveCtx.drawImage(backgroundCanvasRef.current!, 0, 0);
-      
-      // Draw permanent strokes on top
-      saveCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
-      
-      // Save the combined result
-      const canvasData = saveCanvas.toDataURL("image/png");
-      useStore.getState().updateShape(shapeId, { canvasData });
+        // Draw background first
+        saveCtx.drawImage(backgroundCanvasRef.current!, 0, 0);
+        
+        // Draw permanent strokes on top
+        saveCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
+        
+        // Save the combined result
+        const canvasData = saveCanvas.toDataURL("image/png");
+        useStore.getState().updateShape(shapeId, { canvasData });
     }
 
     isDrawing.current = false;
