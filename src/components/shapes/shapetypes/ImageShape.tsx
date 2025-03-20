@@ -38,11 +38,47 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
 
   // Add effect to handle tool state on deselection
   useEffect(() => {
+    const cleanup = () => {
+      // Clear any active drawing state
+      isDrawing.current = false;
+      
+      // Clear active stroke canvas if it exists
+      if (activeStrokeCanvasRef.current) {
+        const activeCtx = activeStrokeCanvasRef.current.getContext("2d", { willReadFrequently: true });
+        if (activeCtx) {
+          activeCtx.clearRect(0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height);
+        }
+      }
+      
+      // Update preview to show final state
+      if (previewCanvasRef.current && backgroundCanvasRef.current && permanentStrokesCanvasRef.current) {
+        const previewCtx = previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
+        if (previewCtx) {
+          previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
+          previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
+          previewCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
+        }
+      }
+    };
+
     const isSelected = selectedShapes.includes(shape.id);
-    if (!isSelected && tool === 'eraser') {
-      setTool('select');
+    // First check if we're deselecting
+    if (!isSelected) {
+      // Then safely check the tool type
+      const currentTool = useStore.getState().tool;
+      if (currentTool === 'eraser' || currentTool === 'brush') {
+        setTool('select');
+        cleanup();
+      }
     }
-  }, [selectedShapes, tool, shape.id]);
+
+    // Clean up on unmount
+    return () => {
+      if (isDrawing.current) {
+        cleanup();
+      }
+    };
+  }, [selectedShapes, shape.id, setTool]);
 
   // Store the initial mask dimensions
   const maskDimensionsRef = useRef<{ width: number; height: number; gradient: CanvasGradient | null }>({

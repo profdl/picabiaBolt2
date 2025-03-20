@@ -57,6 +57,55 @@ export const useBrush = ({
     brushHardness: state.brushHardness
   }));
 
+  // Add cleanup effect when tool changes or component unmounts
+  useEffect(() => {
+    const cleanup = () => {
+      isDrawing.current = false;
+      lastPoint.current = null;
+      accumulatedDistance.current = 0;
+
+      // Clear active stroke canvas if it exists
+      if (activeStrokeCanvasRef.current) {
+        const activeCtx = activeStrokeCanvasRef.current.getContext("2d", { willReadFrequently: true });
+        if (activeCtx) {
+          activeCtx.clearRect(
+            0, 
+            0, 
+            activeStrokeCanvasRef.current.width, 
+            activeStrokeCanvasRef.current.height
+          );
+        }
+      }
+
+      // Update preview if it exists
+      if (previewCanvasRef.current) {
+        const previewCtx = previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
+        if (previewCtx) {
+          previewCtx.clearRect(
+            0,
+            0,
+            previewCanvasRef.current.width,
+            previewCanvasRef.current.height
+          );
+          if (backgroundCanvasRef.current) {
+            previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
+          }
+          if (permanentStrokesCanvasRef.current) {
+            previewCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
+          }
+        }
+      }
+    };
+
+    // Clean up when tool changes away from brush/eraser
+    if (!tool || (tool !== 'brush' && tool !== 'eraser')) {
+      cleanup();
+    }
+
+    // Clean up on unmount
+    return cleanup;
+  }, [activeStrokeCanvasRef, backgroundCanvasRef, permanentStrokesCanvasRef, previewCanvasRef, tool]);
+
   // Preload brush textures
   useEffect(() => {
     const BRUSH_TEXTURES = ["basic", "fur", "ink", "marker"];
