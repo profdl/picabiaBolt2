@@ -4,7 +4,7 @@ import { Shape } from "../../types";
 import { generatePrompt } from "../../utils/prompt-generator";
 import { Tooltip } from "../shared/Tooltip";
 import { getControlDescription, ControlType } from "../../utils/tooltips";
-import { Brush, Trash2, Eraser } from "lucide-react";
+import { Brush, Trash2, Wand } from "lucide-react";
 import { useThemeClass } from "../../styles/useThemeClass";
 
 interface ShapeControlsProps {
@@ -688,7 +688,7 @@ export function ShapeControlsProperties({
               </button>
             </Tooltip>
 
-            <Tooltip content="Eraser Tool (E)" side="bottom">
+            <Tooltip content="Mask Tool (E)" side="bottom">
               <button
                 onClick={() => {
                   setTool("eraser");
@@ -697,7 +697,7 @@ export function ShapeControlsProperties({
                   tool === "eraser" ? styles.controls.buttonActive : ""
                 }`}
               >
-                <Eraser className="w-5 h-5" />
+                <Wand className="w-5 h-5" />
               </button>
             </Tooltip>
           </div>
