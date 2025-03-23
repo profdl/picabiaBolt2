@@ -173,8 +173,11 @@ export const generationHandlerSlice: StateCreator<
       randomiseSeeds: true,
     };
 
-    // Check for variations first since it should take precedence
+    // Find both variation and image reference shapes
     const variationShape = shapes.find(s => s.type === "image" && s.makeVariations);
+    const imageReferenceShape = shapes.find(s => s.type === "image" && s.showImagePrompt);
+
+    // Handle dimensions based on active shapes
     if (variationShape) {
       // Use the dimensions from the variation source image
       activeSettings.outputWidth = Math.round(variationShape.width);
@@ -205,8 +208,12 @@ export const generationHandlerSlice: StateCreator<
       // Set the latent_image input to the encoded image and adjust denoise strength
       workflow["3"].inputs.latent_image = ["35", 0];
       workflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+    } else if (imageReferenceShape) {
+      // Use dimensions from the image reference
+      activeSettings.outputWidth = Math.round(imageReferenceShape.width);
+      activeSettings.outputHeight = Math.round(imageReferenceShape.height);
     }
-    // Only calculate dimensions from control shapes if no variations and no DiffusionSettingsPanel is enabled
+    // Only calculate dimensions from control shapes if no variations/image reference and no DiffusionSettingsPanel is enabled
     else if (!activeSettings.outputWidth || !activeSettings.outputHeight) {
       const avgAspectRatio = calculateAverageAspectRatio(shapes);
       if (avgAspectRatio) {
@@ -513,8 +520,7 @@ export const generationHandlerSlice: StateCreator<
         }
       }
 
-      // Check for image reference
-      const imageReferenceShape = shapes.find(s => s.type === "image" && s.showImagePrompt);
+      // Handle image reference if present
       if (imageReferenceShape) {
         // Get the preview canvas for the image reference shape
         const previewCanvas = document.querySelector(`canvas[data-shape-id="${imageReferenceShape.id}"]`) as HTMLCanvasElement;
@@ -552,9 +558,22 @@ export const generationHandlerSlice: StateCreator<
           .from("assets")
           .getPublicUrl(fileName);
 
-        // Add image reference to the workflow
-        currentWorkflow["37"] = {
-          ...workflow["37"],
+        // Add image reference to the workflow using IP Adapter
+        const loaderNodeId = `ipadapter_loader_${Math.random().toString(36).substring(2)}`;
+        const imageNodeId = `image_loader_${Math.random().toString(36).substring(2)}`;
+        const advancedNodeId = `ipadapter_advanced_${Math.random().toString(36).substring(2)}`;
+
+        // Add IP Adapter Loader
+        currentWorkflow[loaderNodeId] = {
+          inputs: {
+            preset: "PLUS (high strength)",
+            model: ["4", 0],
+          },
+          class_type: "IPAdapterUnifiedLoader",
+        };
+
+        // Add Image Loader
+        currentWorkflow[imageNodeId] = {
           inputs: {
             image: publicUrl,
             upload: "image",
@@ -562,16 +581,24 @@ export const generationHandlerSlice: StateCreator<
           class_type: "LoadImage",
         };
 
-        // Add the image reference to the positive prompt
-        currentPositiveNode = "38";
-        currentWorkflow["38"] = {
-          ...workflow["38"],
+        // Add IP Adapter Advanced
+        currentWorkflow[advancedNodeId] = {
           inputs: {
-            image: ["37", 0],
-            strength: imageReferenceShape.imagePromptStrength || 0.5,
+            weight: imageReferenceShape.imagePromptStrength || 0.5,
+            weight_type: "linear",
+            combine_embeds: "concat",
+            start_at: 0,
+            end_at: 1,
+            embeds_scaling: "V only",
+            model: ["4", 0],
+            ipadapter: [loaderNodeId, 1],
+            image: [imageNodeId, 0],
           },
-          class_type: "ImagePrompt",
+          class_type: "IPAdapterAdvanced",
         };
+
+        // Update the KSampler to use the IP Adapter output
+        workflow["3"].inputs.model = [advancedNodeId, 0];
       }
 
       // Apply text prompt strength if available
