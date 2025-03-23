@@ -16,6 +16,8 @@ interface UseImageCanvasProps {
   tool: "select" | "pan" | "pen" | "brush" | "eraser";
 }
 
+type CanvasLayer = 'background' | 'permanent' | 'active' | 'preview' | 'mask' | 'redBackground';
+
 export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
   // Create individual refs
   const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -91,8 +93,35 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     previewCanvas.style.maskPosition = 'center';
   }, [refs.maskCanvasRef, refs.previewCanvasRef, tool]);
 
+  // Export updatePreviewCanvas function
+  const updatePreviewCanvas = useCallback(() => {
+    if (!refs.previewCanvasRef.current || !refs.backgroundCanvasRef.current || !refs.permanentStrokesCanvasRef.current || !refs.activeStrokeCanvasRef.current || !refs.maskCanvasRef.current) return;
+
+    const previewCtx = refs.previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
+    if (!previewCtx) return;
+
+    // Clear preview canvas
+    previewCtx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
+
+    // Draw background
+    previewCtx.drawImage(refs.backgroundCanvasRef.current, 0, 0);
+
+    // Draw permanent strokes
+    previewCtx.drawImage(refs.permanentStrokesCanvasRef.current, 0, 0);
+
+    // Draw active stroke
+    previewCtx.drawImage(refs.activeStrokeCanvasRef.current, 0, 0);
+
+    // Apply mask
+    previewCtx.globalCompositeOperation = "destination-in";
+    previewCtx.drawImage(refs.maskCanvasRef.current, 0, 0);
+    previewCtx.globalCompositeOperation = "source-over";
+  }, [refs]);
+
   // Initialize canvases with image
   useEffect(() => {
+    let isMounted = true;
+
     console.log('ImageShape initialization started:', {
       hasImageUrl: !!shape.imageUrl,
       canvasRefs: {
@@ -136,7 +165,9 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     // Load and draw the image
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => {
+    img.onload = async () => {
+      if (!isMounted) return;
+
       console.log('Image loaded:', {
         originalWidth: img.width,
         originalHeight: img.height
@@ -169,12 +200,44 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       bgCtx.drawImage(img, 0, 0, width, height);
       console.log('Background canvas drawn');
 
-      // Create and apply the mask
-      maskCtx.clearRect(0, 0, width, height);
-      
-      // Fill mask with white to make image fully visible initially
-      maskCtx.fillStyle = 'white';
-      maskCtx.fillRect(0, 0, width, height);
+      // Load saved canvas data if available
+      const canvasLayers: CanvasLayer[] = ['background', 'permanent', 'active', 'preview', 'mask', 'redBackground'];
+      for (const layer of canvasLayers) {
+        const canvasData = shape[`${layer}CanvasData` as keyof Shape];
+        if (canvasData) {
+          const layerImg = new Image();
+          await new Promise((resolve) => {
+            layerImg.onload = () => {
+              if (!isMounted) return;
+              
+              const targetCanvas = {
+                background: backgroundCanvas,
+                permanent: permanentCanvas,
+                active: activeCanvas,
+                preview: previewCanvas,
+                mask: maskCanvas,
+                redBackground: redBackgroundCanvas
+              }[layer];
+              
+              if (targetCanvas) {
+                const targetCtx = targetCanvas.getContext('2d');
+                if (targetCtx) {
+                  targetCtx.drawImage(layerImg, 0, 0, width, height);
+                }
+              }
+              resolve(null);
+            };
+            layerImg.src = canvasData as string;
+          });
+        }
+      }
+
+      // If no saved mask data, create and apply the default mask
+      if (!shape.maskCanvasData) {
+        maskCtx.clearRect(0, 0, width, height);
+        maskCtx.fillStyle = 'white';
+        maskCtx.fillRect(0, 0, width, height);
+      }
       
       // Store the initial dimensions (without gradient)
       maskDimensionsRef.current = {
@@ -185,15 +248,12 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       
       console.log('Mask canvas drawn');
 
-      // Clear preview canvas
+      // Update preview canvas with all layers
       previewCtx.clearRect(0, 0, width, height);
-      
-      // Draw the background image to preview canvas
-      previewCtx.save();
       previewCtx.drawImage(backgroundCanvas, 0, 0);
-      previewCtx.restore();
+      previewCtx.drawImage(permanentCanvas, 0, 0);
       
-      // Apply the initial mask using CSS
+      // Apply the mask using CSS
       const maskDataUrl = maskCanvas.toDataURL();
       previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
       previewCanvas.style.maskImage = `url(${maskDataUrl})`;
@@ -204,11 +264,16 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       console.log('Preview canvas: background drawn and masked');
     };
     img.src = shape.imageUrl;
-  }, [shape.imageUrl, refs]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [shape.imageUrl, shape.maskCanvasData, refs]);
 
   return {
     refs,
     reapplyMask,
+    updatePreviewCanvas,
     maskDimensionsRef
   };
 };

@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 export const supabase = createClient(
@@ -183,7 +182,7 @@ export async function savePreprocessedImage(
 
   // Upload to Supabase bucket
   const fileName = `${user.id}/${shapeId}/${processType}-${Date.now()}.png`;
-  const { data: uploadData, error: uploadError } = await supabase
+  const { error: uploadError } = await supabase
     .storage
     .from('preprocessed-images')
     .upload(fileName, blob);

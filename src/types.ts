@@ -110,6 +110,12 @@ export interface Shape {
   randomiseSeeds?: boolean;
   // Canvas data
   canvasData?: string;
+  backgroundCanvasData?: string;
+  permanentCanvasData?: string;
+  activeCanvasData?: string;
+  previewCanvasData?: string;
+  maskCanvasData?: string;
+  redBackgroundCanvasData?: string;
   // Additional properties
   aspectRatio?: number;
   assetId?: string;
@@ -138,4 +144,15 @@ export interface SavedImage {
   aspect_ratio: number;
   created_at: string;
   // ... existing code ...
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  shapes: Shape[];
+  thumbnail: string | null;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  is_template: boolean;
 } 

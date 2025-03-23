@@ -8,6 +8,12 @@ export interface Shape {
   onClear?: () => void;
   isCleared?: boolean;
   canvasData?: string;
+  backgroundCanvasData?: string;
+  permanentCanvasData?: string;
+  activeCanvasData?: string;
+  previewCanvasData?: string;
+  maskCanvasData?: string;
+  redBackgroundCanvasData?: string;
   sketchPadRef?: React.RefObject<HTMLCanvasElement>;
   isImageEditing?: boolean;
   isProcessingSubject?: boolean;
@@ -35,7 +41,8 @@ export interface Shape {
     | "3d"
     | "depth"
     | "edges"
-    | "pose";
+    | "pose"
+    | "stickyNote";
   position: Position;
   content?: string;
   width: number;

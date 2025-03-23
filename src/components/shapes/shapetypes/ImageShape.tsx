@@ -27,7 +27,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
   const selectedShapes = useStore((state) => state.selectedShapes);
   const setTool = useStore((state) => state.setTool);
   
-  const { refs, reapplyMask } = useImageCanvas({ shape, tool });
+  const { refs, reapplyMask, updatePreviewCanvas } = useImageCanvas({ shape, tool });
   const { handleEraserStroke } = useEraser({ refs, reapplyMask });
 
   // Add isDrawing ref to track drawing state
@@ -48,14 +48,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       }
       
       // Update preview to show final state
-      if (refs.previewCanvasRef.current && refs.backgroundCanvasRef.current && refs.permanentStrokesCanvasRef.current) {
-        const previewCtx = refs.previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
-        if (previewCtx) {
-          previewCtx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
-          previewCtx.drawImage(refs.backgroundCanvasRef.current, 0, 0);
-          previewCtx.drawImage(refs.permanentStrokesCanvasRef.current, 0, 0);
-        }
-      }
+      updatePreviewCanvas();
     };
 
     const isSelected = selectedShapes.includes(shape.id);
@@ -75,7 +68,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
         cleanup();
       }
     };
-  }, [selectedShapes, shape.id, setTool, refs]);
+  }, [selectedShapes, shape.id, setTool, refs, updatePreviewCanvas]);
 
   // Modify brush handlers to use reapplyMask
   const { handlePointerDown: originalHandlePointerDown, handlePointerMove: originalHandlePointerMove, handlePointerUpOrLeave: originalHandlePointerUpOrLeave } = useBrush({
@@ -109,10 +102,12 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     isDrawing.current = false;
     if (tool === 'eraser') {
       // For eraser tool, we've already updated the mask during the stroke
+      updatePreviewCanvas();
       return;
     }
-    // For brush tool, just handle the brush stroke completion
+    // For brush tool, handle the brush stroke completion and update preview
     originalHandlePointerUpOrLeave();
+    updatePreviewCanvas();
   };
 
   const subscriptionRef = useRef<{
@@ -191,16 +186,20 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
         <>
           <canvas
             ref={refs.redBackgroundCanvasRef}
+            data-shape-id={shape.id}
+            data-layer="redBackground"
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
               pointerEvents: "none",
-              visibility: "visible",
+              visibility: "hidden",
               zIndex: 0
             }}
           />
           <canvas
             ref={refs.backgroundCanvasRef}
+            data-shape-id={shape.id}
+            data-layer="background"
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
@@ -210,6 +209,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
           />
           <canvas
             ref={refs.permanentStrokesCanvasRef}
+            data-shape-id={shape.id}
+            data-layer="permanent"
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
@@ -219,6 +220,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
           />
           <canvas
             ref={refs.activeStrokeCanvasRef}
+            data-shape-id={shape.id}
+            data-layer="active"
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
@@ -228,6 +231,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
           />
           <canvas
             ref={refs.maskCanvasRef}
+            data-shape-id={shape.id}
+            data-layer="mask"
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
@@ -239,6 +244,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
           <canvas
             ref={refs.previewCanvasRef}
             data-shape-id={shape.id}
+            data-layer="preview"
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",

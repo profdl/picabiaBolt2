@@ -334,8 +334,36 @@ export const useBrush = ({
         activeCtx.clearRect(0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height);
     }
 
-    // Update preview
-    updatePreview();
+    // Update preview with all layers
+    const previewCtx = previewCanvasRef.current?.getContext("2d", { willReadFrequently: true });
+    if (previewCtx && previewCanvasRef.current) {
+        previewCtx.save();
+        
+        // Clear preview
+        previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
+        
+        // Draw background
+        if (backgroundCanvasRef.current) {
+            previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
+        }
+        
+        // Draw permanent strokes
+        previewCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
+        
+        // Apply mask if it exists
+        if (maskCanvasRef?.current) {
+            previewCtx.globalCompositeOperation = "destination-in";
+            previewCtx.drawImage(maskCanvasRef.current, 0, 0);
+        }
+        
+        previewCtx.restore();
+
+        // Update the mask image on the preview canvas
+        if (previewCanvasRef.current && maskCanvasRef?.current) {
+            previewCanvasRef.current.style.webkitMaskImage = `url(${maskCanvasRef.current.toDataURL()})`;
+            previewCanvasRef.current.style.maskImage = `url(${maskCanvasRef.current.toDataURL()})`;
+        }
+    }
 
     // Save the canvas data after the stroke is complete
     const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;

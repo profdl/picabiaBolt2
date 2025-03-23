@@ -3,6 +3,32 @@ import { useStore } from '../../store';
 import { useProjects } from './useProjects';
 import { generateThumbnail } from '../../utils/thumbnail';
 import { supabase } from '../../lib/supabase';
+import { Shape } from '../../types';
+
+async function saveCanvasLayers(shape: Shape) {
+  if (shape.type !== 'image') return null;
+
+  const canvasRefs = {
+    background: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="background"]`) as HTMLCanvasElement,
+    permanent: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="permanent"]`) as HTMLCanvasElement,
+    active: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="active"]`) as HTMLCanvasElement,
+    preview: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="preview"]`) as HTMLCanvasElement,
+    mask: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="mask"]`) as HTMLCanvasElement,
+    redBackground: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="redBackground"]`) as HTMLCanvasElement
+  };
+
+  const canvasData: Record<string, string | null> = {};
+  
+  for (const [layer, canvas] of Object.entries(canvasRefs)) {
+    if (canvas) {
+      canvasData[`${layer}CanvasData`] = canvas.toDataURL('image/png');
+    } else {
+      canvasData[`${layer}CanvasData`] = null;
+    }
+  }
+
+  return canvasData;
+}
 
 export function useProjectSave(boardId: string | null) {
   const [isSaving, setIsSaving] = useState(false);
@@ -31,8 +57,18 @@ export function useProjectSave(boardId: string | null) {
         .from("assets")
         .getPublicUrl(fileName);
 
+      const updatedShapes = await Promise.all(
+        shapes.map(async (shape) => {
+          if (shape.type === 'image') {
+            const canvasData = await saveCanvasLayers(shape);
+            return { ...shape, ...canvasData };
+          }
+          return shape;
+        })
+      );
+
       await updateProject(boardId, {
-        shapes,
+        shapes: updatedShapes,
         thumbnail: publicUrl,
       });
     } catch (error) {
