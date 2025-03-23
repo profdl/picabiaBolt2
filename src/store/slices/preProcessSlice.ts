@@ -1,5 +1,6 @@
 import { StateCreator } from "zustand";
 import { Shape } from "../../types";
+import { supabase } from "../../lib/supabase";
 
 interface GenerationState {
   shapes: Shape[];
@@ -121,6 +122,41 @@ export const preProcessSlice: StateCreator<
         throw new Error("No image URL found for shape");
       }
 
+      // Get the preview canvas for the shape
+      const previewCanvas = document.querySelector(`canvas[data-shape-id="${shapeId}"][data-layer="preview"]`) as HTMLCanvasElement;
+      if (!previewCanvas) {
+        throw new Error("Preview canvas not found for shape");
+      }
+
+      // Create a blob from the preview canvas
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        previewCanvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create blob from preview canvas'));
+          }
+        }, 'image/png', 1.0);
+      });
+
+      // Upload to Supabase
+      const fileName = `preprocess_source_${Math.random().toString(36).substring(2)}.png`;
+      const arrayBuffer = await blob.arrayBuffer();
+      const fileData = new Uint8Array(arrayBuffer);
+
+      const { error: uploadError } = await supabase.storage
+        .from("assets")
+        .upload(fileName, fileData, {
+          contentType: 'image/png',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("assets")
+        .getPublicUrl(fileName);
+
       // Set preprocessing state immediately
       set((state) => ({
         preprocessingStates: {
@@ -132,12 +168,12 @@ export const preProcessSlice: StateCreator<
         },
       }));
 
-      // Make API call
+      // Make API call with the preview canvas URL
       const response = await fetch("/.netlify/functions/preprocess-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          imageUrl: shape.imageUrl,
+          imageUrl: publicUrl,
           processType,
           shapeId,
         }),
