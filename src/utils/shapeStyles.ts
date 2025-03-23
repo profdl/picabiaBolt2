@@ -11,6 +11,15 @@ export const getShapeStyles = (
   // Find if this shape is in a disabled group
   const isInDisabledGroup = shape.groupId && shapes.find(s => s.id === shape.groupId)?.groupEnabled === false;
 
+  // Check if any controls are enabled
+  const hasEnabledControls = 
+    (shape.type === "image" && (shape.showImagePrompt || shape.makeVariations)) ||
+    (shape.type === "depth" && shape.showDepth) ||
+    (shape.type === "edges" && shape.showEdges) ||
+    (shape.type === "pose" && shape.showPose) ||
+    (shape.type === "sticky" && (shape.isTextPrompt || shape.isNegativePrompt)) ||
+    (shape.type === "diffusionSettings" && shape.useSettings);
+
   return {
     position: "absolute",
     left: shape.position.x,
@@ -26,7 +35,7 @@ export const getShapeStyles = (
         ? "transparent"
         : shape.color,
     overflow: "visible",
-    transition: "box-shadow 0.2s ease-in-out, opacity 0.2s ease-in-out",
+    transition: "box-shadow 0.2s ease-in-out, opacity 0.2s ease-in-out, border-color 0.2s ease-in-out",
     zIndex: shape.groupId
       ? 200 // Grouped objects always stay higher
       : shape.type === "group"
@@ -42,6 +51,8 @@ export const getShapeStyles = (
         ? isDark
           ? "2px solid #333333"  // Dark mode group border - darker to match background
           : "2px solid #9CA3AF"  // Light mode group border - changed from dashed to solid
+        : hasEnabledControls
+        ? "2px solid #22c55e"  // Green border for enabled controls
         : shape.type === "sticky"
         ? isEditing
           ? "3px solid rgba(128, 128, 255, 1)"

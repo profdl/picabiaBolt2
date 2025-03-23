@@ -147,6 +147,14 @@ export function ShapeControls({
                   backgroundImage: "none",
                 }
               : {}),
+            ...(shape.type === "diffusionSettings" && shape.useSettings
+              ? {
+                  border: "2px solid #22c55e",
+                  borderRadius: "8px",
+                  backgroundColor: "transparent",
+                  backgroundImage: "none",
+                }
+              : {}),
             ...(shape.type === "group" && hoveredGroup === shape.id
               ? {
                   border: "2px dashed rgb(var(--primary-500))",
