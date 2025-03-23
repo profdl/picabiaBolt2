@@ -18,6 +18,17 @@ interface UseImageCanvasProps {
 
 type CanvasLayer = 'background' | 'permanent' | 'active' | 'preview' | 'mask' | 'redBackground';
 
+interface StrokePoint {
+  x: number;
+  y: number;
+}
+
+interface Stroke {
+  color: string;
+  width: number;
+  points: StrokePoint[];
+}
+
 export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
   // Create individual refs
   const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -205,30 +216,44 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       for (const layer of canvasLayers) {
         const canvasData = shape[`${layer}CanvasData` as keyof Shape];
         if (canvasData) {
-          const layerImg = new Image();
-          await new Promise((resolve) => {
-            layerImg.onload = () => {
-              if (!isMounted) return;
-              
-              const targetCanvas = {
-                background: backgroundCanvas,
-                permanent: permanentCanvas,
-                active: activeCanvas,
-                preview: previewCanvas,
-                mask: maskCanvas,
-                redBackground: redBackgroundCanvas
-              }[layer];
-              
-              if (targetCanvas) {
-                const targetCtx = targetCanvas.getContext('2d');
-                if (targetCtx) {
-                  targetCtx.drawImage(layerImg, 0, 0, width, height);
+          // Only load stroke data for permanent and active layers
+          if (layer === 'permanent' || layer === 'active') {
+            try {
+              const strokeData = JSON.parse(canvasData as string);
+              if (Array.isArray(strokeData)) {
+                const targetCanvas = {
+                  permanent: permanentCanvas,
+                  active: activeCanvas
+                }[layer];
+                
+                if (targetCanvas) {
+                  const targetCtx = targetCanvas.getContext('2d');
+                  if (targetCtx) {
+                    // Replay the strokes
+                    strokeData.forEach((stroke: Stroke) => {
+                      targetCtx.beginPath();
+                      targetCtx.strokeStyle = stroke.color;
+                      targetCtx.lineWidth = stroke.width;
+                      targetCtx.lineCap = 'round';
+                      targetCtx.lineJoin = 'round';
+                      
+                      stroke.points.forEach((point: StrokePoint, index: number) => {
+                        if (index === 0) {
+                          targetCtx.moveTo(point.x, point.y);
+                        } else {
+                          targetCtx.lineTo(point.x, point.y);
+                        }
+                      });
+                      
+                      targetCtx.stroke();
+                    });
+                  }
                 }
               }
-              resolve(null);
-            };
-            layerImg.src = canvasData as string;
-          });
+            } catch (e) {
+              console.warn(`Error parsing stroke data for ${layer}:`, e);
+            }
+          }
         }
       }
 

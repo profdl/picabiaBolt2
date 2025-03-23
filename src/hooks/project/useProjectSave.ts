@@ -8,24 +8,44 @@ import { Shape } from '../../types';
 async function saveCanvasLayers(shape: Shape) {
   if (shape.type !== 'image') return null;
 
-  const canvasRefs = {
-    background: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="background"]`) as HTMLCanvasElement,
-    permanent: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="permanent"]`) as HTMLCanvasElement,
-    active: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="active"]`) as HTMLCanvasElement,
-    preview: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="preview"]`) as HTMLCanvasElement,
-    mask: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="mask"]`) as HTMLCanvasElement,
-    redBackground: document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="redBackground"]`) as HTMLCanvasElement
-  };
-
   const canvasData: Record<string, string | null> = {};
   
-  for (const [layer, canvas] of Object.entries(canvasRefs)) {
-    if (canvas) {
-      canvasData[`${layer}CanvasData`] = canvas.toDataURL('image/png');
-    } else {
-      canvasData[`${layer}CanvasData`] = null;
+  // Only save stroke data for permanent and active layers
+  if (shape.permanentCanvasData) {
+    // Parse the stroke data to ensure it's valid
+    try {
+      const strokeData = JSON.parse(shape.permanentCanvasData);
+      if (Array.isArray(strokeData)) {
+        // Only keep the last 100 strokes to prevent excessive storage
+        const optimizedStrokes = strokeData.slice(-100);
+        canvasData.permanentCanvasData = JSON.stringify(optimizedStrokes);
+      }
+    } catch (e) {
+      console.warn('Error parsing permanent canvas data:', e);
+      canvasData.permanentCanvasData = null;
     }
   }
+
+  if (shape.activeCanvasData) {
+    // Parse the stroke data to ensure it's valid
+    try {
+      const strokeData = JSON.parse(shape.activeCanvasData);
+      if (Array.isArray(strokeData)) {
+        // Only keep the last 50 strokes to prevent excessive storage
+        const optimizedStrokes = strokeData.slice(-50);
+        canvasData.activeCanvasData = JSON.stringify(optimizedStrokes);
+      }
+    } catch (e) {
+      console.warn('Error parsing active canvas data:', e);
+      canvasData.activeCanvasData = null;
+    }
+  }
+
+  // For other layers, we don't need to save their data as they can be reconstructed
+  canvasData.backgroundCanvasData = null;
+  canvasData.previewCanvasData = null;
+  canvasData.maskCanvasData = null;
+  canvasData.redBackgroundCanvasData = null;
 
   return canvasData;
 }
