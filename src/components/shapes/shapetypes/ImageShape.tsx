@@ -4,6 +4,7 @@ import { Shape } from "../../../types";
 import { supabase } from "../../../lib/supabase";
 import { ImageEditor } from "./ImageEditor";
 import { useBrush } from "../../layout/toolbars/BrushTool";
+import { useImageCanvas } from "../../../hooks/shapes/useImageCanvas";
 
 interface ImageShapeProps {
   shape: Shape;
@@ -25,13 +26,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
   const selectedShapes = useStore((state) => state.selectedShapes);
   const setTool = useStore((state) => state.setTool);
   
-  // Create refs for our canvas layers
-  const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
-  const permanentStrokesCanvasRef = useRef<HTMLCanvasElement>(null);
-  const activeStrokeCanvasRef = useRef<HTMLCanvasElement>(null);
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
-  const maskCanvasRef = useRef<HTMLCanvasElement>(null);
-  const redBackgroundCanvasRef = useRef<HTMLCanvasElement>(null);
+  // Use the new useImageCanvas hook with tool parameter
+  const { refs, reapplyMask } = useImageCanvas({ shape, tool });
 
   // Add isDrawing ref to track drawing state
   const isDrawing = useRef(false);
@@ -43,20 +39,20 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       isDrawing.current = false;
       
       // Clear active stroke canvas if it exists
-      if (activeStrokeCanvasRef.current) {
-        const activeCtx = activeStrokeCanvasRef.current.getContext("2d", { willReadFrequently: true });
+      if (refs.activeStrokeCanvasRef.current) {
+        const activeCtx = refs.activeStrokeCanvasRef.current.getContext("2d", { willReadFrequently: true });
         if (activeCtx) {
-          activeCtx.clearRect(0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height);
+          activeCtx.clearRect(0, 0, refs.activeStrokeCanvasRef.current.width, refs.activeStrokeCanvasRef.current.height);
         }
       }
       
       // Update preview to show final state
-      if (previewCanvasRef.current && backgroundCanvasRef.current && permanentStrokesCanvasRef.current) {
-        const previewCtx = previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
+      if (refs.previewCanvasRef.current && refs.backgroundCanvasRef.current && refs.permanentStrokesCanvasRef.current) {
+        const previewCtx = refs.previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
         if (previewCtx) {
-          previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
-          previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
-          previewCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
+          previewCtx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
+          previewCtx.drawImage(refs.backgroundCanvasRef.current, 0, 0);
+          previewCtx.drawImage(refs.permanentStrokesCanvasRef.current, 0, 0);
         }
       }
     };
@@ -78,49 +74,11 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
         cleanup();
       }
     };
-  }, [selectedShapes, shape.id, setTool]);
-
-  // Store the initial mask dimensions
-  const maskDimensionsRef = useRef<{ width: number; height: number; gradient: CanvasGradient | null }>({
-    width: 0,
-    height: 0,
-    gradient: null
-  });
-
-  // Function to reapply mask with original dimensions
-  const reapplyMask = () => {
-    const maskCanvas = maskCanvasRef.current;
-    const previewCanvas = previewCanvasRef.current;
-    if (!maskCanvas || !previewCanvas) return;
-
-    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
-    if (!maskCtx) return;
-
-    // When using eraser, we don't want to reset the mask
-    if (tool !== 'eraser') {
-      // Ensure mask canvas maintains original dimensions
-      maskCanvas.width = maskDimensionsRef.current.width;
-      maskCanvas.height = maskDimensionsRef.current.height;
-
-      // Clear and fill mask with white
-      maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-      maskCtx.fillStyle = 'white';
-      maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
-    }
-
-    // Apply mask using CSS properties with proper scaling
-    const maskDataUrl = maskCanvas.toDataURL();
-    previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
-    previewCanvas.style.maskImage = `url(${maskDataUrl})`;
-    previewCanvas.style.webkitMaskSize = 'cover';
-    previewCanvas.style.maskSize = 'cover';
-    previewCanvas.style.webkitMaskPosition = 'center';
-    previewCanvas.style.maskPosition = 'center';
-  };
+  }, [selectedShapes, shape.id, setTool, refs]);
 
   // Function to handle eraser strokes on mask
   const handleEraserStroke = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const maskCanvas = maskCanvasRef.current;
+    const maskCanvas = refs.maskCanvasRef.current;
     if (!maskCanvas) return;
 
     const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
@@ -148,11 +106,11 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
 
   // Modify brush handlers to use reapplyMask
   const { handlePointerDown: originalHandlePointerDown, handlePointerMove: originalHandlePointerMove, handlePointerUpOrLeave: originalHandlePointerUpOrLeave } = useBrush({
-    backgroundCanvasRef,
-    permanentStrokesCanvasRef,
-    activeStrokeCanvasRef,
-    previewCanvasRef,
-    maskCanvasRef
+    backgroundCanvasRef: refs.backgroundCanvasRef,
+    permanentStrokesCanvasRef: refs.permanentStrokesCanvasRef,
+    activeStrokeCanvasRef: refs.activeStrokeCanvasRef,
+    previewCanvasRef: refs.previewCanvasRef,
+    maskCanvasRef: refs.maskCanvasRef
   });
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -187,153 +145,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
   const subscriptionRef = useRef<{
     [key: string]: ReturnType<typeof supabase.channel>;
   }>({});
-
-  const generateNoise = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    const imageData = ctx.createImageData(width, height);
-    const data = imageData.data;
-    
-    for (let i = 0; i < data.length; i += 4) {
-      // Random noise value with higher minimum for brighter red
-      const noise = 128 + Math.random() * 127; // This ensures red is always at least 128 (half brightness)
-      
-      // Set RGB values - using brighter red with some variation
-      data[i] = noise;     // Red channel (now brighter)
-      data[i + 1] = 0;     // Green channel
-      data[i + 2] = 0;     // Blue channel
-      data[i + 3] = 0;    // Alpha channel (more transparent, reduced from 50)
-    }
-    
-    return imageData;
-  };
-
-  // Initialize canvases with image
-  useEffect(() => {
-    console.log('ImageShape initialization started:', {
-      hasImageUrl: !!shape.imageUrl,
-      canvasRefs: {
-        background: !!backgroundCanvasRef.current,
-        permanent: !!permanentStrokesCanvasRef.current,
-        active: !!activeStrokeCanvasRef.current,
-        preview: !!previewCanvasRef.current,
-        mask: !!maskCanvasRef.current,
-        redBackground: !!redBackgroundCanvasRef.current
-      }
-    });
-
-    if (!backgroundCanvasRef.current || !permanentStrokesCanvasRef.current || 
-        !activeStrokeCanvasRef.current || !previewCanvasRef.current || 
-        !maskCanvasRef.current || !redBackgroundCanvasRef.current || !shape.imageUrl) return;
-
-    const backgroundCanvas = backgroundCanvasRef.current;
-    const permanentCanvas = permanentStrokesCanvasRef.current;
-    const activeCanvas = activeStrokeCanvasRef.current;
-    const previewCanvas = previewCanvasRef.current;
-    const maskCanvas = maskCanvasRef.current;
-    const redBackgroundCanvas = redBackgroundCanvasRef.current;
-    
-    const bgCtx = backgroundCanvas.getContext('2d', { willReadFrequently: true });
-    const permanentCtx = permanentCanvas.getContext('2d', { willReadFrequently: true });
-    const activeCtx = activeCanvas.getContext('2d', { willReadFrequently: true });
-    const previewCtx = previewCanvas.getContext('2d', { willReadFrequently: true });
-    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
-    const redBgCtx = redBackgroundCanvas.getContext('2d', { willReadFrequently: true });
-    
-    if (!bgCtx || !permanentCtx || !activeCtx || !previewCtx || !maskCtx || !redBgCtx) return;
-
-    // Clear all canvases first
-    [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas, redBackgroundCanvas].forEach(canvas => {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    });
-
-    // Load and draw the image
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      console.log('Image loaded:', {
-        originalWidth: img.width,
-        originalHeight: img.height
-      });
-
-      // Set canvas dimensions to match the image's aspect ratio
-      const aspectRatio = img.width / img.height;
-      const width = 512;
-      const height = 512 / aspectRatio;
-
-      console.log('Setting canvas dimensions:', {
-        width,
-        height,
-        aspectRatio
-      });
-
-      // Set dimensions for all canvases
-      [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas, redBackgroundCanvas].forEach(canvas => {
-        canvas.width = width;
-        canvas.height = height;
-      });
-
-      // Fill red background canvas with noise
-      const noisePattern = generateNoise(redBgCtx, width, height);
-      redBgCtx.putImageData(noisePattern, 0, 0);
-
-      // Draw image on background canvas
-      if (!bgCtx || !previewCtx || !permanentCtx || !maskCtx) return;
-
-      bgCtx.drawImage(img, 0, 0, width, height);
-      console.log('Background canvas drawn');
-
-      // Create and apply the mask
-      maskCtx.clearRect(0, 0, width, height);
-      
-      // Fill mask with white to make image fully visible initially
-      maskCtx.fillStyle = 'white';
-      maskCtx.fillRect(0, 0, width, height);
-      
-      // Store the initial dimensions (without gradient)
-      maskDimensionsRef.current = {
-        width,
-        height,
-        gradient: null
-      };
-      
-      console.log('Mask canvas drawn');
-
-      // Clear preview canvas
-      previewCtx.clearRect(0, 0, width, height);
-      
-      // Draw the background image to preview canvas
-      previewCtx.save();
-      previewCtx.drawImage(backgroundCanvas, 0, 0);
-      previewCtx.restore();
-      
-      // Apply the initial mask using CSS
-      const maskDataUrl = maskCanvas.toDataURL();
-      previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
-      previewCanvas.style.maskImage = `url(${maskDataUrl})`;
-      previewCanvas.style.webkitMaskSize = 'cover';
-      previewCanvas.style.maskSize = 'cover';
-      previewCanvas.style.webkitMaskPosition = 'center';
-      previewCanvas.style.maskPosition = 'center';
-      console.log('Preview canvas: background drawn and masked');
-    };
-    img.src = shape.imageUrl;
-  }, [shape.imageUrl, updateShape, shape.id, shape.canvasData, shape.isImageEditing]);
-
-  // Handle clearing strokes
-  const handleClear = () => {
-    if (!permanentStrokesCanvasRef.current || !previewCanvasRef.current) return;
-    const ctx = permanentStrokesCanvasRef.current.getContext('2d', { willReadFrequently: true });
-    const previewCtx = previewCanvasRef.current.getContext('2d', { willReadFrequently: true });
-    if (!ctx || !previewCtx) return;
-    
-    ctx.clearRect(0, 0, permanentStrokesCanvasRef.current.width, permanentStrokesCanvasRef.current.height);
-    previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
-    
-    // When clearing strokes, set canvasData to undefined
-    updateShape(shape.id, { canvasData: undefined });
-  };
 
   // Set up subscriptions for each process type
   useEffect(() => {
@@ -385,6 +196,20 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     };
   }, [shape, updateShape]);
 
+  // Handle clearing strokes
+  const handleClear = () => {
+    if (!refs.permanentStrokesCanvasRef.current || !refs.previewCanvasRef.current) return;
+    const ctx = refs.permanentStrokesCanvasRef.current.getContext('2d', { willReadFrequently: true });
+    const previewCtx = refs.previewCanvasRef.current.getContext('2d', { willReadFrequently: true });
+    if (!ctx || !previewCtx) return;
+    
+    ctx.clearRect(0, 0, refs.permanentStrokesCanvasRef.current.width, refs.permanentStrokesCanvasRef.current.height);
+    previewCtx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
+    
+    // When clearing strokes, set canvasData to undefined
+    updateShape(shape.id, { canvasData: undefined });
+  };
+
   return (
     <div className="relative w-full h-full">
       {shape.isImageEditing ? (
@@ -392,7 +217,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
       ) : (
         <>
           <canvas
-            ref={redBackgroundCanvasRef}
+            ref={refs.redBackgroundCanvasRef}
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
@@ -402,7 +227,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             }}
           />
           <canvas
-            ref={backgroundCanvasRef}
+            ref={refs.backgroundCanvasRef}
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
@@ -411,7 +236,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             }}
           />
           <canvas
-            ref={permanentStrokesCanvasRef}
+            ref={refs.permanentStrokesCanvasRef}
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
@@ -420,7 +245,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             }}
           />
           <canvas
-            ref={activeStrokeCanvasRef}
+            ref={refs.activeStrokeCanvasRef}
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
@@ -429,7 +254,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             }}
           />
           <canvas
-            ref={maskCanvasRef}
+            ref={refs.maskCanvasRef}
             className="absolute w-full h-full object-cover"
             style={{
               touchAction: "none",
@@ -439,7 +264,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             }}
           />
           <canvas
-            ref={previewCanvasRef}
+            ref={refs.previewCanvasRef}
             data-shape-id={shape.id}
             className="absolute w-full h-full object-cover"
             style={{
