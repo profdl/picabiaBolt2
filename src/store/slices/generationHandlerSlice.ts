@@ -609,44 +609,20 @@ export const generationHandlerSlice: StateCreator<
 
       // Handle image reference if present
       if (imageReferenceShape) {
-        // Get the preview canvas and mask canvas for the image reference shape
+        // Get the preview canvas for the image reference shape
         const previewCanvas = document.querySelector(`canvas[data-shape-id="${imageReferenceShape.id}"][data-layer="preview"]`) as HTMLCanvasElement;
-        const maskCanvas = document.querySelector(`canvas[data-shape-id="${imageReferenceShape.id}"][data-layer="mask"]`) as HTMLCanvasElement;
-        
-        if (!previewCanvas || !maskCanvas) {
-          console.error('Required canvas layers not found for image reference shape');
+        if (!previewCanvas) {
+          console.error('Preview canvas not found for image reference shape');
           return;
         }
 
-        // Create a temporary canvas with white background
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = previewCanvas.width;
-        tempCanvas.height = previewCanvas.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (!tempCtx) {
-          console.error('Could not get temporary canvas context');
-          return;
-        }
-
-        // Fill with white background
-        tempCtx.fillStyle = 'white';
-        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-
-        // Draw the preview canvas content
-        tempCtx.drawImage(previewCanvas, 0, 0);
-
-        // Apply mask using destination-in composite operation
-        tempCtx.globalCompositeOperation = "destination-in";
-        tempCtx.drawImage(maskCanvas, 0, 0);
-        tempCtx.globalCompositeOperation = "source-over";
-
-        // Create a blob from the temporary canvas
+        // Create a blob from the preview canvas
         const blob = await new Promise<Blob>((resolve, reject) => {
-          tempCanvas.toBlob((blob) => {
+          previewCanvas.toBlob((blob) => {
             if (blob) {
               resolve(blob);
             } else {
-              reject(new Error('Failed to create blob from canvas'));
+              reject(new Error('Failed to create blob from preview canvas'));
             }
           }, 'image/png', 1.0);
         });
