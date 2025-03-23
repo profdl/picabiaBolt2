@@ -178,7 +178,11 @@ export const generationHandlerSlice: StateCreator<
     const imageReferenceShape = shapes.find(s => s.type === "image" && s.showImagePrompt);
 
     // Handle dimensions based on active shapes
-    if (variationShape) {
+    // First check if we have an active DiffusionSettingsPanel with dimensions
+    if (activeSettings.outputWidth && activeSettings.outputHeight) {
+      // Use the DiffusionSettingsPanel dimensions
+      // No need to modify activeSettings as it already has the correct dimensions
+    } else if (variationShape) {
       // Use the dimensions from the variation source image
       activeSettings.outputWidth = Math.round(variationShape.width);
       activeSettings.outputHeight = Math.round(variationShape.height);
@@ -212,9 +216,8 @@ export const generationHandlerSlice: StateCreator<
       // Use dimensions from the image reference
       activeSettings.outputWidth = Math.round(imageReferenceShape.width);
       activeSettings.outputHeight = Math.round(imageReferenceShape.height);
-    }
-    // Only calculate dimensions from control shapes if no variations/image reference and no DiffusionSettingsPanel is enabled
-    else if (!activeSettings.outputWidth || !activeSettings.outputHeight) {
+    } else {
+      // Only calculate dimensions from control shapes if no other dimensions are set
       const avgAspectRatio = calculateAverageAspectRatio(shapes);
       if (avgAspectRatio) {
         // Target approximately 1 megapixel area
