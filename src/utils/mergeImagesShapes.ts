@@ -3,30 +3,27 @@ import { supabase } from "../lib/supabase";
 
 export async function mergeImages(images: Shape[]): Promise<Shape> {
   try {
-    // Find the absolute bounds in display coordinates
+    // Find the absolute bounds of all images in their display coordinates
     const minX = Math.min(...images.map(img => img.position.x));
     const minY = Math.min(...images.map(img => img.position.y));
     const maxX = Math.max(...images.map(img => img.position.x + img.width));
     const maxY = Math.max(...images.map(img => img.position.y + img.height));
 
-    // Calculate raw dimensions in display coordinates
-    const displayWidth = maxX - minX;
-    const displayHeight = maxY - minY;
+    // Calculate raw dimensions for the final shape
+    const rawWidth = maxX - minX;
+    const rawHeight = maxY - minY;
 
-    // Create a high-resolution canvas (2x the display size for better quality)
+    // Create canvas with raw dimensions initially
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = displayWidth * 2;
-    tempCanvas.height = displayHeight * 2;
+    tempCanvas.width = rawWidth;
+    tempCanvas.height = rawHeight;
     const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
 
     if (!tempCtx) {
       throw new Error('Could not get canvas context');
     }
 
-    // Scale up the context for high-resolution drawing
-    tempCtx.scale(2, 2);
-
-    // Process each image
+    // Process each image at original scale first
     for (const shape of images) {
       // Get all canvas layers
       const backgroundCanvas = document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="background"]`) as HTMLCanvasElement;
@@ -38,46 +35,39 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
         continue;
       }
 
-      // Calculate the relative position in display coordinates
+      // Calculate the exact position relative to the merged canvas
       const relativeX = shape.position.x - minX;
       const relativeY = shape.position.y - minY;
 
-      // Create an intermediate canvas for this shape's composition
+      // Create an intermediate canvas for this shape's composition at original canvas size
       const shapeCanvas = document.createElement('canvas');
-      shapeCanvas.width = shape.width * 2; // 2x size for quality
-      shapeCanvas.height = shape.height * 2;
+      shapeCanvas.width = backgroundCanvas.width;
+      shapeCanvas.height = backgroundCanvas.height;
       const shapeCtx = shapeCanvas.getContext('2d', { willReadFrequently: true });
       if (!shapeCtx) continue;
 
-      // Scale up the shape context
-      shapeCtx.scale(2, 2);
-
-      // Draw each layer with high-quality scaling
+      // Draw each layer at original canvas dimensions
       // 1. Draw background
-      shapeCtx.drawImage(
-        backgroundCanvas,
-        0, 0, backgroundCanvas.width, backgroundCanvas.height,
-        0, 0, shape.width, shape.height
-      );
+      shapeCtx.drawImage(backgroundCanvas, 0, 0);
 
       // 2. Draw permanent strokes
-      shapeCtx.drawImage(
-        permanentStrokesCanvas,
-        0, 0, permanentStrokesCanvas.width, permanentStrokesCanvas.height,
-        0, 0, shape.width, shape.height
-      );
+      shapeCtx.drawImage(permanentStrokesCanvas, 0, 0);
 
       // 3. Apply mask
       shapeCtx.globalCompositeOperation = 'destination-in';
-      shapeCtx.drawImage(
-        maskCanvas,
-        0, 0, maskCanvas.width, maskCanvas.height,
-        0, 0, shape.width, shape.height
-      );
+      shapeCtx.drawImage(maskCanvas, 0, 0);
       shapeCtx.globalCompositeOperation = 'source-over';
 
-      // Draw the composited shape onto the temp canvas
-      tempCtx.drawImage(shapeCanvas, relativeX, relativeY);
+      // Calculate the scale to maintain original quality
+      const scaleX = shape.width / backgroundCanvas.width;
+      const scaleY = shape.height / backgroundCanvas.height;
+
+      // Draw the composited shape onto the temp canvas at exact position with proper scaling
+      tempCtx.save();
+      tempCtx.translate(relativeX, relativeY);
+      tempCtx.scale(scaleX, scaleY);
+      tempCtx.drawImage(shapeCanvas, 0, 0);
+      tempCtx.restore();
     }
 
     // Convert the merged image to a blob and upload with maximum quality
@@ -120,7 +110,7 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
       data: { publicUrl },
     } = supabase.storage.from("assets").getPublicUrl(fileName);
 
-    // Create new shape with display dimensions
+    // Create new shape with raw dimensions
     const newShape: Shape = {
       id: Math.random().toString(36).substr(2, 9),
       type: 'image',
@@ -128,8 +118,8 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
         x: maxX + 20,
         y: minY,
       },
-      width: displayWidth,
-      height: displayHeight,
+      width: rawWidth,
+      height: rawHeight,
       rotation: 0,
       imageUrl: publicUrl,
       isUploading: false,
