@@ -10,12 +10,6 @@ interface Point {
   angle?: number;
 }
 
-interface Stroke {
-  color: string;
-  width: number;
-  points: Point[];
-}
-
 interface BrushProps {
   backgroundCanvasRef: React.RefObject<HTMLCanvasElement>;
   permanentStrokesCanvasRef: React.RefObject<HTMLCanvasElement>;
@@ -371,42 +365,25 @@ export const useBrush = ({
         }
     }
 
-    // Save the stroke data after the stroke is complete
+    // Save the canvas data after the stroke is complete
     const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;
     if (shapeId) {
-        // Get the current stroke data from the shape
-        const currentStrokeData = useStore.getState().shapes.find(s => s.id === shapeId)?.permanentCanvasData;
-        let strokes: Stroke[] = [];
+        // Create a temporary canvas to combine background and permanent strokes
+        const saveCanvas = document.createElement('canvas');
+        saveCanvas.width = backgroundCanvasRef.current!.width;
+        saveCanvas.height = backgroundCanvasRef.current!.height;
+        const saveCtx = saveCanvas.getContext('2d', { willReadFrequently: true });
+        if (!saveCtx) return;
+
+        // Draw background first
+        saveCtx.drawImage(backgroundCanvasRef.current!, 0, 0);
         
-        try {
-            if (currentStrokeData) {
-                strokes = JSON.parse(currentStrokeData);
-            }
-        } catch (e) {
-            console.warn('Error parsing current stroke data:', e);
-        }
-
-        // Add the new stroke data with optimized points
-        if (lastPoint.current) {
-            // Only save the start and end points of the stroke
-            const newStroke: Stroke = {
-                color: currentColor,
-                width: brushSize,
-                points: [lastPoint.current]
-            };
-            strokes.push(newStroke);
-        }
-
-        // Limit the total number of strokes to prevent excessive storage
-        const MAX_STROKES = 50;
-        if (strokes.length > MAX_STROKES) {
-            strokes = strokes.slice(-MAX_STROKES);
-        }
-
-        // Save the updated stroke data
-        useStore.getState().updateShape(shapeId, { 
-            permanentCanvasData: JSON.stringify(strokes)
-        });
+        // Draw permanent strokes on top
+        saveCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
+        
+        // Save the combined result
+        const canvasData = saveCanvas.toDataURL("image/png");
+        useStore.getState().updateShape(shapeId, { canvasData });
     }
 
     isDrawing.current = false;

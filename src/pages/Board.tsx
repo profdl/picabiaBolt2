@@ -217,8 +217,30 @@ export const Board = () => {
         clearTimeout(saveTimeoutRef.current);
       }
 
-      // Save to localStorage immediately
-      localStorage.setItem(LOCAL_STORAGE_KEY, shapesString);
+      // Save to localStorage with error handling
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, shapesString);
+      } catch (error) {
+        // If we hit quota, try to clear old data and retry once
+        if (error instanceof Error && error.name === 'QuotaExceededError') {
+          try {
+            // Clear all board data except current
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+              if (key.startsWith('board_') && key !== LOCAL_STORAGE_KEY) {
+                localStorage.removeItem(key);
+              }
+            });
+            // Retry saving
+            localStorage.setItem(LOCAL_STORAGE_KEY, shapesString);
+          } catch (retryError) {
+            console.warn('Failed to save to localStorage after clearing old data:', retryError);
+            // Continue with server save even if localStorage fails
+          }
+        } else {
+          console.warn('Error saving to localStorage:', error);
+        }
+      }
 
       saveTimeoutRef.current = setTimeout(async () => {
         if (isSaving) return;
