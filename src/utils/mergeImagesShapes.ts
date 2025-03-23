@@ -3,27 +3,27 @@ import { supabase } from "../lib/supabase";
 
 export async function mergeImages(images: Shape[]): Promise<Shape> {
   try {
-    // Find the absolute bounds of all images
+    // Find the absolute bounds of all images in their display coordinates
     const minX = Math.min(...images.map(img => img.position.x));
     const minY = Math.min(...images.map(img => img.position.y));
     const maxX = Math.max(...images.map(img => img.position.x + img.width));
     const maxY = Math.max(...images.map(img => img.position.y + img.height));
 
-    // Calculate raw dimensions that we want to preserve
+    // Calculate raw dimensions for the final shape
     const rawWidth = maxX - minX;
     const rawHeight = maxY - minY;
 
-    // Create canvas with raw dimensions
-    const canvas = document.createElement('canvas');
-    canvas.width = rawWidth;
-    canvas.height = rawHeight;
-    const ctx = canvas.getContext('2d');
+    // Create canvas with raw dimensions initially
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = rawWidth;
+    tempCanvas.height = rawHeight;
+    const tempCtx = tempCanvas.getContext('2d');
 
-    if (!ctx) {
+    if (!tempCtx) {
       throw new Error('Could not get canvas context');
     }
 
-    // Process each image
+    // Process each image at original scale first
     for (const shape of images) {
       // Get all canvas layers
       const backgroundCanvas = document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="background"]`) as HTMLCanvasElement;
@@ -35,56 +35,68 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
         continue;
       }
 
-      // Calculate the relative position in the final composition
+      // Calculate the exact position relative to the merged canvas
       const relativeX = shape.position.x - minX;
       const relativeY = shape.position.y - minY;
 
-      // Create a temporary canvas for this shape's composition
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = shape.width;
-      tempCanvas.height = shape.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) continue;
+      // Create an intermediate canvas for this shape's composition
+      const shapeCanvas = document.createElement('canvas');
+      shapeCanvas.width = shape.width;
+      shapeCanvas.height = shape.height;
+      const shapeCtx = shapeCanvas.getContext('2d');
+      if (!shapeCtx) continue;
 
-      // Calculate scaling factors between internal canvas (512px width) and display dimensions
-      const scaleX = shape.width / backgroundCanvas.width;
-      const scaleY = shape.height / backgroundCanvas.height;
-
-      // Draw each layer, scaling from internal canvas size to display size
+      // Draw each layer at original scale
       // 1. Draw background
-      tempCtx.drawImage(
+      shapeCtx.drawImage(
         backgroundCanvas,
         0, 0, backgroundCanvas.width, backgroundCanvas.height,
-        0, 0, backgroundCanvas.width * scaleX, backgroundCanvas.height * scaleY
+        0, 0, shape.width, shape.height
       );
 
       // 2. Draw permanent strokes
-      tempCtx.drawImage(
+      shapeCtx.drawImage(
         permanentStrokesCanvas,
         0, 0, permanentStrokesCanvas.width, permanentStrokesCanvas.height,
-        0, 0, permanentStrokesCanvas.width * scaleX, permanentStrokesCanvas.height * scaleY
+        0, 0, shape.width, shape.height
       );
 
       // 3. Apply mask
-      tempCtx.globalCompositeOperation = 'destination-in';
-      tempCtx.drawImage(
+      shapeCtx.globalCompositeOperation = 'destination-in';
+      shapeCtx.drawImage(
         maskCanvas,
         0, 0, maskCanvas.width, maskCanvas.height,
-        0, 0, maskCanvas.width * scaleX, maskCanvas.height * scaleY
+        0, 0, shape.width, shape.height
       );
-      tempCtx.globalCompositeOperation = 'source-over';
+      shapeCtx.globalCompositeOperation = 'source-over';
 
-      // Draw the composited result onto the main canvas at original position
-      ctx.drawImage(
-        tempCanvas,
-        0, 0, shape.width, shape.height,
-        relativeX, relativeY, shape.width, shape.height
-      );
+      // Draw the composited shape onto the temp canvas at exact position
+      tempCtx.drawImage(shapeCanvas, relativeX, relativeY);
     }
+
+    // Now create the final canvas with standardized dimensions
+    const finalCanvas = document.createElement('canvas');
+    const targetWidth = 512; // Standard width
+    const targetHeight = Math.round(targetWidth * (rawHeight / rawWidth));
+    
+    finalCanvas.width = targetWidth;
+    finalCanvas.height = targetHeight;
+    const finalCtx = finalCanvas.getContext('2d');
+
+    if (!finalCtx) {
+      throw new Error('Could not get final canvas context');
+    }
+
+    // Draw the temp canvas onto the final canvas, scaling it to the standard size
+    finalCtx.drawImage(
+      tempCanvas,
+      0, 0, rawWidth, rawHeight,
+      0, 0, targetWidth, targetHeight
+    );
 
     // Convert the merged image to a blob and upload
     const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
+      finalCanvas.toBlob(
         (blob) => {
           if (blob) {
             resolve(blob);
