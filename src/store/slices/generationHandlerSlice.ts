@@ -272,7 +272,58 @@ export const generationHandlerSlice: StateCreator<
     const promptText = stickyWithPrompt?.content || "";
     workflow["6"].inputs.text = promptText;
 
-    // In generationHandlerSlice
+    // Calculate dimensions for placeholder shape
+    const maxDimension = 400;
+    const aspectRatio = (activeSettings.outputWidth || 1360) / (activeSettings.outputHeight || 768);
+    const [scaledWidth, scaledHeight] = aspectRatio > 1
+      ? [maxDimension, maxDimension / aspectRatio]
+      : [maxDimension * aspectRatio, maxDimension];
+    
+    const { zoom, offset } = get();
+    const viewCenter = {
+      x: (-offset.x + window.innerWidth / 2) / zoom,
+      y: (-offset.y + window.innerHeight / 2) / zoom,
+    };
+
+    const position = findOpenSpace(shapes, scaledWidth, scaledHeight, viewCenter);
+
+    // Generate a unique prediction ID early
+    const prediction_id = crypto.randomUUID();
+
+    // Create placeholder shape immediately
+    const placeholderShape: Shape = {
+      id: prediction_id,
+      type: "image",
+      position,
+      width: scaledWidth,
+      height: scaledHeight,
+      isUploading: true,
+      imageUrl: "",
+      color: "transparent",
+      rotation: 0,
+      model: "",
+      useSettings: false,
+      isEditing: false,
+      depthStrength: 0,
+      edgesStrength: 0,
+      contentStrength: 0,
+      poseStrength: 0,
+      sketchStrength: 0,
+      imagePromptStrength: 0,
+      showDepth: false,
+      showEdges: false,
+      showPose: false,
+      showSketch: false,
+      showImagePrompt: false,
+    };
+
+    // Add placeholder shape and set it as selected
+    get().addShape(placeholderShape);
+    get().setSelectedShapes([prediction_id]);
+    get().centerOnShape(prediction_id);
+    get().addGeneratingPrediction(prediction_id);
+
+    // Set generating state
     set((state) => ({
       isGenerating: true,
       hasActivePrompt: state.hasActivePrompt,
@@ -622,7 +673,8 @@ export const generationHandlerSlice: StateCreator<
           variations: variationShape ? {
             imageId: variationShape.id,
             strength: variationShape.variationStrength || 0.75
-          } : undefined
+          } : undefined,
+          prediction_id: prediction_id // Add the prediction ID to the request
         }),
       });
 
@@ -630,57 +682,38 @@ export const generationHandlerSlice: StateCreator<
         throw new Error(`HTTP error! status: ${response.status}`);
 
       const responseData = await response.json();
-      const prediction_id = responseData.prediction.id;
+      const replicatePredictionId = responseData.prediction.id;
 
-      const { zoom, offset } = get();
-  
+      // Update the placeholder shape with the actual prediction ID
+      get().updateShape(prediction_id, { id: replicatePredictionId });
+      get().removeGeneratingPrediction(prediction_id);
+      get().addGeneratingPrediction(replicatePredictionId);
 
-      const maxDimension = 400;
-      const aspectRatio = (activeSettings.outputWidth || 1360) / (activeSettings.outputHeight || 768);
-      const [scaledWidth, scaledHeight] = aspectRatio > 1
-        ? [maxDimension, maxDimension / aspectRatio]
-        : [maxDimension * aspectRatio, maxDimension];
-      
-      const viewCenter = {
-        x: (-offset.x + window.innerWidth / 2) / zoom,
-        y: (-offset.y + window.innerHeight / 2) / zoom,
+      // Create database record
+      const insertData = {
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        prompt: promptText,
+        aspect_ratio: state.aspectRatio,
+        created_at: new Date().toISOString(),
+        prediction_id: replicatePredictionId, // Use the Replicate prediction ID
+        status: "generating",
+        updated_at: new Date().toISOString(),
+        generated_01: "",
+        generated_02: "",
+        generated_03: "",
+        generated_04: "",
       };
 
-          const position = findOpenSpace(shapes, scaledWidth, scaledHeight, viewCenter);
+      const { error: dbError } = await supabase
+        .from("generated_images")
+        .insert(insertData)
+        .select()
+        .single();
 
-          
-          const placeholderShape: Shape = {
-            id: prediction_id,
-            type: "image",
-            position,
-            width: scaledWidth,
-            height: scaledHeight,
-            isUploading: true,
-            imageUrl: "",
-            color: "transparent",
-            rotation: 0,
-            model: "",
-            useSettings: false,
-            isEditing: false,
-            depthStrength: 0,
-            edgesStrength: 0,
-            contentStrength: 0,
-            poseStrength: 0,
-            sketchStrength: 0,
-            imagePromptStrength: 0,
-            showDepth: false,
-            showEdges: false,
-            showPose: false,
-            showSketch: false,
-            showImagePrompt: false,
-          };
-          
+      if (dbError) throw dbError;
 
-      get().addShape(placeholderShape);
-      get().setSelectedShapes([prediction_id]);
-      get().centerOnShape(prediction_id);
-      get().addGeneratingPrediction(prediction_id);
-
+      // Set up subscription for updates
       subscription = supabase
         .channel("generated_images")
         .on(
@@ -729,28 +762,6 @@ export const generationHandlerSlice: StateCreator<
         )
         .subscribe();
 
-      const insertData = {
-        id: crypto.randomUUID(),
-        user_id: user.id,
-        prompt: promptText,
-        aspect_ratio: state.aspectRatio,
-        created_at: new Date().toISOString(),
-        prediction_id: prediction_id,
-        status: "generating",
-        updated_at: new Date().toISOString(),
-        generated_01: "",
-        generated_02: "",
-        generated_03: "",
-        generated_04: "",
-      };
-
-      const { error: dbError } = await supabase
-        .from("generated_images")
-        .insert(insertData)
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
     } catch (error) {
       console.error("Error generating image:", error);
       set({
