@@ -36,6 +36,8 @@ interface PropertiesToolbarProps {
     onDownload: (e: React.MouseEvent) => void;
     create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
     onFlatten: (e: React.MouseEvent) => void;
+    addShape: (shape: Shape) => void;
+    generatePreprocessedImage: (id: string, type: string) => Promise<void>;
   };
 }
 
@@ -47,8 +49,10 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
   shapes = [],
   actions,
 }) => {
-  const { tool } = useStore((state) => ({
+  const { tool, addShape: storeAddShape, generatePreprocessedImage: storeGeneratePreprocessedImage } = useStore((state) => ({
     tool: state.tool,
+    addShape: state.addShape,
+    generatePreprocessedImage: state.generatePreprocessedImage,
   }));
 
   // Show toolbar based on the active tool
@@ -67,29 +71,33 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
   } : shape;
 
   // Create dummy actions for pan tool when no actions are provided
-  const displayActions = tool === "pan" && !actions ? {
-    sendBackward: () => {},
-    sendForward: () => {},
-    sendToBack: () => {},
-    sendToFront: () => {},
-    duplicate: () => {},
-    deleteShape: () => {},
-    createGroup: () => {},
-    ungroup: () => {},
-    addToGroup: () => {},
-    removeFromGroup: () => {},
-    mergeImages: async () => {},
-    onSelectSubject: () => {},
-    onCrop: () => {},
-    onDownload: () => {},
-    create3DDepth: () => {},
-    onFlatten: () => {},
-  } : actions;
+  const displayActions = {
+    ...(actions || {
+      sendBackward: () => {},
+      sendForward: () => {},
+      sendToBack: () => {},
+      sendToFront: () => {},
+      duplicate: () => {},
+      deleteShape: () => {},
+      createGroup: () => {},
+      ungroup: () => {},
+      addToGroup: () => {},
+      removeFromGroup: () => {},
+      mergeImages: async () => {},
+      onSelectSubject: () => {},
+      onCrop: () => {},
+      onDownload: () => {},
+      create3DDepth: () => {},
+      onFlatten: () => {},
+    }),
+    addShape: (actions?.addShape || storeAddShape) as (shape: Shape) => void,
+    generatePreprocessedImage: (actions?.generatePreprocessedImage || storeGeneratePreprocessedImage) as (id: string, type: string) => Promise<void>,
+  };
 
   return (
     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 flex flex-col gap-2 mb-2.5">
       {showToolbar && (
-        <div className="bg-neutral-100 dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-300 dark:border-neutral-700 p-1.5">
+        <div className="bg-neutral-100 dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-300 dark:border-neutral-800 py-0.5 px-1.5">
           <div className="flex items-center gap-2">
             <ShapePropertiesToolbar
               shape={displayShape!}
