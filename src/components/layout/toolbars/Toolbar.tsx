@@ -8,6 +8,9 @@ import {
   Sparkles,
   StickyNote,
   X,
+  MousePointer,
+  Brush,
+  Eraser,
 } from "lucide-react";
 import { useStore } from "../../../store";
 import { Tooltip } from "../../shared/Tooltip";
@@ -73,6 +76,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     generatingPredictions,
     handleGenerate,
     cancelGeneration,
+    setTool,
+    tool,
   } = useStore((state) => ({
     handleGenerateSubject: state.handleGenerateSubject,
     create3DDepth: state.create3DDepth as (shape: Shape, position: { x: number; y: number }) => void,
@@ -95,6 +100,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     generatingPredictions: state.generatingPredictions,
     handleGenerate: state.handleGenerate,
     cancelGeneration: state.cancelGeneration,
+    setTool: state.setTool,
+    tool: state.tool,
   }));
 
   const selectedShape = shapes.find((s) => selectedShapes.includes(s.id));
@@ -331,7 +338,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     brushFollowPath,
     brushSpacing,
     brushHardness,
-    tool,
   } = useToolbarBrush();
 
   return (
@@ -572,6 +578,48 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           </Tooltip>
 
           {/* Tools Section */}
+          <div className={styles.divider} />
+
+          {/* Select, Brush, and Eraser Tools */}
+          <div className="flex items-center gap-2">
+            <Tooltip content="Select Tool (V)" side="bottom">
+              <ToolbarButton
+                icon={<MousePointer />}
+                active={tool === "select"}
+                onClick={() => setTool("select")}
+                className={`${styles.button.base} ${
+                  tool === "select" ? styles.button.active : ""
+                }`}
+              />
+            </Tooltip>
+
+            {(selectedShape?.type === "image" || selectedShape?.type === "sketchpad") && (
+              <>
+                <Tooltip content="Brush Tool (B)" side="bottom">
+                  <ToolbarButton
+                    icon={<Brush />}
+                    active={tool === "brush"}
+                    onClick={() => setTool("brush")}
+                    className={`${styles.button.base} ${
+                      tool === "brush" ? styles.button.active : ""
+                    }`}
+                  />
+                </Tooltip>
+
+                <Tooltip content="Eraser Tool (E)" side="bottom">
+                  <ToolbarButton
+                    icon={<Eraser />}
+                    active={tool === "eraser"}
+                    onClick={() => setTool("eraser")}
+                    className={`${styles.button.base} ${
+                      tool === "eraser" ? styles.button.active : ""
+                    }`}
+                  />
+                </Tooltip>
+              </>
+            )}
+          </div>
+
           <div className={styles.divider} />
         </div>
 

@@ -221,8 +221,8 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
     if (!maskCtx) return;
 
-    // When using eraser, we don't want to reset the mask
-    if (tool !== 'eraser') {
+    // Only reset the mask when switching away from both brush and eraser tools
+    if (tool !== 'brush' && tool !== 'eraser') {
       // Use current shape dimensions instead of stored dimensions
       maskCanvas.width = shape.width;
       maskCanvas.height = shape.height;

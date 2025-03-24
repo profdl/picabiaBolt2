@@ -4,27 +4,22 @@ import {
   ArrowUp,
   MoveDown,
   MoveUp,
-  Copy,
-  Trash2,
   Group,
   Ungroup,
   Layers,
   Crop,
   Download,
   Mountain,
-  Box,
-  Brush,
-  Eraser,
-  MousePointer,
-  Hand
+  Box
 } from "lucide-react";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { Shape } from "../../../types";
 import { Tooltip } from "../../shared/Tooltip";
 import { ToolbarButton } from "../../shared/ToolbarButton";
-import { DropdownButton } from "../../shared/DropdownButton";
 import { useStore } from "../../../store";
-import { BrushPropertiesToolbar } from "./BrushPropertiesToolbar";
+import { OKColorPicker } from "../../shared/hsl-color-picker";
+import { BrushSettingsPanel } from "./BrushShapeSelector";
+import { NumberInput } from "../../shared/NumberInput";
 
 interface ShapePropertiesToolbarProps {
   shape: Shape;
@@ -69,12 +64,13 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
   brushProperties,
   onBrushPropertyChange,
 }) => {
-  const { tool, setTool } = useStore((state) => ({
+  const { tool } = useStore((state) => ({
     tool: state.tool,
-    setTool: state.setTool,
   }));
-  const [showShapeActionsMenu, setShowShapeActionsMenu] = useState(false);
   const [showArrangeSubMenu, setShowArrangeSubMenu] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [properties, setProperties] = useState(brushProperties || {});
+
   const styles = {
     buttonGroup: "flex items-center gap-1",
     button: useThemeClass(["toolbar", "button", "base"]),
@@ -83,11 +79,13 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
       container: "absolute bottom-full mb-1 left-0 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1 min-w-[160px]",
       item: "flex items-center gap-2 w-full px-2 py-1.5 text-sm text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded transition-colors",
     },
-    shapeActionsMenu: {
-      container: "absolute bottom-full mb-1 right-0 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1 min-w-[160px]",
-      item: "flex items-center gap-2 w-full px-2 py-1.5 text-sm text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded transition-colors",
-      subMenuContainer: "absolute left-full top-0 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1 min-w-[160px]",
-      subMenuWrapper: "absolute left-full top-0",
+    colorPicker: {
+      trigger: "w-6 h-6 rounded-full cursor-pointer",
+      popup: "absolute z-50",
+    },
+    controlGroup: {
+      container: "flex items-center gap-3",
+      label: "text-sm font-medium text-neutral-500",
     },
   };
 
@@ -115,239 +113,213 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
     .filter(s => s.type !== "group")
     .map(s => s.id);
 
+  const handleColorChange = (color: string) => {
+    setProperties({ ...properties, color });
+    onBrushPropertyChange?.("color", color);
+  };
+
+  const onPropertyChange = (property: string, value: unknown) => {
+    setProperties({ ...properties, [property]: value });
+    onBrushPropertyChange?.(property, value);
+  };
+
   return (
     <div className={styles.buttonGroup}>
-      {/* Add select tool button */}
-      <Tooltip content="Select Tool (V)" side="top">
-        <ToolbarButton
-          icon={<MousePointer />}
-          active={tool === "select"}
-          onClick={() => setTool("select")}
-          className={`${styles.button} ${
-            tool === "select" ? "bg-neutral-200 dark:bg-neutral-600" : ""
-          }`}
-        />
-      </Tooltip>
-
-      {/* Add pan tool button */}
-      <Tooltip content="Pan Tool (Space)" side="top">
-        <ToolbarButton
-          icon={<Hand />}
-          active={tool === "pan"}
-          onClick={() => setTool("pan")}
-          className={`${styles.button} ${
-            tool === "pan" ? "bg-neutral-200 dark:bg-neutral-600" : ""
-          }`}
-        />
-      </Tooltip>
-
-      <div className={styles.divider} />
-
-      {/* Add brush tool button for image and sketchpad shapes */}
-      {(shape.type === "image" || shape.type === "sketchpad") && (
-        <>
-          <Tooltip content="Brush Tool (B)" side="top">
-            <ToolbarButton
-              icon={<Brush />}
-              active={tool === "brush"}
-              onClick={() => {
-                setTool("brush");
-              }}
-              className={`${styles.button} ${
-                tool === "brush" ? "bg-neutral-200 dark:bg-neutral-600" : ""
-              }`}
-            />
-          </Tooltip>
-
-          <Tooltip content="Eraser Tool (E)" side="top">
-            <ToolbarButton
-              icon={<Eraser />}
-              active={tool === "eraser"}
-              onClick={() => {
-                setTool("eraser");
-              }}
-              className={`${styles.button} ${
-                tool === "eraser" ? "bg-neutral-200 dark:bg-neutral-600" : ""
-              }`}
-            />
-          </Tooltip>
-          
-          {(tool === "brush" || tool === "eraser") && brushProperties && onBrushPropertyChange && (
-            <>
-              <div className={styles.divider} />
-              <BrushPropertiesToolbar
-                properties={brushProperties}
-                onPropertyChange={onBrushPropertyChange}
-              />
-            </>
-          )}
-          
-          <div className={styles.divider} />
-        </>
-      )}
-
-      {/* Shape Actions Menu Button */}
-      <div className="relative">
-        <DropdownButton
-          label="Shape Actions"
-          isOpen={showShapeActionsMenu}
-          onClick={() => setShowShapeActionsMenu(!showShapeActionsMenu)}
-        />
-        
-        {showShapeActionsMenu && (
-          <>
-            <div
-              className="fixed inset-0"
-              onClick={() => setShowShapeActionsMenu(false)}
-            />
-            <div className={styles.shapeActionsMenu.container}>
-              <button
-                className={styles.shapeActionsMenu.item}
-                onClick={() => {
-                  actions.duplicate();
-                  setShowShapeActionsMenu(false);
-                }}
-              >
-                <Copy className="w-4 h-4" />
-                Duplicate
-              </button>
-              <button
-                className={styles.shapeActionsMenu.item}
-                onClick={() => {
-                  actions.deleteShape(shape.id);
-                  setShowShapeActionsMenu(false);
-                }}
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </button>
-              <button
-                className={styles.shapeActionsMenu.item}
-                onClick={(e) => {
-                  actions.onDownload(e);
-                  setShowShapeActionsMenu(false);
-                }}
-              >
-                <Download className="w-4 h-4" />
-                Download
-              </button>
-              <button
-                className={styles.shapeActionsMenu.item}
-                onClick={(e) => {
-                  actions.onFlatten(e);
-                  setShowShapeActionsMenu(false);
-                }}
-              >
-                <Layers className="w-4 h-4" />
-                Flatten
-              </button>
-              <div className="relative">
-                <button
-                  className={styles.shapeActionsMenu.item}
-                  onMouseEnter={() => setShowArrangeSubMenu(true)}
-                  onMouseLeave={() => setShowArrangeSubMenu(false)}
-                >
-                  <ArrowUp className="w-4 h-4" />
-                  Arrange
-                  <ArrowUp className="w-4 h-4 ml-auto" />
-                </button>
-                {showArrangeSubMenu && (
-                  <div 
-                    className={styles.shapeActionsMenu.subMenuWrapper}
-                    onMouseEnter={() => setShowArrangeSubMenu(true)}
-                    onMouseLeave={() => setShowArrangeSubMenu(false)}
-                  >
-                    <div className={styles.shapeActionsMenu.subMenuContainer}>
-                      <button
-                        className={styles.shapeActionsMenu.item}
-                        onClick={() => {
-                          actions.sendBackward();
-                          setShowShapeActionsMenu(false);
-                        }}
-                      >
-                        <ArrowDown className="w-4 h-4" />
-                        Send Backward
-                      </button>
-                      <button
-                        className={styles.shapeActionsMenu.item}
-                        onClick={() => {
-                          actions.sendForward();
-                          setShowShapeActionsMenu(false);
-                        }}
-                      >
-                        <ArrowUp className="w-4 h-4" />
-                        Send Forward
-                      </button>
-                      <button
-                        className={styles.shapeActionsMenu.item}
-                        onClick={() => {
-                          actions.sendToBack();
-                          setShowShapeActionsMenu(false);
-                        }}
-                      >
-                        <MoveDown className="w-4 h-4" />
-                        Send to Back
-                      </button>
-                      <button
-                        className={styles.shapeActionsMenu.item}
-                        onClick={() => {
-                          actions.sendToFront();
-                          setShowShapeActionsMenu(false);
-                        }}
-                      >
-                        <MoveUp className="w-4 h-4" />
-                        Send to Front
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {shape.type === "image" && (
+      {/* Select Tool Sub-toolbar */}
+      {tool === "select" && shape && (
+        <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg h-10">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Tooltip content="Arrange" side="top">
+                <ToolbarButton
+                  icon={<Layers className="w-4 h-4" />}
+                  onClick={() => setShowArrangeSubMenu(!showArrangeSubMenu)}
+                  active={showArrangeSubMenu}
+                  className={styles.button}
+                />
+              </Tooltip>
+              
+              {showArrangeSubMenu && (
                 <>
-                  <button
-                    className={styles.shapeActionsMenu.item}
-                    onClick={(e) => {
-                      actions.onCrop(e);
-                      setShowShapeActionsMenu(false);
-                    }}
-                  >
-                    <Crop className="w-4 h-4" />
-                    Crop
-                  </button>
-                  <button
-                    className={styles.shapeActionsMenu.item}
-                    onClick={(e) => {
-                      actions.onSelectSubject(e);
-                      setShowShapeActionsMenu(false);
-                    }}
-                  >
-                    <Mountain className="w-4 h-4" />
-                    Remove Background
-                  </button>
+                  <div
+                    className="fixed inset-0"
+                    onClick={() => setShowArrangeSubMenu(false)}
+                  />
+                  <div className={styles.arrangeMenu.container}>
+                    <button
+                      className={styles.arrangeMenu.item}
+                      onClick={() => {
+                        actions.sendBackward();
+                        setShowArrangeSubMenu(false);
+                      }}
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                      Send Backward
+                    </button>
+                    <button
+                      className={styles.arrangeMenu.item}
+                      onClick={() => {
+                        actions.sendForward();
+                        setShowArrangeSubMenu(false);
+                      }}
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                      Send Forward
+                    </button>
+                    <button
+                      className={styles.arrangeMenu.item}
+                      onClick={() => {
+                        actions.sendToBack();
+                        setShowArrangeSubMenu(false);
+                      }}
+                    >
+                      <MoveDown className="w-4 h-4" />
+                      Send to Back
+                    </button>
+                    <button
+                      className={styles.arrangeMenu.item}
+                      onClick={() => {
+                        actions.sendToFront();
+                        setShowArrangeSubMenu(false);
+                      }}
+                    >
+                      <MoveUp className="w-4 h-4" />
+                      Send to Front
+                    </button>
+                  </div>
                 </>
               )}
             </div>
-          </>
-        )}
-      </div>
 
-      {/* 3D Depth  */}
-      {shape.type === "image" && shape.depthPreviewUrl && (
-        <Tooltip content="Create 3D Depth" side="top">
-          <ToolbarButton
-            icon={<Box className="w-4 h-4" />}
-            onClick={() => {
-              const newX = shape.position.x + shape.width + 20;
-              actions.create3DDepth(shape, {
-                x: newX,
-                y: shape.position.y,
-              });
-            }}
-            className={styles.button}
-          />
-        </Tooltip>
+            {shape.type === "image" && (
+              <>
+                <div className={styles.divider} />
+                <Tooltip content="Crop Image" side="top">
+                  <ToolbarButton
+                    icon={<Crop className="w-4 h-4" />}
+                    onClick={actions.onCrop}
+                    className={styles.button}
+                  />
+                </Tooltip>
+                <Tooltip content="Remove Background" side="top">
+                  <ToolbarButton
+                    icon={<Mountain className="w-4 h-4" />}
+                    onClick={actions.onSelectSubject}
+                    className={styles.button}
+                  />
+                </Tooltip>
+              </>
+            )}
+
+            <div className={styles.divider} />
+            <Tooltip content="Download" side="top">
+              <ToolbarButton
+                icon={<Download className="w-4 h-4" />}
+                onClick={actions.onDownload}
+                className={styles.button}
+              />
+            </Tooltip>
+          </div>
+        </div>
       )}
 
+      {/* Brush Tool Sub-toolbar */}
+      {tool === "brush" && properties && onBrushPropertyChange && (
+        <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg h-10">
+          <div className="flex items-center gap-3 relative">
+            <div
+              className={styles.colorPicker.trigger}
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              style={{ backgroundColor: properties.color }}
+            />
+
+            {showColorPicker && (
+              <div className={styles.colorPicker.popup}>
+                <div
+                  className="fixed inset-0"
+                  onClick={() => setShowColorPicker(false)}
+                />
+                <OKColorPicker
+                  value={properties.color}
+                  onChange={handleColorChange}
+                  defaultColor={{
+                    hue: 0,
+                    saturation: 100,
+                    lightness: 50,
+                  }}
+                />
+              </div>
+            )}
+            <BrushSettingsPanel
+              currentTexture={properties.texture || "basic"}
+              rotation={properties.rotation}
+              spacing={properties.spacing}
+              followPath={properties.followPath}
+              onTextureSelect={(texture: string) => onPropertyChange("texture", texture)}
+              onPropertyChange={onPropertyChange}
+            />
+          </div>
+          <div className="flex items-center gap-6">
+            <div className={styles.controlGroup.container}>
+              <span className={styles.controlGroup.label}>Size</span>
+              <NumberInput
+                value={properties.size || 1}
+                onChange={(value) => onPropertyChange("size", value)}
+                min={1}
+                max={100}
+                step={1}
+                formatValue={(v) => `${Math.round(v)}`}
+              />
+            </div>
+
+            <div className={styles.controlGroup.container}>
+              <span className={styles.controlGroup.label}>Opacity</span>
+              <NumberInput
+                value={(properties.opacity || 0) * 100}
+                onChange={(value) => onPropertyChange("opacity", value / 100)}
+                min={0}
+                max={100}
+                step={1}
+                formatValue={(v) => `${Math.round(v)}%`}
+              />
+            </div>
+            {properties.texture === 'soft' && (
+              <div className={styles.controlGroup.container}>
+                <span className={styles.controlGroup.label}>Hardness</span>
+                <NumberInput
+                  value={Math.round((properties.hardness ?? 1) * 100)}
+                  onChange={(value) => onPropertyChange("hardness", value / 100)}
+                  min={1}
+                  max={100}
+                  step={1}
+                  formatValue={(v) => `${Math.round(v)}%`}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Eraser Tool Sub-toolbar */}
+      {tool === "eraser" && properties && onBrushPropertyChange && (
+        <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg h-10">
+          <div className="flex items-center gap-6">
+            <div className={styles.controlGroup.container}>
+              <span className={styles.controlGroup.label}>Size</span>
+              <NumberInput
+                value={properties.size || 1}
+                onChange={(value) => onPropertyChange("size", value)}
+                min={1}
+                max={100}
+                step={1}
+                formatValue={(v) => `${Math.round(v)}`}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Group/Ungroup buttons */}
       {selectedShapes.length > 1 && !selectedShapesInGroup && (
         <Tooltip content="Group Shapes" side="top">
           <ToolbarButton
@@ -383,6 +355,23 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
           <ToolbarButton
             icon={<Group className="w-4 h-4" />}
             onClick={() => actions.addToGroup(shapesToAdd, selectedGroup.id)}
+            className={styles.button}
+          />
+        </Tooltip>
+      )}
+
+      {/* 3D Depth */}
+      {shape.type === "image" && shape.depthPreviewUrl && (
+        <Tooltip content="Create 3D Depth" side="top">
+          <ToolbarButton
+            icon={<Box className="w-4 h-4" />}
+            onClick={() => {
+              const newX = shape.position.x + shape.width + 20;
+              actions.create3DDepth(shape, {
+                x: newX,
+                y: shape.position.y,
+              });
+            }}
             className={styles.button}
           />
         </Tooltip>

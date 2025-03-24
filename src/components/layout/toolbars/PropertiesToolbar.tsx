@@ -40,7 +40,6 @@ interface PropertiesToolbarProps {
 }
 
 export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
-  type,
   properties,
   onPropertyChange,
   shape,
@@ -52,13 +51,8 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     tool: state.tool,
   }));
 
-  // Show shape properties if we have a shape and actions
-  const showShapeProperties = (type === "image" || type === "shape") && shape && actions;
-  // Show brush properties when brush/eraser is active and we have the required props
-  const showBrushProperties = (type === "brush" || type === "eraser") && properties && onPropertyChange;
-  
-  // Show toolbar if either shape or brush properties should be shown, or if pan tool is active
-  const showToolbar = showShapeProperties || showBrushProperties || tool === "pan";
+  // Show toolbar based on the active tool
+  const showToolbar = tool === "select" || tool === "brush" || tool === "eraser";
 
   // Create a dummy shape for pan tool when no shape is selected
   const displayShape = tool === "pan" && !shape ? {
@@ -93,17 +87,19 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
   } : actions;
 
   return (
-    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 flex flex-col gap-2 mb-2">
+    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 flex flex-col gap-2 mb-2.5">
       {showToolbar && (
-        <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1.5">
-          <ShapePropertiesToolbar
-            shape={displayShape!}
-            selectedShapes={selectedShapes}
-            shapes={shapes}
-            actions={displayActions!}
-            brushProperties={showBrushProperties ? properties : undefined}
-            onBrushPropertyChange={showBrushProperties ? onPropertyChange : undefined}
-          />
+        <div className="bg-neutral-100 dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-300 dark:border-neutral-700 p-1.5">
+          <div className="flex items-center gap-2">
+            <ShapePropertiesToolbar
+              shape={displayShape!}
+              selectedShapes={selectedShapes}
+              shapes={shapes}
+              actions={displayActions!}
+              brushProperties={properties}
+              onBrushPropertyChange={onPropertyChange}
+            />
+          </div>
         </div>
       )}
     </div>
