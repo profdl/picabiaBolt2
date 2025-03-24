@@ -13,7 +13,7 @@ const headers = {
 };
 
 const MODEL_VERSION =
-  "c4f35d8b6160b909d161351c0c06988d37a857ddf9182f93f01ca55862db96c8";
+  "ba115dfd130aeb6873124af76e0f0b6273d796883d9f184f8ad7de7ae5dad24b";
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const WEBHOOK_URL = process.env.PREPROCESS_WEBHOOK || process.env.WEBHOOK_URL;
 
