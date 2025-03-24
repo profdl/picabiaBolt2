@@ -214,6 +214,15 @@ export const generationHandlerSlice: StateCreator<
       // Check if there are any black pixels in the mask
       const hasBlackPixels = await hasBlackPixelsInMask(maskCanvas);
 
+      // If there are black pixels, update settings for inpainting model
+      if (hasBlackPixels) {
+        activeSettings.model = "juggernautXLInpainting_xiInpainting.safetensors";
+        activeSettings.scheduler = "dpmpp_2m_sde";
+        activeSettings.steps = 30;
+        activeSettings.guidanceScale = 4.0;
+        // Keep the variation strength as is, since it's already being used as denoise
+      }
+
       // Create blobs from both canvases
       const [previewBlob, maskBlob] = await Promise.all([
         new Promise<Blob>((resolve, reject) => {
@@ -322,7 +331,7 @@ export const generationHandlerSlice: StateCreator<
 
         // Update the KSampler to use the masked latent image
         workflow["3"].inputs.latent_image = ["40", 0];
-        workflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+        workflow["3"].inputs.denoise = variationShape.variationStrength || 0.8; // Default to 0.8 for inpainting
       } else {
         // Set up image-to-image workflow nodes
         workflow["36"] = {
