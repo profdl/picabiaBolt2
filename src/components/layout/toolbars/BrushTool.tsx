@@ -1,22 +1,17 @@
 import { useRef, useEffect } from "react";
 import { useStore } from "../../../store";
 import { useMixboxBrush } from "../../../hooks/ui/useMixbox";
+import { 
+  getImageShapeCanvasContext, 
+  clearImageShapeCanvas, 
+  getScaledPoint,
+  updateImageShapePreview,
+  saveImageShapeState,
+  type ImageShapeCanvasRefs,
+  type Point
+} from "../../../utils/imageShapeCanvas";
 
 const brushTextures = new Map<string, HTMLImageElement>();
-
-interface Point {
-  x: number;
-  y: number;
-  angle?: number;
-}
-
-interface BrushProps {
-  backgroundCanvasRef: React.RefObject<HTMLCanvasElement>;
-  permanentStrokesCanvasRef: React.RefObject<HTMLCanvasElement>;
-  activeStrokeCanvasRef: React.RefObject<HTMLCanvasElement>;
-  previewCanvasRef: React.RefObject<HTMLCanvasElement>;
-  maskCanvasRef?: React.RefObject<HTMLCanvasElement>;
-}
 
 interface BrushHandlers {
   handlePointerDown: (e: React.PointerEvent<HTMLCanvasElement>) => void;
@@ -30,7 +25,7 @@ export const useBrush = ({
   activeStrokeCanvasRef,
   previewCanvasRef,
   maskCanvasRef
-}: BrushProps): BrushHandlers => {
+}: ImageShapeCanvasRefs): BrushHandlers => {
   const isDrawing = useRef(false);
   const lastPoint = useRef<Point | null>(null);
   const accumulatedDistance = useRef(0);
@@ -66,34 +61,19 @@ export const useBrush = ({
 
       // Clear active stroke canvas if it exists
       if (activeStrokeCanvasRef.current) {
-        const activeCtx = activeStrokeCanvasRef.current.getContext("2d", { willReadFrequently: true });
-        if (activeCtx) {
-          activeCtx.clearRect(
-            0, 
-            0, 
-            activeStrokeCanvasRef.current.width, 
-            activeStrokeCanvasRef.current.height
-          );
-        }
+        clearImageShapeCanvas(activeStrokeCanvasRef);
       }
 
       // Update preview if it exists
       if (previewCanvasRef.current) {
-        const previewCtx = previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
-        if (previewCtx) {
-          previewCtx.clearRect(
-            0,
-            0,
-            previewCanvasRef.current.width,
-            previewCanvasRef.current.height
-          );
-          if (backgroundCanvasRef.current) {
-            previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
-          }
-          if (permanentStrokesCanvasRef.current) {
-            previewCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
-          }
-        }
+        updateImageShapePreview({
+          backgroundCanvasRef,
+          permanentStrokesCanvasRef,
+          activeStrokeCanvasRef,
+          previewCanvasRef,
+          maskCanvasRef,
+          tool: tool || 'brush'
+        });
       }
     };
 
@@ -104,7 +84,7 @@ export const useBrush = ({
 
     // Clean up on unmount
     return cleanup;
-  }, [activeStrokeCanvasRef, backgroundCanvasRef, permanentStrokesCanvasRef, previewCanvasRef, tool]);
+  }, [activeStrokeCanvasRef, backgroundCanvasRef, permanentStrokesCanvasRef, previewCanvasRef, maskCanvasRef, tool]);
 
   // Preload brush textures
   useEffect(() => {
@@ -119,20 +99,6 @@ export const useBrush = ({
       }
     });
   }, []);
-
-  const getScaledPoint = (e: React.PointerEvent<HTMLCanvasElement>): Point | null => {
-    const canvas = e.currentTarget;
-    if (!canvas) return null;
-
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
-    };
-  };
 
   const applyBrushTexture = (
     ctx: CanvasRenderingContext2D,
@@ -188,48 +154,6 @@ export const useBrush = ({
     ctx.drawImage(tempCanvas, x - size / 2, y - size / 2);
   };
 
-  const updatePreview = () => {
-    const previewCtx = previewCanvasRef.current?.getContext("2d", { willReadFrequently: true });
-    if (!previewCtx || !previewCanvasRef.current || !activeStrokeCanvasRef.current) return;
-
-    // 1. Clear the preview canvas
-    previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
-
-    // 2. Draw background and permanent strokes with NO opacity changes
-    previewCtx.globalAlpha = 1;
-    previewCtx.globalCompositeOperation = 'source-over';
-    if (backgroundCanvasRef.current) {
-        previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
-    }
-    if (permanentStrokesCanvasRef.current) {
-        previewCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
-    }
-
-    // 3. Create a temporary canvas for the active stroke with opacity
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = activeStrokeCanvasRef.current.width;
-    tempCanvas.height = activeStrokeCanvasRef.current.height;
-    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-    
-    if (tempCtx) {
-        // Draw active stroke to temp canvas
-        tempCtx.globalAlpha = brushOpacity;
-        tempCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
-        tempCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-        
-        // Draw temp canvas (with opacity) onto preview
-        previewCtx.globalAlpha = 1; // Keep preview at full opacity
-        previewCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
-        previewCtx.drawImage(tempCanvas, 0, 0);
-    }
-
-    // Update the mask image on the preview canvas
-    if (previewCanvasRef.current && maskCanvasRef && maskCanvasRef.current) {
-        previewCanvasRef.current.style.webkitMaskImage = `url(${maskCanvasRef.current.toDataURL()})`;
-        previewCanvasRef.current.style.maskImage = `url(${maskCanvasRef.current.toDataURL()})`;
-    }
-  };
-
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (tool !== "brush" && tool !== "eraser") return;
     const point = getScaledPoint(e);
@@ -239,16 +163,22 @@ export const useBrush = ({
     lastPoint.current = point;
 
     // Clear active stroke canvas at the start of a new stroke
-    const activeCtx = activeStrokeCanvasRef.current?.getContext("2d", { willReadFrequently: true });
-    if (activeCtx && activeStrokeCanvasRef.current) {
-      // Clear both active and preview canvases
-      activeCtx.clearRect(0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height);
+    if (activeStrokeCanvasRef.current) {
+      clearImageShapeCanvas(activeStrokeCanvasRef);
       
       // Draw the initial dot at full opacity on active canvas
       drawBrushDot(activeStrokeCanvasRef.current, point);
       
       // Update preview with proper opacity
-      updatePreview();
+      updateImageShapePreview({
+        backgroundCanvasRef,
+        permanentStrokesCanvasRef,
+        activeStrokeCanvasRef,
+        previewCanvasRef,
+        maskCanvasRef,
+        tool,
+        opacity: brushOpacity
+      });
     }
   };
 
@@ -266,20 +196,22 @@ export const useBrush = ({
 
     const spacing = Math.max(brushSize * brushSpacing, 1);
     if (accumulatedDistance.current >= spacing) {
-      const activeCtx = activeStrokeCanvasRef.current?.getContext("2d", { willReadFrequently: true });
+      const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
       if (activeCtx && lastPoint.current) {
         activeCtx.save();
         activeCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
         
         if (tool === "eraser") {
           // For eraser, draw to both active and mask canvases
-          const maskCtx = maskCanvasRef?.current?.getContext("2d", { willReadFrequently: true });
-          if (maskCtx && maskCanvasRef && maskCanvasRef.current) {
-            maskCtx.save();
-            maskCtx.globalCompositeOperation = "destination-out";
-            maskCtx.globalAlpha = brushOpacity;
-            drawBrushStroke(maskCtx, lastPoint.current, point);
-            maskCtx.restore();
+          if (maskCanvasRef) {
+            const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
+            if (maskCtx && maskCanvasRef.current) {
+              maskCtx.save();
+              maskCtx.globalCompositeOperation = "destination-out";
+              maskCtx.globalAlpha = brushOpacity;
+              drawBrushStroke(maskCtx, lastPoint.current, point);
+              maskCtx.restore();
+            }
           }
         }
         
@@ -287,7 +219,15 @@ export const useBrush = ({
         drawBrushStroke(activeCtx, lastPoint.current, point);
         activeCtx.restore();
         
-        updatePreview();
+        updateImageShapePreview({
+          backgroundCanvasRef,
+          permanentStrokesCanvasRef,
+          activeStrokeCanvasRef,
+          previewCanvasRef,
+          maskCanvasRef,
+          tool,
+          opacity: brushOpacity
+        });
       }
       accumulatedDistance.current = 0;
     }
@@ -298,92 +238,65 @@ export const useBrush = ({
   const handlePointerUpOrLeave = () => {
     if (!isDrawing.current) return;
 
-    const permanentCtx = permanentStrokesCanvasRef.current?.getContext("2d", { willReadFrequently: true });
+    const permanentCtx = getImageShapeCanvasContext(permanentStrokesCanvasRef);
     
     if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current) return;
 
     if (tool === "eraser") {
-        // Handle eraser with mask
-        const maskCtx = maskCanvasRef?.current?.getContext("2d", { willReadFrequently: true });
-        if (maskCtx && maskCanvasRef?.current) {
-            maskCtx.globalCompositeOperation = "destination-out";
-            maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+      // Handle eraser with mask
+      if (maskCanvasRef) {
+        const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
+        if (maskCtx && maskCanvasRef.current) {
+          maskCtx.globalCompositeOperation = "destination-out";
+          maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
         }
+      }
     } else {
-        // Create temporary canvas for opacity handling
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = activeStrokeCanvasRef.current.width;
-        tempCanvas.height = activeStrokeCanvasRef.current.height;
-        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+      // Create temporary canvas for opacity handling
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = activeStrokeCanvasRef.current.width;
+      tempCanvas.height = activeStrokeCanvasRef.current.height;
+      const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+      
+      if (tempCtx) {
+        // Apply opacity to stroke on temp canvas
+        tempCtx.globalAlpha = brushOpacity;
+        tempCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
         
-        if (tempCtx) {
-            // Apply opacity to stroke on temp canvas
-            tempCtx.globalAlpha = brushOpacity;
-            tempCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-            
-            // Draw to permanent canvas at full opacity
-            permanentCtx.globalAlpha = 1;
-            permanentCtx.globalCompositeOperation = "source-over";
-            permanentCtx.drawImage(tempCanvas, 0, 0);
-        }
+        // Draw to permanent canvas at full opacity
+        permanentCtx.globalAlpha = 1;
+        permanentCtx.globalCompositeOperation = "source-over";
+        permanentCtx.drawImage(tempCanvas, 0, 0);
+      }
     }
 
     // Clear active stroke
-    const activeCtx = activeStrokeCanvasRef.current.getContext("2d", { willReadFrequently: true });
-    if (activeCtx) {
-        activeCtx.clearRect(0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height);
-    }
+    clearImageShapeCanvas(activeStrokeCanvasRef);
 
     // Update preview with all layers
-    const previewCtx = previewCanvasRef.current?.getContext("2d", { willReadFrequently: true });
-    if (previewCtx && previewCanvasRef.current) {
-        previewCtx.save();
-        
-        // Clear preview
-        previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
-        
-        // Draw background
-        if (backgroundCanvasRef.current) {
-            previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
-        }
-        
-        // Draw permanent strokes
-        previewCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
-        
-        // Apply mask if it exists
-        if (maskCanvasRef?.current) {
-            previewCtx.globalCompositeOperation = "destination-in";
-            previewCtx.drawImage(maskCanvasRef.current, 0, 0);
-        }
-        
-        previewCtx.restore();
-
-        // Update the mask image on the preview canvas
-        if (previewCanvasRef.current && maskCanvasRef?.current) {
-            previewCanvasRef.current.style.webkitMaskImage = `url(${maskCanvasRef.current.toDataURL()})`;
-            previewCanvasRef.current.style.maskImage = `url(${maskCanvasRef.current.toDataURL()})`;
-        }
-    }
+    updateImageShapePreview({
+      backgroundCanvasRef,
+      permanentStrokesCanvasRef,
+      activeStrokeCanvasRef,
+      previewCanvasRef,
+      maskCanvasRef,
+      tool
+    });
 
     // Save the canvas data after the stroke is complete
     const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;
     if (shapeId) {
-        // Create a temporary canvas to combine background and permanent strokes
-        const saveCanvas = document.createElement('canvas');
-        saveCanvas.width = backgroundCanvasRef.current!.width;
-        saveCanvas.height = backgroundCanvasRef.current!.height;
-        const saveCtx = saveCanvas.getContext('2d', { willReadFrequently: true });
-        if (!saveCtx) return;
-
-        // Draw background first
-        saveCtx.drawImage(backgroundCanvasRef.current!, 0, 0);
-        
-        // Draw permanent strokes on top
-        saveCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
-        
-        // Save the combined result
-        const canvasData = saveCanvas.toDataURL("image/png");
-        useStore.getState().updateShape(shapeId, { canvasData });
+      saveImageShapeState(
+        {
+          backgroundCanvasRef,
+          permanentStrokesCanvasRef,
+          activeStrokeCanvasRef,
+          previewCanvasRef,
+          maskCanvasRef
+        },
+        shapeId,
+        useStore.getState().updateShape
+      );
     }
 
     isDrawing.current = false;
@@ -397,7 +310,7 @@ export const useBrush = ({
   });
 
   const drawBrushDot = (canvas: HTMLCanvasElement, point: Point) => {
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const ctx = getImageShapeCanvasContext({ current: canvas });
     if (!ctx) return;
 
     ctx.save();
