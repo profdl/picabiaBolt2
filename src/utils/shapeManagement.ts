@@ -1,45 +1,11 @@
 import { Shape, Position } from '../types';
-
-interface ViewportDimensions {
-  width: number;
-  height: number;
-}
-
-interface ShapeAdditionOptions {
-  position?: Position;
-  width?: number;
-  height?: number;
-  aspectRatio?: number;
-}
-
-export interface ShapeWithDimensions {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import { shapeLayout } from './shapeLayout';
+import { ShapeAdditionOptions } from '../types/layout';
 
 export const shapeManagement = {
-  getViewportDimensions: (): ViewportDimensions => ({
-    width: window.innerWidth,
-    height: window.innerHeight
-  }),
+  getViewportDimensions: shapeLayout.getViewportDimensions,
 
-  calculateDefaultSize: (viewportDimensions: ViewportDimensions, aspectRatio?: number) => {
-    const defaultWidth = viewportDimensions.width * 0.4;
-    
-    if (aspectRatio) {
-      return {
-        width: defaultWidth,
-        height: defaultWidth / aspectRatio
-      };
-    }
-
-    return {
-      width: defaultWidth,
-      height: defaultWidth * (9/16) // Default aspect ratio if none provided
-    };
-  },
+  calculateDefaultSize: shapeLayout.calculateDefaultSize,
 
   findRightmostBoundary: (shapes: Shape[]): number => {
     if (shapes.length === 0) return 0;
@@ -47,22 +13,26 @@ export const shapeManagement = {
   },
 
   calculateNewPosition: (shapes: Shape[], shapeSize: { width: number; height: number }): Position => {
-    const PADDING = 20;
-    const rightmostX = shapeManagement.findRightmostBoundary(shapes);
-    const viewportDimensions = shapeManagement.getViewportDimensions();
-    
-    return {
-      x: rightmostX + PADDING,
-      y: (viewportDimensions.height / 2) - (shapeSize.height / 2)
+    const viewportDimensions = shapeLayout.getViewportDimensions();
+    const viewCenter = {
+      x: viewportDimensions.width / 2,
+      y: viewportDimensions.height / 2
     };
+    
+    return shapeLayout.findOpenSpace(
+      shapes,
+      shapeSize.width,
+      shapeSize.height,
+      viewCenter
+    );
   },
 
   prepareShapeAddition: (
     shapes: Shape[],
     options: ShapeAdditionOptions = {}
   ): { position: Position; width: number; height: number } => {
-    const viewportDimensions = shapeManagement.getViewportDimensions();
-    const { width, height } = shapeManagement.calculateDefaultSize(
+    const viewportDimensions = shapeLayout.getViewportDimensions();
+    const { width, height } = shapeLayout.calculateDefaultSize(
       viewportDimensions,
       options.aspectRatio
     );
@@ -82,15 +52,7 @@ export const shapeManagement = {
     };
   },
 
-  calculateCenteringOffset: (
-    shape: Shape,
-    zoom: number
-  ): Position => {
-    const viewportDimensions = shapeManagement.getViewportDimensions();
-    
-    return {
-      x: -(shape.position.x + shape.width / 2) * zoom + viewportDimensions.width / 2,
-      y: -(shape.position.y + shape.height / 2) * zoom + viewportDimensions.height / 2
-    };
-  }
+  calculateCenteringOffset: shapeLayout.calculateCenteringOffset,
+
+  calculateGroupBounds: shapeLayout.calculateGroupBounds
 };

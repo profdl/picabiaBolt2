@@ -4,13 +4,10 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { useStore } from "../../../store";
 import { Shape } from "../../../types";
+import { ThreeJSShapeRef } from '../../../types/layout';
 
 interface MeshWithUniforms extends THREE.Mesh {
   updateUniforms?: () => void;
-}
-
-export interface ThreeJSShapeRef {
-  exportToGLTF: () => void;
 }
 
 export const ThreeJSShape = forwardRef<ThreeJSShapeRef, { shape: Shape }>(

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Shape, DragStart } from '../../types';
 import { useStore } from '../../store';
+import { shapeLayout } from '../../utils/shapeLayout';
 
 interface UseShapeDragProps {
   shape: Shape;
@@ -14,10 +15,6 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
   const [isAddedToGroup, setIsAddedToGroup] = useState(false);
   const [originalGroupBounds, setOriginalGroupBounds] = useState<{ [groupId: string]: { x: number; y: number; width: number; height: number } }>({});
   const { updateShape, shapes, addToGroup, removeFromGroup, setSelectedShapes } = useStore();
-  const group_padding = 16;
-  const control_padding = 32;
-  const sticky_control_padding = 80;
-  const group_control_padding = 48;
   const DRAG_OUT_THRESHOLD = 300; // Base threshold in pixels
 
   // Add isDragging ref to track drag state
@@ -36,39 +33,6 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
       point.y >= shapeTop &&
       point.y <= shapeBottom
     );
-  };
-
-  // Calculate group bounds including padding and controls
-  const calculateGroupBounds = (groupedShapes: Shape[]) => {
-    const minX = Math.min(...groupedShapes.map((s) => s.position.x));
-    const minY = Math.min(...groupedShapes.map((s) => s.position.y));
-    const maxX = Math.max(
-      ...groupedShapes.map((s) => {
-        const hasRightControls = s.type === "image" || s.type === "sketchpad";
-        return s.position.x + s.width + (hasRightControls ? control_padding : 0);
-      })
-    );
-    const maxY = Math.max(
-      ...groupedShapes.map((s) => {
-        const hasBottomControls = 
-          s.type === "image" || 
-          s.type === "sketchpad" || 
-          s.type === "depth" || 
-          s.type === "edges" || 
-          s.type === "pose" || 
-          s.type === "diffusionSettings";
-        const hasStickyControls = 
-          s.type === "sticky" && (s.isTextPrompt || s.isNegativePrompt || s.showPrompt || s.showNegativePrompt);
-        return s.position.y + s.height + (hasStickyControls ? sticky_control_padding : hasBottomControls ? control_padding : 0);
-      })
-    );
-
-    return {
-      x: minX - group_padding,
-      y: minY - group_padding,
-      width: maxX - minX + group_padding * 2,
-      height: maxY - minY + group_padding * 2 + group_control_padding,
-    };
   };
 
   useEffect(() => {
@@ -130,7 +94,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
         // First, restore any groups that are no longer being hovered
         Object.entries(originalGroupBounds).forEach(([groupId, bounds]) => {
           const isStillHovered = groups.some(group => {
-            const groupBounds = calculateGroupBounds(
+            const groupBounds = shapeLayout.calculateGroupBounds(
               shapes.filter(s => s.groupId === group.id)
             );
             // Check if any corner of the dragged shape is inside the group
@@ -163,7 +127,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
         });
 
         for (const group of groups) {
-          const groupBounds = calculateGroupBounds(
+          const groupBounds = shapeLayout.calculateGroupBounds(
             shapes.filter(s => s.groupId === group.id)
           );
 
@@ -192,7 +156,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
             }
             
             // Calculate new bounds including the dragged shape
-            const newBounds = calculateGroupBounds(
+            const newBounds = shapeLayout.calculateGroupBounds(
               [...shapes.filter(s => s.groupId === group.id), draggedShape]
             );
             
@@ -280,7 +244,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
         const groupShape = shapes.find((s) => s.id === shape.groupId);
         if (groupShape) {
           const groupedShapes = shapes.filter((s) => s.groupId === shape.groupId);
-          const bounds = calculateGroupBounds(groupedShapes);
+          const bounds = shapeLayout.calculateGroupBounds(groupedShapes);
           
           updateShape(shape.groupId, {
             position: { x: bounds.x, y: bounds.y },
@@ -316,7 +280,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
       const group = shapes.find(s => s.id === shape.groupId);
       if (group) {
         const groupedShapes = shapes.filter(s => s.groupId === shape.groupId);
-        const bounds = calculateGroupBounds(groupedShapes);
+        const bounds = shapeLayout.calculateGroupBounds(groupedShapes);
         setOriginalGroupBounds(prev => ({
           ...prev,
           [shape.groupId as string]: bounds

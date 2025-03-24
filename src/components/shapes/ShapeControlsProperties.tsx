@@ -6,16 +6,13 @@ import { Tooltip } from "../shared/Tooltip";
 import { getControlDescription, ControlType } from "../../utils/tooltips";
 import { Brush, Trash2, Eraser } from "lucide-react";
 import { useThemeClass } from "../../styles/useThemeClass";
+import { ThreeJSShapeRef } from '../../types/layout';
 
 interface ShapeControlsProps {
   shape: Shape;
   isSelected: boolean;
   handleResizeStart: (e: React.MouseEvent<HTMLDivElement>) => void;
   threeJSRef?: React.RefObject<ThreeJSShapeRef>;
-}
-
-interface ThreeJSShapeRef {
-  exportToGLTF: () => void;
 }
 
 export function ShapeControlsProperties({

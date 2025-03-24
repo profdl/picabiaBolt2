@@ -76,7 +76,19 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     const previewCtx = refs.previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
     if (!previewCtx) return;
 
-    // Use requestAnimationFrame for smoother updates
+    // During drag, only update CSS mask properties
+    if (isDragging.current) {
+      const maskDataUrl = refs.maskCanvasRef.current.toDataURL();
+      refs.previewCanvasRef.current.style.webkitMaskImage = `url(${maskDataUrl})`;
+      refs.previewCanvasRef.current.style.maskImage = `url(${maskDataUrl})`;
+      refs.previewCanvasRef.current.style.webkitMaskSize = 'cover';
+      refs.previewCanvasRef.current.style.maskSize = 'cover';
+      refs.previewCanvasRef.current.style.webkitMaskPosition = 'center';
+      refs.previewCanvasRef.current.style.maskPosition = 'center';
+      return;
+    }
+
+    // Use requestAnimationFrame for smoother updates when not dragging
     requestAnimationFrame(() => {
       const previewCanvas = refs.previewCanvasRef.current;
       if (!previewCanvas) return;
@@ -84,13 +96,9 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       // Clear preview canvas
       previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
 
-      // Draw background
+      // Draw all layers
       previewCtx.drawImage(refs.backgroundCanvasRef.current as CanvasImageSource, 0, 0);
-
-      // Draw permanent strokes
       previewCtx.drawImage(refs.permanentStrokesCanvasRef.current as CanvasImageSource, 0, 0);
-
-      // Draw active stroke
       previewCtx.drawImage(refs.activeStrokeCanvasRef.current as CanvasImageSource, 0, 0);
 
       // Apply mask
@@ -110,34 +118,60 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
 
   // Add effect to handle drag state
   useEffect(() => {
-    const handleDragStart = () => {
-      isDragging.current = true;
-      // Save current mask state before drag starts
-      if (refs.maskCanvasRef.current) {
-        const maskData = refs.maskCanvasRef.current.toDataURL('image/png');
-        localStorage.setItem(`mask_${shape.id}_temp`, maskData);
+    const saveCanvasState = (canvas: HTMLCanvasElement, prefix: string) => {
+      if (canvas) {
+        const data = canvas.toDataURL('image/png');
+        localStorage.setItem(`${prefix}_${shape.id}_temp`, data);
       }
     };
 
-    const handleDragEnd = () => {
-      isDragging.current = false;
-      // Restore mask state after drag ends
-      if (refs.maskCanvasRef.current) {
-        const savedMaskData = localStorage.getItem(`mask_${shape.id}_temp`);
-        if (savedMaskData) {
-          const maskImg = new Image();
-          maskImg.onload = () => {
-            const maskCtx = refs.maskCanvasRef.current?.getContext('2d', { willReadFrequently: true });
-            if (maskCtx && refs.maskCanvasRef.current) {
-              maskCtx.clearRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
-              maskCtx.drawImage(maskImg, 0, 0);
-            }
-          };
-          maskImg.src = savedMaskData;
+    const restoreCanvasState = async (canvas: HTMLCanvasElement, prefix: string) => {
+      if (canvas) {
+        const savedData = localStorage.getItem(`${prefix}_${shape.id}_temp`);
+        if (savedData) {
+          const img = new Image();
+          await new Promise((resolve) => {
+            img.onload = () => {
+              const ctx = canvas.getContext('2d', { willReadFrequently: true });
+              if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+              }
+              resolve(null);
+            };
+            img.src = savedData;
+          });
         }
-        // Clean up temporary storage
-        localStorage.removeItem(`mask_${shape.id}_temp`);
       }
+    };
+
+    const handleDragStart = async () => {
+      isDragging.current = true;
+      
+      // Save all canvas states before drag starts
+      if (refs.backgroundCanvasRef.current) saveCanvasState(refs.backgroundCanvasRef.current, 'background');
+      if (refs.permanentStrokesCanvasRef.current) saveCanvasState(refs.permanentStrokesCanvasRef.current, 'permanent');
+      if (refs.activeStrokeCanvasRef.current) saveCanvasState(refs.activeStrokeCanvasRef.current, 'active');
+      if (refs.maskCanvasRef.current) saveCanvasState(refs.maskCanvasRef.current, 'mask');
+      
+      // Force one final preview update before starting drag
+      updatePreviewCanvas();
+    };
+
+    const handleDragEnd = async () => {
+      isDragging.current = false;
+      
+      // Restore all canvas states after drag ends
+      if (refs.backgroundCanvasRef.current) await restoreCanvasState(refs.backgroundCanvasRef.current, 'background');
+      if (refs.permanentStrokesCanvasRef.current) await restoreCanvasState(refs.permanentStrokesCanvasRef.current, 'permanent');
+      if (refs.activeStrokeCanvasRef.current) await restoreCanvasState(refs.activeStrokeCanvasRef.current, 'active');
+      if (refs.maskCanvasRef.current) await restoreCanvasState(refs.maskCanvasRef.current, 'mask');
+      
+      // Clean up temporary storage
+      ['background', 'permanent', 'active', 'mask'].forEach(prefix => {
+        localStorage.removeItem(`${prefix}_${shape.id}_temp`);
+      });
+      
       // Update preview after drag ends
       updatePreviewCanvas();
     };
@@ -161,9 +195,11 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       window.removeEventListener('mouseup', handleDragEnd);
       window.removeEventListener('mouseup', handleMouseUp);
       // Clean up temporary storage on unmount
-      localStorage.removeItem(`mask_${shape.id}_temp`);
+      ['background', 'permanent', 'active', 'mask'].forEach(prefix => {
+        localStorage.removeItem(`${prefix}_${shape.id}_temp`);
+      });
     };
-  }, [updatePreviewCanvas, tool, shape.id, refs.maskCanvasRef, updateShape]);
+  }, [updatePreviewCanvas, tool, shape.id, refs, updateShape]);
 
   // Function to reapply mask with original dimensions
   const reapplyMask = useCallback(() => {

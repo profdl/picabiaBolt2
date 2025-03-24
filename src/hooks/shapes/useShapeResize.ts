@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Shape } from "../../types";
 import { useStore } from "../../store";
+import { shapeLayout, LAYOUT_CONSTANTS } from "../../utils/shapeLayout";
 
 interface ResizeStart {
   x: number;
@@ -19,44 +20,6 @@ export const useShapeResize = (
   const [resizeStart, setResizeStart] = useState<ResizeStart | null>(null);
   const { shapes } = useStore();
 
-  // Calculate minimum size for a group based on its contents
-  const calculateGroupMinSize = (groupShape: Shape) => {
-    const groupedShapes = shapes.filter(s => s.groupId === groupShape.id);
-    if (groupedShapes.length === 0) return { width: 50, height: 50 };
-
-    const group_padding = 16;
-    const control_padding = 32;
-    const sticky_control_padding = 80;
-    const group_control_padding = 48;
-
-    const minX = Math.min(...groupedShapes.map(s => s.position.x));
-    const minY = Math.min(...groupedShapes.map(s => s.position.y));
-    const maxX = Math.max(
-      ...groupedShapes.map(s => {
-        const hasRightControls = s.type === "image" || s.type === "sketchpad";
-        return s.position.x + s.width + (hasRightControls ? control_padding : 0);
-      })
-    );
-    const maxY = Math.max(
-      ...groupedShapes.map(s => {
-        const hasBottomControls = 
-          s.type === "image" || 
-          s.type === "sketchpad" || 
-          s.type === "depth" || 
-          s.type === "edges" || 
-          s.type === "pose" || 
-          s.type === "diffusionSettings";
-        const hasStickyControls = s.type === "sticky";
-        return s.position.y + s.height + (hasStickyControls ? sticky_control_padding : hasBottomControls ? control_padding : 0);
-      })
-    );
-
-    return {
-      width: maxX - minX + group_padding * 2,
-      height: maxY - minY + group_padding * 2 + group_control_padding,
-    };
-  };
-
   useEffect(() => {
     if (!resizeStart) return;
 
@@ -68,14 +31,14 @@ export const useShapeResize = (
       if (shape.type === "image") {
         const aspectRatio = resizeStart.aspectRatio;
         if (Math.abs(dx) > Math.abs(dy)) {
-          const newWidth = Math.max(50, resizeStart.width + dx);
+          const newWidth = Math.max(LAYOUT_CONSTANTS.DEFAULT.WIDTH, resizeStart.width + dx);
           const newHeight = newWidth / aspectRatio;
           updateShape(shape.id, {
             width: newWidth,
             height: newHeight,
           });
         } else {
-          const newHeight = Math.max(50, resizeStart.height + dy);
+          const newHeight = Math.max(LAYOUT_CONSTANTS.DEFAULT.HEIGHT, resizeStart.height + dy);
           const newWidth = newHeight * aspectRatio;
           updateShape(shape.id, {
             width: newWidth,
@@ -85,8 +48,8 @@ export const useShapeResize = (
         return;
       }
 
-      let newWidth = Math.max(50, resizeStart.width + dx);
-      let newHeight = Math.max(50, resizeStart.height + dy);
+      let newWidth = Math.max(LAYOUT_CONSTANTS.DEFAULT.WIDTH, resizeStart.width + dx);
+      let newHeight = Math.max(LAYOUT_CONSTANTS.DEFAULT.HEIGHT, resizeStart.height + dy);
 
       if (e.shiftKey && resizeStart.aspectRatio) {
         if (Math.abs(dx) > Math.abs(dy)) {
@@ -98,7 +61,10 @@ export const useShapeResize = (
 
       if (shape.type === "group") {
         // Calculate minimum size for the group
-        const minSize = calculateGroupMinSize(shape);
+        const groupedShapes = shapes.filter(s => s.groupId === shape.id);
+        const minSize = groupedShapes.length === 0 
+          ? { width: LAYOUT_CONSTANTS.DEFAULT.WIDTH, height: LAYOUT_CONSTANTS.DEFAULT.HEIGHT }
+          : shapeLayout.calculateGroupBounds(groupedShapes);
         
         // Ensure the new size is not smaller than the minimum
         newWidth = Math.max(newWidth, minSize.width);
