@@ -27,6 +27,7 @@ interface StoreState {
   generatingPredictions: Set<string>;
   addShape: (shape: Shape) => void;
   updateShape: (id: string, props: Partial<Shape>) => void;
+  deleteShape: (id: string) => void;
   setSelectedShapes: (ids: string[]) => void;
   centerOnShape: (id: string) => void;
   addGeneratingPrediction: (id: string) => void;
@@ -38,6 +39,7 @@ interface StoreState {
 export interface GenerationHandlerSlice {
   subscription: RealtimeChannel | null;
   handleGenerate: () => Promise<void>;
+  cancelGeneration: (predictionId: string) => Promise<void>;
 }
 
 const findOccupiedSpaces = (shapes: Shape[]): Array<{
@@ -924,5 +926,33 @@ export const generationHandlerSlice: StateCreator<
       }
     }
     set({ subscription: subscription });
+  },
+  cancelGeneration: async (predictionId: string) => {
+    try {
+      const response = await fetch("/.netlify/functions/cancel-generation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prediction_id: predictionId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to cancel generation");
+      }
+
+      // Remove the shape entirely since it's just a placeholder
+      get().deleteShape(predictionId);
+      
+      // Remove from generating predictions
+      get().removeGeneratingPrediction(predictionId);
+
+      // If no more generating predictions, update isGenerating state
+      if (get().generatingPredictions.size === 0) {
+        set({ isGenerating: false });
+      }
+    } catch (error) {
+      console.error("Error canceling generation:", error);
+      get().setError(error instanceof Error ? error.message : "Failed to cancel generation");
+    }
   },
 });

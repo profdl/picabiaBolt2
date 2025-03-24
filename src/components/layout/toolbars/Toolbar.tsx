@@ -7,6 +7,7 @@ import {
   Settings,
   Sparkles,
   StickyNote,
+  X,
 } from "lucide-react";
 import { useStore } from "../../../store";
 import { Tooltip } from "../../shared/Tooltip";
@@ -38,6 +39,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
       base: useThemeClass(["toolbar", "button", "base"]),
       active: useThemeClass(["toolbar", "button", "active"]),
       primary: useThemeClass(["toolbar", "button", "primary"]),
+      ghost: useThemeClass(["toolbar", "button", "ghost"]),
     },
     controls: {
       container: useThemeClass(["toolbar", "controls", "container"]),
@@ -68,6 +70,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     mergeImages,
     addShape,
     setSelectedShapes,
+    generatingPredictions,
+    handleGenerate,
+    cancelGeneration,
   } = useStore((state) => ({
     handleGenerateSubject: state.handleGenerateSubject,
     create3DDepth: state.create3DDepth as (shape: Shape, position: { x: number; y: number }) => void,
@@ -87,6 +92,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     mergeImages: state.mergeImages,
     addShape: state.addShape,
     setSelectedShapes: state.setSelectedShapes,
+    generatingPredictions: state.generatingPredictions,
+    handleGenerate: state.handleGenerate,
+    cancelGeneration: state.cancelGeneration,
   }));
 
   const selectedShape = shapes.find((s) => selectedShapes.includes(s.id));
@@ -112,8 +120,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
   const { showAssets, toggleAssets } = useToolbarShapes();
 
-  const { hasActivePrompt, generatingPredictions, handleGenerate } =
-    useToolbarGenerate();
+  const { hasActivePrompt } = useToolbarGenerate();
 
   const { toggleGallery } = useStore();
 
@@ -480,48 +487,65 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           <div className={styles.divider} />
 
           {/* Generate Button */}
-          <Tooltip
-            content={
-              !shouldEnableGenerate || generatingPredictions.size > 0 ? (
-                "Add a text or image prompt to activate. Make sure Text Prompt is checked on a Sticky Note that has a prompt written. Or add an image and check a control type such as Remix or Make Variations"
-              ) : (
-                <div>
-                  <p>
-                    All checked notes and images will effect the generated
-                    image.
-                  </p>
-                  <p>
-                    The first image may take up to 3 minutes to generate. After
-                    that it should only take a few seconds.
-                  </p>
-                </div>
-              )
-            }
-            side="top"
-          >
-            <ToolbarButton
-              icon={
-                generatingPredictions.size > 0 ? (
-                  <Loader2 className="animate-spin" />
+          <div className="flex items-center gap-2">
+            <Tooltip
+              content={
+                !shouldEnableGenerate || generatingPredictions.size > 0 ? (
+                  "Add a text or image prompt to activate. Make sure Text Prompt is checked on a Sticky Note that has a prompt written. Or add an image and check a control type such as Remix or Make Variations"
                 ) : (
-                  <Sparkles />
+                  <div>
+                    <p>
+                      All checked notes and images will effect the generated
+                      image.
+                    </p>
+                    <p>
+                      The first image may take up to 3 minutes to generate. After
+                      that it should only take a few seconds.
+                    </p>
+                  </div>
                 )
               }
-              label={
-                generatingPredictions.size > 0 ? "Generating..." : "Generate"
-              }
-              disabled={!shouldEnableGenerate || generatingPredictions.size > 0}
-              onClick={async () => {
-                // If we have variations enabled or other active prompts, proceed with generation
-                handleGenerate();
-              }}
-              className={`${styles.button.base} ${styles.button.primary} ${
-                !shouldEnableGenerate || generatingPredictions.size > 0
-                  ? "opacity-50"
-                  : ""
-              }`}
-            />
-          </Tooltip>
+              side="top"
+            >
+              <ToolbarButton
+                icon={
+                  generatingPredictions.size > 0 ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Sparkles />
+                  )
+                }
+                label={
+                  generatingPredictions.size > 0 ? "Generating..." : "Generate"
+                }
+                disabled={!shouldEnableGenerate || generatingPredictions.size > 0}
+                onClick={async () => {
+                  // If we have variations enabled or other active prompts, proceed with generation
+                  handleGenerate();
+                }}
+                className={`${styles.button.base} ${styles.button.primary} ${
+                  !shouldEnableGenerate || generatingPredictions.size > 0
+                    ? "opacity-50"
+                    : ""
+                }`}
+              />
+            </Tooltip>
+
+            {generatingPredictions.size > 0 && (
+              <Tooltip content="Cancel generation" side="top">
+                <ToolbarButton
+                  icon={<X className="w-4 h-4" />}
+                  onClick={() => {
+                    // Cancel all generating predictions
+                    Array.from(generatingPredictions).forEach(predictionId => {
+                      cancelGeneration(predictionId);
+                    });
+                  }}
+                  className={`${styles.button.base} ${styles.button.ghost} text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950`}
+                />
+              </Tooltip>
+            )}
+          </div>
 
           {/* Settings Button */}
           <Tooltip
