@@ -194,9 +194,10 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
 
             {shape.type === "image" && (
               <>
-                <div className="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-0.5" />
+                <div className="w-px h-5 bg-neutral-200 dark:bg-neutral-700" />
                 <div className="flex items-center gap-0.5 px-1">
-                  <Tooltip content="Generate Depth Map" side="top">
+                  {/* <span className="text-[10px] font-medium tracking-wide  text-neutral-600 dark:text-neutral-400 mx-0.5"  >Get Image: </span> */}
+                  <Tooltip content="Get Depth Reference from Image" side="top">
                     <button
                       className="text-[10px] font-medium tracking-wide uppercase text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 rounded px-1.5 py-0.5 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                       onClick={async () => {
@@ -239,7 +240,7 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
                     </button>
                   </Tooltip>
 
-                  <Tooltip content="Generate Edge Map" side="top">
+                  <Tooltip content="Get Edge Reference from Image" side="top">
                     <button
                       className="text-[10px] font-medium tracking-wide uppercase text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 rounded px-1.5 py-0.5 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                       onClick={async () => {
@@ -284,7 +285,7 @@ export const ShapePropertiesToolbar: React.FC<ShapePropertiesToolbarProps> = ({
                     </button>
                   </Tooltip>
 
-                  <Tooltip content="Generate Pose Map" side="top">
+                  <Tooltip content="Get Pose Reference from Image" side="top">
                     <button
                       className="text-[10px] font-medium tracking-wide uppercase text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 rounded px-1.5 py-0.5 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                       onClick={async () => {
