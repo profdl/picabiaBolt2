@@ -3,7 +3,7 @@ import { Shape, Position } from '../../types/shapes';
 import { CanvasState, CanvasBaseState, CanvasCoreActions, CanvasViewportActions } from '../../types/canvas';
 
 interface CanvasSlice extends 
-  Pick<CanvasBaseState, 'zoom' | 'offset' | 'gridEnabled' | 'gridSize' | 'isDragging'>,
+  Pick<CanvasBaseState, 'zoom' | 'offset' | 'gridEnabled' | 'gridSize' | 'isDragging' | 'tool' | 'locked' | 'history' | 'historyIndex' | 'clipboard' | 'currentColor' | 'strokeWidth' | 'isEditingText' | 'hasMore'>,
   Pick<CanvasCoreActions, 'addShape' | 'setOffset' | 'centerOnShape'>,
   Pick<CanvasViewportActions, 'setZoom' | 'setIsDragging'> {
   toggleGrid: () => void;
@@ -20,6 +20,15 @@ export const canvasSlice: StateCreator<
   gridEnabled: true,
   gridSize: 20,
   isDragging: false,
+  tool: "select",
+  locked: false,
+  history: [],
+  historyIndex: 0,
+  clipboard: [],
+  currentColor: "#000000",
+  strokeWidth: 2,
+  isEditingText: false,
+  hasMore: true,
   addShape: (shape: Shape) =>
     set((state: CanvasState) => ({
       shapes: [...state.shapes, shape]

@@ -25,7 +25,6 @@ interface PreprocessedImagePayload {
 export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleContextMenu }) => {
   const updateShape = useStore((state) => state.updateShape);
   const selectedShapes = useStore((state) => state.selectedShapes);
-  const setTool = useStore((state) => state.setTool);
   
   const { refs, reapplyMask, updatePreviewCanvas } = useImageCanvas({ shape, tool });
   const { handleEraserStroke } = useEraser({ refs, reapplyMask });
@@ -52,14 +51,9 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     };
 
     const isSelected = selectedShapes.includes(shape.id);
-    // First check if we're deselecting
-    if (!isSelected) {
-      // Then safely check the tool type
-      const currentTool = useStore.getState().tool;
-      if (currentTool === 'eraser' || currentTool === 'brush') {
-        setTool('select');
-        cleanup();
-      }
+    // First check if we're deselecting and not using brush/eraser tools
+    if (!isSelected && tool !== "brush" && tool !== "eraser") {
+      cleanup();
     }
 
     // Clean up on unmount
@@ -68,7 +62,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
         cleanup();
       }
     };
-  }, [selectedShapes, shape.id, setTool, refs, updatePreviewCanvas]);
+  }, [selectedShapes, shape.id, refs, updatePreviewCanvas, tool]);
 
   // Modify brush handlers to use reapplyMask
   const { handlePointerDown: originalHandlePointerDown, handlePointerMove: originalHandlePointerMove, handlePointerUpOrLeave: originalHandlePointerUpOrLeave } = useBrush({

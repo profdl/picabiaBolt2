@@ -2,62 +2,46 @@
 import { useEffect, useRef } from "react";
 import { useStore } from "../../store";
 import { Shape } from "../../types";
-import { useBrush } from "../layout/toolbars/BrushTool";
-import { ShapeControls } from "./ShapeControls";
-import { getShapeStyles } from "../../utils/shapeStyles";
-import { DiffusionSettingsPanel } from "./shapetypes/DiffusionSettingsPanel";
-import { ImageShape } from "./shapetypes/ImageShape";
-import { useShapeResize } from "../../hooks/shapes/useShapeResize";
-import { DrawingShape } from "./shapetypes/DrawingShape";
-import { LoadingPlaceholder } from "../shared/LoadingPlaceholder";
-import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
-import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
-import { useShapeDrag } from "../../hooks/shapes/useShapeDrag";
-import { useShapeEvents } from "../../hooks/shapes/useShapeEvents";
-import { useThemeClass } from "../../styles/useThemeClass";
-import { StickyNoteShape } from "./shapetypes/StickyNoteShape";
-import { useStickyNoteColor } from "../../hooks/ui/useStickyNoteColor";
-import { TextShape } from "./shapetypes/TextShape";
-import { DepthShape } from "./shapetypes/DepthShape";
-import { EdgeShape } from "./shapetypes/EdgeShape";
-import { PoseShape } from "./shapetypes/PoseShape";
-import { Loader2 } from "lucide-react";
 import { useDarkMode } from "../../hooks/ui/useDarkMode";
+import { useShapeDrag } from "../../hooks/shapes/useShapeDrag";
+import { useShapeResize } from "../../hooks/shapes/useShapeResize";
+import { useShapeEvents } from "../../hooks/shapes/useShapeEvents";
+import { getShapeStyles } from "../../utils/shapeStyles";
+import { ShapeControls } from "./ShapeControls";
+import { ImageShape } from "./shapetypes/ImageShape";
+import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
+import { ThreeJSShapeRef } from "../../types/layout";
+import { Loader2 } from "lucide-react";
+import { ProcessedShape } from "./shapetypes/ProcessedShape";
+import { DiffusionSettingsPanel } from "./shapetypes/DiffusionSettingsPanel";
+import { StickyNoteShape } from "./shapetypes/StickyNoteShape";
+import { TextShape } from "./shapetypes/TextShape";
+import { DrawingShape } from "./shapetypes/DrawingShape";
+import { useStickyNoteColor } from "../../hooks/ui/useStickyNoteColor";
+import { useThemeClass } from "../../styles/useThemeClass";
 
 interface ShapeProps {
   shape: Shape;
 }
 
+const LoadingPlaceholder: React.FC<{ isGenerating: boolean }> = ({ isGenerating }) => (
+  <div className="flex flex-col items-center justify-center gap-2">
+    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+    <span className="text-sm text-neutral-300">
+      {isGenerating ? "Generating..." : "Processing..."}
+    </span>
+  </div>
+);
+
 export function ShapeComponent({ shape }: ShapeProps) {
   const { isDark } = useDarkMode();
+  const stickyNoteColor = useStickyNoteColor(shape);
   const styles = {
     base: useThemeClass(["shape", "base"]),
     selected: useThemeClass(["shape", "selected"]),
-    container: useThemeClass(["shape", "container"]),
-    controls: {
-      panel: useThemeClass(["shape", "controls", "panel"]),
-      group: useThemeClass(["shape", "controls", "group"]),
-      checkbox: useThemeClass(["shape", "controls", "checkbox"]),
-      label: useThemeClass(["shape", "controls", "label"]),
-      slider: useThemeClass(["shape", "controls", "slider"]),
-      tooltip: useThemeClass(["shape", "controls", "tooltip"]),
-    },
-    resizeHandle: useThemeClass(["shape", "resizeHandle"]),
-    colorPicker: useThemeClass(["shape", "colorPicker"]),
-    textArea: useThemeClass(["shape", "textArea"]),
-    newOverlay: {
-      container: useThemeClass(["shape", "newOverlay", "container"]),
-      text: useThemeClass(["shape", "newOverlay", "text"]),
-    },
-    sidePanel: {
-      container: useThemeClass(["shape", "sidePanel", "container"]),
-      group: useThemeClass(["shape", "sidePanel", "group"]),
-      checkbox: useThemeClass(["shape", "sidePanel", "checkbox"]),
-      label: useThemeClass(["shape", "sidePanel", "label"]),
-    },
+    container: useThemeClass(["shape", "container"])
   };
-  const stickyNoteColor = useStickyNoteColor(shape);
-
+  
   const {
     tool,
     shapes,
@@ -74,28 +58,18 @@ export function ShapeComponent({ shape }: ShapeProps) {
     selectedShapes: state.selectedShapes,
     setSelectedShapes: state.setSelectedShapes,
     updateShape: state.updateShape,
-    deleteShape: state.deleteShape,
-    setContextMenu: state.setContextMenu,
     setIsEditingText: state.setIsEditingText,
-    setTool: state.setTool,
     zoom: state.zoom,
     generatingPredictions: state.generatingPredictions,
     isEditingText: state.isEditingText,
+    preprocessingStates: state.preprocessingStates
   }));
+
+
 
   const isEditing = shape.isEditing && isEditingText;
   const textRef = useRef<HTMLTextAreaElement>(null);
-
-  // Add processing states at the top level
-  const depthProcessing = useStore((state) => state.preprocessingStates[shape.id]?.depth);
-  const edgeProcessing = useStore((state) => state.preprocessingStates[shape.id]?.edge);
-  const poseProcessing = useStore((state) => state.preprocessingStates[shape.id]?.pose);
-
-  const threeJSRef = useRef<ThreeJSShape>(null);
-  const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
-  const permanentStrokesCanvasRef = useRef<HTMLCanvasElement>(null);
-  const activeStrokeCanvasRef = useRef<HTMLCanvasElement>(null);
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const threeJSRef = useRef<ThreeJSShapeRef>(null);
 
   const { initDragStart, hoveredGroup, isAddedToGroup } = useShapeDrag({
     shape,
@@ -112,17 +86,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
       setSelectedShapes(ids);
     }
   );
-
-  const {
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUpOrLeave,
-  } = useBrush({
-    backgroundCanvasRef,
-    permanentStrokesCanvasRef,
-    activeStrokeCanvasRef,
-    previewCanvasRef
-  });
 
   const {
     handleMouseDown,
@@ -219,15 +182,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
       >
-        {(!shape.depthMapUrl || depthProcessing) && (
-          <div className="absolute inset-0 flex items-center justify-center bg-transparent">
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-              <span className="text-sm text-neutral-300">Processing image...</span>
-            </div>
-          </div>
-        )}
-        <DepthShape shape={shape} />
+        <ProcessedShape shape={shape} type="depth" />
         {(isSelected || showDepth) && tool === "select" && (
           <ShapeControls
             shape={shape}
@@ -257,15 +212,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
       >
-        {(!shape.edgeMapUrl || edgeProcessing) && (
-          <div className="absolute inset-0 flex items-center justify-center bg-transparent">
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-              <span className="text-sm text-neutral-300">Processing image...</span>
-            </div>
-          </div>
-        )}
-        <EdgeShape shape={shape} />
+        <ProcessedShape shape={shape} type="edge" />
         {(isSelected || showEdges) && tool === "select" && (
           <ShapeControls
             shape={shape}
@@ -295,15 +242,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
         onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
       >
-        {(!shape.poseMapUrl || poseProcessing) && (
-          <div className="absolute inset-0 flex items-center justify-center bg-transparent">
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-              <span className="text-sm text-neutral-300">Processing image...</span>
-            </div>
-          </div>
-        )}
-        <PoseShape shape={shape} />
+        <ProcessedShape shape={shape} type="pose" />
         {(isSelected || showPose) && tool === "select" && (
           <ShapeControls
             shape={shape}
@@ -389,7 +328,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
           tool={tool}
           handleContextMenu={handleContextMenu}
         />
-        {showControls && tool === "select" && (
+        {showControls && (tool === "select" || tool === "brush" || tool === "eraser") && (
           <ShapeControls
             shape={shape}
             isSelected={isSelected}

@@ -78,7 +78,13 @@ export function useCanvasMouseHandlers() {
       const clickedElement = e.target as HTMLElement;
       const isSketchpad = clickedElement.closest("canvas");
       if (!isSketchpad) {
-        setTool("select");
+        // Only switch to select if we're not clicking on a shape control
+        const isShapeControl = clickedElement.closest("[data-shape-control]");
+        if (!isShapeControl) {
+          setTool("select");
+          // Don't clear selection when switching tools
+          return;
+        }
         return;
       }
     }
@@ -106,8 +112,7 @@ export function useCanvasMouseHandlers() {
       return;
     }
 
-    
-    // If clicking outside shapes and controls, clear selection immediately
+    // If clicking outside shapes and controls, clear selection
     if (!clickedShape && !controlsPanel && tool === "select") {
       setSelectedShapes([]);
       // Also clear any editing states
@@ -166,7 +171,6 @@ export function useCanvasMouseHandlers() {
         contentStrength: 0.25,
         poseStrength: 0.25,
         sketchStrength: 0.25,
-        remixStrength: 0.25,
         isEditing: false,
       };
       setDrawingShape(newShape);
