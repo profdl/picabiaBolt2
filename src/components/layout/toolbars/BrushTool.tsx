@@ -256,8 +256,14 @@ export const useBrush = ({
       // For brush tool, transfer the active stroke to permanent layer
       permanentCtx.save();
       permanentCtx.globalCompositeOperation = "source-over";
-      permanentCtx.globalAlpha = 1;
-      permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+      permanentCtx.globalAlpha = brushOpacity;
+      
+      // Ensure we maintain the original dimensions when transferring the stroke
+      permanentCtx.drawImage(
+        activeStrokeCanvasRef.current,
+        0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height,
+        0, 0, permanentStrokesCanvasRef.current.width, permanentStrokesCanvasRef.current.height
+      );
       permanentCtx.restore();
     }
 

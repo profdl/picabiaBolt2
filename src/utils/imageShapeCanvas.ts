@@ -67,27 +67,41 @@ export const updateImageShapePreview = ({
     const previewCanvas = previewCanvasRef.current;
     if (!previewCanvas) return;
 
+    // Store original dimensions
+    const originalWidth = previewCanvas.width;
+    const originalHeight = previewCanvas.height;
+
     // 1. Clear the preview canvas
-    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    previewCtx.clearRect(0, 0, originalWidth, originalHeight);
 
     // 2. Draw background with NO opacity changes
     previewCtx.globalAlpha = 1;
     previewCtx.globalCompositeOperation = 'source-over';
     
     if (backgroundCanvasRef.current) {
-      previewCtx.drawImage(backgroundCanvasRef.current as CanvasImageSource, 0, 0);
+      previewCtx.drawImage(backgroundCanvasRef.current, 0, 0, originalWidth, originalHeight);
     }
 
     // 3. Draw permanent strokes with NO opacity changes
     if (permanentStrokesCanvasRef.current) {
-      previewCtx.drawImage(permanentStrokesCanvasRef.current as CanvasImageSource, 0, 0);
+      // Ensure we maintain the original dimensions when drawing permanent strokes
+      previewCtx.drawImage(
+        permanentStrokesCanvasRef.current,
+        0, 0, permanentStrokesCanvasRef.current.width, permanentStrokesCanvasRef.current.height,
+        0, 0, originalWidth, originalHeight
+      );
     }
 
     // 4. Draw active stroke with opacity
     if (activeStrokeCanvasRef.current) {
       previewCtx.globalAlpha = opacity;
       previewCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
-      previewCtx.drawImage(activeStrokeCanvasRef.current as CanvasImageSource, 0, 0);
+      // Ensure we maintain the original dimensions when drawing active strokes
+      previewCtx.drawImage(
+        activeStrokeCanvasRef.current,
+        0, 0, activeStrokeCanvasRef.current.width, activeStrokeCanvasRef.current.height,
+        0, 0, originalWidth, originalHeight
+      );
     }
 
     // 5. Apply mask using CSS transforms for better performance

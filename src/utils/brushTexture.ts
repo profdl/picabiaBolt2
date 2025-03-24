@@ -91,6 +91,15 @@ export const drawBrushStamp = (
   const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
   if (!tempCtx) return;
 
+  // Get the scale of the canvas
+  const canvas = ctx.canvas;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  // Scale the brush size according to the canvas scale
+  const scaledSize = size * Math.max(scaleX, scaleY);
+
   // Draw the color using the provided drawColor function
   drawColor(tempCtx, size / 2, size / 2, color, size);
 
@@ -105,7 +114,7 @@ export const drawBrushStamp = (
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(followPath ? (pathAngle || 0) : (rotation * Math.PI) / 180);
-  ctx.drawImage(tempCanvas, -size / 2, -size / 2);
+  ctx.drawImage(tempCanvas, -scaledSize / 2, -scaledSize / 2, scaledSize, scaledSize);
   ctx.restore();
 };
 
