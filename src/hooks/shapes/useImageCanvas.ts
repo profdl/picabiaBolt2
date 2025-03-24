@@ -1,6 +1,7 @@
 // src/hooks/shapes/useImageCanvas.ts
 import { useRef, useEffect, useCallback, useMemo } from "react";
 import { Shape } from "../../types";
+import { useStore } from "../../store";
 
 export interface ImageCanvasRefs {
   backgroundCanvasRef: React.RefObject<HTMLCanvasElement>;
@@ -19,6 +20,10 @@ interface UseImageCanvasProps {
 type CanvasLayer = 'background' | 'permanent' | 'active' | 'preview' | 'mask' | 'redBackground';
 
 export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
+  // Add isDragging ref
+  const isDragging = useRef(false);
+  const updateShape = useStore((state) => state.updateShape);
+
   // Create individual refs
   const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
   const permanentStrokesCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,6 +67,104 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     return imageData;
   };
 
+  // Define updatePreviewCanvas first
+  const updatePreviewCanvas = useCallback(() => {
+    if (!refs.previewCanvasRef.current || !refs.backgroundCanvasRef.current || 
+        !refs.permanentStrokesCanvasRef.current || !refs.activeStrokeCanvasRef.current || 
+        !refs.maskCanvasRef.current) return;
+
+    const previewCtx = refs.previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
+    if (!previewCtx) return;
+
+    // Use requestAnimationFrame for smoother updates
+    requestAnimationFrame(() => {
+      const previewCanvas = refs.previewCanvasRef.current;
+      if (!previewCanvas) return;
+
+      // Clear preview canvas
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+      // Draw background
+      previewCtx.drawImage(refs.backgroundCanvasRef.current as CanvasImageSource, 0, 0);
+
+      // Draw permanent strokes
+      previewCtx.drawImage(refs.permanentStrokesCanvasRef.current as CanvasImageSource, 0, 0);
+
+      // Draw active stroke
+      previewCtx.drawImage(refs.activeStrokeCanvasRef.current as CanvasImageSource, 0, 0);
+
+      // Apply mask
+      previewCtx.globalCompositeOperation = "destination-in";
+      previewCtx.drawImage(refs.maskCanvasRef.current as CanvasImageSource, 0, 0);
+      previewCtx.globalCompositeOperation = "source-over";
+      // Apply CSS mask
+      const maskDataUrl = refs.maskCanvasRef.current?.toDataURL() || '';
+      previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
+      previewCanvas.style.maskImage = `url(${maskDataUrl})`;
+      previewCanvas.style.webkitMaskSize = 'cover';
+      previewCanvas.style.maskSize = 'cover';
+      previewCanvas.style.webkitMaskPosition = 'center';
+      previewCanvas.style.maskPosition = 'center';
+    });
+  }, [refs]);
+
+  // Add effect to handle drag state
+  useEffect(() => {
+    const handleDragStart = () => {
+      isDragging.current = true;
+      // Save current mask state before drag starts
+      if (refs.maskCanvasRef.current) {
+        const maskData = refs.maskCanvasRef.current.toDataURL('image/png');
+        localStorage.setItem(`mask_${shape.id}_temp`, maskData);
+      }
+    };
+
+    const handleDragEnd = () => {
+      isDragging.current = false;
+      // Restore mask state after drag ends
+      if (refs.maskCanvasRef.current) {
+        const savedMaskData = localStorage.getItem(`mask_${shape.id}_temp`);
+        if (savedMaskData) {
+          const maskImg = new Image();
+          maskImg.onload = () => {
+            const maskCtx = refs.maskCanvasRef.current?.getContext('2d', { willReadFrequently: true });
+            if (maskCtx && refs.maskCanvasRef.current) {
+              maskCtx.clearRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
+              maskCtx.drawImage(maskImg, 0, 0);
+            }
+          };
+          maskImg.src = savedMaskData;
+        }
+        // Clean up temporary storage
+        localStorage.removeItem(`mask_${shape.id}_temp`);
+      }
+      // Update preview after drag ends
+      updatePreviewCanvas();
+    };
+
+    const handleMouseUp = () => {
+      // Save mask data to both localStorage and shape state if using eraser tool
+      if (tool === 'eraser' && refs.maskCanvasRef.current) {
+        const maskData = refs.maskCanvasRef.current.toDataURL('image/png');
+        localStorage.setItem(`mask_${shape.id}`, maskData);
+        // Also update the shape state
+        updateShape(shape.id, { maskCanvasData: maskData });
+      }
+    };
+
+    window.addEventListener('mousedown', handleDragStart);
+    window.addEventListener('mouseup', handleDragEnd);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousedown', handleDragStart);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('mouseup', handleMouseUp);
+      // Clean up temporary storage on unmount
+      localStorage.removeItem(`mask_${shape.id}_temp`);
+    };
+  }, [updatePreviewCanvas, tool, shape.id, refs.maskCanvasRef, updateShape]);
+
   // Function to reapply mask with original dimensions
   const reapplyMask = useCallback(() => {
     const maskCanvas = refs.maskCanvasRef.current;
@@ -81,6 +184,10 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
       maskCtx.fillStyle = 'white';
       maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+
+      // Clear saved mask data when resetting
+      localStorage.removeItem(`mask_${shape.id}`);
+      updateShape(shape.id, { maskCanvasData: undefined });
     }
 
     // Apply mask using CSS properties with proper scaling
@@ -91,32 +198,7 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     previewCanvas.style.maskSize = 'cover';
     previewCanvas.style.webkitMaskPosition = 'center';
     previewCanvas.style.maskPosition = 'center';
-  }, [refs.maskCanvasRef, refs.previewCanvasRef, tool, shape.width, shape.height]);
-
-  // Export updatePreviewCanvas function
-  const updatePreviewCanvas = useCallback(() => {
-    if (!refs.previewCanvasRef.current || !refs.backgroundCanvasRef.current || !refs.permanentStrokesCanvasRef.current || !refs.activeStrokeCanvasRef.current || !refs.maskCanvasRef.current) return;
-
-    const previewCtx = refs.previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
-    if (!previewCtx) return;
-
-    // Clear preview canvas
-    previewCtx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
-
-    // Draw background
-    previewCtx.drawImage(refs.backgroundCanvasRef.current, 0, 0);
-
-    // Draw permanent strokes
-    previewCtx.drawImage(refs.permanentStrokesCanvasRef.current, 0, 0);
-
-    // Draw active stroke
-    previewCtx.drawImage(refs.activeStrokeCanvasRef.current, 0, 0);
-
-    // Apply mask
-    previewCtx.globalCompositeOperation = "destination-in";
-    previewCtx.drawImage(refs.maskCanvasRef.current, 0, 0);
-    previewCtx.globalCompositeOperation = "source-over";
-  }, [refs]);
+  }, [refs.maskCanvasRef, refs.previewCanvasRef, tool, shape.width, shape.height, shape.id, updateShape]);
 
   // Initialize canvases with image
   useEffect(() => {
@@ -242,13 +324,31 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
         }
       }
 
-      // If no saved mask data, create and apply the default mask
+      // Handle mask initialization with proper priority
       if (!shape.maskCanvasData) {
-        maskCtx.clearRect(0, 0, width, height);
-        maskCtx.fillStyle = 'white';
-        maskCtx.fillRect(0, 0, width, height);
+        // First check localStorage
+        const savedMaskData = localStorage.getItem(`mask_${shape.id}`);
+        if (savedMaskData) {
+          const maskImg = new Image();
+          await new Promise((resolve) => {
+            maskImg.onload = () => {
+              if (!isMounted) return;
+              maskCtx.clearRect(0, 0, width, height);
+              maskCtx.drawImage(maskImg, 0, 0, width, height);
+              // Update shape state with the loaded mask data
+              updateShape(shape.id, { maskCanvasData: savedMaskData });
+              resolve(null);
+            };
+            maskImg.src = savedMaskData;
+          });
+        } else {
+          // If no saved data, create default mask
+          maskCtx.clearRect(0, 0, width, height);
+          maskCtx.fillStyle = 'white';
+          maskCtx.fillRect(0, 0, width, height);
+        }
       }
-      
+
       // Store the initial dimensions (without gradient)
       maskDimensionsRef.current = {
         width,
@@ -278,7 +378,7 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     return () => {
       isMounted = false;
     };
-  }, [shape.imageUrl, shape.maskCanvasData, refs, shape]);
+  }, [shape.imageUrl, shape.maskCanvasData, refs, shape, shape.id, updateShape]);
 
   return {
     refs,

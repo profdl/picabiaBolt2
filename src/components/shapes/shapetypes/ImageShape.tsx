@@ -227,9 +227,9 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             style={{
               touchAction: "none",
               pointerEvents: "none",
-              visibility: "visible",
               opacity: 0.25,
-              zIndex: 0
+              zIndex: 0,
+              visibility: "hidden"
             }}
           />
           <canvas
@@ -240,6 +240,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             style={{
               touchAction: "none",
               pointerEvents: "none",
+              opacity: 1,
+              zIndex: 1,
               visibility: "hidden"
             }}
           />
@@ -251,6 +253,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             style={{
               touchAction: "none",
               pointerEvents: "none",
+              opacity: 1,
+              zIndex: 2,
               visibility: "hidden"
             }}
           />
@@ -262,6 +266,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             style={{
               touchAction: "none",
               pointerEvents: "none",
+              opacity: 1,
+              zIndex: 3,
               visibility: "hidden"
             }}
           />
@@ -273,8 +279,9 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             style={{
               touchAction: "none",
               pointerEvents: "none",
-              visibility: "hidden",
-              zIndex: 1
+              opacity: 1,
+              zIndex: 4,
+              visibility: "hidden"
             }}
           />
           <canvas
@@ -285,8 +292,9 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             style={{
               touchAction: "none",
               pointerEvents: tool === "select" ? "none" : "all",
-              visibility: "visible",
-              zIndex: 2
+              opacity: 1,
+              zIndex: 5,
+              visibility: "visible"
             }}
             onContextMenu={handleContextMenu}
             onPointerDown={(e) => {

@@ -62,46 +62,49 @@ export const updateImageShapePreview = ({
   const previewCtx = getImageShapeCanvasContext(previewCanvasRef);
   if (!previewCtx || !previewCanvasRef.current || !activeStrokeCanvasRef.current) return;
 
-  // 1. Clear the preview canvas
-  previewCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
+  // Use requestAnimationFrame for smoother updates
+  requestAnimationFrame(() => {
+    const previewCanvas = previewCanvasRef.current;
+    if (!previewCanvas) return;
 
-  // 2. Draw background and permanent strokes with NO opacity changes
-  previewCtx.globalAlpha = 1;
-  previewCtx.globalCompositeOperation = 'source-over';
-  if (backgroundCanvasRef.current) {
-    previewCtx.drawImage(backgroundCanvasRef.current, 0, 0);
-  }
-  if (permanentStrokesCanvasRef.current) {
-    previewCtx.drawImage(permanentStrokesCanvasRef.current, 0, 0);
-  }
+    // 1. Clear the preview canvas
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
 
-  // 3. Create a temporary canvas for the active stroke with opacity
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = activeStrokeCanvasRef.current.width;
-  tempCanvas.height = activeStrokeCanvasRef.current.height;
-  const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-  
-  if (tempCtx) {
-    // Draw active stroke to temp canvas
-    tempCtx.globalAlpha = opacity;
-    tempCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
-    tempCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+    // 2. Draw background and permanent strokes with NO opacity changes
+    previewCtx.globalAlpha = 1;
+    previewCtx.globalCompositeOperation = 'source-over';
     
-    // Draw temp canvas (with opacity) onto preview
-    previewCtx.globalAlpha = 1; // Keep preview at full opacity
-    previewCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
-    previewCtx.drawImage(tempCanvas, 0, 0);
-  }
+    // Use a single drawImage call for background and permanent strokes
+    if (backgroundCanvasRef.current) {
+      previewCtx.drawImage(backgroundCanvasRef.current as CanvasImageSource, 0, 0);
+    }
+    if (permanentStrokesCanvasRef.current) {
+      previewCtx.drawImage(permanentStrokesCanvasRef.current as CanvasImageSource, 0, 0);
+    }
 
-  // 4. Apply mask only to the preview canvas, not affecting the noise layer
-  if (previewCanvasRef.current && maskCanvasRef?.current) {
-    previewCanvasRef.current.style.webkitMaskImage = `url(${maskCanvasRef.current.toDataURL()})`;
-    previewCanvasRef.current.style.maskImage = `url(${maskCanvasRef.current.toDataURL()})`;
-    previewCanvasRef.current.style.webkitMaskSize = 'cover';
-    previewCanvasRef.current.style.maskSize = 'cover';
-    previewCanvasRef.current.style.webkitMaskPosition = 'center';
-    previewCanvasRef.current.style.maskPosition = 'center';
-  }
+    // 3. Draw active stroke directly with opacity
+    previewCtx.globalAlpha = opacity;
+    previewCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
+    previewCtx.drawImage(activeStrokeCanvasRef.current as CanvasImageSource, 0, 0);
+
+    // 4. Apply mask using CSS transforms for better performance
+    if (maskCanvasRef?.current) {
+      const maskUrl = maskCanvasRef.current.toDataURL();
+      // Apply mask to the preview canvas
+      previewCanvas.style.webkitMaskImage = `url(${maskUrl})`;
+      previewCanvas.style.maskImage = `url(${maskUrl})`;
+      previewCanvas.style.webkitMaskSize = 'cover';
+      previewCanvas.style.maskSize = 'cover';
+      previewCanvas.style.webkitMaskPosition = 'center';
+      previewCanvas.style.maskPosition = 'center';
+      previewCanvas.style.transform = 'translateZ(0)'; // Force GPU acceleration
+      
+      // Also apply the mask to the context for additional masking
+      previewCtx.globalCompositeOperation = 'destination-in';
+      previewCtx.drawImage(maskCanvasRef.current as CanvasImageSource, 0, 0);
+      previewCtx.globalCompositeOperation = 'source-over';
+    }
+  });
 };
 
 export const saveImageShapeState = (

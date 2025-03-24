@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Shape, DragStart } from '../../types';
 import { useStore } from '../../store';
 
@@ -19,6 +19,9 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
   const sticky_control_padding = 80;
   const group_control_padding = 48;
   const DRAG_OUT_THRESHOLD = 300; // Base threshold in pixels
+
+  // Add isDragging ref to track drag state
+  const isDragging = useRef(false);
 
   // Calculate if a point is inside a shape's bounds
   const isPointInShape = (point: { x: number; y: number }, shape: Shape) => {
@@ -71,7 +74,11 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
   useEffect(() => {
     if (!dragStart || isEditing) return;
 
+    isDragging.current = true;
+
     const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+
       const totalDx = (e.clientX - dragStart.x) / zoom;
       const totalDy = (e.clientY - dragStart.y) / zoom;
 
@@ -243,6 +250,8 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
     };
 
     const handleMouseUp = () => {
+      isDragging.current = false;
+      
       // Handle adding shape to group on drop
       if (hoveredGroup && shape.id && !shape.groupId) {
         const group = shapes.find(s => s.id === hoveredGroup);
@@ -292,6 +301,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      isDragging.current = false;
     };
   }, [dragStart, shape.groupId, shape.id, shape.type, isEditing, zoom, shapes, updateShape, addToGroup, removeFromGroup, originalGroupBounds, setSelectedShapes, shape, hoveredGroup]);
 
