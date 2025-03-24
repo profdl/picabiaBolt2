@@ -29,7 +29,10 @@ export const ToolbarButton = forwardRef<HTMLButtonElement, ToolbarButtonProps>(
       },
       active: useThemeClass(['button', 'toolbar', 'active']),
       loading: 'opacity-50 cursor-not-allowed',
-      label: useThemeClass(['button', 'toolbar', 'label'])
+      label: cn(
+        useThemeClass(['button', 'toolbar', 'label']),
+        'hidden lg:inline' // Hide on smaller screens, show on large screens (1024px+)
+      )
     };
 
     return (

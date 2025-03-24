@@ -593,7 +593,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
               />
             </Tooltip>
 
-            {(selectedShape?.type === "image" || selectedShape?.type === "sketchpad") && (
+            {/* Always render brush and eraser buttons when an image is selected, but disable them if not applicable */}
+            {(selectedShape?.type === "image" || selectedShape?.type === "sketchpad") ? (
               <>
                 <Tooltip content="Brush Tool (B)" side="bottom">
                   <ToolbarButton
@@ -617,6 +618,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                   />
                 </Tooltip>
               </>
+            ) : (
+              // Add invisible placeholders to maintain layout
+              <div className="flex items-center gap-2 w-[88px]" />
             )}
           </div>
 
