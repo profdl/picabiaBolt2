@@ -9,13 +9,10 @@ import { DiffusionSettingsPanel } from "./shapetypes/DiffusionSettingsPanel";
 import { ImageShape } from "./shapetypes/ImageShape";
 import { useShapeResize } from "../../hooks/shapes/useShapeResize";
 import { DrawingShape } from "./shapetypes/DrawingShape";
-import { SketchpadShape } from "./shapetypes/SketchpadShape";
 import { LoadingPlaceholder } from "../shared/LoadingPlaceholder";
-import { ThreeJSShape, ThreeJSShapeRef } from "./shapetypes/ThreeJSShape";
+import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
 import { uploadCanvasToSupabase } from "../../utils/canvasUtils";
 import { useShapeDrag } from "../../hooks/shapes/useShapeDrag";
-import { useSketchpadEvents } from "../../hooks/shapes/useSketchpadEvents";
-import { useSketchpadShapeEvents } from "../../hooks/shapes/sketchpadShapeEvents";
 import { useShapeEvents } from "../../hooks/shapes/useShapeEvents";
 import { useThemeClass } from "../../styles/useThemeClass";
 import { StickyNoteShape } from "./shapetypes/StickyNoteShape";
@@ -94,8 +91,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
   const edgeProcessing = useStore((state) => state.preprocessingStates[shape.id]?.edge);
   const poseProcessing = useStore((state) => state.preprocessingStates[shape.id]?.pose);
 
-  const threeJSRef = useRef<ThreeJSShapeRef>(null);
-  const sketchPadRef = useRef<HTMLCanvasElement>(null);
+  const threeJSRef = useRef<ThreeJSShape>(null);
   const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
   const permanentStrokesCanvasRef = useRef<HTMLCanvasElement>(null);
   const activeStrokeCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -117,7 +113,16 @@ export function ShapeComponent({ shape }: ShapeProps) {
     }
   );
 
-  useSketchpadShapeEvents({ shape, sketchPadRef });
+  const {
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUpOrLeave,
+  } = useBrush({
+    backgroundCanvasRef,
+    permanentStrokesCanvasRef,
+    activeStrokeCanvasRef,
+    previewCanvasRef
+  });
 
   const {
     handleMouseDown,
@@ -132,24 +137,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     zoom,
     textRef,
     initDragStart,
-  });
-
-  const { handlePointerDown, handlePointerMove, handlePointerUpOrLeave } =
-    useBrush({
-      backgroundCanvasRef,
-      permanentStrokesCanvasRef,
-      activeStrokeCanvasRef,
-      previewCanvasRef
-    });
-
-  const {
-    handleSketchpadPointerDown,
-    handleSketchpadPointerMove,
-    handleSketchpadPointerUpOrLeave,
-  } = useSketchpadEvents({
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUpOrLeave,
   });
 
   const isSelected = selectedShapes.includes(shape.id);
@@ -443,20 +430,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
           shape.type === "diffusionSettings" ? "bg-none" : ""
         }`}
       >
-        {shape.type === "sketchpad" && (
-          <SketchpadShape
-            shape={shape}
-            sketchPadRef={sketchPadRef}
-            handlePointerDown={handleSketchpadPointerDown}
-            handlePointerMove={handleSketchpadPointerMove}
-            handlePointerUpOrLeave={handleSketchpadPointerUpOrLeave}
-            handleContextMenu={handleContextMenu}
-            tool={tool}
-            uploadCanvasToSupabase={uploadCanvasToSupabase}
-            onClear={() => shape.onClear?.()}
-          />
-        )}
-  
         {shape.type === "diffusionSettings" && (
           <DiffusionSettingsPanel
             shape={shape}
@@ -490,9 +463,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
         )}
       </div>
   
-      {/* Controls layer */}
       {(tool === "select" ||
-        (shape.type === "sketchpad" &&
+        (shape.type === "diffusionSettings" &&
           tool === "brush")) && (
         <div
           data-controls-panel={shape.id}

@@ -4,7 +4,7 @@ import { ShapePropertiesToolbar } from "./ShapePropertiesToolbar";
 import { useStore } from "../../../store";
 
 interface PropertiesToolbarProps {
-  type: "brush" | "eraser" | "image" | "shape" | "sketchpad";
+  type: "brush" | "eraser" | "image" | "shape";
   properties?: {
     color?: string;
     texture?: string;
@@ -53,7 +53,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
   }));
 
   // Show shape properties if we have a shape and actions
-  const showShapeProperties = (type === "image" || type === "shape" || type === "sketchpad") && shape && actions;
+  const showShapeProperties = (type === "image" || type === "shape") && shape && actions;
   // Show brush properties when brush/eraser is active and we have the required props
   const showBrushProperties = (type === "brush" || type === "eraser") && properties && onPropertyChange;
   

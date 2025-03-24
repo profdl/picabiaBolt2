@@ -666,7 +666,7 @@ export function ShapeControlsProperties({
         </div>
       )}
 
-      {shape.type === "sketchpad" && (
+      {shape.type === "image" && (
         <>
           <div
             className="absolute left-3 -bottom-9 flex gap-2"
@@ -708,7 +708,7 @@ export function ShapeControlsProperties({
                   const newId = Math.random().toString(36).substr(2, 9);
                   const newShape: Shape = {
                     id: newId,
-                    type: "sketchpad",
+                    type: "image",
                     position: shape.position,
                     width: shape.width,
                     height: shape.height,
@@ -723,7 +723,7 @@ export function ShapeControlsProperties({
                     contentStrength: 0.25,
                     poseStrength: 0.25,
                     sketchStrength: 0.25,
-                    canvasData: undefined,
+                    imageUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
                     showSketch: true,
                   };
                   addShape(newShape);

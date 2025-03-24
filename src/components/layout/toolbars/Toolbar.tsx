@@ -155,9 +155,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
   };
 
   const handleAddSketchpad = async () => {
+    // Create a white background canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 512, 512);
+    }
+
     await addNewShape(
-      "sketchpad",
+      "image",
       {
+        imageUrl: canvas.toDataURL('image/png'),
+        aspectRatio: 1,
         showSketch: true,
       },
       "",
@@ -360,7 +372,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           {/* Image Properties Toolbar */}
           {(tool === "select" && selectedShape) || tool === "pan" ? (
             <PropertiesToolbar
-              type={selectedShape?.type === "image" ? "image" : selectedShape?.type === "sketchpad" ? "sketchpad" : "shape"}
+              type={selectedShape?.type === "image" ? "image" : "shape"}
               shape={selectedShape || {
                 id: "pan-tool",
                 type: "group",

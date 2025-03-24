@@ -4,7 +4,7 @@ import { Shape } from "../../types";
 import { useShapeAdder } from "../shapes/useShapeAdder";
 
 interface UseToolbarShapesResult {
-  handleAddShape: (type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'sketchpad' | 'diffusionSettings') => void;
+  handleAddShape: (type: 'text' | 'sticky' | 'image' | 'diffusionSettings' | 'drawing' | '3d' | 'group' | 'depth' | 'edges' | 'pose') => void;
   showAssets: boolean;
   toggleAssets: () => void;
   shapes: Shape[];
@@ -21,20 +21,7 @@ export function useToolbarShapes(): UseToolbarShapesResult {
 
   const { addNewShape } = useShapeAdder();
 
-  const handleAddShape = async (type: 'rectangle' | 'circle' | 'text' | 'sticky' | 'image' | 'sketchpad' | 'diffusionSettings') => {
-    // Handle sketchpad
-    if (type === "sketchpad") {
-      await addNewShape("sketchpad", {
-        color: "#ffffff",
-        showSketch: true,
-      }, {
-        defaultWidth: 512,
-        setSelected: true
-      });
-      setTool("select");
-      return;
-    }
-
+  const handleAddShape = async (type: 'text' | 'sticky' | 'image' | 'diffusionSettings' | 'drawing' | '3d' | 'group' | 'depth' | 'edges' | 'pose') => {
     // Handle image URLs
     if (type === "image") {
       const url = window.prompt("Enter image URL:");
@@ -43,7 +30,7 @@ export function useToolbarShapes(): UseToolbarShapesResult {
       await addNewShape("image", {
         imageUrl: url,
         aspectRatio: 1.5,
-      }, {
+      }, "", {
         defaultWidth: 300,
         setSelected: true
       });
@@ -72,7 +59,7 @@ export function useToolbarShapes(): UseToolbarShapesResult {
         scheduler: "dpmpp_2m_sde",
         outputFormat: "png",
         randomiseSeeds: true,
-      }, {
+      }, "", {
         defaultWidth: 250,
         setSelected: true
       });
@@ -92,25 +79,22 @@ export function useToolbarShapes(): UseToolbarShapesResult {
       });
 
       await addNewShape("sticky", {
-        fontSize: 16,
-        showPrompt: true,
-        color: 'var(--sticky-green)',
-        content: "Double-Click to Edit...",
-        isNew: true,
-      }, {
+        content: "",
+        color: "var(--sticky-green)",
+        isEditing: true,
+      }, "", {
+        defaultWidth: 200,
         setSelected: true,
-        startEditing: true
+        startEditing: true,
       });
       setTool("select");
       return;
     }
 
-    // Handle other shape types (rectangle, circle, text)
+    // Handle other shape types
     await addNewShape(type, {
       color: "#" + Math.floor(Math.random() * 16777215).toString(16),
-      content: type === "text" ? "Double click to edit" : undefined,
-      fontSize: 16,
-    }, {
+    }, "", {
       defaultWidth: 40,
       setSelected: true
     });
