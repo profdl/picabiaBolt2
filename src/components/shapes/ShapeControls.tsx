@@ -288,7 +288,7 @@ export function ShapeControls({
                           isNegativePrompt: checked ? false : shape.isNegativePrompt,
                           color: checked ? "var(--sticky-green)" : (shape.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)"),
                           // Keep the existing strength value, or set to default if none exists
-                          textPromptStrength: shape.textPromptStrength || 8
+                          textPromptStrength: shape.textPromptStrength || 4.5
                         });
                         
                         // Set pending updates for other shapes
@@ -302,7 +302,7 @@ export function ShapeControls({
                 {shape.isTextPrompt && (
                   <div className="px-2">
                     <SmallSlider
-                      value={shape.textPromptStrength || 8}
+                      value={shape.textPromptStrength || 4.5}
                       onChange={(value) => {
                         updateShape(shape.id, { textPromptStrength: value });
                       }}

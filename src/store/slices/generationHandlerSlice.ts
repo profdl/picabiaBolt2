@@ -40,8 +40,6 @@ export interface GenerationHandlerSlice {
   handleGenerate: () => Promise<void>;
 }
 
-
-
 const findOccupiedSpaces = (shapes: Shape[]): Array<{
   x1: number;
   y1: number;
@@ -137,6 +135,23 @@ const calculateAverageAspectRatio = (shapes: Shape[]) => {
   return null;
 };
 
+// Add this function before the generationHandlerSlice
+async function hasBlackPixelsInMask(maskCanvas: HTMLCanvasElement): Promise<boolean> {
+  const ctx = maskCanvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return false;
+
+  const imageData = ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+  const data = imageData.data;
+
+  // Check every pixel's red channel (since we're using red for the mask)
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i] < 128) { // If red channel is less than 128 (dark), consider it black
+      return true;
+    }
+  }
+  return false;
+}
+
 export const generationHandlerSlice: StateCreator<
   StoreState & GenerationHandlerSlice,
   [],
@@ -196,6 +211,9 @@ export const generationHandlerSlice: StateCreator<
         return;
       }
 
+      // Check if there are any black pixels in the mask
+      const hasBlackPixels = await hasBlackPixelsInMask(maskCanvas);
+
       // Create blobs from both canvases
       const [previewBlob, maskBlob] = await Promise.all([
         new Promise<Blob>((resolve, reject) => {
@@ -248,63 +266,85 @@ export const generationHandlerSlice: StateCreator<
         supabase.storage.from("assets").getPublicUrl(maskFileName)
       ]);
 
-      // Set up in-painting workflow nodes
-      workflow["36"] = {
-        ...workflow["36"],
-        inputs: {
-          image: previewUrl,
-          upload: "image",
-        },
-        class_type: "LoadImage",
-      };
+      if (hasBlackPixels) {
+        // Set up in-painting workflow nodes
+        workflow["36"] = {
+          ...workflow["36"],
+          inputs: {
+            image: previewUrl,
+            upload: "image",
+          },
+          class_type: "LoadImage",
+        };
 
-      workflow["37"] = {
-        ...workflow["37"],
-        inputs: {
-          image: maskUrl,
-          upload: "image",
-        },
-        class_type: "LoadImage",
-      };
+        workflow["37"] = {
+          inputs: {
+            image: maskUrl,
+            upload: "image",
+          },
+          class_type: "LoadImage",
+        };
 
-      // Add ImageToMask node to convert the mask image to the correct type
-      workflow["39"] = {
-        inputs: {
-          image: ["37", 0],
-          method: "red",
-          channel: "red"
-        },
-        class_type: "ImageToMask",
-      };
+        // Add ImageToMask node to convert the mask image to the correct type
+        workflow["39"] = {
+          inputs: {
+            image: ["37", 0],
+            method: "red",
+            channel: "red"
+          },
+          class_type: "ImageToMask",
+        };
 
-      // Add InvertMask node
-      workflow["41"] = {
-        inputs: {
-          mask: ["39", 0]
-        },
-        class_type: "InvertMask",
-      };
+        // Add InvertMask node
+        workflow["41"] = {
+          inputs: {
+            mask: ["39", 0]
+          },
+          class_type: "InvertMask",
+        };
 
-      workflow["38"] = {
-        inputs: {
-          pixels: ["36", 0],
-          vae: ["4", 2]
-        },
-        class_type: "VAEEncode",
-      };
+        workflow["38"] = {
+          inputs: {
+            pixels: ["36", 0],
+            vae: ["4", 2]
+          },
+          class_type: "VAEEncode",
+        };
 
-      // Add SetLatentNoiseMask node to combine the encoded image with the inverted mask
-      workflow["40"] = {
-        inputs: {
-          samples: ["38", 0],
-          mask: ["41", 0]  // Use the inverted mask
-        },
-        class_type: "SetLatentNoiseMask",
-      };
+        // Add SetLatentNoiseMask node to combine the encoded image with the inverted mask
+        workflow["40"] = {
+          inputs: {
+            samples: ["38", 0],
+            mask: ["41", 0]  // Use the inverted mask
+          },
+          class_type: "SetLatentNoiseMask",
+        };
 
-      // Update the KSampler to use the masked latent image
-      workflow["3"].inputs.latent_image = ["40", 0];
-      workflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+        // Update the KSampler to use the masked latent image
+        workflow["3"].inputs.latent_image = ["40", 0];
+        workflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+      } else {
+        // Set up image-to-image workflow nodes
+        workflow["36"] = {
+          inputs: {
+            image: previewUrl,
+            upload: "image",
+          },
+          class_type: "LoadImage",
+        };
+
+        workflow["38"] = {
+          inputs: {
+            pixels: ["36", 0],
+            vae: ["4", 2]
+          },
+          class_type: "VAEEncode",
+        };
+
+        // Update the KSampler to use the encoded image directly
+        workflow["3"].inputs.latent_image = ["38", 0];
+        workflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+      }
     } else if (imageReferenceShape) {
       // Use dimensions from the image reference
       activeSettings.outputWidth = Math.round(imageReferenceShape.width);
