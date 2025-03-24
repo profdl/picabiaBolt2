@@ -17,8 +17,6 @@ interface UseImageCanvasProps {
   tool: "select" | "pan" | "pen" | "brush" | "eraser";
 }
 
-type CanvasLayer = 'background' | 'permanent' | 'active' | 'preview' | 'mask' | 'redBackground';
-
 export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
   // Add isDragging ref
   const isDragging = useRef(false);
@@ -76,15 +74,25 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     const previewCtx = refs.previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
     if (!previewCtx) return;
 
-    // During drag, only update CSS mask properties
+    // During drag, update both CSS mask properties and draw permanent strokes
     if (isDragging.current) {
+      // Clear preview canvas
+      previewCtx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
+      
+      // Draw background and permanent strokes
+      previewCtx.drawImage(refs.backgroundCanvasRef.current as CanvasImageSource, 0, 0);
+      previewCtx.drawImage(refs.permanentStrokesCanvasRef.current as CanvasImageSource, 0, 0);
+
+      // Apply mask
       const maskDataUrl = refs.maskCanvasRef.current.toDataURL();
-      refs.previewCanvasRef.current.style.webkitMaskImage = `url(${maskDataUrl})`;
-      refs.previewCanvasRef.current.style.maskImage = `url(${maskDataUrl})`;
-      refs.previewCanvasRef.current.style.webkitMaskSize = 'cover';
-      refs.previewCanvasRef.current.style.maskSize = 'cover';
-      refs.previewCanvasRef.current.style.webkitMaskPosition = 'center';
-      refs.previewCanvasRef.current.style.maskPosition = 'center';
+      if (maskDataUrl) {
+        refs.previewCanvasRef.current.style.webkitMaskImage = `url(${maskDataUrl})`;
+        refs.previewCanvasRef.current.style.maskImage = `url(${maskDataUrl})`;
+        refs.previewCanvasRef.current.style.webkitMaskSize = 'cover';
+        refs.previewCanvasRef.current.style.maskSize = 'cover';
+        refs.previewCanvasRef.current.style.webkitMaskPosition = 'center';
+        refs.previewCanvasRef.current.style.maskPosition = 'center';
+      }
       return;
     }
 
@@ -105,16 +113,19 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       previewCtx.globalCompositeOperation = "destination-in";
       previewCtx.drawImage(refs.maskCanvasRef.current as CanvasImageSource, 0, 0);
       previewCtx.globalCompositeOperation = "source-over";
+
       // Apply CSS mask
-      const maskDataUrl = refs.maskCanvasRef.current?.toDataURL() || '';
-      previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
-      previewCanvas.style.maskImage = `url(${maskDataUrl})`;
-      previewCanvas.style.webkitMaskSize = 'cover';
-      previewCanvas.style.maskSize = 'cover';
-      previewCanvas.style.webkitMaskPosition = 'center';
-      previewCanvas.style.maskPosition = 'center';
+      const maskDataUrl = refs.maskCanvasRef.current?.toDataURL();
+      if (maskDataUrl) {
+        previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
+        previewCanvas.style.maskImage = `url(${maskDataUrl})`;
+        previewCanvas.style.webkitMaskSize = 'cover';
+        previewCanvas.style.maskSize = 'cover';
+        previewCanvas.style.webkitMaskPosition = 'center';
+        previewCanvas.style.maskPosition = 'center';
+      }
     });
-  }, [refs]);
+  }, [refs, isDragging]);
 
   // Add effect to handle drag state
   useEffect(() => {
@@ -240,124 +251,63 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
   useEffect(() => {
     let isMounted = true;
 
-    console.log('ImageShape initialization started:', {
-      hasImageUrl: !!shape.imageUrl,
-      canvasRefs: {
-        background: !!refs.backgroundCanvasRef.current,
-        permanent: !!refs.permanentStrokesCanvasRef.current,
-        active: !!refs.activeStrokeCanvasRef.current,
-        preview: !!refs.previewCanvasRef.current,
-        mask: !!refs.maskCanvasRef.current,
-        redBackground: !!refs.redBackgroundCanvasRef.current
-      }
-    });
-
-    if (!refs.backgroundCanvasRef.current || !refs.permanentStrokesCanvasRef.current || 
-        !refs.activeStrokeCanvasRef.current || !refs.previewCanvasRef.current || 
-        !refs.maskCanvasRef.current || !refs.redBackgroundCanvasRef.current || !shape.imageUrl) return;
-
-    const backgroundCanvas = refs.backgroundCanvasRef.current;
-    const permanentCanvas = refs.permanentStrokesCanvasRef.current;
-    const activeCanvas = refs.activeStrokeCanvasRef.current;
-    const previewCanvas = refs.previewCanvasRef.current;
-    const maskCanvas = refs.maskCanvasRef.current;
-    const redBackgroundCanvas = refs.redBackgroundCanvasRef.current;
-    
-    const bgCtx = backgroundCanvas.getContext('2d', { willReadFrequently: true });
-    const permanentCtx = permanentCanvas.getContext('2d', { willReadFrequently: true });
-    const activeCtx = activeCanvas.getContext('2d', { willReadFrequently: true });
-    const previewCtx = previewCanvas.getContext('2d', { willReadFrequently: true });
-    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
-    const redBgCtx = redBackgroundCanvas.getContext('2d', { willReadFrequently: true });
-    
-    if (!bgCtx || !permanentCtx || !activeCtx || !previewCtx || !maskCtx || !redBgCtx) return;
-
-    // Clear all canvases first
-    [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas, redBackgroundCanvas].forEach(canvas => {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    });
-
-    // Load and draw the image
     const img = new Image();
     img.crossOrigin = "anonymous";
+
     img.onload = async () => {
       if (!isMounted) return;
 
-      console.log('Image loaded:', {
-        originalWidth: img.width,
-        originalHeight: img.height,
-        shapeWidth: shape.width,
-        shapeHeight: shape.height,
-        shapeAspectRatio: shape.width / shape.height,
-        imageAspectRatio: img.width / img.height
-      });
-
-      // Use shape's actual dimensions for canvas size
       const width = shape.width;
       const height = shape.height;
 
-      console.log('Setting canvas dimensions:', {
-        width,
-        height,
-        aspectRatio: img.width / img.height,
-        devicePixelRatio: window.devicePixelRatio || 1
-      });
+      // Initialize all canvases with proper dimensions
+      const backgroundCanvas = refs.backgroundCanvasRef.current;
+      const permanentCanvas = refs.permanentStrokesCanvasRef.current;
+      const activeCanvas = refs.activeStrokeCanvasRef.current;
+      const previewCanvas = refs.previewCanvasRef.current;
+      const maskCanvas = refs.maskCanvasRef.current;
+      const redBackgroundCanvas = refs.redBackgroundCanvasRef.current;
+
+      if (!backgroundCanvas || !permanentCanvas || !activeCanvas || !previewCanvas || !maskCanvas || !redBackgroundCanvas) return;
 
       // Set dimensions for all canvases
       [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas, redBackgroundCanvas].forEach(canvas => {
         canvas.width = width;
         canvas.height = height;
-        console.log(`Canvas ${canvas.dataset.layer} dimensions set to:`, {
-          width: canvas.width,
-          height: canvas.height,
-          styleWidth: canvas.style.width,
-          styleHeight: canvas.style.height
-        });
       });
 
-      // Fill red background canvas with noise
-      const noisePattern = generateNoise(redBgCtx, width, height);
-      redBgCtx.putImageData(noisePattern, 0, 0);
+      // Get contexts
+      const backgroundCtx = backgroundCanvas.getContext("2d", { willReadFrequently: true });
+      const permanentCtx = permanentCanvas.getContext("2d", { willReadFrequently: true });
+      const activeCtx = activeCanvas.getContext("2d", { willReadFrequently: true });
+      const previewCtx = previewCanvas.getContext("2d", { willReadFrequently: true });
+      const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+      const redBackgroundCtx = redBackgroundCanvas.getContext("2d", { willReadFrequently: true });
 
-      // Draw image on background canvas
-      if (!bgCtx || !previewCtx || !permanentCtx || !maskCtx) return;
+      if (!backgroundCtx || !permanentCtx || !activeCtx || !previewCtx || !maskCtx || !redBackgroundCtx) return;
 
-      bgCtx.drawImage(img, 0, 0, width, height);
-      console.log('Background canvas drawn');
+      // Draw background
+      backgroundCtx.drawImage(img, 0, 0, width, height);
 
-      // Load saved canvas data if available
-      const canvasLayers: CanvasLayer[] = ['background', 'permanent', 'active', 'preview', 'mask', 'redBackground'];
-      for (const layer of canvasLayers) {
-        const canvasData = shape[`${layer}CanvasData` as keyof Shape];
-        if (canvasData) {
-          const layerImg = new Image();
-          await new Promise((resolve) => {
-            layerImg.onload = () => {
-              if (!isMounted) return;
-              
-              const targetCanvas = {
-                background: backgroundCanvas,
-                permanent: permanentCanvas,
-                active: activeCanvas,
-                preview: previewCanvas,
-                mask: maskCanvas,
-                redBackground: redBackgroundCanvas
-              }[layer];
-              
-              if (targetCanvas) {
-                const targetCtx = targetCanvas.getContext('2d');
-                if (targetCtx) {
-                  targetCtx.drawImage(layerImg, 0, 0, width, height);
-                }
-              }
-              resolve(null);
-            };
-            layerImg.src = canvasData as string;
-          });
-        }
+      // Generate noise for red background
+      const noisePattern = generateNoise(redBackgroundCtx, width, height);
+      redBackgroundCtx.putImageData(noisePattern, 0, 0);
+
+      // Handle permanent strokes initialization
+      if (shape.permanentCanvasData) {
+        const permanentImg = new Image();
+        await new Promise((resolve) => {
+          permanentImg.onload = () => {
+            if (!isMounted) return;
+            permanentCtx.clearRect(0, 0, width, height);
+            permanentCtx.drawImage(permanentImg, 0, 0, width, height);
+            resolve(null);
+          };
+          permanentImg.src = shape.permanentCanvasData as string;
+        });
+      } else {
+        // Clear permanent strokes canvas
+        permanentCtx.clearRect(0, 0, width, height);
       }
 
       // Handle mask initialization with proper priority
@@ -383,6 +333,18 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
           maskCtx.fillStyle = 'white';
           maskCtx.fillRect(0, 0, width, height);
         }
+      } else {
+        // If we have mask data in the shape state, use that
+        const maskImg = new Image();
+        await new Promise((resolve) => {
+          maskImg.onload = () => {
+            if (!isMounted) return;
+            maskCtx.clearRect(0, 0, width, height);
+            maskCtx.drawImage(maskImg, 0, 0, width, height);
+            resolve(null);
+          };
+          maskImg.src = shape.maskCanvasData as string;
+        });
       }
 
       // Store the initial dimensions (without gradient)
@@ -391,8 +353,6 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
         height,
         gradient: null
       };
-      
-      console.log('Mask canvas drawn');
 
       // Update preview canvas with all layers
       previewCtx.clearRect(0, 0, width, height);
@@ -401,20 +361,21 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       
       // Apply the mask using CSS
       const maskDataUrl = maskCanvas.toDataURL();
-      previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
-      previewCanvas.style.maskImage = `url(${maskDataUrl})`;
-      previewCanvas.style.webkitMaskSize = 'cover';
-      previewCanvas.style.maskSize = 'cover';
-      previewCanvas.style.webkitMaskPosition = 'center';
-      previewCanvas.style.maskPosition = 'center';
-      console.log('Preview canvas: background drawn and masked');
+      if (maskDataUrl) {
+        previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
+        previewCanvas.style.maskImage = `url(${maskDataUrl})`;
+        previewCanvas.style.webkitMaskSize = 'cover';
+        previewCanvas.style.maskSize = 'cover';
+        previewCanvas.style.webkitMaskPosition = 'center';
+        previewCanvas.style.maskPosition = 'center';
+      }
     };
-    img.src = shape.imageUrl;
+    img.src = shape.imageUrl as string;
 
     return () => {
       isMounted = false;
     };
-  }, [shape.imageUrl, shape.maskCanvasData, refs, shape, shape.id, updateShape]);
+  }, [shape.imageUrl, shape.width, shape.height, shape.id, shape.maskCanvasData, refs, updateShape]);
 
   return {
     refs,

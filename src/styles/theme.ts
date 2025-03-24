@@ -37,7 +37,8 @@ export const theme = {
     button: {
       base: "p-2 rounded-lg transition-colors duration-200",
       active: "bg-neutral-100 dark:bg-[#3e3e3e]",
-      primary: "bg-blue-600 hover:bg-blue-700 text-white dark:bg-[#0d99ff] dark:hover:bg-[#0b87e3] dark:text-white font-medium shadow-sm" 
+      primary: "bg-blue-600 hover:bg-blue-700 text-white dark:bg-[#0d99ff] dark:hover:bg-[#0b87e3] dark:text-white font-medium shadow-sm",
+      ghost: "hover:bg-neutral-100 dark:hover:bg-[#3e3e3e] text-neutral-600 dark:text-[#999999]"
     },
     controls: {
       container: "flex flex-col gap-1",
@@ -45,7 +46,6 @@ export const theme = {
       input: "w-full dark:bg-[#2c2c2c] dark:text-white",
       slider: "mini-slider", 
     }
-    
   },
   canvas: {
     container: "w-full h-full overflow-hidden bg-neutral-50 dark:bg-[#121212] relative",

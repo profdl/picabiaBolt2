@@ -134,6 +134,22 @@ export const useBrush = ({
         tool,
         opacity: brushOpacity
       });
+
+      // Save initial state to ensure it persists
+      const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;
+      if (shapeId) {
+        saveImageShapeState(
+          {
+            backgroundCanvasRef,
+            permanentStrokesCanvasRef,
+            activeStrokeCanvasRef,
+            previewCanvasRef,
+            maskCanvasRef
+          },
+          shapeId,
+          useStore.getState().updateShape
+        );
+      }
     }
   };
 
@@ -216,6 +232,17 @@ export const useBrush = ({
     
     if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current) return;
 
+    // First update preview with the active stroke still visible
+    updateImageShapePreview({
+      backgroundCanvasRef,
+      permanentStrokesCanvasRef,
+      activeStrokeCanvasRef,
+      previewCanvasRef,
+      maskCanvasRef,
+      tool,
+      opacity: brushOpacity
+    });
+
     if (tool === "eraser") {
       // Handle eraser with mask
       if (maskCanvasRef) {
@@ -226,28 +253,18 @@ export const useBrush = ({
         }
       }
     } else {
-      // Create temporary canvas for opacity handling
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = activeStrokeCanvasRef.current.width;
-      tempCanvas.height = activeStrokeCanvasRef.current.height;
-      const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-      
-      if (tempCtx) {
-        // Apply opacity to stroke on temp canvas
-        tempCtx.globalAlpha = brushOpacity;
-        tempCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-        
-        // Draw to permanent canvas at full opacity
-        permanentCtx.globalAlpha = 1;
-        permanentCtx.globalCompositeOperation = "source-over";
-        permanentCtx.drawImage(tempCanvas, 0, 0);
-      }
+      // For brush tool, transfer the active stroke to permanent layer
+      permanentCtx.save();
+      permanentCtx.globalCompositeOperation = "source-over";
+      permanentCtx.globalAlpha = 1;
+      permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+      permanentCtx.restore();
     }
 
-    // Clear active stroke
+    // Clear active stroke after transferring to permanent layer
     clearImageShapeCanvas(activeStrokeCanvasRef);
 
-    // Update preview with all layers
+    // Update preview again with the stroke now in the permanent layer
     updateImageShapePreview({
       backgroundCanvasRef,
       permanentStrokesCanvasRef,

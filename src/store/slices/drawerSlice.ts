@@ -1,9 +1,10 @@
 import { StateCreator } from "zustand";
 import { getImageDimensions } from "../../utils/image";
 import { supabase } from "../../lib/supabase/client";
-import { Shape } from "../../types";
+import { Shape, Position } from "../../types/shapes";
 import { DEFAULT_CONTROL_STRENGTHS } from "../../constants/shapeControlSettings";
 import debounce from 'lodash/debounce';
+import { CanvasState, CanvasCoreActions } from "../../types/canvas";
 
 interface SourcePlusImage {
   id: string;
@@ -18,10 +19,6 @@ interface SourcePlusImage {
   };
 }
 
-interface Position {
-  x: number;
-  y: number;
-}
 export interface SavedImage {
   id: string;
   generated_01: string;
@@ -30,15 +27,6 @@ export interface SavedImage {
   status: "generating" | "completed" | "failed";
   aspect_ratio: string;
 }
-
-interface CanvasState {
-  shapes: Shape[];
-  setOffset: (offset: Position) => void;
-  addShape: (shape: Shape) => void;
-  centerOnShape: (shapeId: string) => void; 
-  hasMore: boolean;
-}
-
 
 interface UnsplashImage {
   name: string;
@@ -56,6 +44,7 @@ interface UnsplashImage {
   width: number;
   height: number;
 }
+
 export interface DrawerState {
   // Drawer visibility states
   activeDrawer: "none" | "assets" | "gallery" | "imageGenerate" | "unsplash";
@@ -76,28 +65,18 @@ export interface DrawerState {
   unsplashImages: UnsplashImage[];
   unsplashLoading: boolean;
 
+  // SourcePlus states
+  sourcePlusQuery: string;
+  sourcePlusImages: SourcePlusImage[];
+  sourcePlusLoading: boolean;
+
   zoom: number;
   offset: Position;
   isLoading: boolean;
   shapes: Shape[];
-
-  //SourcePlus states
-  sourcePlusQuery: string;
-  sourcePlusImages: SourcePlusImage[] ;
-  sourcePlusLoading: boolean;
 }
-export interface DrawerSlice {
-  activeDrawer: "none" | "assets" | "gallery" | "imageGenerate" | "unsplash";
-  galleryRefreshCounter: number;
-  selectedGalleryImage: SavedImage | null;
-  generatedImages: SavedImage[];
-  isGenerating: boolean;
-  assetsRefreshTrigger: number;
-  uploadingAssets: string[];
-  unsplashQuery: string;
-  unsplashImages: UnsplashImage[];
-  unsplashLoading: boolean;
-  isLoading: boolean;
+
+export interface DrawerActions {
   // Actions - Drawer visibility
   openDrawer: (drawer: DrawerState["activeDrawer"]) => void;
   closeDrawer: () => void;
@@ -121,12 +100,8 @@ export interface DrawerSlice {
   searchUnsplashImages: (query: string) => Promise<void>;
 
   // Actions - SourcePlus
-  sourcePlusQuery: string;
-  sourcePlusImages: SourcePlusImage[]; 
-    sourcePlusLoading: boolean;
   setSourcePlusQuery: (query: string) => void;
   searchSourcePlusImages: (query: string) => Promise<void>;
-
 
   addImageToCanvas: (
     imageSource: {
@@ -143,10 +118,12 @@ export interface DrawerSlice {
     options?: { defaultWidth?: number; position?: Position }
   ) => Promise<boolean>;
 }
+
 const findRightmostBoundary = (shapes: Shape[]): number => {
   if (shapes.length === 0) return 0;
   return Math.max(...shapes.map((shape) => shape.position.x + shape.width));
 };
+
 const findOpenSpace = (
   shapes: Shape[],
   height: number,
@@ -162,11 +139,11 @@ const findOpenSpace = (
 };
 
 export const drawerSlice: StateCreator<
-  DrawerState & DrawerSlice & CanvasState,
+  DrawerState & DrawerActions & Pick<CanvasState, 'shapes'> & Pick<CanvasCoreActions, 'addShape' | 'setOffset' | 'centerOnShape'>,
   [],
   [],
-  DrawerSlice & Partial<CanvasState>
-> = (set, get: () => DrawerState & DrawerSlice & CanvasState) => {
+  DrawerActions & Pick<CanvasCoreActions, 'addShape' | 'setOffset' | 'centerOnShape'>
+> = (set, get: () => DrawerState & DrawerActions & Pick<CanvasState, 'shapes'> & Pick<CanvasCoreActions, 'addShape' | 'setOffset' | 'centerOnShape'>) => {
   // Create the debounced function with proper typing
   const debouncedSourcePlusSearch = debounce(async (query: string) => {
     set({ sourcePlusLoading: true });
@@ -184,7 +161,6 @@ export const drawerSlice: StateCreator<
         sourcePlusImages: data.results,
         sourcePlusLoading: false 
       });
-      ;
     } catch (error) {
       console.error("Source.plus search error:", error);
       set({ 
@@ -195,8 +171,9 @@ export const drawerSlice: StateCreator<
   }, 1000);
 
   return {
-    // Initial states
+    // Initial state
     activeDrawer: "none",
+    hasMore: false,
     galleryRefreshCounter: 0,
     selectedGalleryImage: null,
     generatedImages: [],
@@ -206,334 +183,348 @@ export const drawerSlice: StateCreator<
     unsplashQuery: "",
     unsplashImages: [],
     unsplashLoading: false,
-    isLoading: false,
     sourcePlusQuery: "",
     sourcePlusImages: [],
     sourcePlusLoading: false,
+    zoom: 1,
+    offset: { x: 0, y: 0 },
+    isLoading: false,
+    shapes: [],
 
-  // Drawer visibility actions
-  openDrawer: (drawer) => set({ activeDrawer: drawer }),
-  closeDrawer: () => set({ activeDrawer: "none" }),
+    // Drawer visibility actions
+    openDrawer: (drawer) => set({ activeDrawer: drawer }),
+    closeDrawer: () => set({ activeDrawer: "none" }),
 
-  // Gallery actions
-  refreshGallery: () =>
-    set((state) => ({
-      galleryRefreshCounter: state.galleryRefreshCounter + 1,
-    })),
+    // Gallery actions
+    refreshGallery: () =>
+      set((state) => ({
+        galleryRefreshCounter: state.galleryRefreshCounter + 1,
+      })),
 
-  setSelectedGalleryImage: (image) => set({ selectedGalleryImage: image }),
+    setSelectedGalleryImage: (image) => set({ selectedGalleryImage: image }),
 
-  setSourcePlusQuery: (query: string) => {
-    set({ sourcePlusQuery: query });
-    if (query.trim()) {
-      debouncedSourcePlusSearch(query);
-    } else {
-      set({ sourcePlusImages: [] });
-    }
-  },
+    setSourcePlusQuery: (query: string) => {
+      set({ sourcePlusQuery: query });
+      if (query.trim()) {
+        debouncedSourcePlusSearch(query);
+      } else {
+        set({ sourcePlusImages: [] });
+      }
+    },
 
-
-  searchSourcePlusImages: async (query: string) => {
-    set({ sourcePlusLoading: true });
-    try {
+    searchSourcePlusImages: async (query: string) => {
+      set({ sourcePlusLoading: true });
+      try {
         const response = await fetch(
-            `/.netlify/functions/sourceplus-search?query=${encodeURIComponent(query)}`
+          `/.netlify/functions/sourceplus-search?query=${encodeURIComponent(query)}`
         );
         
         const data = await response.json();
         
         if (!response.ok) {
-            console.error('Source.plus API error:', {
-                status: response.status,
-                data
-            });
-            throw new Error(data.details || 'Failed to fetch images');
+          console.error('Source.plus API error:', {
+            status: response.status,
+            data
+          });
+          throw new Error(data.details || 'Failed to fetch images');
         }
         
-        // Transform the API results to match our expected format
-        const transformedResults = data.results.map((item: SourcePlusImage) => ({
-            id: item.id,
-            url: item.url,
-            thumbnail_url: item.thumbnail_url || item.url,
-            width: item.width,
-            height: item.height,
-            description: item.description,
-            author: item.author
-        }));
-        
         set({ 
-            sourcePlusImages: transformedResults,
-            sourcePlusLoading: false 
+          sourcePlusImages: data.results,
+          sourcePlusLoading: false 
         });
-    } catch (error) {
+      } catch (error) {
         console.error("Source.plus search error:", error);
         set({ 
-            sourcePlusImages: [],
-            sourcePlusLoading: false 
+          sourcePlusImages: [],
+          sourcePlusLoading: false 
         });
-    }
-},
-fetchGeneratedImages: async (page = 1, perPage = 20) => {
-  try {
-    set({ isLoading: true });
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const from = (page - 1) * perPage;
-    const to = from + perPage - 1;
-
-    const { data, error, count } = await supabase
-      .from("generated_images")
-      .select("*", { count: 'exact' })
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .range(from, to);
-
-    if (error) throw error;
-
-    set((state) => ({
-      generatedImages: page === 1 ? data || [] : [...state.generatedImages, ...(data || [])],
-      hasMore: count ? from + perPage < count : false
-    }));
-  } catch (err) {
-    console.error("Error fetching generated images:", err);
-  } finally {
-    set({ isLoading: false });
-  }
-},
-
-  deleteGeneratedImage: async (imageId: string) => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return false;
-
-      const imageToDelete = get().generatedImages.find(
-        (img) => img.id === imageId
-      );
-      if (!imageToDelete) return false;
-
-      const filename = imageToDelete.generated_01.split("/").pop();
-      if (filename) {
-        await supabase.storage.from("generated-images").remove([filename]);
       }
+    },
 
-      const { error } = await supabase
-        .from("generated_images")
-        .delete()
-        .eq("id", imageId)
-        .eq("user_id", user.id);
+    fetchGeneratedImages: async (page = 1, perPage = 20) => {
+      try {
+        set({ isLoading: true });
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
 
-      if (error) throw error;
+        const from = (page - 1) * perPage;
+        const to = from + perPage - 1;
 
-      set((state) => ({
-        generatedImages: state.generatedImages.filter(
-          (img) => img.id !== imageId
-        ),
-      }));
+        const { data, error, count } = await supabase
+          .from("generated_images")
+          .select("*", { count: 'exact' })
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .range(from, to);
 
-      return true;
-    } catch (err) {
-      console.error("Error deleting generated image:", err);
-      return false;
-    }
-  },
+        if (error) throw error;
 
-  setIsGenerating: (isGenerating) => set({ isGenerating }),
+        set((state) => ({
+          generatedImages: page === 1 ? data || [] : [...state.generatedImages, ...(data || [])],
+          hasMore: count ? from + perPage < count : false
+        }));
+      } catch (err) {
+        console.error("Error fetching generated images:", err);
+      } finally {
+        set({ isLoading: false });
+      }
+    },
 
-  refreshGalleryOnWebhook: () => {
-    const { fetchGeneratedImages } = get();
-    fetchGeneratedImages();
-  },
+    deleteGeneratedImage: async (imageId: string) => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return false;
 
-  // Asset actions
-  triggerAssetsRefresh: () =>
-    set((state) => ({
-      assetsRefreshTrigger: state.assetsRefreshTrigger + 1,
-    })),
+        const imageToDelete = get().generatedImages.find(
+          (img) => img.id === imageId
+        );
+        if (!imageToDelete) return false;
 
-  addUploadingAsset: (id) =>
-    set((state) => ({
-      uploadingAssets: [...state.uploadingAssets, id],
-    })),
-
-  removeUploadingAsset: (id) =>
-    set((state) => ({
-      uploadingAssets: state.uploadingAssets.filter(
-        (assetId) => assetId !== id
-      ),
-    })),
-
-  uploadAsset: async (file: File) => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return false;
-
-
-      const fileName = `${user.id}-${Date.now()}-${file.name}`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("assets")
-        .upload(fileName, file);
-
-      // Log the upload result
-      console.log("Upload result:", { uploadData, uploadError });
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("assets").getPublicUrl(fileName);
-
-   
-      // Get image dimensions first, matching the drag & drop pattern
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-
-      const dimensions = await new Promise<{ width: number; height: number }>(
-        (resolve) => {
-          img.onload = () => {
-            resolve({
-              width: img.naturalWidth,
-              height: img.naturalHeight,
-            });
-          };
-          img.src = url;
+        const filename = imageToDelete.generated_01.split("/").pop();
+        if (filename) {
+          await supabase.storage.from("generated-images").remove([filename]);
         }
-      );
 
-      // Insert record into assets table with dimensions
-      const { error: dbError } = await supabase.from("assets").insert([
-        {
-          url: publicUrl,
-          user_id: user.id,
-          width: dimensions.width,
-          height: dimensions.height,
-          created_at: new Date().toISOString(),
-        },
-      ]);
+        const { error } = await supabase
+          .from("generated_images")
+          .delete()
+          .eq("id", imageId)
+          .eq("user_id", user.id);
 
-      if (dbError) throw dbError;
+        if (error) throw error;
 
-      URL.revokeObjectURL(url);
-      get().triggerAssetsRefresh();
-      return true;
-    } catch (err) {
-      console.error("Error uploading asset:", err);
-      return false;
-    }
-  },
-  deleteAsset: async (assetId: string, url: string) => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return false;
+        set((state) => ({
+          generatedImages: state.generatedImages.filter(
+            (img) => img.id !== imageId
+          ),
+        }));
 
-      const fileName = url.split("/").pop();
-      if (fileName) {
-        await supabase.storage.from("assets").remove([fileName]);
+        return true;
+      } catch (err) {
+        console.error("Error deleting generated image:", err);
+        return false;
       }
+    },
 
-      const { error } = await supabase
-        .from("assets")
-        .delete()
-        .eq("id", assetId)
-        .eq("user_id", user.id);
+    setIsGenerating: (isGenerating) => set({ isGenerating }),
 
-      if (error) throw error;
+    refreshGalleryOnWebhook: () => {
+      const { fetchGeneratedImages } = get();
+      fetchGeneratedImages();
+    },
 
-      get().triggerAssetsRefresh();
-      return true;
-    } catch (err) {
-      console.error("Error deleting asset:", err);
-      return false;
-    }
-  },
+    // Asset actions
+    triggerAssetsRefresh: () =>
+      set((state) => ({
+        assetsRefreshTrigger: state.assetsRefreshTrigger + 1,
+      })),
 
-  setUnsplashQuery: (query: string) => {
-    set({ unsplashQuery: query });
-    if (query) {
-      get().searchUnsplashImages(query);
-    }
-  },
+    addUploadingAsset: (id) =>
+      set((state) => ({
+        uploadingAssets: [...state.uploadingAssets, id],
+      })),
 
-  searchUnsplashImages: async (query: string) => {
-    set({ unsplashLoading: true });
-    try {
-      const response = await fetch(
-        `/.netlify/functions/unsplash-search?query = ${encodeURIComponent(
-          query
-        )}`
-      );
-      const data = await response.json();
-      set({ unsplashImages: data.results });
-    } catch (error) {
-      console.error("Unsplash search error:", error);
-      set({ unsplashImages: [] });
-    } finally {
-      set({ unsplashLoading: false });
-    }
-  },
+    removeUploadingAsset: (id) =>
+      set((state) => ({
+        uploadingAssets: state.uploadingAssets.filter(
+          (assetId) => assetId !== id
+        ),
+      })),
 
-  addImageToCanvas: async (imageSource, options = {}) => {
-    const { zoom, offset, addShape, shapes } = get();
-    const defaultWidth = options.defaultWidth || 300;
+    uploadAsset: async (file: File) => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return false;
 
-    try {
-      let dimensions;
-      if (imageSource.width && imageSource.height) {
-        dimensions = {
-          width: imageSource.width,
-          height: imageSource.height,
-        };
-      } else {
-        dimensions = await getImageDimensions(imageSource.url);
+        const fileName = `${user.id}-${Date.now()}-${file.name}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("assets")
+          .upload(fileName, file);
+
+        // Log the upload result
+        console.log("Upload result:", { uploadData, uploadError });
+
+        if (uploadError) throw uploadError;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("assets").getPublicUrl(fileName);
+
+        // Get image dimensions first, matching the drag & drop pattern
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        const dimensions = await new Promise<{ width: number; height: number }>(
+          (resolve) => {
+            img.onload = () => {
+              resolve({
+                width: img.naturalWidth,
+                height: img.naturalHeight,
+              });
+            };
+            img.src = url;
+          }
+        );
+
+        // Insert record into assets table with dimensions
+        const { error: dbError } = await supabase.from("assets").insert([
+          {
+            url: publicUrl,
+            user_id: user.id,
+            width: dimensions.width,
+            height: dimensions.height,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+
+        if (dbError) throw dbError;
+
+        URL.revokeObjectURL(url);
+        get().triggerAssetsRefresh();
+        return true;
+      } catch (err) {
+        console.error("Error uploading asset:", err);
+        return false;
       }
+    },
 
-      const aspectRatio = dimensions.width / dimensions.height;
-      const width = defaultWidth;
-      const height = width / aspectRatio;
+    deleteAsset: async (assetId: string, url: string) => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return false;
 
-      const position =
-        options.position ||
-        findOpenSpace(shapes, height, {
-          x: (window.innerWidth / 2 - offset.x) / zoom,
-          y: (window.innerHeight / 2 - offset.y) / zoom,
+        const fileName = url.split("/").pop();
+        if (fileName) {
+          await supabase.storage.from("assets").remove([fileName]);
+        }
+
+        const { error } = await supabase
+          .from("assets")
+          .delete()
+          .eq("id", assetId)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        get().triggerAssetsRefresh();
+        return true;
+      } catch (err) {
+        console.error("Error deleting asset:", err);
+        return false;
+      }
+    },
+
+    setUnsplashQuery: (query: string) => {
+      set({ unsplashQuery: query });
+      if (query) {
+        get().searchUnsplashImages(query);
+      }
+    },
+
+    searchUnsplashImages: async (query: string) => {
+      set({ unsplashLoading: true });
+      try {
+        const response = await fetch(
+          `/.netlify/functions/unsplash-search?query = ${encodeURIComponent(
+            query
+          )}`
+        );
+        const data = await response.json();
+        set({ unsplashImages: data.results });
+      } catch (error) {
+        console.error("Unsplash search error:", error);
+        set({ unsplashImages: [] });
+      } finally {
+        set({ unsplashLoading: false });
+      }
+    },
+
+    addImageToCanvas: async (imageSource, options = {}) => {
+      const { zoom, offset, addShape, shapes } = get();
+      const defaultWidth = options.defaultWidth || 300;
+
+      try {
+        let dimensions;
+        if (imageSource.width && imageSource.height) {
+          dimensions = {
+            width: imageSource.width,
+            height: imageSource.height,
+          };
+        } else {
+          dimensions = await getImageDimensions(imageSource.url);
+        }
+
+        const aspectRatio = dimensions.width / dimensions.height;
+        const width = defaultWidth;
+        const height = width / aspectRatio;
+
+        const position =
+          options.position ||
+          findOpenSpace(shapes, height, {
+            x: (window.innerWidth / 2 - offset.x) / zoom,
+            y: (window.innerHeight / 2 - offset.y) / zoom,
+          });
+
+        const shapeId = Math.random().toString(36).substr(2, 9);
+        addShape({
+          id: shapeId,
+          type: "image",
+          position,
+          width,
+          height,
+          color: "transparent",
+          imageUrl: imageSource.url,
+          originalWidth: dimensions.width,
+          originalHeight: dimensions.height,
+          aspectRatio,
+          rotation: 0,
+          isUploading: false,
+          model: "",
+          isEditing: false,
+          ...DEFAULT_CONTROL_STRENGTHS,
         });
 
-      const shapeId = Math.random().toString(36).substr(2, 9);
-      addShape({
-        id: shapeId,
-        type: "image",
-        position,
-        width,
-        height,
-        color: "transparent",
-        imageUrl: imageSource.url,
-        originalWidth: dimensions.width,
-        originalHeight: dimensions.height,
-        aspectRatio,
-        rotation: 0,
-        isUploading: false,
-        model: "",
-        isEditing: false,
-        ...DEFAULT_CONTROL_STRENGTHS,
-      });
-
-      if (get().centerOnShape) {
-        get().centerOnShape(shapeId);
+        if (get().centerOnShape) {
+          get().centerOnShape(shapeId);
+        }
+        return true;
+      } catch (err) {
+        console.error("Error adding image:", err);
+        return false;
       }
-      return true;
-    } catch (err) {
-      console.error("Error adding image:", err);
-      return false;
-    }
-  },
-}
+    },
+
+    // Canvas core actions
+    addShape: (shape) => {
+      set((state) => ({
+        shapes: [...state.shapes, shape],
+      }));
+    },
+    setOffset: (offset) => {
+      set({ offset });
+    },
+    centerOnShape: (shapeId) => {
+      const { shapes, zoom } = get();
+      const shape = shapes.find((s) => s.id === shapeId);
+      if (shape) {
+        const centerX = shape.position.x + shape.width / 2;
+        const centerY = shape.position.y + shape.height / 2;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const offsetX = windowWidth / 2 - centerX * zoom;
+        const offsetY = windowHeight / 2 - centerY * zoom;
+        set({ offset: { x: offsetX, y: offsetY } });
+      }
+    },
+  };
 };

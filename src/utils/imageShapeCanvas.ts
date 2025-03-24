@@ -60,7 +60,7 @@ export const updateImageShapePreview = ({
   opacity = 1
 }: ImageShapeCanvasRefs & { tool: string; opacity?: number }) => {
   const previewCtx = getImageShapeCanvasContext(previewCanvasRef);
-  if (!previewCtx || !previewCanvasRef.current || !activeStrokeCanvasRef.current) return;
+  if (!previewCtx || !previewCanvasRef.current) return;
 
   // Use requestAnimationFrame for smoother updates
   requestAnimationFrame(() => {
@@ -70,24 +70,27 @@ export const updateImageShapePreview = ({
     // 1. Clear the preview canvas
     previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
 
-    // 2. Draw background and permanent strokes with NO opacity changes
+    // 2. Draw background with NO opacity changes
     previewCtx.globalAlpha = 1;
     previewCtx.globalCompositeOperation = 'source-over';
     
-    // Use a single drawImage call for background and permanent strokes
     if (backgroundCanvasRef.current) {
       previewCtx.drawImage(backgroundCanvasRef.current as CanvasImageSource, 0, 0);
     }
+
+    // 3. Draw permanent strokes with NO opacity changes
     if (permanentStrokesCanvasRef.current) {
       previewCtx.drawImage(permanentStrokesCanvasRef.current as CanvasImageSource, 0, 0);
     }
 
-    // 3. Draw active stroke directly with opacity
-    previewCtx.globalAlpha = opacity;
-    previewCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
-    previewCtx.drawImage(activeStrokeCanvasRef.current as CanvasImageSource, 0, 0);
+    // 4. Draw active stroke with opacity
+    if (activeStrokeCanvasRef.current) {
+      previewCtx.globalAlpha = opacity;
+      previewCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
+      previewCtx.drawImage(activeStrokeCanvasRef.current as CanvasImageSource, 0, 0);
+    }
 
-    // 4. Apply mask using CSS transforms for better performance
+    // 5. Apply mask using CSS transforms for better performance
     if (maskCanvasRef?.current) {
       const maskUrl = maskCanvasRef.current.toDataURL();
       // Apply mask to the preview canvas
@@ -98,11 +101,10 @@ export const updateImageShapePreview = ({
       previewCanvas.style.webkitMaskPosition = 'center';
       previewCanvas.style.maskPosition = 'center';
       previewCanvas.style.transform = 'translateZ(0)'; // Force GPU acceleration
-      
-      // Also apply the mask to the context for additional masking
-      previewCtx.globalCompositeOperation = 'destination-in';
-      previewCtx.drawImage(maskCanvasRef.current as CanvasImageSource, 0, 0);
-      previewCtx.globalCompositeOperation = 'source-over';
+    } else {
+      // If no mask, ensure the preview is fully visible
+      previewCanvas.style.webkitMaskImage = 'none';
+      previewCanvas.style.maskImage = 'none';
     }
   });
 };
