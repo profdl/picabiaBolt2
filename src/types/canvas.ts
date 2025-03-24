@@ -1,7 +1,7 @@
 import { Shape, Position, ToolContext } from './shapes';
 
-export interface CanvasState {
-  activeToolContext: ToolContext;
+// Base state properties
+export interface CanvasBaseState {
   shapes: Shape[];
   selectedShapes: string[];
   zoom: number;
@@ -17,7 +17,11 @@ export interface CanvasState {
   currentColor: string;
   strokeWidth: number;
   isEditingText: boolean;
-  setIsEditingText: (isEditing: boolean) => void;
+  hasMore: boolean;
+}
+
+// Core canvas actions
+export interface CanvasCoreActions {
   setShapes: (shapes: Shape[]) => void;
   addShape: (shape: Shape) => void;
   addShapes: (shapes: Shape[]) => void;
@@ -26,25 +30,50 @@ export interface CanvasState {
   removeShape: (id: string) => void;
   removeShapes: (ids: string[]) => void;
   clearShapes: () => void;
+  setOffset: (offset: Position) => void;
+  centerOnShape: (shapeId: string) => void;
+}
+
+// Selection actions
+export interface CanvasSelectionActions {
   setSelectedShapes: (ids: string[]) => void;
   addSelectedShape: (id: string) => void;
   removeSelectedShape: (id: string) => void;
   clearSelectedShapes: () => void;
-  setZoom: (zoom: number) => void;
-  setOffset: (offset: Position) => void;
+}
+
+// Viewport actions
+export interface CanvasViewportActions {
+  setZoom: (zoom: number, center?: Position) => void;
   setIsDragging: (isDragging: boolean) => void;
-  setTool: (tool: CanvasState['tool']) => void;
+  setTool: (tool: CanvasBaseState['tool']) => void;
   setLocked: (locked: boolean) => void;
+  setGridEnabled: (enabled: boolean) => void;
+  setGridSize: (size: number) => void;
+}
+
+// History actions
+export interface CanvasHistoryActions {
   addToHistory: (shapes: Shape[]) => void;
   undo: () => void;
   redo: () => void;
-  setGridEnabled: (enabled: boolean) => void;
-  setGridSize: (size: number) => void;
+}
+
+// Style actions
+export interface CanvasStyleActions {
   setClipboard: (shapes: Shape[]) => void;
   setCurrentColor: (color: string) => void;
   setStrokeWidth: (width: number) => void;
+}
+
+// Tool context actions
+export interface CanvasToolContextActions {
   setActiveToolContext: (context: ToolContext) => void;
   clearActiveToolContext: () => void;
+}
+
+// Shape manipulation actions
+export interface CanvasShapeManipulationActions {
   startDragging: (x: number, y: number, initialPositions: Map<string, Position>) => void;
   stopDragging: () => void;
   updateShapePositions: (positions: Map<string, Position>) => void;
@@ -64,6 +93,10 @@ export interface CanvasState {
   updateShapeMergedFrom: (id: string, mergedFrom: string[]) => void;
   updateShapeIsMerged: (id: string, isMerged: boolean) => void;
   updateShapeLastUpdated: (id: string, lastUpdated: string) => void;
+}
+
+// 3D shape actions
+export interface Canvas3DActions {
   updateShape3DProperties: (
     id: string,
     properties: {
@@ -87,6 +120,10 @@ export interface CanvasState {
       isOrbiting?: boolean;
     }
   ) => void;
+}
+
+// Processing state actions
+export interface CanvasProcessingActions {
   updateShapeProcessingStates: (
     id: string,
     states: {
@@ -153,4 +190,19 @@ export interface CanvasState {
       outputHeight?: number;
     }
   ) => void;
+}
+
+// Main CanvasState interface combining all sub-interfaces
+export interface CanvasState extends 
+  CanvasBaseState,
+  CanvasCoreActions,
+  CanvasSelectionActions,
+  CanvasViewportActions,
+  CanvasHistoryActions,
+  CanvasStyleActions,
+  CanvasToolContextActions,
+  CanvasShapeManipulationActions,
+  Canvas3DActions,
+  CanvasProcessingActions {
+  setIsEditingText: (isEditing: boolean) => void;
 } 
