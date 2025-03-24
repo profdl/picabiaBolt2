@@ -187,63 +187,123 @@ export const generationHandlerSlice: StateCreator<
       activeSettings.outputWidth = Math.round(variationShape.width);
       activeSettings.outputHeight = Math.round(variationShape.height);
 
-      // Get the preview canvas for the variation shape
+      // Get the preview canvas and mask canvas for the variation shape
       const previewCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="preview"]`) as HTMLCanvasElement;
-      if (!previewCanvas) {
-        console.error('Preview canvas not found for variation shape');
+      const maskCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="mask"]`) as HTMLCanvasElement;
+      
+      if (!previewCanvas || !maskCanvas) {
+        console.error('Required canvases not found for variation shape');
         return;
       }
 
-      // Create a blob from the preview canvas
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        previewCanvas.toBlob((blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create blob from preview canvas'));
-          }
-        }, 'image/png', 1.0);
-      });
+      // Create blobs from both canvases
+      const [previewBlob, maskBlob] = await Promise.all([
+        new Promise<Blob>((resolve, reject) => {
+          previewCanvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Failed to create blob from preview canvas'));
+          }, 'image/png', 1.0);
+        }),
+        new Promise<Blob>((resolve, reject) => {
+          maskCanvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Failed to create blob from mask canvas'));
+          }, 'image/png', 1.0);
+        })
+      ]);
 
-      // Upload to Supabase
-      const fileName = `variation_source_${Math.random().toString(36).substring(2)}.png`;
-      const arrayBuffer = await blob.arrayBuffer();
-      const fileData = new Uint8Array(arrayBuffer);
+      // Upload both images to Supabase
+      const [previewFileName, maskFileName] = [
+        `variation_source_${Math.random().toString(36).substring(2)}.png`,
+        `variation_mask_${Math.random().toString(36).substring(2)}.png`
+      ];
 
-      const { error: uploadError } = await supabase.storage
-        .from("assets")
-        .upload(fileName, fileData, {
+      const [previewArrayBuffer, maskArrayBuffer] = await Promise.all([
+        previewBlob.arrayBuffer(),
+        maskBlob.arrayBuffer()
+      ]);
+
+      const [previewFileData, maskFileData] = [
+        new Uint8Array(previewArrayBuffer),
+        new Uint8Array(maskArrayBuffer)
+      ];
+
+      const [{ error: previewUploadError }, { error: maskUploadError }] = await Promise.all([
+        supabase.storage.from("assets").upload(previewFileName, previewFileData, {
           contentType: 'image/png',
           upsert: false,
-        });
+        }),
+        supabase.storage.from("assets").upload(maskFileName, maskFileData, {
+          contentType: 'image/png',
+          upsert: false,
+        })
+      ]);
 
-      if (uploadError) throw uploadError;
+      if (previewUploadError || maskUploadError) {
+        throw new Error('Failed to upload variation images');
+      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("assets")
-        .getPublicUrl(fileName);
+      const [{ data: { publicUrl: previewUrl } }, { data: { publicUrl: maskUrl } }] = await Promise.all([
+        supabase.storage.from("assets").getPublicUrl(previewFileName),
+        supabase.storage.from("assets").getPublicUrl(maskFileName)
+      ]);
 
-      // Use VAEEncode on the preview image instead of EmptyLatentImage
+      // Set up in-painting workflow nodes
       workflow["36"] = {
         ...workflow["36"],
         inputs: {
-          image: publicUrl,
+          image: previewUrl,
           upload: "image",
         },
         class_type: "LoadImage",
       };
-      
-      workflow["35"] = {
-        ...workflow["35"],
+
+      workflow["37"] = {
+        ...workflow["37"],
+        inputs: {
+          image: maskUrl,
+          upload: "image",
+        },
+        class_type: "LoadImage",
+      };
+
+      // Add ImageToMask node to convert the mask image to the correct type
+      workflow["39"] = {
+        inputs: {
+          image: ["37", 0],
+          method: "red",
+          channel: "red"
+        },
+        class_type: "ImageToMask",
+      };
+
+      // Add InvertMask node
+      workflow["41"] = {
+        inputs: {
+          mask: ["39", 0]
+        },
+        class_type: "InvertMask",
+      };
+
+      workflow["38"] = {
         inputs: {
           pixels: ["36", 0],
           vae: ["4", 2]
         },
         class_type: "VAEEncode",
       };
-      
-      // Set the latent_image input to the encoded image and adjust denoise strength
-      workflow["3"].inputs.latent_image = ["35", 0];
+
+      // Add SetLatentNoiseMask node to combine the encoded image with the inverted mask
+      workflow["40"] = {
+        inputs: {
+          samples: ["38", 0],
+          mask: ["41", 0]  // Use the inverted mask
+        },
+        class_type: "SetLatentNoiseMask",
+      };
+
+      // Update the KSampler to use the masked latent image
+      workflow["3"].inputs.latent_image = ["40", 0];
       workflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
     } else if (imageReferenceShape) {
       // Use dimensions from the image reference
@@ -404,8 +464,12 @@ export const generationHandlerSlice: StateCreator<
 
       // Add variation nodes if needed
       if (variationShape) {
-        baseWorkflow["35"] = workflow["35"];
-        baseWorkflow["36"] = workflow["36"];
+        baseWorkflow["36"] = workflow["36"]; // Source image loader
+        baseWorkflow["37"] = workflow["37"]; // Mask image loader
+        baseWorkflow["39"] = workflow["39"]; // ImageToMask node
+        baseWorkflow["41"] = workflow["41"]; // InvertMask node
+        baseWorkflow["38"] = workflow["38"]; // VAEEncode
+        baseWorkflow["40"] = workflow["40"]; // SetLatentNoiseMask
         // Remove EmptyLatentImage node since we're using VAEEncode
         delete baseWorkflow["34"];
       } else {

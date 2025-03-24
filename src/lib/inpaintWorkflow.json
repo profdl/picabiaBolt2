@@ -1,0 +1,86 @@
+{
+    "1": {
+      "inputs": {
+        "ckpt_name": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple"
+    },
+    "2": {
+      "inputs": {
+        "text": "a beautiful landscape with mountains and a lake, detailed, high quality, 8k",
+        "clip": ["1", 1]
+      },
+      "class_type": "CLIPTextEncode"
+    },
+    "3": {
+      "inputs": {
+        "text": "blurry, distorted, bad quality, deformed",
+        "clip": ["1", 1]
+      },
+      "class_type": "CLIPTextEncode"
+    },
+    "4": {
+      "inputs": {
+        "image": "https://picsum.photos/seed/1/1024/1024.jpg",
+        "upload": "image"
+      },
+      "class_type": "LoadImage"
+    },
+    "5": {
+      "inputs": {
+        "pixels": ["4", 0],
+        "vae": ["1", 2]
+      },
+      "class_type": "VAEEncode"
+    },
+    "6": {
+      "inputs": {
+        "image": "https://picsum.photos/seed/2/1024/1024.jpg",
+        "upload": "mask_image"
+      },
+      "class_type": "LoadImage"
+    },
+    "7": {
+      "inputs": {
+        "image": ["6", 0],
+        "channel": "red"
+      },
+      "class_type": "ImageToMask"
+    },
+    "9": {
+      "inputs": {
+        "samples": ["5", 0],
+        "mask": ["7", 0]
+      },
+      "class_type": "SetLatentNoiseMask"
+    },
+    "8": {
+      "inputs": {
+        "model": ["1", 0],
+        "positive": ["2", 0],
+        "negative": ["3", 0],
+        "latent_image": ["9", 0],
+        "seed": 791624662564737,
+        "steps": 30,
+        "cfg": 8,
+        "sampler_name": "euler_ancestral",
+        "scheduler": "normal",
+        "denoise": 1
+      },
+      "class_type": "KSampler"
+    },
+    "10": {
+      "inputs": {
+        "samples": ["8", 0],
+        "vae": ["1", 2]
+      },
+      "class_type": "VAEDecode"
+    },
+    "11": {
+      "inputs": {
+        "images": ["10", 0],
+        "filename_prefix": "inpainted_image"
+      },
+      "class_type": "SaveImage"
+    }
+  }
