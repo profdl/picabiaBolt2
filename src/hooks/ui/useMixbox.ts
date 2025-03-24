@@ -7,7 +7,7 @@ interface MixboxBrushProps {
   activeStrokeCanvasRef: React.RefObject<HTMLCanvasElement>;
 }
 
-interface MixboxDrawProps {
+export interface MixboxDrawProps {
   ctx: CanvasRenderingContext2D;
   x: number;
   y: number;

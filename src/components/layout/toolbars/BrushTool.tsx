@@ -10,14 +10,32 @@ import {
   type ImageShapeCanvasRefs,
   type Point
 } from "../../../utils/imageShapeCanvas";
-
-const brushTextures = new Map<string, HTMLImageElement>();
+import { 
+  preloadBrushTextures,
+  drawBrushStamp,
+  drawBrushStroke,
+  type BrushTextureType
+} from "../../../utils/brushTexture";
+import { type MixboxDrawProps } from "../../../hooks/ui/useMixbox";
 
 interface BrushHandlers {
   handlePointerDown: (e: React.PointerEvent<HTMLCanvasElement>) => void;
   handlePointerMove: (e: React.PointerEvent<HTMLCanvasElement>) => void;
   handlePointerUpOrLeave: () => void;
 }
+
+const adaptMixboxStamp = (drawMixboxStamp: (props: MixboxDrawProps) => void) => {
+  return (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, size: number) => {
+    drawMixboxStamp({
+      ctx,
+      x,
+      y,
+      color,
+      opacity: 1,
+      size
+    });
+  };
+};
 
 export const useBrush = ({
   backgroundCanvasRef,
@@ -88,71 +106,8 @@ export const useBrush = ({
 
   // Preload brush textures
   useEffect(() => {
-    const BRUSH_TEXTURES = ["basic", "fur", "ink", "marker"];
-    BRUSH_TEXTURES.forEach((texture) => {
-      if (!brushTextures.has(texture)) {
-        const img = new Image();
-        img.src = `/brushes/${texture}.png`;
-        img.onload = () => {
-          brushTextures.set(texture, img);
-        };
-      }
-    });
+    preloadBrushTextures();
   }, []);
-
-  const applyBrushTexture = (
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    color: string,
-    size: number
-  ) => {
-    // Create a temporary canvas for the brush stamp
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = size;
-    tempCanvas.height = size;
-    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-    if (!tempCtx) return;
-
-    // Draw the color using mixbox - use full opacity for the stamp
-    drawMixboxStamp({
-      ctx: tempCtx,
-      x: size / 2,
-      y: size / 2,
-      color,
-      opacity: 1, // Always use full opacity for individual stamps
-      size
-    });
-
-    if (brushTexture === 'soft') {
-      // For soft brush, use a radial gradient as the mask
-      const gradient = tempCtx.createRadialGradient(
-        size / 2, size / 2, 0,
-        size / 2, size / 2, size / 2
-      );
-      
-      const hardnessFactor = 1 - Math.max(0.01, brushHardness);
-      
-      gradient.addColorStop(0, 'rgba(255,255,255,1)');
-      gradient.addColorStop(Math.min(1, 1 - hardnessFactor), 'rgba(255,255,255,0.5)');
-      gradient.addColorStop(1, 'rgba(255,255,255,0)');
-      
-      // Apply the gradient mask
-      tempCtx.globalCompositeOperation = 'destination-in';
-      tempCtx.fillStyle = gradient;
-      tempCtx.fillRect(0, 0, size, size);
-    } else {
-      // For other brushes, use the texture image as mask
-      const textureImg = brushTextures.get(brushTexture);
-      if (textureImg && textureImg.complete) {
-        tempCtx.globalCompositeOperation = 'destination-in';
-        tempCtx.drawImage(textureImg, 0, 0, size, size);
-      }
-    }
-
-    // Draw the final result
-    ctx.drawImage(tempCanvas, x - size / 2, y - size / 2);
-  };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (tool !== "brush" && tool !== "eraser") return;
@@ -209,14 +164,40 @@ export const useBrush = ({
               maskCtx.save();
               maskCtx.globalCompositeOperation = "destination-out";
               maskCtx.globalAlpha = brushOpacity;
-              drawBrushStroke(maskCtx, lastPoint.current, point);
+              drawBrushStroke(
+                maskCtx,
+                lastPoint.current,
+                point,
+                {
+                  size: brushSize,
+                  color: currentColor,
+                  hardness: brushHardness,
+                  rotation: brushRotation,
+                  followPath: brushFollowPath
+                },
+                brushTexture as BrushTextureType,
+                adaptedDrawMixboxStamp
+              );
               maskCtx.restore();
             }
           }
         }
         
         // Draw to active canvas for preview
-        drawBrushStroke(activeCtx, lastPoint.current, point);
+        drawBrushStroke(
+          activeCtx,
+          lastPoint.current,
+          point,
+          {
+            size: brushSize,
+            color: currentColor,
+            hardness: brushHardness,
+            rotation: brushRotation,
+            followPath: brushFollowPath
+          },
+          brushTexture as BrushTextureType,
+          adaptedDrawMixboxStamp
+        );
         activeCtx.restore();
         
         updateImageShapePreview({
@@ -309,6 +290,8 @@ export const useBrush = ({
     activeStrokeCanvasRef
   });
 
+  const adaptedDrawMixboxStamp = adaptMixboxStamp(drawMixboxStamp);
+
   const drawBrushDot = (canvas: HTMLCanvasElement, point: Point) => {
     const ctx = getImageShapeCanvasContext({ current: canvas });
     if (!ctx) return;
@@ -324,47 +307,21 @@ export const useBrush = ({
       ctx.fill();
     } else {
       // For brush, use the normal texture system
-      applyBrushTexture(ctx, point.x, point.y, currentColor, brushSize);
+      drawBrushStamp(
+        { ctx, x: point.x, y: point.y },
+        {
+          size: brushSize,
+          color: currentColor,
+          hardness: brushHardness,
+          rotation: brushRotation,
+          followPath: brushFollowPath
+        },
+        brushTexture as BrushTextureType,
+        adaptedDrawMixboxStamp
+      );
     }
     
     ctx.restore();
-  };
-
-  const drawBrushStroke = (
-    ctx: CanvasRenderingContext2D,
-    start: Point,
-    end: Point
-  ) => {
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const spacing = Math.max(brushSize * brushSpacing, 1);
-    const steps = Math.ceil(distance / spacing);
-    const pathAngle = Math.atan2(dy, dx);
-
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const x = start.x + dx * t;
-      const y = start.y + dy * t;
-
-      ctx.save();
-      ctx.globalCompositeOperation = "source-over";
-      ctx.translate(x, y);
-
-      const rotation = brushFollowPath
-        ? pathAngle
-        : (brushRotation * Math.PI) / 180;
-
-      ctx.rotate(rotation);
-      applyBrushTexture(
-        ctx, 
-        0, 
-        0, 
-        currentColor, 
-        brushSize
-      );
-      ctx.restore();
-    }
   };
 
   return {
