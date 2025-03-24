@@ -144,73 +144,66 @@ export const useBrush = ({
     const point = getScaledPoint(e);
     if (!point) return;
 
-    const dx = point.x - lastPoint.current.x;
-    const dy = point.y - lastPoint.current.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    accumulatedDistance.current += distance;
-
-    const spacing = Math.max(brushSize * brushSpacing, 1);
-    if (accumulatedDistance.current >= spacing) {
-      const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
-      if (activeCtx && lastPoint.current) {
-        activeCtx.save();
-        activeCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
-        
-        if (tool === "eraser") {
-          // For eraser, draw to both active and mask canvases
-          if (maskCanvasRef) {
-            const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
-            if (maskCtx && maskCanvasRef.current) {
-              maskCtx.save();
-              maskCtx.globalCompositeOperation = "destination-out";
-              maskCtx.globalAlpha = brushOpacity;
-              drawBrushStroke(
-                maskCtx,
-                lastPoint.current,
-                point,
-                {
-                  size: brushSize,
-                  color: currentColor,
-                  hardness: brushHardness,
-                  rotation: brushRotation,
-                  followPath: brushFollowPath
-                },
-                brushTexture as BrushTextureType,
-                adaptedDrawMixboxStamp
-              );
-              maskCtx.restore();
-            }
+    const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
+    if (activeCtx && lastPoint.current) {
+      activeCtx.save();
+      activeCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
+      
+      if (tool === "eraser") {
+        // For eraser, draw to both active and mask canvases
+        if (maskCanvasRef) {
+          const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
+          if (maskCtx && maskCanvasRef.current) {
+            maskCtx.save();
+            maskCtx.globalCompositeOperation = "destination-out";
+            maskCtx.globalAlpha = brushOpacity;
+            drawBrushStroke(
+              maskCtx,
+              lastPoint.current,
+              point,
+              {
+                size: brushSize,
+                color: currentColor,
+                hardness: brushHardness,
+                rotation: brushRotation,
+                followPath: brushFollowPath,
+                spacing: brushSpacing
+              },
+              brushTexture as BrushTextureType,
+              adaptedDrawMixboxStamp
+            );
+            maskCtx.restore();
           }
         }
-        
-        // Draw to active canvas for preview
-        drawBrushStroke(
-          activeCtx,
-          lastPoint.current,
-          point,
-          {
-            size: brushSize,
-            color: currentColor,
-            hardness: brushHardness,
-            rotation: brushRotation,
-            followPath: brushFollowPath
-          },
-          brushTexture as BrushTextureType,
-          adaptedDrawMixboxStamp
-        );
-        activeCtx.restore();
-        
-        updateImageShapePreview({
-          backgroundCanvasRef,
-          permanentStrokesCanvasRef,
-          activeStrokeCanvasRef,
-          previewCanvasRef,
-          maskCanvasRef,
-          tool,
-          opacity: brushOpacity
-        });
       }
-      accumulatedDistance.current = 0;
+      
+      // Draw to active canvas for preview
+      drawBrushStroke(
+        activeCtx,
+        lastPoint.current,
+        point,
+        {
+          size: brushSize,
+          color: currentColor,
+          hardness: brushHardness,
+          rotation: brushRotation,
+          followPath: brushFollowPath,
+          spacing: brushSpacing
+        },
+        brushTexture as BrushTextureType,
+        adaptedDrawMixboxStamp
+      );
+      activeCtx.restore();
+      
+      updateImageShapePreview({
+        backgroundCanvasRef,
+        permanentStrokesCanvasRef,
+        activeStrokeCanvasRef,
+        previewCanvasRef,
+        maskCanvasRef,
+        tool,
+        opacity: brushOpacity
+      });
     }
 
     lastPoint.current = point;

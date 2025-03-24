@@ -167,15 +167,50 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
   // Handle clearing strokes
   const handleClear = () => {
     if (!refs.permanentStrokesCanvasRef.current || !refs.previewCanvasRef.current) return;
-    const ctx = refs.permanentStrokesCanvasRef.current.getContext('2d', { willReadFrequently: true });
+    
+    // Clear permanent strokes
+    const permanentCtx = refs.permanentStrokesCanvasRef.current.getContext('2d', { willReadFrequently: true });
+    if (permanentCtx) {
+      permanentCtx.clearRect(0, 0, refs.permanentStrokesCanvasRef.current.width, refs.permanentStrokesCanvasRef.current.height);
+    }
+    
+    // Clear active stroke
+    if (refs.activeStrokeCanvasRef.current) {
+      const activeCtx = refs.activeStrokeCanvasRef.current.getContext('2d', { willReadFrequently: true });
+      if (activeCtx) {
+        activeCtx.clearRect(0, 0, refs.activeStrokeCanvasRef.current.width, refs.activeStrokeCanvasRef.current.height);
+      }
+    }
+    
+    // Reset mask to fully opaque
+    if (refs.maskCanvasRef?.current) {
+      const maskCtx = refs.maskCanvasRef.current.getContext('2d', { willReadFrequently: true });
+      if (maskCtx) {
+        maskCtx.clearRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
+        maskCtx.fillStyle = 'white';
+        maskCtx.fillRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
+      }
+    }
+    
+    // Clear preview
     const previewCtx = refs.previewCanvasRef.current.getContext('2d', { willReadFrequently: true });
-    if (!ctx || !previewCtx) return;
+    if (previewCtx) {
+      previewCtx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
+    }
     
-    ctx.clearRect(0, 0, refs.permanentStrokesCanvasRef.current.width, refs.permanentStrokesCanvasRef.current.height);
-    previewCtx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
+    // Update preview with all layers
+    updatePreviewCanvas();
     
-    // When clearing strokes, set canvasData to undefined
-    updateShape(shape.id, { canvasData: undefined });
+    // Reset all canvas data
+    updateShape(shape.id, {
+      canvasData: undefined,
+      backgroundCanvasData: undefined,
+      permanentCanvasData: undefined,
+      activeCanvasData: undefined,
+      previewCanvasData: undefined,
+      maskCanvasData: undefined,
+      redBackgroundCanvasData: undefined
+    });
   };
 
   return (
@@ -192,7 +227,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             style={{
               touchAction: "none",
               pointerEvents: "none",
-              visibility: "hidden",
+              visibility: "visible",
+              opacity: 0.25,
               zIndex: 0
             }}
           />

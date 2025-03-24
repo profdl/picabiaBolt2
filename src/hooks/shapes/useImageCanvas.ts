@@ -49,14 +49,14 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     const data = imageData.data;
     
     for (let i = 0; i < data.length; i += 4) {
-      // Random noise value with higher minimum for brighter red
-      const noise = 128 + Math.random() * 127; // This ensures red is always at least 128 (half brightness)
+      // Generate noise with higher contrast
+      const noise = 64 + Math.random() * 191; // Range from 64 to 255 for better visibility
       
-      // Set RGB values - using brighter red with some variation
-      data[i] = noise;     // Red channel (now brighter)
+      // Set RGB values - using red with some variation
+      data[i] = noise;     // Red channel
       data[i + 1] = 0;     // Green channel
       data[i + 2] = 0;     // Blue channel
-      data[i + 3] = 0;    // Alpha channel (more transparent, reduced from 50)
+      data[i + 3] = 255;   // Full opacity (will be controlled by CSS)
     }
     
     return imageData;
@@ -73,9 +73,9 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
 
     // When using eraser, we don't want to reset the mask
     if (tool !== 'eraser') {
-      // Ensure mask canvas maintains original dimensions
-      maskCanvas.width = maskDimensionsRef.current.width;
-      maskCanvas.height = maskDimensionsRef.current.height;
+      // Use current shape dimensions instead of stored dimensions
+      maskCanvas.width = shape.width;
+      maskCanvas.height = shape.height;
 
       // Clear and fill mask with white
       maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
@@ -91,7 +91,7 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     previewCanvas.style.maskSize = 'cover';
     previewCanvas.style.webkitMaskPosition = 'center';
     previewCanvas.style.maskPosition = 'center';
-  }, [refs.maskCanvasRef, refs.previewCanvasRef, tool]);
+  }, [refs.maskCanvasRef, refs.previewCanvasRef, tool, shape.width, shape.height]);
 
   // Export updatePreviewCanvas function
   const updatePreviewCanvas = useCallback(() => {
@@ -170,24 +170,34 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
 
       console.log('Image loaded:', {
         originalWidth: img.width,
-        originalHeight: img.height
+        originalHeight: img.height,
+        shapeWidth: shape.width,
+        shapeHeight: shape.height,
+        shapeAspectRatio: shape.width / shape.height,
+        imageAspectRatio: img.width / img.height
       });
 
-      // Set canvas dimensions to match the image's aspect ratio
-      const aspectRatio = img.width / img.height;
-      const width = 512;
-      const height = 512 / aspectRatio;
+      // Use shape's actual dimensions for canvas size
+      const width = shape.width;
+      const height = shape.height;
 
       console.log('Setting canvas dimensions:', {
         width,
         height,
-        aspectRatio
+        aspectRatio: img.width / img.height,
+        devicePixelRatio: window.devicePixelRatio || 1
       });
 
       // Set dimensions for all canvases
       [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas, redBackgroundCanvas].forEach(canvas => {
         canvas.width = width;
         canvas.height = height;
+        console.log(`Canvas ${canvas.dataset.layer} dimensions set to:`, {
+          width: canvas.width,
+          height: canvas.height,
+          styleWidth: canvas.style.width,
+          styleHeight: canvas.style.height
+        });
       });
 
       // Fill red background canvas with noise
@@ -268,7 +278,7 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     return () => {
       isMounted = false;
     };
-  }, [shape.imageUrl, shape.maskCanvasData, refs]);
+  }, [shape.imageUrl, shape.maskCanvasData, refs, shape]);
 
   return {
     refs,

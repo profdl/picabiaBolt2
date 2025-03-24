@@ -9,6 +9,7 @@ interface BrushTextureOptions {
   rotation: number;
   followPath: boolean;
   pathAngle?: number;
+  spacing?: number;
 }
 
 interface BrushTextureContext {
@@ -120,12 +121,15 @@ export const drawBrushStroke = (
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
-  const spacing = Math.max(options.size * 0.5, 1); // Using 0.5 as default spacing
+  const spacing = Math.max(options.size * (options.spacing ?? 0.5), 1);
   const steps = Math.ceil(distance / spacing);
   const pathAngle = Math.atan2(dy, dx);
 
+  // Calculate the actual spacing to ensure even distribution
+  const actualSpacing = distance / steps;
+
   for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
+    const t = (i * actualSpacing) / distance;
     const x = start.x + dx * t;
     const y = start.y + dy * t;
 

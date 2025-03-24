@@ -6,6 +6,7 @@ export interface ImageShapeCanvasRefs {
   activeStrokeCanvasRef: RefObject<HTMLCanvasElement>;
   previewCanvasRef: RefObject<HTMLCanvasElement>;
   maskCanvasRef?: RefObject<HTMLCanvasElement>;
+  redBackgroundCanvasRef?: RefObject<HTMLCanvasElement>;
 }
 
 export interface Point {
@@ -92,34 +93,65 @@ export const updateImageShapePreview = ({
     previewCtx.drawImage(tempCanvas, 0, 0);
   }
 
-  // Update the mask image on the preview canvas
+  // 4. Apply mask only to the preview canvas, not affecting the noise layer
   if (previewCanvasRef.current && maskCanvasRef?.current) {
     previewCanvasRef.current.style.webkitMaskImage = `url(${maskCanvasRef.current.toDataURL()})`;
     previewCanvasRef.current.style.maskImage = `url(${maskCanvasRef.current.toDataURL()})`;
+    previewCanvasRef.current.style.webkitMaskSize = 'cover';
+    previewCanvasRef.current.style.maskSize = 'cover';
+    previewCanvasRef.current.style.webkitMaskPosition = 'center';
+    previewCanvasRef.current.style.maskPosition = 'center';
   }
 };
 
 export const saveImageShapeState = (
   refs: ImageShapeCanvasRefs,
   shapeId: string,
-  updateShape: (id: string, data: { canvasData: string }) => void
+  updateShape: (id: string, data: { 
+    canvasData?: string;
+    backgroundCanvasData?: string;
+    permanentCanvasData?: string;
+    activeCanvasData?: string;
+    previewCanvasData?: string;
+    maskCanvasData?: string;
+    redBackgroundCanvasData?: string;
+  }) => void
 ) => {
   if (!refs.backgroundCanvasRef.current || !refs.permanentStrokesCanvasRef.current) return;
 
-  // Create a temporary canvas to combine background and permanent strokes
-  const saveCanvas = document.createElement('canvas');
-  saveCanvas.width = refs.backgroundCanvasRef.current.width;
-  saveCanvas.height = refs.backgroundCanvasRef.current.height;
-  const saveCtx = saveCanvas.getContext('2d', { willReadFrequently: true });
-  if (!saveCtx) return;
+  // Save each layer separately
+  const canvasData: Record<string, string | null> = {};
+  
+  // Save background
+  if (refs.backgroundCanvasRef.current) {
+    canvasData.backgroundCanvasData = refs.backgroundCanvasRef.current.toDataURL("image/jpeg", 0.7);
+  }
+  
+  // Save permanent strokes
+  if (refs.permanentStrokesCanvasRef.current) {
+    canvasData.permanentCanvasData = refs.permanentStrokesCanvasRef.current.toDataURL("image/png");
+  }
+  
+  // Save active stroke
+  if (refs.activeStrokeCanvasRef.current) {
+    canvasData.activeCanvasData = refs.activeStrokeCanvasRef.current.toDataURL("image/png");
+  }
+  
+  // Save preview
+  if (refs.previewCanvasRef.current) {
+    canvasData.previewCanvasData = refs.previewCanvasRef.current.toDataURL("image/jpeg", 0.7);
+  }
+  
+  // Save mask (most important for the eraser functionality)
+  if (refs.maskCanvasRef?.current) {
+    canvasData.maskCanvasData = refs.maskCanvasRef.current.toDataURL("image/png");
+  }
+  
+  // Save red background
+  if (refs.redBackgroundCanvasRef?.current) {
+    canvasData.redBackgroundCanvasData = refs.redBackgroundCanvasRef.current.toDataURL("image/jpeg", 0.7);
+  }
 
-  // Draw background first
-  saveCtx.drawImage(refs.backgroundCanvasRef.current, 0, 0);
-  
-  // Draw permanent strokes on top
-  saveCtx.drawImage(refs.permanentStrokesCanvasRef.current, 0, 0);
-  
-  // Save the combined result
-  const canvasData = saveCanvas.toDataURL("image/png");
-  updateShape(shapeId, { canvasData });
+  // Update shape with all canvas data
+  updateShape(shapeId, canvasData);
 }; 

@@ -36,7 +36,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
   };
 
   // Calculate group bounds including padding and controls
-  const calculateGroupBounds = (groupShape: Shape, groupedShapes: Shape[]) => {
+  const calculateGroupBounds = (groupedShapes: Shape[]) => {
     const minX = Math.min(...groupedShapes.map((s) => s.position.x));
     const minY = Math.min(...groupedShapes.map((s) => s.position.y));
     const maxX = Math.max(
@@ -124,7 +124,6 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
         Object.entries(originalGroupBounds).forEach(([groupId, bounds]) => {
           const isStillHovered = groups.some(group => {
             const groupBounds = calculateGroupBounds(
-              group,
               shapes.filter(s => s.groupId === group.id)
             );
             // Check if any corner of the dragged shape is inside the group
@@ -158,7 +157,6 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
 
         for (const group of groups) {
           const groupBounds = calculateGroupBounds(
-            group,
             shapes.filter(s => s.groupId === group.id)
           );
 
@@ -188,7 +186,6 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
             
             // Calculate new bounds including the dragged shape
             const newBounds = calculateGroupBounds(
-              group,
               [...shapes.filter(s => s.groupId === group.id), draggedShape]
             );
             
@@ -274,7 +271,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
         const groupShape = shapes.find((s) => s.id === shape.groupId);
         if (groupShape) {
           const groupedShapes = shapes.filter((s) => s.groupId === shape.groupId);
-          const bounds = calculateGroupBounds(groupShape, groupedShapes);
+          const bounds = calculateGroupBounds(groupedShapes);
           
           updateShape(shape.groupId, {
             position: { x: bounds.x, y: bounds.y },
@@ -296,7 +293,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragStart, shape.groupId, shape.id, shape.type, isEditing, zoom, shapes, updateShape, addToGroup, removeFromGroup, originalGroupBounds, setSelectedShapes]);
+  }, [dragStart, shape.groupId, shape.id, shape.type, isEditing, zoom, shapes, updateShape, addToGroup, removeFromGroup, originalGroupBounds, setSelectedShapes, shape, hoveredGroup]);
 
   const initDragStart = (e: React.MouseEvent) => {
     // Store initial positions of all shapes at drag start
@@ -309,7 +306,7 @@ export function useShapeDrag({ shape, isEditing, zoom }: UseShapeDragProps) {
       const group = shapes.find(s => s.id === shape.groupId);
       if (group) {
         const groupedShapes = shapes.filter(s => s.groupId === shape.groupId);
-        const bounds = calculateGroupBounds(group, groupedShapes);
+        const bounds = calculateGroupBounds(groupedShapes);
         setOriginalGroupBounds(prev => ({
           ...prev,
           [shape.groupId as string]: bounds
