@@ -28,7 +28,6 @@ export function ShapeControls({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const {
     updateShape,
-    updateShapes,
     shapes,
     setSelectedShapes,
     setTool,
@@ -36,7 +35,6 @@ export function ShapeControls({
     selectedShapes
   } = useStore((state) => ({
     updateShape: state.updateShape,
-    updateShapes: state.updateShapes,
     shapes: state.shapes,
     setSelectedShapes: state.setSelectedShapes,
     setTool: state.setTool,
@@ -53,14 +51,6 @@ export function ShapeControls({
       label: useThemeClass(["shape", "sidePanel", "label"])
     }
   };
-
-  // Add state for tracking pending updates
-  const [pendingUpdates, setPendingUpdates] = useState<{ 
-    id: string; 
-    isChecked: boolean; 
-    isTextPrompt?: boolean;
-    isNegativePrompt?: boolean;
-  } | null>(null);
 
   // Utility function to prevent event propagation
   const preventEvent = (e: React.MouseEvent) => {
@@ -79,36 +69,6 @@ export function ShapeControls({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDropdownOpen]);
-
-  // Effect to handle updates to other shapes
-  useEffect(() => {
-    if (pendingUpdates) {
-      const updates = shapes
-        .filter((s) => {
-          if (pendingUpdates.isTextPrompt) {
-            return s.type === "sticky" && s.isTextPrompt && s.id !== pendingUpdates.id;
-          }
-          if (pendingUpdates.isNegativePrompt) {
-            return s.type === "sticky" && s.isNegativePrompt && s.id !== pendingUpdates.id;
-          }
-          return false;
-        })
-        .map((s) => ({
-          id: s.id,
-          shape: {
-            isTextPrompt: pendingUpdates.isTextPrompt ? false : s.isTextPrompt,
-            isNegativePrompt: pendingUpdates.isNegativePrompt ? false : s.isNegativePrompt,
-            color: "var(--sticky-yellow)"
-          }
-        }));
-      
-      if (updates.length > 0) {
-        updateShapes(updates);
-      }
-    }
-    
-    setPendingUpdates(null);
-  }, [pendingUpdates, shapes, updateShape, updateShapes]);
 
   // Constants and derived state
   const anyCheckboxChecked =
@@ -360,17 +320,12 @@ export function ShapeControls({
                   id={`prompt-${shape.id}`}
                   checked={shape.isTextPrompt || false}
                   onChange={(checked: boolean) => {
-                    // Single update for current shape
+                    // Just update this sticky note - the store will handle the rest
                     updateShape(shape.id, {
                       isTextPrompt: checked,
-                      isNegativePrompt: checked ? false : shape.isNegativePrompt,
                       color: checked ? "var(--sticky-green)" : (shape.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)"),
-                      // Keep the existing strength value, or set to default if none exists
                       textPromptStrength: shape.textPromptStrength || 4.5
                     });
-                    
-                    // Set pending updates for other shapes
-                    setPendingUpdates({ id: shape.id, isChecked: checked, isTextPrompt: true });
                   }}
                   label="Text Prompt"
                 />
@@ -410,15 +365,11 @@ export function ShapeControls({
                   id={`negative-${shape.id}`}
                   checked={shape.isNegativePrompt || false}
                   onChange={(checked) => {
-                    // Single update for current shape
+                    // Just update this sticky note - the store will handle the rest
                     updateShape(shape.id, {
                       isNegativePrompt: checked,
-                      isTextPrompt: checked ? false : shape.isTextPrompt,
                       color: checked ? "var(--sticky-red)" : (shape.isTextPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)")
                     });
-                    
-                    // Set pending updates for other shapes
-                    setPendingUpdates({ id: shape.id, isChecked: checked, isNegativePrompt: true });
                   }}
                   label="Negative Prompt"
                 />

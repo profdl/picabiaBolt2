@@ -46,8 +46,14 @@ export function useShapeEvents({
   } | null>(null);
 
   const handleStickyInteraction = () => {
-    if (shape.type === "sticky" && shape.isNew) {
-      updateShape(shape.id, { isNew: false });
+    if (shape.type === "sticky") {
+      if (shape.isNew) {
+        updateShape(shape.id, { 
+          isNew: false,
+          isEditing: true,
+          content: shape.content === "Double click to edit..." ? "" : shape.content
+        });
+      }
     }
   };
 

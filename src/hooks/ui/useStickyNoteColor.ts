@@ -1,6 +1,6 @@
 // src/hooks/useStickyNoteColor.ts
 import { useMemo } from 'react';
-import { Shape } from '../types';
+import { Shape } from '../../types';
 import { useDarkMode } from './useDarkMode';
 
 const DARK_YELLOW = '#3d3522';

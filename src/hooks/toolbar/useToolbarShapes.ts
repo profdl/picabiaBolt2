@@ -68,25 +68,29 @@ export function useToolbarShapes(): UseToolbarShapesResult {
 
     // Handle sticky notes
     if (type === "sticky") {
-      // Uncheck existing sticky notes with showPrompt
-      shapes.forEach((shape) => {
-        if (shape.type === "sticky" && shape.showPrompt) {
-          updateShape(shape.id, {
-            showPrompt: false,
-            color: shape.showNegativePrompt ? 'var(--sticky-red)' : 'var(--sticky-yellow)',
+      // First, ensure we disable text prompts on all existing sticky notes
+      shapes.forEach(sticky => {
+        if (sticky.type === "sticky" && sticky.isTextPrompt) {
+          updateShape(sticky.id, {
+            isTextPrompt: false,
+            color: sticky.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)"
           });
         }
       });
-
+      
+      // Create new sticky note with text prompt enabled by default
       await addNewShape("sticky", {
         content: "",
-        color: "var(--sticky-green)",
+        color: "var(--sticky-green)", 
         isEditing: true,
+        isTextPrompt: true,  // Enable text prompt by default
+        textPromptStrength: 4.5
       }, "", {
         defaultWidth: 200,
         setSelected: true,
         startEditing: true,
       });
+
       setTool("select");
       return;
     }

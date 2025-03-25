@@ -145,6 +145,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
   }));
 
   const handleAddSticky = async () => {
+    // First, disable any existing sticky notes that have text prompt enabled
+    shapes.forEach(shape => {
+      if (shape.type === "sticky" && shape.isTextPrompt) {
+        updateShape(shape.id, {
+          isTextPrompt: false,
+          color: shape.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)"
+        });
+      }
+    });
+
+    // Then create the new sticky note
     await addNewShape(
       "sticky",
       {

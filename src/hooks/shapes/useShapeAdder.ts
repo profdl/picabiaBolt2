@@ -111,8 +111,17 @@ export function useShapeAdder() {
       poseStrength: 0.75,
       sketchStrength: 0.75,
       aspectRatio,
+      content: shapeType === "sticky" ? "Double click to edit..." : "",
+      isTextPrompt: shapeType === "sticky" ? true : (shapeData.isTextPrompt ?? false),
+      textPromptStrength: shapeType === "sticky" ? 4.5 : undefined,
       ...shapeData
     };
+
+    console.log("useShapeAdder - Creating new shape:", {
+      id: shapeId,
+      type: shapeType,
+      isTextPrompt: shapeData.isTextPrompt || false
+    });
 
     addShape(newShape);
 
