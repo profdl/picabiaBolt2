@@ -167,8 +167,8 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
 
   return (
     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 flex flex-col gap-2 mb-2.5">
-      <div className="bg-neutral-100 dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-300 dark:border-neutral-800 py-0.5 px-1.5">
-        <div className="flex items-center gap-2">
+      <div className="bg-neutral-100 dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-300 dark:border-neutral-800 py-0.5 px-1.5 h-[40px]">
+        <div className="flex items-center gap-2 h-full">
           {/* Select Tool Sub-toolbar */}
           {tool === "select" && displayShape && (
             <div className="flex items-center gap-0.5">
@@ -416,39 +416,45 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
               </div>
               <div className="flex items-center gap-6">
                 <div className={styles.controlGroup.container}>
-                  {/* <span className={styles.controlGroup.label}>Size</span> */}
-                  <SmallSlider
-                    value={localProperties.size || 1}
-                    onChange={(value) => handlePropertyChange("size", value)}
-                    min={1}
-                    max={100}
-                    step={1}
-                    label="Size"
-                  />
+                  <span className={styles.controlGroup.label}>Size</span>
+                  <div className="w-[120px]">
+                    <SmallSlider
+                      value={localProperties.size || 1}
+                      onChange={(value) => handlePropertyChange("size", value)}
+                      min={1}
+                      max={100}
+                      step={1}
+                      label="Size"
+                    />
+                  </div>
                 </div>
 
                 <div className={styles.controlGroup.container}>
-                  {/* <span className={styles.controlGroup.label}>Opacity</span> */}
-                  <SmallSlider
-                    value={(localProperties.opacity || 0) * 100}
-                    onChange={(value) => handlePropertyChange("opacity", value / 100)}
-                    min={0}
-                    max={100}
-                    step={1}
-                    label="Opacity"
-                  />
+                  <span className={styles.controlGroup.label}>Opacity</span>
+                  <div className="w-[120px]">
+                    <SmallSlider
+                      value={(localProperties.opacity || 0) * 100}
+                      onChange={(value) => handlePropertyChange("opacity", value / 100)}
+                      min={0}
+                      max={100}
+                      step={1}
+                      label="Opacity"
+                    />
+                  </div>
                 </div>
                 {localProperties.texture === 'soft' && (
                   <div className={styles.controlGroup.container}>
                     <span className={styles.controlGroup.label}>Hardness</span>
-                    <SmallSlider
-                      value={Math.round((localProperties.hardness ?? 1) * 100)}
-                      onChange={(value) => handlePropertyChange("hardness", value / 100)}
-                      min={1}
-                      max={100}
-                      step={1}
-                      label="Hardness"
-                    />
+                    <div className="w-[120px]">
+                      <SmallSlider
+                        value={Math.round((localProperties.hardness ?? 1) * 100)}
+                        onChange={(value) => handlePropertyChange("hardness", value / 100)}
+                        min={1}
+                        max={100}
+                        step={1}
+                        label="Hardness"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
