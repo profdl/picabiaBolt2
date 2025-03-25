@@ -24,30 +24,36 @@ export function SmallSlider({ value, onChange, min = 0, max = 1, step = 0.05, la
     onChange(Math.round(newValue / step) * step);
   }, [min, max, step, onChange]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
     setShowLabel(true);
     updateValue(e.clientX);
-  };
+  }, [updateValue]);
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
     setShowLabel(false);
   }, []);
 
   const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
+      e.preventDefault();
+      e.stopPropagation();
       updateValue(e.clientX);
     }
   }, [isDragging, updateValue]);
 
   useEffect(() => {
     if (isDragging) {
-      window.addEventListener('mousemove', handleGlobalMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('mousemove', handleGlobalMouseMove, { capture: true });
+      window.addEventListener('mouseup', handleMouseUp, { capture: true });
       return () => {
-        window.removeEventListener('mousemove', handleGlobalMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('mousemove', handleGlobalMouseMove, { capture: true });
+        window.removeEventListener('mouseup', handleMouseUp, { capture: true });
       };
     }
   }, [isDragging, handleGlobalMouseMove, handleMouseUp]);

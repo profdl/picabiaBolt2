@@ -54,13 +54,8 @@ export const useImageUpload = () => {
     const tempId = Math.random().toString(36).substr(2, 9);
     const aspectRatio = p0.width / p0.height;
 
-    let width = 300;
+    let width = 512;
     let height = width / aspectRatio;
-
-    if (height > 300) {
-      height = 300;
-      width = height * aspectRatio;
-    }
 
     addShape({
       id: tempId,

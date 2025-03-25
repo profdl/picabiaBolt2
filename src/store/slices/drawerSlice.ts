@@ -451,7 +451,7 @@ export const drawerSlice: StateCreator<
 
     addImageToCanvas: async (imageSource, options = {}) => {
       const { zoom, offset, addShape, shapes } = get();
-      const defaultWidth = options.defaultWidth || 300;
+      const defaultWidth = options.defaultWidth || 512;
 
       try {
         let dimensions;

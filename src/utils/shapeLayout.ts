@@ -12,8 +12,8 @@ export const LAYOUT_CONSTANTS = {
     MIN: 5,
   },
   DEFAULT: {
-    WIDTH: 300,
-    HEIGHT: 300,
+    WIDTH: 200,
+    HEIGHT: 200,
     ASPECT_RATIO: 9/16,
   },
   VIEWPORT: {

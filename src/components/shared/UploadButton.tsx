@@ -1,4 +1,3 @@
-
 import { useRef, useState } from "react";
 import { Upload, Loader2 } from "lucide-react";
 import { useStore } from "../../store";
@@ -31,8 +30,8 @@ export const UploadButton = ({ className }: UploadButtonProps) => {
     await new Promise((resolve) => {
       img.onload = () => {
         const aspectRatio = img.width / img.height;
-        const windowWidth = window.innerWidth * 0.4;
-        const windowHeight = windowWidth / aspectRatio;
+        const width = 512;
+        const height = width / aspectRatio;
 
         const center = {
           x: (window.innerWidth / 2 - offset.x) / zoom,
@@ -43,11 +42,11 @@ export const UploadButton = ({ className }: UploadButtonProps) => {
           id: shapeId,
           type: "image",
           position: {
-            x: center.x - windowWidth / 2,
-            y: center.y - windowHeight / 2,
+            x: center.x - width / 2,
+            y: center.y - height / 2,
           },
-          width: windowWidth,
-          height: windowHeight,
+          width: width,
+          height: height,
           color: "transparent",
           imageUrl: "",
           rotation: 0,

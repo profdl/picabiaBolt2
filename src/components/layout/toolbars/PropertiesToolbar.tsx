@@ -17,7 +17,7 @@ import { Tooltip } from "../../shared/Tooltip";
 import { ToolbarButton } from "../../shared/ToolbarButton";
 import { OKColorPicker } from "../../shared/hsl-color-picker";
 import { BrushSettingsPanel } from "./BrushShapeSelector";
-import { NumberInput } from "../../shared/NumberInput";
+import { SmallSlider } from "../../shared/SmallSlider";
 import { useThemeClass } from "../../../styles/useThemeClass";
 
 interface PropertiesToolbarProps {
@@ -90,7 +90,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
       popup: "absolute bottom-full mb-1 left-0 z-50",
     },
     controlGroup: {
-      container: "flex items-center gap-3",
+      container: "flex items-center gap-3 min-w-[120px]",
       label: "text-sm font-medium text-neutral-500",
     },
   };
@@ -416,38 +416,38 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
               </div>
               <div className="flex items-center gap-6">
                 <div className={styles.controlGroup.container}>
-                  <span className={styles.controlGroup.label}>Size</span>
-                  <NumberInput
+                  {/* <span className={styles.controlGroup.label}>Size</span> */}
+                  <SmallSlider
                     value={localProperties.size || 1}
                     onChange={(value) => handlePropertyChange("size", value)}
                     min={1}
                     max={100}
                     step={1}
-                    formatValue={(v) => `${Math.round(v)}`}
+                    label="Size"
                   />
                 </div>
 
                 <div className={styles.controlGroup.container}>
-                  <span className={styles.controlGroup.label}>Opacity</span>
-                  <NumberInput
+                  {/* <span className={styles.controlGroup.label}>Opacity</span> */}
+                  <SmallSlider
                     value={(localProperties.opacity || 0) * 100}
                     onChange={(value) => handlePropertyChange("opacity", value / 100)}
                     min={0}
                     max={100}
                     step={1}
-                    formatValue={(v) => `${Math.round(v)}%`}
+                    label="Opacity"
                   />
                 </div>
                 {localProperties.texture === 'soft' && (
                   <div className={styles.controlGroup.container}>
                     <span className={styles.controlGroup.label}>Hardness</span>
-                    <NumberInput
+                    <SmallSlider
                       value={Math.round((localProperties.hardness ?? 1) * 100)}
                       onChange={(value) => handlePropertyChange("hardness", value / 100)}
                       min={1}
                       max={100}
                       step={1}
-                      formatValue={(v) => `${Math.round(v)}%`}
+                      label="Hardness"
                     />
                   </div>
                 )}
@@ -460,15 +460,17 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-6">
                 <div className={styles.controlGroup.container}>
-                  <span className={styles.controlGroup.label}>Size</span>
-                  <NumberInput
-                    value={localProperties.size || 1}
-                    onChange={(value) => handlePropertyChange("size", value)}
-                    min={1}
-                    max={100}
-                    step={1}
-                    formatValue={(v) => `${Math.round(v)}`}
-                  />
+                  <span className={`${styles.controlGroup.label} whitespace-nowrap`}>Eraser Size:</span>
+                  <div className="w-[120px]">
+                    <SmallSlider
+                      value={localProperties.size || 1}
+                      onChange={(value) => handlePropertyChange("size", value)}
+                      min={1}
+                      max={100}
+                      step={1}
+                      label="Size"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

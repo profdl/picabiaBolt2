@@ -64,6 +64,7 @@ export function useShapeAdder() {
       try {
         const dimensions = await getImageDimensions(url);
         aspectRatio = dimensions.width / dimensions.height;
+        width = 512; // Set fixed width for images
         height = width / aspectRatio;
       } catch (error) {
         console.error('Failed to get image dimensions:', error);
