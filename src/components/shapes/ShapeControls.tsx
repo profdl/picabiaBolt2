@@ -7,7 +7,7 @@ import { Tooltip } from "../shared/Tooltip";
 import { generatePrompt } from "../../utils/prompt-generator";
 import { EnableReferencePanel } from "../shared/EnableReferencePanel";
 import { useThemeClass } from "../../styles/useThemeClass";
-import { Brush, Eraser } from "lucide-react";
+import { Brush, Eraser, MousePointer } from "lucide-react";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -158,7 +158,7 @@ export function ShapeControls({
         </div>
       )}
 
-      {/* Add brush and eraser buttons for selected image shapes */}
+      {/* Add brush, eraser, and select buttons for selected image shapes */}
       {(isSelected || tool === "brush" || tool === "eraser") && shape.type === "image" && (
         <div
           className="absolute -left-12 top-0 flex flex-col gap-1"
@@ -210,6 +210,26 @@ export function ShapeControls({
               }}
             >
               <Eraser className="w-5 h-5" />
+            </button>
+          </Tooltip>
+
+          <Tooltip content="Select Tool (V)" side="right">
+            <button
+              type="button"
+              className={`w-10 h-10 ${
+                tool === "select" 
+                  ? "bg-neutral-100 dark:bg-[#3e3e3e] text-neutral-900 dark:text-white" 
+                  : "bg-neutral-50 dark:bg-[#2c2c2c] text-neutral-700 dark:text-[#999999] hover:bg-neutral-100 dark:hover:bg-[#3e3e3e]"
+              } rounded-lg transition-colors duration-200 flex items-center justify-center shadow-sm`}
+              onClick={(e) => {
+                preventEvent(e);
+                setTool("select");
+                if (!selectedShapes.includes(shape.id)) {
+                  setSelectedShapes([shape.id]);
+                }
+              }}
+            >
+              <MousePointer className="w-5 h-5" />
             </button>
           </Tooltip>
         </div>
