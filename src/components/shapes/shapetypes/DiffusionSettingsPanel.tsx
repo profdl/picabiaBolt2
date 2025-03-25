@@ -45,6 +45,7 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
     <div className="relative w-full h-full">
       <div
         className={`absolute inset-0 ${diffusionPanelClass} border border-neutral-200 dark:border-neutral-700 rounded-lg`}
+        style={{ pointerEvents: "all" }}
       >
         <div className="absolute inset-0 overflow-hidden">
           <div
@@ -53,6 +54,7 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
               scrollbarWidth: "none",
               msOverflowStyle: "none",
               WebkitOverflowScrolling: "touch",
+              pointerEvents: "all",
             }}
           >
             {" "}

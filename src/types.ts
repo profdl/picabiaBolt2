@@ -22,6 +22,7 @@ export interface Shape {
   width: number;
   height: number;
   color?: string;
+  fontSize?: number;
   points?: Position[];
   strokeWidth?: number;
   rotation?: number;

@@ -151,7 +151,7 @@ export function ShapeControls({
           className={`absolute inset-0 ${isAddedToGroup ? 'group-add-blink' : ''}`}
           data-shape-control="true"
           style={{
-            pointerEvents: "all",
+            pointerEvents: "none",
             ...(isSelected && shape.type === "3d"
               ? {
                   border: "2px solid rgb(var(--neutral-500))",
@@ -506,6 +506,8 @@ export function ShapeControls({
           className="absolute left-2 top-full mt-1"
           data-shape-control="true"
           style={{ zIndex: 1000, pointerEvents: "all" }}
+          onMouseDown={preventEvent}
+          onClick={preventEvent}
         >
           <EnableReferencePanel
             id={`enable-depth-${shape.id}`}
@@ -530,6 +532,8 @@ export function ShapeControls({
           className="absolute left-2 top-full mt-1"
           data-shape-control="true"
           style={{ zIndex: 1000, pointerEvents: "all" }}
+          onMouseDown={preventEvent}
+          onClick={preventEvent}
         >
           <EnableReferencePanel
             id={`enable-edges-${shape.id}`}
@@ -554,6 +558,8 @@ export function ShapeControls({
           className="absolute left-2 top-full mt-1"
           data-shape-control="true"
           style={{ zIndex: 1000, pointerEvents: "all" }}
+          onMouseDown={preventEvent}
+          onClick={preventEvent}
         >
           <EnableReferencePanel
             id={`enable-pose-${shape.id}`}
