@@ -13,6 +13,7 @@ import {
   MousePointer,
   Brush,
   Eraser,
+  Combine,
 } from "lucide-react";
 import { Shape } from "../../../types";
 import { useStore } from "../../../store";
@@ -212,7 +213,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
             {tool === "select" && displayShape && (
               <div className="flex items-center gap-0.5">
                 <div className="flex items-center gap-0.5">
-                  {displayShape.type === "image" && (
+                  {selectedShapes.length === 1 && displayShape.type === "image" && (
                     <>
                       <div className="flex items-center gap-0.5 px-1">
                         <Tooltip content="Get Depth Reference from Image" side="top">
@@ -340,76 +341,161 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                     </>
                   )}
 
-                  <div className="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-0.5" />
-                  <div className="relative">
-                    <Tooltip content="Arrange" side="top">
-                      <ToolbarButton
-                        icon={<Layers className="w-4 h-4" />}
-                        onClick={() => setShowArrangeSubMenu(!showArrangeSubMenu)}
-                        active={showArrangeSubMenu}
-                        className={styles.button}
-                      />
-                    </Tooltip>
-                    
-                    {showArrangeSubMenu && (
-                      <>
-                        <div
-                          className="fixed inset-0"
-                          onClick={() => setShowArrangeSubMenu(false)}
+                  {selectedShapes.length === 1 && (
+                    <>
+                      <div className="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-0.5" />
+                      <div className="relative">
+                        <Tooltip content="Arrange" side="top">
+                          <ToolbarButton
+                            icon={<Layers className="w-4 h-4" />}
+                            onClick={() => setShowArrangeSubMenu(!showArrangeSubMenu)}
+                            active={showArrangeSubMenu}
+                            className={styles.button}
+                          />
+                        </Tooltip>
+                        
+                        {showArrangeSubMenu && (
+                          <>
+                            <div
+                              className="fixed inset-0"
+                              onClick={() => setShowArrangeSubMenu(false)}
+                            />
+                            <div className={styles.arrangeMenu.container}>
+                              <button
+                                className={styles.arrangeMenu.item}
+                                onClick={() => {
+                                  displayActions.sendBackward();
+                                  setShowArrangeSubMenu(false);
+                                }}
+                              >
+                                <ArrowDown className="w-4 h-4" />
+                                Send Backward
+                              </button>
+                              <button
+                                className={styles.arrangeMenu.item}
+                                onClick={() => {
+                                  displayActions.sendForward();
+                                  setShowArrangeSubMenu(false);
+                                }}
+                              >
+                                <ArrowUp className="w-4 h-4" />
+                                Send Forward
+                              </button>
+                              <button
+                                className={styles.arrangeMenu.item}
+                                onClick={() => {
+                                  displayActions.sendToBack();
+                                  setShowArrangeSubMenu(false);
+                                }}
+                              >
+                                <MoveDown className="w-4 h-4" />
+                                Send to Back
+                              </button>
+                              <button
+                                className={styles.arrangeMenu.item}
+                                onClick={() => {
+                                  displayActions.sendToFront();
+                                  setShowArrangeSubMenu(false);
+                                }}
+                              >
+                                <MoveUp className="w-4 h-4" />
+                                Send to Front
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div className="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-0.5" />
+                      <Tooltip content="Download" side="top">
+                        <ToolbarButton
+                          icon={<Download className="w-4 h-4" />}
+                          onClick={displayActions.onDownload}
+                          className={styles.button}
                         />
-                        <div className={styles.arrangeMenu.container}>
-                          <button
-                            className={styles.arrangeMenu.item}
-                            onClick={() => {
-                              displayActions.sendBackward();
-                              setShowArrangeSubMenu(false);
-                            }}
-                          >
-                            <ArrowDown className="w-4 h-4" />
-                            Send Backward
-                          </button>
-                          <button
-                            className={styles.arrangeMenu.item}
-                            onClick={() => {
-                              displayActions.sendForward();
-                              setShowArrangeSubMenu(false);
-                            }}
-                          >
-                            <ArrowUp className="w-4 h-4" />
-                            Send Forward
-                          </button>
-                          <button
-                            className={styles.arrangeMenu.item}
-                            onClick={() => {
-                              displayActions.sendToBack();
-                              setShowArrangeSubMenu(false);
-                            }}
-                          >
-                            <MoveDown className="w-4 h-4" />
-                            Send to Back
-                          </button>
-                          <button
-                            className={styles.arrangeMenu.item}
-                            onClick={() => {
-                              displayActions.sendToFront();
-                              setShowArrangeSubMenu(false);
-                            }}
-                          >
-                            <MoveUp className="w-4 h-4" />
-                            Send to Front
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <div className="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-0.5" />
-                  <Tooltip content="Download" side="top">
-                    <ToolbarButton
-                      icon={<Download className="w-4 h-4" />}
-                      onClick={displayActions.onDownload}
-                      className={styles.button}
-                    />
-                  </Tooltip>
+                      </Tooltip>
+                    </>
+                  )}
+
+                  {selectedShapes.length > 1 && (
+                    <>
+                      <div className="relative">
+                        <Tooltip content="Arrange" side="top">
+                          <ToolbarButton
+                            icon={<Layers className="w-4 h-4" />}
+                            onClick={() => setShowArrangeSubMenu(!showArrangeSubMenu)}
+                            active={showArrangeSubMenu}
+                            className={styles.button}
+                          />
+                        </Tooltip>
+                        
+                        {showArrangeSubMenu && (
+                          <>
+                            <div
+                              className="fixed inset-0"
+                              onClick={() => setShowArrangeSubMenu(false)}
+                            />
+                            <div className={styles.arrangeMenu.container}>
+                              <button
+                                className={styles.arrangeMenu.item}
+                                onClick={() => {
+                                  displayActions.sendBackward();
+                                  setShowArrangeSubMenu(false);
+                                }}
+                              >
+                                <ArrowDown className="w-4 h-4" />
+                                Send Backward
+                              </button>
+                              <button
+                                className={styles.arrangeMenu.item}
+                                onClick={() => {
+                                  displayActions.sendForward();
+                                  setShowArrangeSubMenu(false);
+                                }}
+                              >
+                                <ArrowUp className="w-4 h-4" />
+                                Send Forward
+                              </button>
+                              <button
+                                className={styles.arrangeMenu.item}
+                                onClick={() => {
+                                  displayActions.sendToBack();
+                                  setShowArrangeSubMenu(false);
+                                }}
+                              >
+                                <MoveDown className="w-4 h-4" />
+                                Send to Back
+                              </button>
+                              <button
+                                className={styles.arrangeMenu.item}
+                                onClick={() => {
+                                  displayActions.sendToFront();
+                                  setShowArrangeSubMenu(false);
+                                }}
+                              >
+                                <MoveUp className="w-4 h-4" />
+                                Send to Front
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {areAllImages && (
+                        <Tooltip content="Merge Images" side="top">
+                          <ToolbarButton
+                            icon={
+                              <div className="flex items-center gap-1.5">
+                                <Combine className="w-4 h-4" />
+                                <span className="text-sm">Merge Images</span>
+                              </div>
+                            }
+                            onClick={() => displayActions.mergeImages(selectedShapes)}
+                            className={styles.button}
+                          />
+                        </Tooltip>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -524,7 +610,12 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
             {selectedShapes.length > 1 && !selectedShapesInGroup && (
               <Tooltip content="Group Shapes" side="top">
                 <ToolbarButton
-                  icon={<Group className="w-4 h-4" />}
+                  icon={
+                    <div className="flex items-center gap-1.5">
+                      <Group className="w-4 h-4" />
+                      <span className="text-sm">Group Shapes</span>
+                    </div>
+                  }
                   onClick={() => displayActions.createGroup(selectedShapes)}
                   className={styles.button}
                 />
@@ -534,7 +625,12 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
             {displayShape?.type === "group" && (
               <Tooltip content="Ungroup" side="top">
                 <ToolbarButton
-                  icon={<Ungroup className="w-4 h-4" />}
+                  icon={
+                    <div className="flex items-center gap-1.5">
+                      <Ungroup className="w-4 h-4" />
+                      <span className="text-sm">Ungroup</span>
+                    </div>
+                  }
                   onClick={() => displayActions.ungroup(displayShape.id)}
                   className={styles.button}
                 />
@@ -544,7 +640,12 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
             {selectedShapesInGroup && (
               <Tooltip content="Remove from Group" side="top">
                 <ToolbarButton
-                  icon={<Ungroup className="w-4 h-4" />}
+                  icon={
+                    <div className="flex items-center gap-1.5">
+                      <Ungroup className="w-4 h-4" />
+                      <span className="text-sm">Remove from Group</span>
+                    </div>
+                  }
                   onClick={() => displayActions.removeFromGroup(selectedShapes)}
                   className={styles.button}
                 />
@@ -554,7 +655,12 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
             {hasGroupAndShapes && selectedGroup && shapesToAdd.length > 0 && (
               <Tooltip content="Add to Group" side="top">
                 <ToolbarButton
-                  icon={<Group className="w-4 h-4" />}
+                  icon={
+                    <div className="flex items-center gap-1.5">
+                      <Group className="w-4 h-4" />
+                      <span className="text-sm">Add to Group</span>
+                    </div>
+                  }
                   onClick={() => displayActions.addToGroup(shapesToAdd, selectedGroup.id)}
                   className={styles.button}
                 />
@@ -576,24 +682,6 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                   className={styles.button}
                 />
               </Tooltip>
-            )}
-
-            {areAllImages && (
-              <>
-                <div className={styles.divider} />
-                <Tooltip content="Merge Images" side="top">
-                  <ToolbarButton
-                    icon={
-                      <div className="flex items-center gap-1.5">
-                        <Layers className="w-4 h-4" />
-                        <span className="text-sm">Merge Images</span>
-                      </div>
-                    }
-                    onClick={() => displayActions.mergeImages(selectedShapes)}
-                    className={styles.button}
-                  />
-                </Tooltip>
-              </>
             )}
           </div>
         </div>
