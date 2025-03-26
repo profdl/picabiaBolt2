@@ -7,7 +7,7 @@ import { Tooltip } from "../shared/Tooltip";
 import { generatePrompt } from "../../utils/prompt-generator";
 import { EnableReferencePanel } from "../shared/EnableReferencePanel";
 import { useThemeClass } from "../../styles/useThemeClass";
-import { Brush, Eraser, MousePointer } from "lucide-react";
+// import { Brush, Eraser, MousePointer } from "lucide-react";
 
 interface ShapeControlsProps {
   shape: Shape;
@@ -30,7 +30,6 @@ export function ShapeControls({
     updateShape,
     shapes,
     setSelectedShapes,
-    setTool,
     tool,
     selectedShapes
   } = useStore((state) => ({
@@ -159,6 +158,7 @@ export function ShapeControls({
       )}
 
       {/* Add brush, eraser, and select buttons for selected image shapes */}
+      {/* Temporarily disabled brush, eraser, and select tools
       {(isSelected || tool === "brush" || tool === "eraser") && shape.type === "image" && (
         <div
           className="absolute -left-12 top-0 flex flex-col gap-1"
@@ -234,6 +234,7 @@ export function ShapeControls({
           </Tooltip>
         </div>
       )}
+      */}
 
       {shape.type === "diffusionSettings" && (
         <div

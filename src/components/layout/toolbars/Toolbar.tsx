@@ -8,9 +8,6 @@ import {
   Sparkles,
   StickyNote,
   X,
-  MousePointer,
-  Brush,
-  Eraser,
 } from "lucide-react";
 import { useStore } from "../../../store";
 import { Tooltip } from "../../shared/Tooltip";
@@ -76,7 +73,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     generatingPredictions,
     handleGenerate,
     cancelGeneration,
-    setTool,
     tool,
   } = useStore((state) => ({
     handleGenerateSubject: state.handleGenerateSubject,
@@ -100,7 +96,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     generatingPredictions: state.generatingPredictions,
     handleGenerate: state.handleGenerate,
     cancelGeneration: state.cancelGeneration,
-    setTool: state.setTool,
     tool: state.tool,
   }));
 
@@ -425,6 +420,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 onDownload: handleDownload,
                 create3DDepth: create3DDepthAction,
                 onFlatten: handleFlatten,
+                addShape,
+                generatePreprocessedImage: async (id: string, type: string) => {
+                  // This is a placeholder implementation
+                  console.log('Generating preprocessed image:', id, type);
+                },
               }}
             />
           ) : null}
@@ -497,6 +497,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 onDownload: handleDownload,
                 create3DDepth: create3DDepthAction,
                 onFlatten: handleFlatten,
+                addShape,
+                generatePreprocessedImage: async (id: string, type: string) => {
+                  // This is a placeholder implementation
+                  console.log('Generating preprocessed image:', id, type);
+                },
               }}
             />
           )}
@@ -587,53 +592,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
               className={styles.button.base}
             />
           </Tooltip>
-
-          {/* Tools Section */}
-          <div className={styles.divider} />
-
-          {/* Select, Brush, and Eraser Tools */}
-          <div className="flex items-center gap-2">
-            <Tooltip content="Select Tool (V)" side="bottom">
-              <ToolbarButton
-                icon={<MousePointer />}
-                active={tool === "select"}
-                onClick={() => setTool("select")}
-                className={`${styles.button.base} ${
-                  tool === "select" ? styles.button.active : ""
-                }`}
-              />
-            </Tooltip>
-
-            {/* Always render brush and eraser buttons when an image is selected, but disable them if not applicable */}
-            {(selectedShape?.type === "image" || selectedShape?.type === "sketchpad") ? (
-              <>
-                <Tooltip content="Brush Tool (B)" side="bottom">
-                  <ToolbarButton
-                    icon={<Brush />}
-                    active={tool === "brush"}
-                    onClick={() => setTool("brush")}
-                    className={`${styles.button.base} ${
-                      tool === "brush" ? styles.button.active : ""
-                    }`}
-                  />
-                </Tooltip>
-
-                <Tooltip content="Eraser Tool (E)" side="bottom">
-                  <ToolbarButton
-                    icon={<Eraser />}
-                    active={tool === "eraser"}
-                    onClick={() => setTool("eraser")}
-                    className={`${styles.button.base} ${
-                      tool === "eraser" ? styles.button.active : ""
-                    }`}
-                  />
-                </Tooltip>
-              </>
-            ) : (
-              // Add invisible placeholders to maintain layout
-              <div className="flex items-center gap-2 w-[88px]" />
-            )}
-          </div>
 
           <div className={styles.divider} />
         </div>
