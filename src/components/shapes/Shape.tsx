@@ -327,12 +327,26 @@ export function ShapeComponent({ shape }: ShapeProps) {
           shape={shape} 
           tool={tool}
           handleContextMenu={handleContextMenu}
+          onResizeStart={() => {
+            // Handle resize start if needed
+          }}
+          onResizeEnd={() => {
+            // Handle resize end if needed
+          }}
         />
         {showControls && (tool === "select" || tool === "brush" || tool === "eraser") && (
           <ShapeControls
             shape={shape}
             isSelected={isSelected}
-            handleResizeStart={handleResizeStart}
+            handleResizeStart={(e) => {
+              handleResizeStart(e);
+              // Trigger resize start on ImageShape
+              const imageShape = document.querySelector(`[data-shape-id="${shape.id}"]`);
+              if (imageShape) {
+                const event = new CustomEvent('resizeStart');
+                imageShape.dispatchEvent(event);
+              }
+            }}
             hoveredGroup={hoveredGroup}
             isAddedToGroup={isAddedToGroup}
           />

@@ -97,7 +97,7 @@ export const subjectGenerationSlice: StateCreator<
       get().addGeneratingPrediction(prediction_id);
 
       // After creating placeholder shape
-      const subscription = supabase
+      supabase
         .channel('generated_images')
         .on(
           "postgres_changes",

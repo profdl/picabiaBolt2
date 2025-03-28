@@ -32,6 +32,7 @@ export interface Shape {
   groupEnabled?: boolean;
   mergedFrom?: string[];
   isMerged?: boolean;
+  remixStrength?: number;
   stickyStates?: { [shapeId: string]: { isTextPrompt: boolean; isNegativePrompt: boolean } };
   controlStates?: { [shapeId: string]: {
     isTextPrompt: boolean;
@@ -159,4 +160,18 @@ export interface Project {
   created_at: string;
   updated_at: string;
   is_template: boolean;
+}
+
+export interface StoreState {
+  shapes: Shape[];
+  selectedShapes: string[];
+  error: string | null;
+  generatingPredictions: string[];
+  addShape: (shape: Shape) => void;
+  updateShape: (id: string, updates: Partial<Shape>) => void;
+  removeShape: (id: string) => void;
+  setSelectedShapes: (ids: string[]) => void;
+  setError: (error: string | null) => void;
+  addGeneratingPrediction: (id: string) => void;
+  removeGeneratingPrediction: (id: string) => void;
 } 

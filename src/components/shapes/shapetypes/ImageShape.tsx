@@ -10,86 +10,23 @@ interface ImageShapeProps {
   shape: Shape;
   tool: "select" | "pan" | "pen" | "brush" | "eraser";
   handleContextMenu: (e: React.MouseEvent) => void;
+  onResizeStart?: () => void;
+  onResizeEnd?: () => void;
 }
 
-export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleContextMenu }) => {
+export const ImageShape: React.FC<ImageShapeProps> = ({ 
+  shape, 
+  tool, 
+  handleContextMenu,
+}) => {
   const updateShape = useStore((state) => state.updateShape);
   const selectedShapes = useStore((state) => state.selectedShapes);
   
-  const { refs, reapplyMask, updatePreviewCanvas, isScaling } = useImageCanvas({ shape, tool });
+  const { refs, reapplyMask, updatePreviewCanvas } = useImageCanvas({ shape, tool });
   const { handleEraserStroke } = useEraser({ refs, reapplyMask });
 
   // Add isDrawing ref to track drawing state
   const isDrawing = useRef(false);
-  const prevDimensions = useRef({ width: shape.width, height: shape.height });
-
-  // Add effect to handle shape resizing
-  useEffect(() => {
-    // Check if dimensions changed
-    if (shape.width !== prevDimensions.current.width || shape.height !== prevDimensions.current.height) {
-      // Update all canvas dimensions
-      [refs.backgroundCanvasRef.current, refs.permanentStrokesCanvasRef.current, 
-       refs.activeStrokeCanvasRef.current, refs.maskCanvasRef.current, 
-       refs.previewCanvasRef.current, refs.redBackgroundCanvasRef.current].forEach(canvas => {
-        if (canvas) {
-          canvas.width = shape.width;
-          canvas.height = shape.height;
-        }
-      });
-
-      const maskCanvas = refs.maskCanvasRef.current;
-      if (maskCanvas) {
-        // During scaling, we don't need to modify the mask as it's handled by the scaling state
-        if (!isScaling.current) {
-          // Create a temporary canvas to store current mask
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = prevDimensions.current.width;
-          tempCanvas.height = prevDimensions.current.height;
-          const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-          
-          if (tempCtx) {
-            // Copy current mask to temp canvas
-            tempCtx.drawImage(maskCanvas, 0, 0);
-            
-            // Clear and resize mask canvas
-            const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
-            if (maskCtx) {
-              // Store old dimensions
-              const oldWidth = maskCanvas.width;
-              const oldHeight = maskCanvas.height;
-              
-              // First fill with white (fully opaque)
-              maskCtx.fillStyle = 'white';
-              maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
-              
-              // Then draw the scaled previous mask using destination-in
-              maskCtx.globalCompositeOperation = 'destination-in';
-              maskCtx.drawImage(
-                tempCanvas,
-                0, 0, oldWidth, oldHeight,
-                0, 0, shape.width, shape.height
-              );
-              maskCtx.globalCompositeOperation = 'source-over';
-            }
-          }
-        }
-      }
-      
-      // Update preview with the scaled mask
-      requestAnimationFrame(() => {
-        updatePreviewCanvas();
-        
-        // After the preview is updated, save the new mask state
-        if (maskCanvas) {
-          const maskData = maskCanvas.toDataURL('image/png');
-          updateShape(shape.id, { maskCanvasData: maskData });
-        }
-      });
-      
-      // Update stored dimensions
-      prevDimensions.current = { width: shape.width, height: shape.height };
-    }
-  }, [shape.width, shape.height, isScaling, refs, updatePreviewCanvas, updateShape, shape.id]);
 
   // Add effect to handle tool transitions
   useEffect(() => {
@@ -227,6 +164,19 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     });
   };
 
+  // Common canvas style with GPU acceleration
+  const canvasStyle = {
+    touchAction: "none" as const,
+    pointerEvents: "none" as const,
+    opacity: 1,
+    transform: "translateZ(0)",
+    willChange: "transform" as const,
+    backfaceVisibility: "hidden" as const,
+    WebkitBackfaceVisibility: "hidden" as const,
+    WebkitTransform: "translateZ(0)",
+    WebkitWillChange: "transform" as const,
+  };
+
   return (
     <div className="relative w-full h-full">
       {shape.isImageEditing ? (
@@ -239,8 +189,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             data-layer="redBackground"
             className="absolute w-full h-full object-cover"
             style={{
-              touchAction: "none",
-              pointerEvents: "none",
+              ...canvasStyle,
               opacity: 0.25,
               zIndex: 0,
               visibility: "hidden"
@@ -252,9 +201,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             data-layer="background"
             className="absolute w-full h-full object-cover"
             style={{
-              touchAction: "none",
-              pointerEvents: "none",
-              opacity: 1,
+              ...canvasStyle,
               zIndex: 1,
               visibility: "hidden"
             }}
@@ -265,9 +212,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             data-layer="permanent"
             className="absolute w-full h-full object-cover"
             style={{
-              touchAction: "none",
-              pointerEvents: "none",
-              opacity: 1,
+              ...canvasStyle,
               zIndex: 2,
               visibility: "hidden"
             }}
@@ -278,9 +223,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             data-layer="active"
             className="absolute w-full h-full object-cover"
             style={{
-              touchAction: "none",
-              pointerEvents: "none",
-              opacity: 1,
+              ...canvasStyle,
               zIndex: 3,
               visibility: "hidden"
             }}
@@ -291,9 +234,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             data-layer="mask"
             className="absolute w-full h-full object-cover"
             style={{
-              touchAction: "none",
-              pointerEvents: "none",
-              opacity: 1,
+              ...canvasStyle,
               zIndex: 4,
               visibility: "hidden"
             }}
@@ -304,9 +245,8 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
             data-layer="preview"
             className="absolute w-full h-full object-cover"
             style={{
-              touchAction: "none",
+              ...canvasStyle,
               pointerEvents: tool === "select" ? "none" : "all",
-              opacity: 1,
               zIndex: 5,
               visibility: "visible"
             }}
