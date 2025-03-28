@@ -269,9 +269,9 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
     if (!maskCtx) return;
 
-    // Only reset the mask when switching away from both brush and eraser tools
-    if (tool !== 'brush' && tool !== 'eraser') {
-      // Use current shape dimensions instead of stored dimensions
+    // Only reset the mask when explicitly clearing it
+    if (tool === 'brush' && previousTool.current === 'eraser') {
+      // Use current shape dimensions
       maskCanvas.width = shape.width;
       maskCanvas.height = shape.height;
 
@@ -285,15 +285,14 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       updateShape(shape.id, { maskCanvasData: undefined });
     }
 
-    // Apply mask using CSS properties with proper scaling
-    const maskDataUrl = maskCanvas.toDataURL();
-    previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
-    previewCanvas.style.maskImage = `url(${maskDataUrl})`;
-    previewCanvas.style.webkitMaskSize = 'cover';
-    previewCanvas.style.maskSize = 'cover';
-    previewCanvas.style.webkitMaskPosition = 'center';
-    previewCanvas.style.maskPosition = 'center';
-  }, [refs.maskCanvasRef, refs.previewCanvasRef, tool, shape.width, shape.height, shape.id, updateShape]);
+    // Apply mask using canvas composite operations
+    updatePreviewCanvas();
+  }, [refs.maskCanvasRef, refs.previewCanvasRef, tool, shape.width, shape.height, shape.id, updateShape, updatePreviewCanvas]);
+
+  // Remove the tool transition effect since we handle it in reapplyMask
+  useEffect(() => {
+    previousTool.current = tool;
+  }, [tool]);
 
   // Initialize canvases with image
   useEffect(() => {
@@ -424,20 +423,6 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       isMounted = false;
     };
   }, [shape.imageUrl, shape.width, shape.height, shape.id, shape.maskCanvasData, refs, updateShape, shape.permanentCanvasData]);
-
-  useEffect(() => {
-    // Only reset mask when explicitly switching from eraser to brush
-    if (tool === "brush" && previousTool.current === "eraser" && refs.maskCanvasRef.current) {
-      const maskCtx = refs.maskCanvasRef.current.getContext("2d", { willReadFrequently: true });
-      if (maskCtx) {
-        maskCtx.clearRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
-        maskCtx.fillStyle = 'white';
-        maskCtx.fillRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
-      }
-      updatePreviewCanvas();
-    }
-    previousTool.current = tool;
-  }, [tool, refs.maskCanvasRef, updatePreviewCanvas]);
 
   return {
     refs,
