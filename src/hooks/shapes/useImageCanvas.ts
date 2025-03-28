@@ -72,57 +72,55 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     return imageData;
   };
 
-  // Optimized updatePreviewCanvas function
   const updatePreviewCanvas = useCallback(() => {
-    if (!refs.previewCanvasRef.current || !refs.backgroundCanvasRef.current || 
-        !refs.permanentStrokesCanvasRef.current || !refs.activeStrokeCanvasRef.current || 
-        !refs.maskCanvasRef.current) return;
-
-    const previewCtx = refs.previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
-    if (!previewCtx) return;
-
+    const previewCtx = refs.previewCanvasRef.current?.getContext('2d', { willReadFrequently: true });
     const previewCanvas = refs.previewCanvasRef.current;
+    if (!previewCtx || !previewCanvas) return;
+
     const width = previewCanvas.width;
     const height = previewCanvas.height;
 
-    // Clear preview canvas
+    // Clear preview
     previewCtx.clearRect(0, 0, width, height);
-
-    // Enable image smoothing for better quality during scaling
-    previewCtx.imageSmoothingEnabled = true;
-    previewCtx.imageSmoothingQuality = 'high';
 
     if (isScaling.current) {
       // If we don't have a cached preview, create one from the current state
       if (!cachedPreview.current) {
         cachedPreview.current = document.createElement('canvas');
-        cachedPreview.current.width = refs.previewCanvasRef.current.width;
-        cachedPreview.current.height = refs.previewCanvasRef.current.height;
+        cachedPreview.current.width = width;
+        cachedPreview.current.height = height;
         const cacheCtx = cachedPreview.current.getContext('2d', { willReadFrequently: true });
         if (cacheCtx) {
-          // Draw all layers in a single operation
-          cacheCtx.drawImage(refs.backgroundCanvasRef.current, 0, 0);
-          cacheCtx.drawImage(refs.permanentStrokesCanvasRef.current, 0, 0);
-          cacheCtx.drawImage(refs.activeStrokeCanvasRef.current, 0, 0);
+          // Draw all layers in a single operation with null checks
+          const backgroundCanvas = refs.backgroundCanvasRef.current;
+          const permanentCanvas = refs.permanentStrokesCanvasRef.current;
+          const activeCanvas = refs.activeStrokeCanvasRef.current;
+          const maskCanvas = refs.maskCanvasRef.current;
+          
+          if (backgroundCanvas) {
+            cacheCtx.drawImage(backgroundCanvas, 0, 0, width, height);
+          }
+          if (permanentCanvas) {
+            cacheCtx.drawImage(permanentCanvas, 0, 0, width, height);
+          }
+          if (activeCanvas) {
+            cacheCtx.drawImage(activeCanvas, 0, 0, width, height);
+          }
+          if (maskCanvas) {
+            cacheCtx.globalCompositeOperation = 'destination-in';
+            cacheCtx.drawImage(maskCanvas, 0, 0, width, height);
+            cacheCtx.globalCompositeOperation = 'source-over';
+          }
         }
       }
 
       // Use a single draw operation for the cached preview
-      previewCtx.drawImage(
-        cachedPreview.current,
-        0, 0, cachedPreview.current.width, cachedPreview.current.height,
-        0, 0, width, height
-      );
-
-      // Update CSS mask during scaling
-      const maskDataUrl = refs.maskCanvasRef.current?.toDataURL();
-      if (maskDataUrl) {
-        previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
-        previewCanvas.style.maskImage = `url(${maskDataUrl})`;
-        previewCanvas.style.webkitMaskSize = `${width}px ${height}px`;
-        previewCanvas.style.maskSize = `${width}px ${height}px`;
-        previewCanvas.style.webkitMaskPosition = 'center';
-        previewCanvas.style.maskPosition = 'center';
+      if (cachedPreview.current) {
+        previewCtx.drawImage(
+          cachedPreview.current,
+          0, 0, cachedPreview.current.width, cachedPreview.current.height,
+          0, 0, width, height
+        );
       }
 
       return;
@@ -131,54 +129,27 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     // Clear cache when not scaling
     cachedPreview.current = null;
 
-    // Normal update (not scaling) - use a single requestAnimationFrame
-    requestAnimationFrame(() => {
-      // Draw all layers in a single operation with null checks
-      if (refs.backgroundCanvasRef.current) {
-        previewCtx.drawImage(
-          refs.backgroundCanvasRef.current as CanvasImageSource,
-          0, 0, width, height
-        );
-      }
-      if (refs.permanentStrokesCanvasRef.current) {
-        previewCtx.drawImage(
-          refs.permanentStrokesCanvasRef.current as CanvasImageSource,
-          0, 0, width, height
-        );
-      }
-      if (refs.activeStrokeCanvasRef.current) {
-        previewCtx.drawImage(
-          refs.activeStrokeCanvasRef.current as CanvasImageSource,
-          0, 0, width, height
-        );
-      }
-
-      // Update CSS mask
-      const maskDataUrl = refs.maskCanvasRef.current?.toDataURL();
-      if (maskDataUrl) {
-        previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
-        previewCanvas.style.maskImage = `url(${maskDataUrl})`;
-        previewCanvas.style.webkitMaskSize = `${width}px ${height}px`;
-        previewCanvas.style.maskSize = `${width}px ${height}px`;
-        previewCanvas.style.webkitMaskPosition = 'center';
-        previewCanvas.style.maskPosition = 'center';
-      }
-    });
+    // Draw all layers in a single operation with null checks
+    const backgroundCanvas = refs.backgroundCanvasRef.current;
+    const permanentCanvas = refs.permanentStrokesCanvasRef.current;
+    const activeCanvas = refs.activeStrokeCanvasRef.current;
+    const maskCanvas = refs.maskCanvasRef.current;
+    
+    if (backgroundCanvas) {
+      previewCtx.drawImage(backgroundCanvas, 0, 0, width, height);
+    }
+    if (permanentCanvas) {
+      previewCtx.drawImage(permanentCanvas, 0, 0, width, height);
+    }
+    if (activeCanvas) {
+      previewCtx.drawImage(activeCanvas, 0, 0, width, height);
+    }
+    if (maskCanvas) {
+      previewCtx.globalCompositeOperation = 'destination-in';
+      previewCtx.drawImage(maskCanvas, 0, 0, width, height);
+      previewCtx.globalCompositeOperation = 'source-over';
+    }
   }, [refs, isScaling]);
-
-  // Throttled version of updatePreviewCanvas
-  const throttledUpdatePreview = useCallback(() => {
-    let inThrottle = false;
-    return () => {
-      if (!inThrottle) {
-        updatePreviewCanvas();
-        inThrottle = true;
-        setTimeout(() => {
-          inThrottle = false;
-        }, 16);
-      }
-    };
-  }, [updatePreviewCanvas]);
 
   const updateMaskScaling = useCallback(() => {
     if (!refs.maskCanvasRef.current || !refs.previewCanvasRef.current) return;
@@ -186,21 +157,11 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     const maskCanvas = refs.maskCanvasRef.current;
     const previewCanvas = refs.previewCanvasRef.current;
     
-    // Create a temporary canvas to store the current mask content
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = maskCanvas.width;
-    tempCanvas.height = maskCanvas.height;
-    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-    if (!tempCtx) return;
-    
-    // Copy current mask content to temp canvas
-    tempCtx.drawImage(maskCanvas, 0, 0);
-    
     // Update mask dimensions to match preview
     maskCanvas.width = previewCanvas.width;
     maskCanvas.height = previewCanvas.height;
     
-    // Get new mask context
+    // Get mask context
     const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
     if (!maskCtx) return;
     
@@ -208,65 +169,61 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     maskCtx.imageSmoothingEnabled = true;
     maskCtx.imageSmoothingQuality = 'high';
     
-    // Draw the stored mask content scaled to new dimensions in a single operation
-    maskCtx.drawImage(
-      tempCanvas,
-      0, 0, tempCanvas.width, tempCanvas.height,
-      0, 0, maskCanvas.width, maskCanvas.height
-    );
+    // Clear the mask canvas
+    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
     
-    // Apply mask with proper scaling using CSS
-    const maskDataUrl = maskCanvas.toDataURL();
-    previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
-    previewCanvas.style.maskImage = `url(${maskDataUrl})`;
-    previewCanvas.style.webkitMaskSize = `${maskCanvas.width}px ${maskCanvas.height}px`;
-    previewCanvas.style.maskSize = `${maskCanvas.width}px ${maskCanvas.height}px`;
-    previewCanvas.style.webkitMaskPosition = 'center';
-    previewCanvas.style.maskPosition = 'center';
+    // If we have a temp canvas with the original mask, scale it
+    if (tempCanvasRef.current) {
+      maskCtx.drawImage(
+        tempCanvasRef.current,
+        0, 0, tempCanvasRef.current.width, tempCanvasRef.current.height,
+        0, 0, maskCanvas.width, maskCanvas.height
+      );
+    } else {
+      // If no temp canvas, fill with white (fully opaque)
+      maskCtx.fillStyle = 'white';
+      maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+    }
   }, [refs.maskCanvasRef, refs.previewCanvasRef]);
 
   const handleScaleStart = useCallback(() => {
     isScaling.current = true;
-    tempCanvasRef.current = null; // Reset temp canvas
-    // Use requestAnimationFrame to ensure smooth start
-    requestAnimationFrame(() => {
-      updateMaskScaling();
-      throttledUpdatePreview();
-    });
-  }, [throttledUpdatePreview, updateMaskScaling]);
+    
+    // Store current mask content in temp canvas
+    if (refs.maskCanvasRef.current) {
+      tempCanvasRef.current = document.createElement('canvas');
+      tempCanvasRef.current.width = refs.maskCanvasRef.current.width;
+      tempCanvasRef.current.height = refs.maskCanvasRef.current.height;
+      const tempCtx = tempCanvasRef.current.getContext('2d', { willReadFrequently: true });
+      if (tempCtx) {
+        tempCtx.drawImage(refs.maskCanvasRef.current, 0, 0);
+      }
+    }
+    
+    updateMaskScaling();
+    updatePreviewCanvas();
+  }, [updateMaskScaling, updatePreviewCanvas, refs.maskCanvasRef]);
 
   const handleScaleEnd = useCallback(() => {
     isScaling.current = false;
-    tempCanvasRef.current = null;
     
     // Save mask state after scaling
     if (refs.maskCanvasRef.current) {
       const maskData = refs.maskCanvasRef.current.toDataURL('image/png');
       localStorage.setItem(`mask_${shape.id}`, maskData);
       updateShape(shape.id, { maskCanvasData: maskData });
-      
-      // Reapply mask with proper CSS masking and scaling
-      const previewCanvas = refs.previewCanvasRef.current;
-      if (previewCanvas) {
-        previewCanvas.style.webkitMaskImage = `url(${maskData})`;
-        previewCanvas.style.maskImage = `url(${maskData})`;
-        previewCanvas.style.webkitMaskSize = `${previewCanvas.width}px ${previewCanvas.height}px`;
-        previewCanvas.style.maskSize = `${previewCanvas.width}px ${previewCanvas.height}px`;
-        previewCanvas.style.webkitMaskPosition = 'center';
-        previewCanvas.style.maskPosition = 'center';
-      }
     }
     
-    requestAnimationFrame(() => {
-      updatePreviewCanvas();
-    });
-  }, [updatePreviewCanvas, refs.maskCanvasRef, refs.previewCanvasRef, shape.id, updateShape]);
+    // Clean up temp canvas
+    tempCanvasRef.current = null;
+    updatePreviewCanvas();
+  }, [updatePreviewCanvas, refs.maskCanvasRef, shape.id, updateShape]);
 
   // Add effect to handle drag and scale state
   useEffect(() => {
     const handleDragStart = () => {
       isDragging.current = true;
-      throttledUpdatePreview();
+      updatePreviewCanvas();
     };
 
     const handleDragEnd = () => {
@@ -303,7 +260,7 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
         localStorage.removeItem(`${prefix}_${shape.id}_temp`);
       });
     };
-  }, [handleScaleStart, handleScaleEnd, tool, shape.id, refs, updateShape, throttledUpdatePreview, updatePreviewCanvas]);
+  }, [handleScaleStart, handleScaleEnd, tool, shape.id, refs, updateShape, updatePreviewCanvas]);
 
   // Function to reapply mask with original dimensions
   const reapplyMask = useCallback(() => {
@@ -487,7 +444,7 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
   return {
     refs,
     reapplyMask,
-    updatePreviewCanvas: throttledUpdatePreview,
+    updatePreviewCanvas,
     maskDimensionsRef,
     isDragging,
     isScaling,
