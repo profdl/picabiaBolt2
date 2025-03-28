@@ -16,6 +16,16 @@ export const LAYOUT_CONSTANTS = {
     HEIGHT: 200,
     ASPECT_RATIO: 9/16,
   },
+  MINIMUM: {
+    STICKY: {
+      width: 200,
+      height: 100,
+    },
+    DEFAULT: {
+      width: 200,
+      height: 200,
+    }
+  },
   VIEWPORT: {
     DEFAULT_WIDTH_RATIO: 0.4,
   }
@@ -169,6 +179,34 @@ export const shapeLayout = {
       y: minY - LAYOUT_CONSTANTS.PADDING.GROUP,
       width: maxX - minX + LAYOUT_CONSTANTS.PADDING.GROUP * 2,
       height: maxY - minY + LAYOUT_CONSTANTS.PADDING.GROUP * 2 + LAYOUT_CONSTANTS.PADDING.GROUP_CONTROL,
+    };
+  },
+
+  // Calculate minimum size needed for text content
+  calculateTextContentSize: (content: string, fontSize: number = 16): { width: number; height: number } => {
+    // Create a temporary div to measure text
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.visibility = 'hidden';
+    tempDiv.style.whiteSpace = 'pre-wrap';
+    tempDiv.style.wordWrap = 'break-word';
+    tempDiv.style.width = '200px'; // Start with minimum width
+    tempDiv.style.fontSize = `${fontSize}px`;
+    tempDiv.style.padding = '12px'; // Account for padding
+    tempDiv.textContent = content || ' '; // Use space if empty to get minimum height
+    document.body.appendChild(tempDiv);
+
+    // Get the height needed for the content
+    const height = tempDiv.offsetHeight;
+    document.body.removeChild(tempDiv);
+
+    // Add extra padding at the bottom to ensure last line is fully visible
+    const extraPadding = Math.ceil(fontSize * 0.5); // Add 50% of font size as extra padding
+
+    // Return minimum dimensions
+    return {
+      width: LAYOUT_CONSTANTS.MINIMUM.STICKY.width,
+      height: Math.max(LAYOUT_CONSTANTS.MINIMUM.STICKY.height, height + extraPadding)
     };
   }
 }; 

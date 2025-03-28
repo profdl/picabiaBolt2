@@ -7,6 +7,7 @@ import { Tooltip } from "../shared/Tooltip";
 import { generatePrompt } from "../../utils/prompt-generator";
 import { EnableReferencePanel } from "../shared/EnableReferencePanel";
 import { useThemeClass } from "../../styles/useThemeClass";
+import { shapeLayout } from "../../utils/shapeLayout";
 // import { Brush, Eraser, MousePointer } from "lucide-react";
 
 interface ShapeControlsProps {
@@ -295,9 +296,12 @@ export function ShapeControls({
               onMouseDown={(e) => {
                 preventEvent(e);
                 const randomPrompt = generatePrompt();
+                const minSize = shapeLayout.calculateTextContentSize(randomPrompt, shape.fontSize || 16);
                 updateShape(shape.id, {
                   content: randomPrompt,
                   isEditing: true,
+                  width: Math.max(shape.width, minSize.width),
+                  height: Math.max(shape.height, minSize.height)
                 });
               }}
               onClick={preventEvent}

@@ -3,6 +3,7 @@ import { useThemeClass } from '../../../styles/useThemeClass';
 import { useStore } from '../../../store';
 import { useStickyNoteColor } from '../../../hooks/ui/useStickyNoteColor';
 import { useDarkMode } from '../../../hooks/ui/useDarkMode';
+import { shapeLayout } from '../../../utils/shapeLayout';
 
 interface StickyNoteShapeProps {
   shape: Shape;
@@ -36,11 +37,21 @@ export const StickyNoteShape: React.FC<StickyNoteShapeProps> = ({
     return 'text-neutral-800';
   };
 
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    const minSize = shapeLayout.calculateTextContentSize(newContent, shape.fontSize || 16);
+    updateShape(shape.id, {
+      content: newContent,
+      width: Math.max(shape.width, minSize.width),
+      height: Math.max(shape.height, minSize.height)
+    });
+  };
+
   return (
     <textarea
       ref={textRef}
       value={shape.content || ""}
-      onChange={(e) => updateShape(shape.id, { content: e.target.value })}
+      onChange={handleContentChange}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       className={`${styles} ${

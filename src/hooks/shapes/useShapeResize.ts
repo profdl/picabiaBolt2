@@ -48,8 +48,13 @@ export const useShapeResize = (
         return;
       }
 
-      let newWidth = Math.max(LAYOUT_CONSTANTS.DEFAULT.WIDTH, resizeStart.width + dx);
-      let newHeight = Math.max(LAYOUT_CONSTANTS.DEFAULT.HEIGHT, resizeStart.height + dy);
+      // Get minimum dimensions based on shape type
+      const minDimensions = shape.type === "sticky" 
+        ? shapeLayout.calculateTextContentSize(shape.content || '', shape.fontSize || 16)
+        : LAYOUT_CONSTANTS.MINIMUM.DEFAULT;
+
+      let newWidth = Math.max(minDimensions.width, resizeStart.width + dx);
+      let newHeight = Math.max(minDimensions.height, resizeStart.height + dy);
 
       if (e.shiftKey && resizeStart.aspectRatio) {
         if (Math.abs(dx) > Math.abs(dy)) {
