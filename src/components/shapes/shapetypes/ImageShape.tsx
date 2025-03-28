@@ -6,6 +6,27 @@ import { useBrush } from "../../layout/toolbars/BrushTool";
 import { useImageCanvas } from "../../../hooks/shapes/useImageCanvas";
 import { useEraser } from "../../../hooks/shapes/useEraser";
 
+// Add utility function for consistent sizing
+const calculateImageShapeDimensions = (width: number, height: number): { width: number; height: number } => {
+  const MAX_DIMENSION = 512;
+  const aspectRatio = width / height;
+  
+  let scaledWidth: number;
+  let scaledHeight: number;
+  
+  if (aspectRatio > 1) {
+    // Width is larger than height
+    scaledWidth = MAX_DIMENSION;
+    scaledHeight = Math.round(MAX_DIMENSION / aspectRatio);
+  } else {
+    // Height is larger than or equal to width
+    scaledHeight = MAX_DIMENSION;
+    scaledWidth = Math.round(MAX_DIMENSION * aspectRatio);
+  }
+  
+  return { width: scaledWidth, height: scaledHeight };
+};
+
 interface ImageShapeProps {
   shape: Shape;
   tool: "select" | "pan" | "pen" | "brush" | "eraser";
@@ -27,6 +48,19 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
 
   // Add isDrawing ref to track drawing state
   const isDrawing = useRef(false);
+
+  // Add effect to handle initial sizing
+  useEffect(() => {
+    if (shape.type === "image" && !shape.originalWidth) {
+      const dimensions = calculateImageShapeDimensions(shape.width, shape.height);
+      updateShape(shape.id, {
+        width: dimensions.width,
+        height: dimensions.height,
+        originalWidth: shape.width,
+        originalHeight: shape.height
+      });
+    }
+  }, [shape.id, shape.type, shape.width, shape.height, shape.originalWidth, updateShape]);
 
   // Add effect to handle tool transitions
   useEffect(() => {

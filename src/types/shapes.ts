@@ -23,6 +23,7 @@ export interface Shape {
   locked?: boolean;
   isEditing: boolean;
   isNew?: boolean;
+  isResized?: boolean;
   model: string;
   useSettings: boolean;
   makeVariations?: boolean;
@@ -47,12 +48,12 @@ export interface Shape {
   content?: string;
   width: number;
   height: number;
+  originalWidth?: number;
+  originalHeight?: number;
   color: string;
   fontSize?: number;
   imageUrl?: string;
   aspectRatio?: number;
-  originalWidth?: number;
-  originalHeight?: number;
   thumbnailUrl?: string;
   rotation: number;
   points?: Position[];

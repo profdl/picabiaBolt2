@@ -154,6 +154,27 @@ async function hasBlackPixelsInMask(maskCanvas: HTMLCanvasElement): Promise<bool
   return false;
 }
 
+// Add this utility function before the generationHandlerSlice
+const calculateImageShapeDimensions = (width: number, height: number): { width: number; height: number } => {
+  const MAX_DIMENSION = 512;
+  const aspectRatio = width / height;
+  
+  let scaledWidth: number;
+  let scaledHeight: number;
+  
+  if (aspectRatio > 1) {
+    // Width is larger than height
+    scaledWidth = MAX_DIMENSION;
+    scaledHeight = Math.round(MAX_DIMENSION / aspectRatio);
+  } else {
+    // Height is larger than or equal to width
+    scaledHeight = MAX_DIMENSION;
+    scaledWidth = Math.round(MAX_DIMENSION * aspectRatio);
+  }
+  
+  return { width: scaledWidth, height: scaledHeight };
+};
+
 export const generationHandlerSlice: StateCreator<
   StoreState & GenerationHandlerSlice,
   [],
@@ -201,8 +222,9 @@ export const generationHandlerSlice: StateCreator<
       // No need to modify activeSettings as it already has the correct dimensions
     } else if (variationShape) {
       // Use the dimensions from the variation source image
-      activeSettings.outputWidth = Math.round(variationShape.width);
-      activeSettings.outputHeight = Math.round(variationShape.height);
+      const dimensions = calculateImageShapeDimensions(variationShape.width, variationShape.height);
+      activeSettings.outputWidth = dimensions.width;
+      activeSettings.outputHeight = dimensions.height;
 
       // Get the preview canvas and mask canvas for the variation shape
       const previewCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="preview"]`) as HTMLCanvasElement;
@@ -358,27 +380,20 @@ export const generationHandlerSlice: StateCreator<
       }
     } else if (imageReferenceShape) {
       // Use dimensions from the image reference
-      activeSettings.outputWidth = Math.round(imageReferenceShape.width);
-      activeSettings.outputHeight = Math.round(imageReferenceShape.height);
+      const dimensions = calculateImageShapeDimensions(imageReferenceShape.width, imageReferenceShape.height);
+      activeSettings.outputWidth = dimensions.width;
+      activeSettings.outputHeight = dimensions.height;
     } else {
       // Only calculate dimensions from control shapes if no other dimensions are set
       const avgAspectRatio = calculateAverageAspectRatio(shapes);
       if (avgAspectRatio) {
-        // Target approximately 1 megapixel area
-        const targetArea = 1024 * 1024;
-        let width = Math.round(Math.sqrt(targetArea * avgAspectRatio));
-        let height = Math.round(width / avgAspectRatio);
-        
-        // Ensure dimensions are multiples of 8
-        width = Math.round(width / 8) * 8;
-        height = Math.round(height / 8) * 8;
-        
-        activeSettings.outputWidth = width;
-        activeSettings.outputHeight = height;
+        const dimensions = calculateImageShapeDimensions(512 * avgAspectRatio, 512);
+        activeSettings.outputWidth = dimensions.width;
+        activeSettings.outputHeight = dimensions.height;
       } else {
-        // Default to 1024x1024 if no control shapes are enabled
-        activeSettings.outputWidth = 1024;
-        activeSettings.outputHeight = 1024;
+        // Default to 512x512 if no control shapes are enabled
+        activeSettings.outputWidth = 512;
+        activeSettings.outputHeight = 512;
       }
     }
 
@@ -420,11 +435,10 @@ export const generationHandlerSlice: StateCreator<
     workflow["6"].inputs.text = promptText;
 
     // Calculate dimensions for placeholder shape
-    const maxDimension = 400;
-    const aspectRatio = (activeSettings.outputWidth || 1360) / (activeSettings.outputHeight || 768);
-    const [scaledWidth, scaledHeight] = aspectRatio > 1
-      ? [maxDimension, maxDimension / aspectRatio]
-      : [maxDimension * aspectRatio, maxDimension];
+    const dimensions = calculateImageShapeDimensions(
+      activeSettings.outputWidth || 512,
+      activeSettings.outputHeight || 512
+    );
     
     const { zoom, offset } = get();
     const viewCenter = {
@@ -432,7 +446,7 @@ export const generationHandlerSlice: StateCreator<
       y: (-offset.y + window.innerHeight / 2) / zoom,
     };
 
-    const position = findOpenSpace(shapes, scaledWidth, scaledHeight, viewCenter);
+    const position = findOpenSpace(shapes, dimensions.width, dimensions.height, viewCenter);
 
     // Generate a unique prediction ID early
     const prediction_id = crypto.randomUUID();
@@ -442,8 +456,8 @@ export const generationHandlerSlice: StateCreator<
       id: prediction_id,
       type: "image",
       position,
-      width: scaledWidth,
-      height: scaledHeight,
+      width: dimensions.width,
+      height: dimensions.height,
       isUploading: true,
       imageUrl: "",
       color: "transparent",

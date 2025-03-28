@@ -1,11 +1,30 @@
 // src/hooks/useShapeAdder.ts
-import { Shape, Position } from "../../types";
+import { Shape, Position } from "../../types/shapes";
 import { useStore } from "../../store";
-import { shapeLayout, LAYOUT_CONSTANTS } from "../../utils/shapeLayout";
 import { getImageDimensions } from "../../utils/image";
 
+// Add utility function for consistent sizing
+const calculateImageShapeDimensions = (width: number, height: number): { width: number; height: number } => {
+  const MAX_DIMENSION = 512;
+  const aspectRatio = width / height;
+  
+  let scaledWidth: number;
+  let scaledHeight: number;
+  
+  if (aspectRatio > 1) {
+    // Width is larger than height
+    scaledWidth = MAX_DIMENSION;
+    scaledHeight = Math.round(MAX_DIMENSION / aspectRatio);
+  } else {
+    // Height is larger than or equal to width
+    scaledHeight = MAX_DIMENSION;
+    scaledWidth = Math.round(MAX_DIMENSION * aspectRatio);
+  }
+  
+  return { width: scaledWidth, height: scaledHeight };
+};
+
 interface ShapeAddOptions {
-  animate?: boolean;
   position?: Position;
   defaultWidth?: number;
   centerOnShape?: boolean;
@@ -14,128 +33,75 @@ interface ShapeAddOptions {
 }
 
 export function useShapeAdder() {
-  const {
-    addShape,
-    zoom,
-    offset,
-    shapes,
-    setOffset,
-  } = useStore();
-
-  const getViewportCenter = () => shapeLayout.getViewportCenter(zoom, offset);
-
-  const animateToShape = (shape: Shape) => {
-    const targetOffset = shapeLayout.calculateCenteringOffset(shape, zoom);
-    const startOffset = { ...offset };
-    const duration = 500;
-    const start = performance.now();
-
-    const animate = (currentTime: number) => {
-      const progress = Math.min((currentTime - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // Cubic easing
-
-      const currentOffset = {
-        x: startOffset.x + (targetOffset.x - startOffset.x) * eased,
-        y: startOffset.y + (targetOffset.y - startOffset.y) * eased
-      };
-
-      setOffset(currentOffset);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    requestAnimationFrame(animate);
-  };
+  const addShape = useStore((state) => state.addShape);
+  const setSelectedShapes = useStore((state) => state.setSelectedShapes);
+  const centerOnShape = useStore((state) => state.centerOnShape);
 
   const addNewShape = async (
-    shapeType: Shape['type'],
-    shapeData: Partial<Shape> = {},
-    url: string = '',
-    options: ShapeAddOptions = { animate: true }
+    type: Shape["type"],
+    props: Partial<Shape>,
+    content: string = "",
+    options: ShapeAddOptions = {}
   ) => {
-    let width = options.defaultWidth || LAYOUT_CONSTANTS.DEFAULT.WIDTH;
-    let height = width;
-    let aspectRatio = 1;
+    const {
+      position,
+      defaultWidth = 200,
+      centerOnShape: shouldCenterOnShape = false,
+      setSelected = false,
+      startEditing = false,
+    } = options;
 
-    // Only fetch image dimensions if it's an image type and has a URL
-    if (shapeType === 'image' && url) {
-      try {
-        const dimensions = await getImageDimensions(url);
-        aspectRatio = dimensions.width / dimensions.height;
-        width = 512; // Set fixed width for images
-        height = width / aspectRatio;
-      } catch (error) {
-        console.error('Failed to get image dimensions:', error);
-      }
-    } else {
-      // For non-image shapes, use default dimensions
-      if (shapeType === 'sticky') {
-        width = 200;
-        height = 200;
-      } else if (shapeType === 'sketchpad') {
-        width = 400;
-        height = 400;
-      } else if (shapeType === 'diffusionSettings') {
-        width = 300;
-        height = 200;
-      }
+    // Calculate dimensions based on type
+    let width = defaultWidth;
+    let height = defaultWidth;
+
+    if (type === "image" && props.imageUrl) {
+      const dimensions = await getImageDimensions(props.imageUrl);
+      const scaledDimensions = calculateImageShapeDimensions(dimensions.width, dimensions.height);
+      width = scaledDimensions.width;
+      height = scaledDimensions.height;
     }
 
-    const center = getViewportCenter();
-    const shapeId = Math.random().toString(36).substr(2, 9);
-
-    const position = options.position || shapeLayout.findOpenSpace(
-      shapes,
-      width,
-      height,
-      center
-    );
-
     const newShape: Shape = {
-      id: shapeId,
-      type: shapeType,
-      position,
+      id: Math.random().toString(36).substr(2, 9),
+      type,
+      position: position || { x: 0, y: 0 },
       width,
       height,
-      color: "transparent",
       rotation: 0,
-      imageUrl: "",
+      color: "#ffffff",
+      isEditing: startEditing,
       model: "",
       useSettings: false,
       isUploading: false,
-      isEditing: false,
+      contentStrength: 0.75,
+      sketchStrength: 0.75,
+      imagePromptStrength: 0.75,
       depthStrength: 0.75,
       edgesStrength: 0.75,
-      contentStrength: 0.75,
       poseStrength: 0.75,
-      sketchStrength: 0.75,
-      aspectRatio,
-      content: shapeType === "sticky" ? "Double click to edit..." : "",
-      isTextPrompt: shapeType === "sticky" ? true : (shapeData.isTextPrompt ?? false),
-      textPromptStrength: shapeType === "sticky" ? 4.5 : undefined,
-      ...shapeData
+      showDepth: false,
+      showEdges: false,
+      showPose: false,
+      showSketch: false,
+      showImagePrompt: false,
+      isResized: type === "image" ? false : undefined,
+      ...props,
+      content: content || props.content,
     };
-
-    console.log("useShapeAdder - Creating new shape:", {
-      id: shapeId,
-      type: shapeType,
-      isTextPrompt: shapeData.isTextPrompt || false
-    });
 
     addShape(newShape);
 
-    if (options.animate) {
-      animateToShape(newShape);
+    if (setSelected) {
+      setSelectedShapes([newShape.id]);
+    }
+
+    if (shouldCenterOnShape) {
+      centerOnShape(newShape.id);
     }
 
     return newShape;
   };
 
-  return {
-    addNewShape,
-    getViewportCenter,
-    animateToShape
-  };
+  return { addNewShape };
 }

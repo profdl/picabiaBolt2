@@ -21,6 +21,8 @@ export interface Shape {
   position: Position;
   width: number;
   height: number;
+  originalWidth?: number;
+  originalHeight?: number;
   color?: string;
   fontSize?: number;
   points?: Position[];
