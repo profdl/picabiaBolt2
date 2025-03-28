@@ -283,7 +283,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               };
                               
                               displayActions.addShape(newEdgesShape);
-                              await displayActions.generatePreprocessedImage(newEdgesShape.id, "edge");
+                              await displayActions.generatePreprocessedImage(displayShape.id, "edge");
                             }}
                           >
                             Edges
@@ -320,7 +320,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               };
                               
                               displayActions.addShape(newPoseShape);
-                              await displayActions.generatePreprocessedImage(newPoseShape.id, "pose");
+                              await displayActions.generatePreprocessedImage(displayShape.id, "pose");
                             }}
                           >
                             Pose

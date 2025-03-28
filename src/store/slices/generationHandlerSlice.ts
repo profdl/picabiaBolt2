@@ -534,12 +534,12 @@ export const generationHandlerSlice: StateCreator<
       let currentPositiveNode = "6";
 
       for (const controlShape of shapes) {
-        if (controlShape.showEdges && controlShape.edgePreviewUrl) {
+        if (controlShape.showEdges && controlShape.edgeUrl) {
           currentWorkflow["12"] = {
             ...workflow["12"],
             inputs: {
               ...workflow["12"].inputs,
-              image: controlShape.edgePreviewUrl,
+              image: controlShape.edgeUrl,
             },
           };
           currentWorkflow["18"] = workflow["18"];
@@ -556,12 +556,12 @@ export const generationHandlerSlice: StateCreator<
           currentPositiveNode = "41";
         }
 
-        if (controlShape.showDepth && controlShape.depthPreviewUrl) {
+        if (controlShape.showDepth && controlShape.depthUrl) {
           currentWorkflow["33"] = {
             ...workflow["33"],
             inputs: {
               ...workflow["33"].inputs,
-              image: controlShape.depthPreviewUrl,
+              image: controlShape.depthUrl,
             },
           };
           currentWorkflow["32"] = workflow["32"];
@@ -579,12 +579,12 @@ export const generationHandlerSlice: StateCreator<
           currentPositiveNode = "31";
         }
 
-        if (controlShape.showPose && controlShape.posePreviewUrl) {
+        if (controlShape.showPose && controlShape.poseUrl) {
           currentWorkflow["37"] = {
             ...workflow["37"],
             inputs: {
               ...workflow["37"].inputs,
-              image: controlShape.posePreviewUrl,
+              image: controlShape.poseUrl,
             },
           };
           currentWorkflow["36"] = workflow["36"];
