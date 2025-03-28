@@ -98,66 +98,86 @@ export const subjectGenerationSlice: StateCreator<
 
       // After creating placeholder shape
       const subscription = supabase
-      .channel(`generation_${prediction_id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "generated_images",
-          filter: `prediction_id=eq.${prediction_id}`,
-        },
-        async (payload: unknown) => {
-          const typedPayload = payload as {
-            new: { status: string; generated_01: string };
-          };
-          if (typedPayload.new.status === "completed") {
-            // Get the trimmed dimensions of the processed image
-            const { url: trimmedUrl, bounds } = await trimTransparentPixels(typedPayload.new.generated_01);
-            
-            // Calculate scale to fit within 512px while maintaining aspect ratio
-            const aspectRatio = bounds.width / bounds.height;
-            let newWidth, newHeight;
-            
-            if (aspectRatio > 1) {
-              // Image is wider than tall
-              newWidth = 512;
-              newHeight = 512 / aspectRatio;
-            } else {
-              // Image is taller than wide
-              newHeight = 512;
-              newWidth = 512 * aspectRatio;
-            }
-    
-            // Calculate new position to keep image centered relative to original position
-            const xOffset = (sourceShape.width - newWidth) / 2;
-            const yOffset = (sourceShape.height - newHeight) / 2;
-            const newPosition = {
-              x: sourceShape.position.x + sourceShape.width + 20 + xOffset,
-              y: sourceShape.position.y + yOffset
+        .channel('generated_images')
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "generated_images",
+            filter: `prediction_id=eq.${prediction_id}`,
+          },
+          async (payload: unknown) => {
+            console.log('Received webhook update:', payload);
+            const typedPayload = payload as {
+              new: { 
+                status: string; 
+                generated_01: string;
+                prediction_id: string;
+                error_message?: string;
+              };
             };
-    
-            // Update shape with trimmed image and scaled dimensions
-            get().updateShape(prediction_id, {
-              isUploading: false,
-              imageUrl: trimmedUrl,
-              width: newWidth,
-              height: newHeight,
-              position: newPosition
-            });
             
-            get().removeGeneratingPrediction(prediction_id);
-            subscription.unsubscribe();
+            if (typedPayload.new.status === "completed" && typedPayload.new.generated_01) {
+              try {
+                // Get the trimmed dimensions of the processed image
+                const { url: trimmedUrl, bounds } = await trimTransparentPixels(typedPayload.new.generated_01);
+                
+                // Calculate scale to fit within 512px while maintaining aspect ratio
+                const aspectRatio = bounds.width / bounds.height;
+                let newWidth, newHeight;
+                
+                if (aspectRatio > 1) {
+                  newWidth = 512;
+                  newHeight = 512 / aspectRatio;
+                } else {
+                  newHeight = 512;
+                  newWidth = 512 * aspectRatio;
+                }
+    
+                // Calculate new position
+                const xOffset = (sourceShape.width - newWidth) / 2;
+                const yOffset = (sourceShape.height - newHeight) / 2;
+                const newPosition = {
+                  x: sourceShape.position.x + sourceShape.width + 20 + xOffset,
+                  y: sourceShape.position.y + yOffset
+                };
+    
+                // Update shape with trimmed image
+                get().updateShape(prediction_id, {
+                  isUploading: false,
+                  imageUrl: trimmedUrl,
+                  width: newWidth,
+                  height: newHeight,
+                  position: newPosition
+                });
+                
+                get().removeGeneratingPrediction(prediction_id);
+              } catch (error) {
+                console.error('Error processing completed image:', error);
+                get().setError('Failed to process completed image');
+              }
+            } else if (typedPayload.new.status === "error" || typedPayload.new.status === "failed") {
+              console.error('Generation failed:', typedPayload.new.error_message);
+              get().setError(typedPayload.new.error_message || 'Generation failed');
+              get().removeGeneratingPrediction(prediction_id);
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully subscribed to updates');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('Failed to subscribe to updates');
+            get().setError('Failed to subscribe to generation updates');
+          }
+        });
 
-  } catch (error) {
-    console.error("Failed to generate subject:", error);
-    set({
-      error: error instanceof Error ? error.message : "Failed to generate subject",
-    });
-  }
-},
+    } catch (error) {
+      console.error("Failed to generate subject:", error);
+      set({
+        error: error instanceof Error ? error.message : "Failed to generate subject",
+      });
+    }
+  },
 });
