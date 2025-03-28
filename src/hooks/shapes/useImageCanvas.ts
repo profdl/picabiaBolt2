@@ -184,7 +184,12 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       maskCtx.fillStyle = 'white';
       maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
     }
-  }, [refs.maskCanvasRef, refs.previewCanvasRef]);
+
+    // Save the scaled mask state
+    const maskData = maskCanvas.toDataURL('image/png');
+    localStorage.setItem(`mask_${shape.id}`, maskData);
+    updateShape(shape.id, { maskCanvasData: maskData });
+  }, [refs.maskCanvasRef, refs.previewCanvasRef, shape.id, updateShape]);
 
   const handleScaleStart = useCallback(() => {
     isScaling.current = true;
@@ -207,17 +212,10 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
   const handleScaleEnd = useCallback(() => {
     isScaling.current = false;
     
-    // Save mask state after scaling
-    if (refs.maskCanvasRef.current) {
-      const maskData = refs.maskCanvasRef.current.toDataURL('image/png');
-      localStorage.setItem(`mask_${shape.id}`, maskData);
-      updateShape(shape.id, { maskCanvasData: maskData });
-    }
-    
     // Clean up temp canvas
     tempCanvasRef.current = null;
     updatePreviewCanvas();
-  }, [updatePreviewCanvas, refs.maskCanvasRef, shape.id, updateShape]);
+  }, [updatePreviewCanvas]);
 
   // Add effect to handle drag and scale state
   useEffect(() => {
