@@ -86,6 +86,9 @@ export interface Shape {
   isDepthProcessing?: boolean;
   isEdgeProcessing?: boolean;
   isPoseProcessing?: boolean;
+  depthUrl?: string;
+  edgeUrl?: string;
+  poseUrl?: string;
   hasSketchGenerated?: boolean;
   hasDepthGenerated?: boolean;
   hasEdgeGenerated?: boolean;

@@ -135,6 +135,9 @@ export interface Shape {
   };
   makeVariations?: boolean;
   variationStrength?: number;
+  depthUrl?: string;
+  edgeUrl?: string;
+  poseUrl?: string;
 }
 
 export interface SavedImage {

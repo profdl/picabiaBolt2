@@ -88,6 +88,8 @@ export const useShapeResize = (
     };
 
     const handleMouseUp = () => {
+      // Dispatch a custom event to notify that scaling has ended
+      window.dispatchEvent(new CustomEvent('shapeScalingEnd'));
       setResizeStart(null);
     };
 
@@ -102,6 +104,8 @@ export const useShapeResize = (
 
   const handleResizeStart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // Dispatch a custom event to notify that scaling has started
+    window.dispatchEvent(new CustomEvent('shapeScalingStart'));
     setResizeStart({
       x: e.clientX,
       y: e.clientY,

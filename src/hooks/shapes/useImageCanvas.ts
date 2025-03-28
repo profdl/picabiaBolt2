@@ -20,6 +20,8 @@ interface UseImageCanvasProps {
 export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
   // Add isDragging ref
   const isDragging = useRef(false);
+  // Add isScaling ref
+  const isScaling = useRef(false);
   const updateShape = useStore((state) => state.updateShape);
 
   // Create individual refs
@@ -74,44 +76,57 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     const previewCtx = refs.previewCanvasRef.current.getContext("2d", { willReadFrequently: true });
     if (!previewCtx) return;
 
-    // During drag, update both CSS mask properties and draw permanent strokes
-    if (isDragging.current) {
-      // Clear preview canvas
-      previewCtx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
-      
-      // Draw background and permanent strokes
-      previewCtx.drawImage(refs.backgroundCanvasRef.current as CanvasImageSource, 0, 0);
-      previewCtx.drawImage(refs.permanentStrokesCanvasRef.current as CanvasImageSource, 0, 0);
+    const previewCanvas = refs.previewCanvasRef.current;
+    const width = previewCanvas.width;
+    const height = previewCanvas.height;
 
-      // Apply mask
+    // Clear preview canvas
+    previewCtx.clearRect(0, 0, width, height);
+
+    // During scaling, update all canvases with proper scaling
+    if (isScaling.current) {
+      // Scale all canvases to match the new dimensions
+      [refs.backgroundCanvasRef.current, refs.permanentStrokesCanvasRef.current, 
+       refs.activeStrokeCanvasRef.current, refs.maskCanvasRef.current].forEach(canvas => {
+        if (canvas) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+      });
+
+      // Draw all layers with proper scaling
+      previewCtx.drawImage(refs.backgroundCanvasRef.current, 0, 0, width, height);
+      previewCtx.drawImage(refs.permanentStrokesCanvasRef.current, 0, 0, width, height);
+      previewCtx.drawImage(refs.activeStrokeCanvasRef.current, 0, 0, width, height);
+
+      // Apply mask with proper scaling
+      previewCtx.globalCompositeOperation = "destination-in";
+      previewCtx.drawImage(refs.maskCanvasRef.current, 0, 0, width, height);
+      previewCtx.globalCompositeOperation = "source-over";
+
+      // Apply CSS mask with proper scaling
       const maskDataUrl = refs.maskCanvasRef.current.toDataURL();
       if (maskDataUrl) {
-        refs.previewCanvasRef.current.style.webkitMaskImage = `url(${maskDataUrl})`;
-        refs.previewCanvasRef.current.style.maskImage = `url(${maskDataUrl})`;
-        refs.previewCanvasRef.current.style.webkitMaskSize = 'cover';
-        refs.previewCanvasRef.current.style.maskSize = 'cover';
-        refs.previewCanvasRef.current.style.webkitMaskPosition = 'center';
-        refs.previewCanvasRef.current.style.maskPosition = 'center';
+        previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
+        previewCanvas.style.maskImage = `url(${maskDataUrl})`;
+        previewCanvas.style.webkitMaskSize = `${width}px ${height}px`;
+        previewCanvas.style.maskSize = `${width}px ${height}px`;
+        previewCanvas.style.webkitMaskPosition = 'center';
+        previewCanvas.style.maskPosition = 'center';
       }
       return;
     }
 
-    // Use requestAnimationFrame for smoother updates when not dragging
+    // Use requestAnimationFrame for smoother updates when not scaling
     requestAnimationFrame(() => {
-      const previewCanvas = refs.previewCanvasRef.current;
-      if (!previewCanvas) return;
-
-      // Clear preview canvas
-      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-
       // Draw all layers
-      previewCtx.drawImage(refs.backgroundCanvasRef.current as CanvasImageSource, 0, 0);
-      previewCtx.drawImage(refs.permanentStrokesCanvasRef.current as CanvasImageSource, 0, 0);
-      previewCtx.drawImage(refs.activeStrokeCanvasRef.current as CanvasImageSource, 0, 0);
+      previewCtx.drawImage(refs.backgroundCanvasRef.current as CanvasImageSource, 0, 0, width, height);
+      previewCtx.drawImage(refs.permanentStrokesCanvasRef.current as CanvasImageSource, 0, 0, width, height);
+      previewCtx.drawImage(refs.activeStrokeCanvasRef.current as CanvasImageSource, 0, 0, width, height);
 
       // Apply mask
       previewCtx.globalCompositeOperation = "destination-in";
-      previewCtx.drawImage(refs.maskCanvasRef.current as CanvasImageSource, 0, 0);
+      previewCtx.drawImage(refs.maskCanvasRef.current as CanvasImageSource, 0, 0, width, height);
       previewCtx.globalCompositeOperation = "source-over";
 
       // Apply CSS mask
@@ -119,15 +134,15 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       if (maskDataUrl) {
         previewCanvas.style.webkitMaskImage = `url(${maskDataUrl})`;
         previewCanvas.style.maskImage = `url(${maskDataUrl})`;
-        previewCanvas.style.webkitMaskSize = 'cover';
-        previewCanvas.style.maskSize = 'cover';
+        previewCanvas.style.webkitMaskSize = `${width}px ${height}px`;
+        previewCanvas.style.maskSize = `${width}px ${height}px`;
         previewCanvas.style.webkitMaskPosition = 'center';
         previewCanvas.style.maskPosition = 'center';
       }
     });
-  }, [refs, isDragging]);
+  }, [refs, isScaling]);
 
-  // Add effect to handle drag state
+  // Add effect to handle drag and scale state
   useEffect(() => {
     const saveCanvasState = (canvas: HTMLCanvasElement, prefix: string) => {
       if (canvas) {
@@ -187,6 +202,37 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       updatePreviewCanvas();
     };
 
+    const handleScaleStart = async () => {
+      isScaling.current = true;
+      
+      // Save all canvas states before scaling starts
+      if (refs.backgroundCanvasRef.current) saveCanvasState(refs.backgroundCanvasRef.current, 'background');
+      if (refs.permanentStrokesCanvasRef.current) saveCanvasState(refs.permanentStrokesCanvasRef.current, 'permanent');
+      if (refs.activeStrokeCanvasRef.current) saveCanvasState(refs.activeStrokeCanvasRef.current, 'active');
+      if (refs.maskCanvasRef.current) saveCanvasState(refs.maskCanvasRef.current, 'mask');
+      
+      // Force one final preview update before starting scale
+      updatePreviewCanvas();
+    };
+
+    const handleScaleEnd = async () => {
+      isScaling.current = false;
+      
+      // Restore all canvas states after scaling ends
+      if (refs.backgroundCanvasRef.current) await restoreCanvasState(refs.backgroundCanvasRef.current, 'background');
+      if (refs.permanentStrokesCanvasRef.current) await restoreCanvasState(refs.permanentStrokesCanvasRef.current, 'permanent');
+      if (refs.activeStrokeCanvasRef.current) await restoreCanvasState(refs.activeStrokeCanvasRef.current, 'active');
+      if (refs.maskCanvasRef.current) await restoreCanvasState(refs.maskCanvasRef.current, 'mask');
+      
+      // Clean up temporary storage
+      ['background', 'permanent', 'active', 'mask'].forEach(prefix => {
+        localStorage.removeItem(`${prefix}_${shape.id}_temp`);
+      });
+      
+      // Update preview after scaling ends
+      updatePreviewCanvas();
+    };
+
     const handleMouseUp = () => {
       // Save mask data to both localStorage and shape state if using eraser tool
       if (tool === 'eraser' && refs.maskCanvasRef.current) {
@@ -201,10 +247,16 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     window.addEventListener('mouseup', handleDragEnd);
     window.addEventListener('mouseup', handleMouseUp);
 
+    // Add scale event listeners
+    window.addEventListener('shapeScalingStart', handleScaleStart);
+    window.addEventListener('shapeScalingEnd', handleScaleEnd);
+
     return () => {
       window.removeEventListener('mousedown', handleDragStart);
       window.removeEventListener('mouseup', handleDragEnd);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('shapeScalingStart', handleScaleStart);
+      window.removeEventListener('shapeScalingEnd', handleScaleEnd);
       // Clean up temporary storage on unmount
       ['background', 'permanent', 'active', 'mask'].forEach(prefix => {
         localStorage.removeItem(`${prefix}_${shape.id}_temp`);
@@ -375,12 +427,14 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     return () => {
       isMounted = false;
     };
-  }, [shape.imageUrl, shape.width, shape.height, shape.id, shape.maskCanvasData, refs, updateShape]);
+  }, [shape.imageUrl, shape.width, shape.height, shape.id, shape.maskCanvasData, refs, updateShape, shape.permanentCanvasData]);
 
   return {
     refs,
     reapplyMask,
     updatePreviewCanvas,
-    maskDimensionsRef
+    maskDimensionsRef,
+    isDragging,
+    isScaling,
   };
 };

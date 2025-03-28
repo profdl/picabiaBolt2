@@ -236,15 +236,17 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 showDepth: true,
                                 model: "",
                                 useSettings: false,
-                                isUploading: false,
+                                isUploading: true,
                                 contentStrength: 0.5,
                                 sketchStrength: 0.5,
                                 depthStrength: 0.5,
                                 edgesStrength: 0.5,
                                 poseStrength: 0.5,
+                                depthPreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%239ca3af' stroke-width='2'/%3E%3C/svg%3E",
                               };
                               
                               displayActions.addShape(newDepthShape);
+                              await displayActions.generatePreprocessedImage(displayShape.id, "depth");
                             }}
                           >
                             Depth
@@ -271,15 +273,17 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 showEdges: true,
                                 model: "",
                                 useSettings: false,
-                                isUploading: false,
+                                isUploading: true,
                                 contentStrength: 0.5,
                                 sketchStrength: 0.5,
                                 depthStrength: 0.5,
                                 edgesStrength: 0.5,
                                 poseStrength: 0.5,
+                                edgePreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%239ca3af' stroke-width='2'/%3E%3C/svg%3E",
                               };
                               
                               displayActions.addShape(newEdgesShape);
+                              await displayActions.generatePreprocessedImage(newEdgesShape.id, "edge");
                             }}
                           >
                             Edges
@@ -306,15 +310,17 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 showPose: true,
                                 model: "",
                                 useSettings: false,
-                                isUploading: false,
+                                isUploading: true,
                                 contentStrength: 0.5,
                                 sketchStrength: 0.5,
                                 depthStrength: 0.5,
                                 edgesStrength: 0.5,
                                 poseStrength: 0.5,
+                                posePreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%239ca3af' stroke-width='2'/%3E%3C/svg%3E",
                               };
                               
                               displayActions.addShape(newPoseShape);
+                              await displayActions.generatePreprocessedImage(newPoseShape.id, "pose");
                             }}
                           >
                             Pose

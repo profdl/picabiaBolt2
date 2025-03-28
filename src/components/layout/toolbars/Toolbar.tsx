@@ -74,6 +74,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     handleGenerate,
     cancelGeneration,
     tool,
+    generatePreprocessedImage,
   } = useStore((state) => ({
     handleGenerateSubject: state.handleGenerateSubject,
     create3DDepth: state.create3DDepth as (shape: Shape, position: { x: number; y: number }) => void,
@@ -97,6 +98,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     handleGenerate: state.handleGenerate,
     cancelGeneration: state.cancelGeneration,
     tool: state.tool,
+    generatePreprocessedImage: state.generatePreprocessedImage,
   }));
 
   const selectedShape = shapes.find((s) => selectedShapes.includes(s.id));
@@ -422,8 +424,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 onFlatten: handleFlatten,
                 addShape,
                 generatePreprocessedImage: async (id: string, type: string) => {
-                  // This is a placeholder implementation
-                  console.log('Generating preprocessed image:', id, type);
+                  await generatePreprocessedImage(id, type as "depth" | "edge" | "pose" | "sketch" | "imagePrompt");
                 },
               }}
             />
@@ -499,8 +500,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 onFlatten: handleFlatten,
                 addShape,
                 generatePreprocessedImage: async (id: string, type: string) => {
-                  // This is a placeholder implementation
-                  console.log('Generating preprocessed image:', id, type);
+                  await generatePreprocessedImage(id, type as "depth" | "edge" | "pose" | "sketch" | "imagePrompt");
                 },
               }}
             />

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useStore } from "../../../store";
 import { Shape } from "../../../types";
-import { supabase } from "../../../lib/supabase";
 import { ImageEditor } from "./ImageEditor";
 import { useBrush } from "../../layout/toolbars/BrushTool";
 import { useImageCanvas } from "../../../hooks/shapes/useImageCanvas";
@@ -13,24 +12,99 @@ interface ImageShapeProps {
   handleContextMenu: (e: React.MouseEvent) => void;
 }
 
-interface PreprocessedImagePayload {
-  new: {
-    status: string;
-    processType: string;
-    shapeId: string;
-    [key: string]: string | number | boolean | null;
-  };
-}
-
 export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleContextMenu }) => {
   const updateShape = useStore((state) => state.updateShape);
   const selectedShapes = useStore((state) => state.selectedShapes);
   
-  const { refs, reapplyMask, updatePreviewCanvas } = useImageCanvas({ shape, tool });
+  const { refs, reapplyMask, updatePreviewCanvas, isScaling } = useImageCanvas({ shape, tool });
   const { handleEraserStroke } = useEraser({ refs, reapplyMask });
 
   // Add isDrawing ref to track drawing state
   const isDrawing = useRef(false);
+  const prevDimensions = useRef({ width: shape.width, height: shape.height });
+
+  // Add effect to handle shape resizing
+  useEffect(() => {
+    // Check if dimensions changed
+    if (shape.width !== prevDimensions.current.width || shape.height !== prevDimensions.current.height) {
+      // Update all canvas dimensions
+      [refs.backgroundCanvasRef.current, refs.permanentStrokesCanvasRef.current, 
+       refs.activeStrokeCanvasRef.current, refs.maskCanvasRef.current, 
+       refs.previewCanvasRef.current, refs.redBackgroundCanvasRef.current].forEach(canvas => {
+        if (canvas) {
+          canvas.width = shape.width;
+          canvas.height = shape.height;
+        }
+      });
+
+      const maskCanvas = refs.maskCanvasRef.current;
+      if (maskCanvas) {
+        // During scaling, we don't need to modify the mask as it's handled by the scaling state
+        if (!isScaling.current) {
+          // Create a temporary canvas to store current mask
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = prevDimensions.current.width;
+          tempCanvas.height = prevDimensions.current.height;
+          const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+          
+          if (tempCtx) {
+            // Copy current mask to temp canvas
+            tempCtx.drawImage(maskCanvas, 0, 0);
+            
+            // Clear and resize mask canvas
+            const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+            if (maskCtx) {
+              // Store old dimensions
+              const oldWidth = maskCanvas.width;
+              const oldHeight = maskCanvas.height;
+              
+              // First fill with white (fully opaque)
+              maskCtx.fillStyle = 'white';
+              maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+              
+              // Then draw the scaled previous mask using destination-in
+              maskCtx.globalCompositeOperation = 'destination-in';
+              maskCtx.drawImage(
+                tempCanvas,
+                0, 0, oldWidth, oldHeight,
+                0, 0, shape.width, shape.height
+              );
+              maskCtx.globalCompositeOperation = 'source-over';
+            }
+          }
+        }
+      }
+      
+      // Update preview with the scaled mask
+      requestAnimationFrame(() => {
+        updatePreviewCanvas();
+        
+        // After the preview is updated, save the new mask state
+        if (maskCanvas) {
+          const maskData = maskCanvas.toDataURL('image/png');
+          updateShape(shape.id, { maskCanvasData: maskData });
+        }
+      });
+      
+      // Update stored dimensions
+      prevDimensions.current = { width: shape.width, height: shape.height };
+    }
+  }, [shape.width, shape.height, isScaling, refs, updatePreviewCanvas, updateShape, shape.id]);
+
+  // Add effect to handle tool transitions
+  useEffect(() => {
+    // When switching from eraser to brush, reset the mask to fully opaque
+    if (tool === "brush" && refs.maskCanvasRef.current) {
+      const maskCtx = refs.maskCanvasRef.current.getContext("2d", { willReadFrequently: true });
+      if (maskCtx) {
+        maskCtx.clearRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
+        maskCtx.fillStyle = 'white';
+        maskCtx.fillRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
+      }
+      // Update preview to show the reset state
+      updatePreviewCanvas();
+    }
+  }, [tool, refs.maskCanvasRef, updatePreviewCanvas]);
 
   // Add effect to handle tool state on deselection
   useEffect(() => {
@@ -103,60 +177,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
     originalHandlePointerUpOrLeave();
     updatePreviewCanvas();
   };
-
-  const subscriptionRef = useRef<{
-    [key: string]: ReturnType<typeof supabase.channel>;
-  }>({});
-
-  // Set up subscriptions for each process type
-  useEffect(() => {
-    const processTypes = ["depth", "edge", "pose", "sketch"];
-
-    processTypes.forEach((processType) => {
-      if (shape[`show${processType.charAt(0).toUpperCase() + processType.slice(1)}` as keyof Shape]) {
-        const channelName = `preprocessing_${shape.id}_${processType}`;
-
-        if (!subscriptionRef.current[channelName]) {
-          const subscription = supabase
-            .channel(channelName)
-            .on(
-              "postgres_changes",
-              {
-                event: "UPDATE",
-                schema: "public",
-                table: "preprocessed_images",
-                filter: `shapeId=eq.${shape.id}`,
-              },
-              (payload: PreprocessedImagePayload) => {
-                if (
-                  payload.new.status === "completed" &&
-                  payload.new.processType === processType
-                ) {
-                  const urlKey = `${processType}Url`;
-                  const previewUrlKey = `${processType}PreviewUrl`;
-
-                  updateShape(shape.id, {
-                    [previewUrlKey]: payload.new[urlKey],
-                  });
-                }
-              }
-            )
-            .subscribe();
-
-          subscriptionRef.current[channelName] = subscription;
-        }
-      }
-    });
-
-    return () => {
-      Object.values(subscriptionRef.current).forEach((subscription) => {
-        if (subscription && typeof subscription.unsubscribe === 'function') {
-          subscription.unsubscribe();
-        }
-      });
-      subscriptionRef.current = {};
-    };
-  }, [shape, updateShape]);
 
   // Handle clearing strokes
   const handleClear = () => {
@@ -327,16 +347,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({ shape, tool, handleConte
               handlePointerUpOrLeave();
             }}
           />
-          {/* Processed layers (depth, edge, pose, etc.) */}
-          {shape.showSketch && shape.sketchPreviewUrl && (
-            <img
-              src={shape.sketchPreviewUrl}
-              alt="Sketch"
-              className="absolute w-full h-full object-cover"
-              style={{ opacity: shape.sketchStrength || 0.5 }}
-              draggable={false}
-            />
-          )}
           {(tool === "brush" || tool === "eraser") && (
             <button
               className="absolute -bottom-6 right-0 text-xs px-1.5 py-0.5 bg-gray-300 text-gray-800 rounded hover:bg-red-600 transition-colors"
