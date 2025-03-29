@@ -455,6 +455,7 @@ export const generationHandlerSlice: StateCreator<
       activeSettings.outputHeight || 512
     );
 
+    // Find open space for the shape
     const position = findOpenSpace(shapes, dimensions.width, dimensions.height, viewCenter);
 
     // Generate a unique prediction ID early
@@ -493,8 +494,8 @@ export const generationHandlerSlice: StateCreator<
 
     // Calculate the target offset to center the shape
     const targetOffset = {
-      x: -position.x * zoom + window.innerWidth / 2,
-      y: -position.y * zoom + window.innerHeight / 2,
+      x: -(position.x + dimensions.width/2) * zoom + window.innerWidth / 2,
+      y: -(position.y + dimensions.height/2) * zoom + window.innerHeight / 2 - (dimensions.height * zoom * 0.2), // Subtract 20% of shape height for upward bias
     };
 
     // Animate the offset change
