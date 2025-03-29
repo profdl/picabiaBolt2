@@ -1,5 +1,6 @@
 import { Shape } from "../../../types";
 import { useProcessedImageSubscription } from "../../../hooks/useProcessedImageSubscription";
+import { LoadingPlaceholder } from "../../shared/LoadingPlaceholder";
 
 interface ProcessedShapeProps {
   shape: Shape;
@@ -13,6 +14,14 @@ export const ProcessedShape: React.FC<ProcessedShapeProps> = ({ shape, type }) =
   // Get the appropriate URL based on the type
   const urlKey = `${type}Url` as keyof Shape;
   const processedUrl = shape[urlKey] as string | undefined;
+
+  if (shape.isUploading) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <LoadingPlaceholder isGenerating={false} />
+      </div>
+    );
+  }
 
   if (!processedUrl) {
     return null;

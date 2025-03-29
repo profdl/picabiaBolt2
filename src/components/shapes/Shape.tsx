@@ -176,7 +176,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
         style={{
           ...shapeStyles,
           height: shape.width / aspectRatio,
-          overflow: "visible"
+          overflow: "visible",
+          backgroundColor: shape.isUploading ? "#f3f4f6" : "transparent"
         }}
         className="rounded-lg"
         onMouseDown={handleMouseDown}
@@ -206,7 +207,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
         style={{
           ...shapeStyles,
           height: shape.width / aspectRatio,
-          overflow: "visible"
+          overflow: "visible",
+          backgroundColor: shape.isUploading ? "#f3f4f6" : "transparent"
         }}
         className="rounded-lg"
         onMouseDown={handleMouseDown}
@@ -236,7 +238,8 @@ export function ShapeComponent({ shape }: ShapeProps) {
         style={{
           ...shapeStyles,
           height: shape.width / aspectRatio,
-          overflow: "visible"
+          overflow: "visible",
+          backgroundColor: shape.isUploading ? "#f3f4f6" : "transparent"
         }}
         className="rounded-lg"
         onMouseDown={handleMouseDown}

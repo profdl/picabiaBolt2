@@ -4,7 +4,7 @@ import { Upload, Loader2, Search, ExternalLink } from "lucide-react";
 import { useStore } from "../../../store";
 import { Drawer } from "../../shared/Drawer";
 import ImageGrid from "../../shared/ImageGrid";
-import { Asset } from "../../../types";
+import { Asset } from "../../../types/images";
 import { useFileUpload } from "../../../hooks/useFileUpload";
 import { usePersonalAssets } from "../../../hooks/project/usePersonalAssets";
 import { useSourcePlus } from "../../../hooks/project/useSourcePlus";
@@ -127,11 +127,11 @@ export const AssetsDrawer: React.FC<AssetsDrawerProps> = ({
           edgesStrength: asset.edgesStrength || 0.25,
           poseStrength: asset.poseStrength || 0.25,
           sketchStrength: asset.sketchStrength || 0.25,
-          remixStrength: asset.remixStrength || 0.25,
+          imagePromptStrength: asset.remixStrength || 0.25,
         },
         fullSizeUrl,
         {
-          animate: true,
+          centerOnShape: true,
           setSelected: true,
         }
       );
