@@ -2,8 +2,8 @@ import { StateCreator } from "zustand";
 import { Shape } from "../../types";
 
 interface ToolState {
-  tool: "select" | "pan" | "pen" | "brush" | "eraser";
-  setTool: (tool: "select" | "pan" | "pen" | "brush" | "eraser") => void;
+  tool: "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint";
+  setTool: (tool: "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint") => void;
   shapes: Shape[];
   addShape: (shape: Shape) => void;
   currentColor: string;
@@ -17,7 +17,7 @@ interface ToolState {
 }
 
 interface ToolSlice {
-  tool: "select" | "pan" | "pen" | "brush" | "eraser";
+  tool: "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint";
   currentColor: string;
   strokeWidth: number;
   brushSize: number;
@@ -27,7 +27,7 @@ interface ToolSlice {
   brushRotation: number;
   brushFollowPath: boolean;
   brushHardness: number;
-  setTool: (tool: "select" | "pan" | "pen" | "brush" | "eraser") => void;
+  setTool: (tool: "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint") => void;
   setCurrentColor: (color: string) => void;
   setStrokeWidth: (width: number) => void;
   setBrushSize: (size: number) => void;
@@ -44,7 +44,7 @@ interface ToolSlice {
 }
 
 export const createToolSlice: StateCreator<ToolState> = (set) => ({
-  tool: "select" as "select" | "pan" | "pen" | "brush" | "eraser",
+  tool: "select" as "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint",
   setTool: (tool) => set({ tool }),
   shapes: [],
   addShape: (shape) => set((state) => ({ shapes: [...state.shapes, shape] })),

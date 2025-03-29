@@ -435,9 +435,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           ) : null}
 
           {/* Brush Properties Toolbar */}
-          {(tool === "brush" || tool === "eraser") && (
+          {(tool === "brush" || tool === "eraser" || tool === "inpaint") && (
             <PropertiesToolbar
-              type={tool === "brush" ? "brush" : "eraser"}
+              type={tool === "brush" ? "brush" : tool === "eraser" ? "eraser" : "inpaint"}
               properties={{
                 color: currentColor,
                 texture: brushTexture,

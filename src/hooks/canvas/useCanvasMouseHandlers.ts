@@ -74,7 +74,7 @@ export function useCanvasMouseHandlers() {
     canvasRef: React.RefObject<HTMLDivElement>,
     spacePressed: boolean
   ) => {
-    if (tool === "brush" || tool === "eraser") {
+    if (tool === "brush" || tool === "eraser" || tool === "inpaint") {
       const clickedElement = e.target as HTMLElement;
       const isSketchpad = clickedElement.closest("canvas");
       if (!isSketchpad) {

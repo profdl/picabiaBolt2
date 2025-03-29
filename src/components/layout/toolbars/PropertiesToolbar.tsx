@@ -14,6 +14,7 @@ import {
   Brush,
   Eraser,
   Combine,
+  Paintbrush,
 } from "lucide-react";
 import { Shape } from "../../../types";
 import { useStore } from "../../../store";
@@ -26,7 +27,7 @@ import { useThemeClass } from "../../../styles/useThemeClass";
 import { MiniToggle } from "../../shared/MiniToggle";
 
 interface PropertiesToolbarProps {
-  type: "brush" | "eraser" | "image" | "shape";
+  type: "brush" | "eraser" | "inpaint" | "image" | "shape";
   properties?: {
     color?: string;
     texture?: string;
@@ -71,13 +72,12 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
   shapes = [],
   actions,
 }) => {
-  const { tool, addShape: storeAddShape, generatePreprocessedImage: storeGeneratePreprocessedImage, setTool, unEraseMode, maskMode } = useStore((state) => ({
+  const { tool, addShape: storeAddShape, generatePreprocessedImage: storeGeneratePreprocessedImage, setTool, unEraseMode } = useStore((state) => ({
     tool: state.tool,
     addShape: state.addShape,
     generatePreprocessedImage: state.generatePreprocessedImage,
     setTool: state.setTool,
     unEraseMode: state.unEraseMode,
-    maskMode: state.maskMode,
   }));
 
   const [showArrangeSubMenu, setShowArrangeSubMenu] = useState(false);
@@ -198,11 +198,27 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
               />
             </Tooltip>
 
-            <Tooltip content="Eraser Tool (E)" side="top">
+            <Tooltip content="Brush Eraser (E)" side="top">
               <ToolbarButton
                 icon={<Eraser className="w-4 h-4" />}
                 active={tool === "eraser"}
-                onClick={() => setTool("eraser")}
+                onClick={() => {
+                  setTool("eraser");
+                  useStore.getState().setMaskMode(false);
+                }}
+                disabled={shape && shape.type !== "image" && shape.type !== "sketchpad"}
+                className={`${styles.button} ${shape && shape.type !== "image" && shape.type !== "sketchpad" ? "opacity-50 cursor-not-allowed" : ""}`}
+              />
+            </Tooltip>
+
+            <Tooltip content="In-Paint Brush (I)" side="top">
+              <ToolbarButton
+                icon={<Paintbrush className="w-4 h-4" />}
+                active={tool === "inpaint"}
+                onClick={() => {
+                  setTool("inpaint");
+                  useStore.getState().setMaskMode(true);
+                }}
                 disabled={shape && shape.type !== "image" && shape.type !== "sketchpad"}
                 className={`${styles.button} ${shape && shape.type !== "image" && shape.type !== "sketchpad" ? "opacity-50 cursor-not-allowed" : ""}`}
               />
@@ -594,22 +610,72 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
               </div>
             )}
 
-            {/* Eraser Tool Sub-toolbar */}
+            {/* Brush Eraser Tool Sub-toolbar */}
             {tool === "eraser" && localProperties && onPropertyChange && (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                  <BrushSettingsPanel
+                    currentTexture={localProperties.texture || "basic"}
+                    rotation={localProperties.rotation}
+                    spacing={localProperties.spacing}
+                    followPath={localProperties.followPath}
+                    onTextureSelect={(texture: string) => handlePropertyChange("texture", texture)}
+                    onPropertyChange={handlePropertyChange}
+                  />
+                  <div className={styles.controlGroup.container}>
+                    <span className={styles.controlGroup.label}>Size</span>
+                    <div className="w-[120px]">
+                      <SmallSlider
+                        value={localProperties.size || 1}
+                        onChange={(value) => handlePropertyChange("size", value)}
+                        min={1}
+                        max={100}
+                        step={1}
+                        label="Size"
+                      />
+                    </div>
+                  </div>
+                  <div className={styles.controlGroup.container}>
+                    <span className={styles.controlGroup.label}>Opacity</span>
+                    <div className="w-[120px]">
+                      <SmallSlider
+                        value={(localProperties.opacity || 0) * 100}
+                        onChange={(value) => handlePropertyChange("opacity", value / 100)}
+                        min={0}
+                        max={100}
+                        step={1}
+                        label="Opacity"
+                      />
+                    </div>
+                  </div>
+                  {localProperties.texture === 'soft' && (
+                    <div className={styles.controlGroup.container}>
+                      <span className={styles.controlGroup.label}>Hardness</span>
+                      <div className="w-[120px]">
+                        <SmallSlider
+                          value={Math.round((localProperties.hardness ?? 1) * 100)}
+                          onChange={(value) => handlePropertyChange("hardness", value / 100)}
+                          min={1}
+                          max={100}
+                          step={1}
+                          label="Hardness"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* In-Paint Brush Tool Sub-toolbar */}
+            {tool === "inpaint" && localProperties && onPropertyChange && (
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-3">
                   <MiniToggle
                     id="un-erase-toggle"
-                    label="Un-Erase"
+                    label="Restore"
                     checked={unEraseMode}
                     onChange={(checked) => useStore.getState().setUnEraseMode(checked)}
-                    disabled={!maskMode}
-                  />
-                  <MiniToggle
-                    id="mask-mode-toggle"
-                    label="Mask Mode"
-                    checked={maskMode}
-                    onChange={(checked) => useStore.getState().setMaskMode(checked)}
                   />
                   <div className={styles.controlGroup.container}>
                     <span className={styles.controlGroup.label}>Size</span>

@@ -1,6 +1,6 @@
 import { useStore } from "../../store";
 
-type ToolType = 'select' | 'pan' | 'pen' | 'brush' | 'eraser';
+type ToolType = 'select' | 'pan' | 'pen' | 'brush' | 'eraser' | 'inpaint';
 
 interface BrushControls {
   currentColor: string;

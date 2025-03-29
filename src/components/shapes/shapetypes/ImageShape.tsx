@@ -30,7 +30,7 @@ const calculateImageShapeDimensions = (width: number, height: number): { width: 
 
 interface ImageShapeProps {
   shape: Shape;
-  tool: "select" | "pan" | "pen" | "brush" | "eraser";
+  tool: "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint";
   handleContextMenu: (e: React.MouseEvent) => void;
   onResizeStart?: () => void;
   onResizeEnd?: () => void;
@@ -45,7 +45,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
   const selectedShapes = useStore((state) => state.selectedShapes);
   
   const { refs, reapplyMask, updatePreviewCanvas } = useImageCanvas({ shape, tool });
-  const { handleEraserStroke } = useEraser({ refs, reapplyMask });
+  const { handleEraserStroke, resetEraserStroke } = useEraser({ refs, reapplyMask });
 
   // Add isDrawing ref to track drawing state
   const isDrawing = useRef(false);
@@ -79,11 +79,14 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
       
       // Update preview to show final state
       updatePreviewCanvas();
+      
+      // Reset eraser state to ensure clean state between tools
+      resetEraserStroke();
     };
 
     const isSelected = selectedShapes.includes(shape.id);
     // First check if we're deselecting and not using brush/eraser tools
-    if (!isSelected && tool !== "brush" && tool !== "eraser") {
+    if (!isSelected && tool !== "brush" && tool !== "eraser" && tool !== "inpaint") {
       cleanup();
     }
 
@@ -93,7 +96,19 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
         cleanup();
       }
     };
-  }, [selectedShapes, shape.id, refs, updatePreviewCanvas, tool]);
+  }, [selectedShapes, shape.id, refs, updatePreviewCanvas, tool, resetEraserStroke]);
+
+  // Add effect to reset state when switching tools
+  useEffect(() => {
+    // Reset eraser state when switching tools
+    resetEraserStroke();
+    
+    // If switching away from eraser/inpaint, ensure everything is cleaned up
+    if (tool !== 'eraser' && tool !== 'inpaint') {
+      // Update preview to ensure we see the final result
+      updatePreviewCanvas();
+    }
+  }, [tool, resetEraserStroke, updatePreviewCanvas]);
 
   // Modify brush handlers to use reapplyMask
   const { handlePointerDown: originalHandlePointerDown, handlePointerMove: originalHandlePointerMove, handlePointerUpOrLeave: originalHandlePointerUpOrLeave } = useBrush({
@@ -106,7 +121,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     isDrawing.current = true;
-    if (tool === 'eraser') {
+    if (tool === 'eraser' || tool === 'inpaint') {
       handleEraserStroke(e);
     } else {
       originalHandlePointerDown(e);
@@ -116,7 +131,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing.current) return;
     
-    if (tool === 'eraser') {
+    if (tool === 'eraser' || tool === 'inpaint') {
       handleEraserStroke(e);
     } else {
       originalHandlePointerMove(e);
@@ -125,18 +140,23 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
 
   const handlePointerUpOrLeave = () => {
     isDrawing.current = false;
-    if (tool === 'eraser') {
-      // For eraser tool, we've already updated the mask during the stroke
-      // Pass the eraser tool info to ensure consistency with active stroke behavior
+    if (tool === 'eraser' || tool === 'inpaint') {
+      // For eraser and inpaint tools, we've already updated the mask during the stroke
+      // Pass the tool info to ensure consistency with active stroke behavior
       updateImageShapePreview({
         backgroundCanvasRef: refs.backgroundCanvasRef,
         permanentStrokesCanvasRef: refs.permanentStrokesCanvasRef,
         activeStrokeCanvasRef: refs.activeStrokeCanvasRef,
         previewCanvasRef: refs.previewCanvasRef,
         maskCanvasRef: refs.maskCanvasRef,
-        tool: 'eraser',
-        opacity: useStore.getState().brushOpacity
+        tool: tool,
+        // Use fixed opacity (1.0) for in-paint tool
+        opacity: tool === 'inpaint' ? 1.0 : useStore.getState().brushOpacity
       });
+      
+      // Reset the eraser's last point using the dedicated function
+      resetEraserStroke();
+      
       return;
     }
     // For brush tool, handle the brush stroke completion and update preview
@@ -316,7 +336,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
               handlePointerUpOrLeave();
             }}
           />
-          {(tool === "brush" || tool === "eraser") && (
+          {(tool === "brush" || tool === "eraser" || tool === "inpaint") && (
             <button
               className="absolute -bottom-6 right-0 text-xs px-1.5 py-0.5 bg-gray-300 text-gray-800 rounded hover:bg-red-600 transition-colors"
               style={{ pointerEvents: "all" }}

@@ -95,8 +95,8 @@ export const useBrush = ({
       }
     };
 
-    // Clean up when tool changes away from brush/eraser
-    if (!tool || (tool !== 'brush' && tool !== 'eraser')) {
+    // Clean up when tool changes away from brush/eraser/inpaint
+    if (!tool || (tool !== 'brush' && tool !== 'eraser' && tool !== 'inpaint')) {
       cleanup();
     }
 
@@ -110,7 +110,7 @@ export const useBrush = ({
   }, []);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (tool !== "brush" && tool !== "eraser") return;
+    if (tool !== "brush" && tool !== "eraser" && tool !== "inpaint") return;
     const point = getScaledPoint(e);
     if (!point) return;
 
@@ -155,7 +155,7 @@ export const useBrush = ({
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing.current || !lastPoint.current) return;
-    if (tool !== "brush" && tool !== "eraser") return;
+    if (tool !== "brush" && tool !== "eraser" && tool !== "inpaint") return;
 
     const point = getScaledPoint(e);
     if (!point) return;
@@ -163,16 +163,24 @@ export const useBrush = ({
     const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
     if (activeCtx && lastPoint.current) {
       activeCtx.save();
-      activeCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
+      activeCtx.globalCompositeOperation = tool === "eraser" || tool === "inpaint" ? "destination-out" : "source-over";
       
-      if (tool === "eraser") {
-        // For eraser, draw to both active and mask canvases
+      if (tool === "eraser" || tool === "inpaint") {
+        // For eraser and inpaint, draw to both active and mask canvases
         if (maskCanvasRef) {
           const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
           if (maskCtx && maskCanvasRef.current) {
             maskCtx.save();
-            maskCtx.globalCompositeOperation = "destination-out";
-            maskCtx.globalAlpha = brushOpacity;
+            // For inpaint tool or when unEraseMode is true for eraser, restore opacity
+            const unEraseMode = useStore.getState().unEraseMode;
+            if (unEraseMode && (tool === "inpaint" || (tool === "eraser" && useStore.getState().maskMode))) {
+              maskCtx.globalCompositeOperation = "source-over";
+              maskCtx.fillStyle = `rgba(255, 255, 255, ${brushOpacity})`;
+            } else {
+              maskCtx.globalCompositeOperation = "destination-out";
+              maskCtx.globalAlpha = brushOpacity;
+            }
+            
             drawBrushStroke(
               maskCtx,
               lastPoint.current,
@@ -233,12 +241,13 @@ export const useBrush = ({
     
     if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current || !activeCtx) return;
 
-    if (tool === "eraser") {
+    if (tool === "eraser" || tool === "inpaint") {
       const unEraseMode = useStore.getState().unEraseMode;
       const maskMode = useStore.getState().maskMode;
+      const isInMaskMode = tool === "inpaint" || (tool === "eraser" && maskMode);
 
-      if (maskMode) {
-        // Handle mask mode erasing
+      if (isInMaskMode) {
+        // Handle mask mode erasing/inpainting
         if (maskCanvasRef) {
           const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
           if (maskCtx && maskCanvasRef.current) {
@@ -261,7 +270,7 @@ export const useBrush = ({
           tool,
           opacity: brushOpacity
         });
-      } else {
+      } else if (tool === "eraser") {
         // Handle regular erasing (non-mask mode)
         // First apply opacity to active stroke
         activeCtx.save();
@@ -349,9 +358,9 @@ export const useBrush = ({
     if (!ctx) return;
 
     ctx.save();
-    ctx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
+    ctx.globalCompositeOperation = tool === "eraser" || tool === "inpaint" ? "destination-out" : "source-over";
     
-    if (tool === "eraser") {
+    if (tool === "eraser" || tool === "inpaint") {
       // Simple circular eraser
       ctx.beginPath();
       ctx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2);

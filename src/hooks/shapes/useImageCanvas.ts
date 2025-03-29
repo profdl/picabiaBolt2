@@ -14,7 +14,7 @@ export interface ImageCanvasRefs {
 
 interface UseImageCanvasProps {
   shape: Shape;
-  tool: "select" | "pan" | "pen" | "brush" | "eraser";
+  tool: "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint";
 }
 
 export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
@@ -230,8 +230,8 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     };
 
     const handleMouseUp = () => {
-      // Save mask data to both localStorage and shape state if using eraser tool
-      if (tool === 'eraser' && refs.maskCanvasRef.current) {
+      // Save mask data to both localStorage and shape state if using eraser or inpaint tool
+      if ((tool === 'eraser' || tool === 'inpaint') && refs.maskCanvasRef.current) {
         const maskData = refs.maskCanvasRef.current.toDataURL('image/png');
         localStorage.setItem(`mask_${shape.id}`, maskData);
         // Also update the shape state

@@ -7,7 +7,7 @@ export interface CanvasBaseState {
   zoom: number;
   offset: Position;
   isDragging: boolean;
-  tool: "select" | "pan" | "pen" | "brush" | "eraser";
+  tool: "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint";
   locked: boolean;
   history: Shape[][];
   historyIndex: number;

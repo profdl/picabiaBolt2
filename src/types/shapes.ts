@@ -107,6 +107,6 @@ export interface DragStart {
 }
 
 export interface ToolContext {
-  type: 'image' | 'brush' | 'eraser' | null;
+  type: 'image' | 'brush' | 'eraser' | 'inpaint' | null;
   shapeId?: string;
 } 
