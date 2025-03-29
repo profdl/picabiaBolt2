@@ -1,13 +1,15 @@
 import { Position } from './shapes';
 
 export interface ContextMenuItem {
-  id: string;
   label: string;
-  icon?: string;
-  shortcut?: string;
-  disabled?: boolean;
-  onClick: () => void;
-  children?: ContextMenuItem[];
+  action: () => void;
+  icon: React.ReactElement;
+}
+
+export interface ContextMenuState {
+  x: number;
+  y: number;
+  items: ContextMenuItem[];
 }
 
 export interface DrawerState {

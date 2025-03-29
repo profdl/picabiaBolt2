@@ -83,7 +83,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     setInpaintRestoreMode,
     isColorPickerOpen,
     setColorPickerOpen,
-    maskMode
+    
   } = useStore((state) => ({
     tool: state.tool,
     addShape: state.addShape,
@@ -93,7 +93,6 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     setInpaintRestoreMode: state.setInpaintRestoreMode,
     isColorPickerOpen: state.isColorPickerOpen,
     setColorPickerOpen: state.setColorPickerOpen,
-    maskMode: state.maskMode
   }));
 
   const [showArrangeSubMenu, setShowArrangeSubMenu] = useState(false);

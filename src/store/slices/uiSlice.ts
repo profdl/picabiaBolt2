@@ -1,5 +1,5 @@
 import { StateCreator } from "zustand";
-import { ContextMenuState } from "../../types";
+import { ContextMenuState } from "../../types/ui";
 import { supabase } from "../../lib/supabase";
 
 interface Asset {
@@ -121,5 +121,5 @@ export const uiSlice: StateCreator<UiState, [], [], UiSlice> = (set) => ({
     return asset;
   },
   isColorPickerOpen: false,
-  setColorPickerOpen: (isOpen: boolean) => set((state) => ({ isColorPickerOpen: isOpen })),
+  setColorPickerOpen: (isOpen: boolean) => set(() => ({ isColorPickerOpen: isOpen })),
 });
