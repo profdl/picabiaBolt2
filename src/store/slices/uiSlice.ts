@@ -19,6 +19,8 @@ interface UiState {
   setError: (error: string | null) => void;
   uploadAsset: (file: File) => Promise<Asset>;
   showTooltips: boolean;
+  isColorPickerOpen: boolean;
+  setColorPickerOpen: (isOpen: boolean) => void;
 }
 
 interface UiSlice {
@@ -48,6 +50,8 @@ interface UiSlice {
   uploadAsset: (file: File) => Promise<Asset>;
   showTooltips: boolean;
   toggleTooltips: () => void;
+  isColorPickerOpen: boolean;
+  setColorPickerOpen: (isOpen: boolean) => void;
 }
 
 export const uiSlice: StateCreator<UiState, [], [], UiSlice> = (set) => ({
@@ -116,4 +120,6 @@ export const uiSlice: StateCreator<UiState, [], [], UiSlice> = (set) => ({
 
     return asset;
   },
+  isColorPickerOpen: false,
+  setColorPickerOpen: (isOpen: boolean) => set((state) => ({ isColorPickerOpen: isOpen })),
 });

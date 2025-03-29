@@ -65,7 +65,8 @@ export const useBrush = ({
     brushRotation,
     brushFollowPath,
     brushSpacing,
-    brushHardness
+    brushHardness,
+    setColorPickerOpen
   } = useStore((state) => ({
     tool: state.tool,
     currentColor: state.currentColor,
@@ -75,7 +76,8 @@ export const useBrush = ({
     brushRotation: state.brushRotation,
     brushFollowPath: state.brushFollowPath,
     brushSpacing: state.brushSpacing,
-    brushHardness: state.brushHardness
+    brushHardness: state.brushHardness,
+    setColorPickerOpen: state.setColorPickerOpen
   }));
 
   // Add cleanup effect when tool changes or component unmounts
@@ -121,6 +123,9 @@ export const useBrush = ({
     if (tool !== "brush" && tool !== "eraser" && tool !== "inpaint") return;
     const point = getScaledPoint(e);
     if (!point) return;
+
+    // Close color picker when starting to draw
+    setColorPickerOpen(false);
 
     isDrawing.current = true;
     lastPoint.current = point;

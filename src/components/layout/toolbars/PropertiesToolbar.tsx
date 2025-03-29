@@ -80,18 +80,23 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     generatePreprocessedImage: storeGeneratePreprocessedImage, 
     setTool, 
     inpaintRestoreMode, 
-    setInpaintRestoreMode  } = useStore((state) => ({
+    setInpaintRestoreMode,
+    isColorPickerOpen,
+    setColorPickerOpen,
+    maskMode
+  } = useStore((state) => ({
     tool: state.tool,
     addShape: state.addShape,
     generatePreprocessedImage: state.generatePreprocessedImage,
     setTool: state.setTool,
     inpaintRestoreMode: state.inpaintRestoreMode,
     setInpaintRestoreMode: state.setInpaintRestoreMode,
+    isColorPickerOpen: state.isColorPickerOpen,
+    setColorPickerOpen: state.setColorPickerOpen,
     maskMode: state.maskMode
   }));
 
   const [showArrangeSubMenu, setShowArrangeSubMenu] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
   const [localProperties, setLocalProperties] = useState(properties || {});
 
   const styles = {
@@ -541,15 +546,15 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                 <div className="flex items-center gap-3 relative">
                   <div
                     className={styles.colorPicker.trigger}
-                    onClick={() => setShowColorPicker(!showColorPicker)}
+                    onClick={() => setColorPickerOpen(!isColorPickerOpen)}
                     style={{ backgroundColor: localProperties.color }}
                   />
 
-                  {showColorPicker && (
+                  {isColorPickerOpen && (
                     <>
                       <div
                         className="fixed inset-0"
-                        onClick={() => setShowColorPicker(false)}
+                        onClick={() => setColorPickerOpen(false)}
                       />
                       <div className={styles.colorPicker.popup}>
                         <OKColorPicker
