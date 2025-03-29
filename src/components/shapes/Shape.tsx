@@ -48,24 +48,21 @@ export function ShapeComponent({ shape }: ShapeProps) {
     selectedShapes,
     setSelectedShapes,
     updateShape,
-    setIsEditingText,
     zoom,
     generatingPredictions,
     isEditingText,
+    setIsEditingText
   } = useStore((state) => ({
-    tool: state.tool as "select" | "pan" | "pen" | "brush" | "eraser",
+    tool: state.tool as "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint",
     shapes: state.shapes,
     selectedShapes: state.selectedShapes,
     setSelectedShapes: state.setSelectedShapes,
     updateShape: state.updateShape,
-    setIsEditingText: state.setIsEditingText,
     zoom: state.zoom,
     generatingPredictions: state.generatingPredictions,
     isEditingText: state.isEditingText,
-    preprocessingStates: state.preprocessingStates
+    setIsEditingText: state.setIsEditingText
   }));
-
-
 
   const isEditing = shape.isEditing && isEditingText;
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -337,7 +334,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
             // Handle resize end if needed
           }}
         />
-        {showControls && (tool === "select" || tool === "brush" || tool === "eraser") && (
+        {showControls && (tool === "select" || tool === "brush" || tool === "eraser" || tool === "inpaint") && (
           <ShapeControls
             shape={shape}
             isSelected={isSelected}

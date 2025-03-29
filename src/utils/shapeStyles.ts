@@ -4,7 +4,7 @@ export const getShapeStyles = (
   shape: Shape,
   isSelected: boolean,
   shapes: Shape[],
-  tool: "select" | "pan" | "pen" | "brush" | "eraser",
+  tool: "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint",
   isEditing?: boolean,
   isDark: boolean = false
 ): React.CSSProperties => {

@@ -37,8 +37,7 @@ export function ShapeControls({
     updateShape: state.updateShape,
     shapes: state.shapes,
     setSelectedShapes: state.setSelectedShapes,
-    setTool: state.setTool,
-    tool: state.tool as "select" | "pan" | "pen" | "brush" | "eraser",
+    tool: state.tool as "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint",
     selectedShapes: state.selectedShapes
   }));
 
@@ -70,6 +69,14 @@ export function ShapeControls({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDropdownOpen]);
 
+  // Effect to automatically enable makeVariations when inpaint tool is activated
+  useEffect(() => {
+    if (tool === "inpaint" && shape.type === "image") {
+      updateShape(shape.id, { makeVariations: true });
+      setSelectedShapes([shape.id]);
+    }
+  }, [tool, shape.id, shape.type, updateShape, setSelectedShapes]);
+
   // Constants and derived state
   const anyCheckboxChecked =
     (shape.type === "depth" && shape.showDepth) ||
@@ -87,9 +94,9 @@ export function ShapeControls({
   // Show controls if:
   // 1. Shape is selected OR
   // 2. Any checkbox is checked OR
-  // 3. Using brush/eraser tool OR
+  // 3. Using brush/eraser/inpaint tool OR
   // 4. It's a selected image shape (regardless of tool)
-  const showControlPanel = isSelected || anyCheckboxChecked || (tool === "brush" || tool === "eraser") || isSelectedImage;
+  const showControlPanel = isSelected || anyCheckboxChecked || (tool === "brush" || tool === "eraser" || tool === "inpaint") || isSelectedImage;
   
   const showManipulationControls = isSelected;
 
@@ -443,23 +450,11 @@ export function ShapeControls({
             {(isSelected || shape.makeVariations) && (
               <div className="flex justify-start">
                 <EnableReferencePanel
-                  id={`variations-${shape.id}`}
+                  id={`makeVariations-${shape.id}`}
                   label="Make Variations"
                   checked={shape.makeVariations || false}
                   onToggleChange={(checked: boolean) => {
-                    // If enabling variations, disable it on all other images first
-                    if (checked) {
-                      shapes.forEach((otherShape) => {
-                        if (otherShape.type === "image" && otherShape.id !== shape.id) {
-                          updateShape(otherShape.id, { makeVariations: false });
-                        }
-                      });
-                    }
-                    
-                    updateShape(shape.id, {
-                      makeVariations: checked,
-                      variationStrength: checked ? 0.75 : shape.variationStrength || 0.75
-                    });
+                    updateShape(shape.id, { makeVariations: checked });
                     setSelectedShapes([shape.id]); // Keep shape selected when toggling
                   }}
                   sliderValue={shape.variationStrength || 0.75}
