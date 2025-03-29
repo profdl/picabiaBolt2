@@ -37,6 +37,13 @@ const adaptMixboxStamp = (drawMixboxStamp: (props: MixboxDrawProps) => void) => 
   };
 };
 
+// Simple circular stamp for inpaint tool
+const drawInpaintDot = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  ctx.beginPath();
+  ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+  ctx.fill();
+};
+
 export const useBrush = ({
   backgroundCanvasRef,
   permanentStrokesCanvasRef,
@@ -181,42 +188,75 @@ export const useBrush = ({
               maskCtx.globalAlpha = brushOpacity;
             }
             
-            drawBrushStroke(
-              maskCtx,
-              lastPoint.current,
-              point,
-              {
-                size: brushSize,
-                color: currentColor,
-                hardness: brushHardness,
-                rotation: brushRotation,
-                followPath: brushFollowPath,
-                spacing: brushSpacing
-              },
-              brushTexture as BrushTextureType,
-              adaptedDrawMixboxStamp
-            );
+            if (tool === "inpaint") {
+              // For inpaint tool, use simple circular shapes
+              const dx = point.x - lastPoint.current.x;
+              const dy = point.y - lastPoint.current.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              const steps = Math.max(1, Math.floor(distance / (brushSize / 4)));
+              
+              for (let i = 0; i <= steps; i++) {
+                const x = lastPoint.current.x + (dx * i / steps);
+                const y = lastPoint.current.y + (dy * i / steps);
+                
+                drawInpaintDot(maskCtx, x, y, brushSize);
+              }
+            } else {
+              // For eraser tool, use brush textures 
+              drawBrushStroke(
+                maskCtx,
+                lastPoint.current,
+                point,
+                {
+                  size: brushSize,
+                  color: currentColor,
+                  hardness: brushHardness,
+                  rotation: brushRotation,
+                  followPath: brushFollowPath,
+                  spacing: brushSpacing
+                },
+                brushTexture as BrushTextureType,
+                adaptedDrawMixboxStamp
+              );
+            }
             maskCtx.restore();
           }
         }
       }
       
-      // Draw to active canvas for preview
-      drawBrushStroke(
-        activeCtx,
-        lastPoint.current,
-        point,
-        {
-          size: brushSize,
-          color: currentColor,
-          hardness: brushHardness,
-          rotation: brushRotation,
-          followPath: brushFollowPath,
-          spacing: brushSpacing
-        },
-        brushTexture as BrushTextureType,
-        adaptedDrawMixboxStamp
-      );
+      // Draw to active canvas for preview - use different approaches for inpaint vs brush/eraser
+      if (tool === "inpaint") {
+        // For inpaint tool, use simple circular shapes
+        const dx = point.x - lastPoint.current.x;
+        const dy = point.y - lastPoint.current.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const steps = Math.max(1, Math.floor(distance / (brushSize / 4)));
+        
+        for (let i = 0; i <= steps; i++) {
+          const x = lastPoint.current.x + (dx * i / steps);
+          const y = lastPoint.current.y + (dy * i / steps);
+          
+          drawInpaintDot(activeCtx, x, y, brushSize);
+        }
+      } else {
+        // For brush/eraser, use brush textures
+        drawBrushStroke(
+          activeCtx,
+          lastPoint.current,
+          point,
+          {
+            size: brushSize,
+            color: currentColor,
+            hardness: brushHardness,
+            rotation: brushRotation,
+            followPath: brushFollowPath,
+            spacing: brushSpacing
+          },
+          brushTexture as BrushTextureType,
+          adaptedDrawMixboxStamp
+        );
+      }
+      
       activeCtx.restore();
       
       updateImageShapePreview({
@@ -360,8 +400,11 @@ export const useBrush = ({
     ctx.save();
     ctx.globalCompositeOperation = tool === "eraser" || tool === "inpaint" ? "destination-out" : "source-over";
     
-    if (tool === "eraser" || tool === "inpaint") {
-      // Simple circular eraser
+    if (tool === "inpaint") {
+      // Simple circular inpaint brush
+      drawInpaintDot(ctx, point.x, point.y, brushSize);
+    } else if (tool === "eraser") {
+      // Simple circular eraser for single dots
       ctx.beginPath();
       ctx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 1)";

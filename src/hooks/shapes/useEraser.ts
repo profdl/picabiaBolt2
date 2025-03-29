@@ -69,14 +69,32 @@ export const useEraser = ({ refs, reapplyMask }: UseEraserProps) => {
         maskCtx.globalAlpha = tool === 'inpaint' ? 1.0 : brushOpacity;
       }
       
-      // Use brush shapes for eraser, simple circles for inpaint
+      // Use different approaches for inpaint vs eraser tools
       if (tool === 'inpaint') {
         // For inpaint tool, always use simple circular shape for better control
-        maskCtx.beginPath();
-        maskCtx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2);
-        maskCtx.fill();
+        if (lastPointRef.current) {
+          // Draw a line between points for inpaint tool using simple circles
+          const dx = point.x - lastPointRef.current.x;
+          const dy = point.y - lastPointRef.current.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const steps = Math.max(1, Math.floor(distance / (brushSize / 4)));
+          
+          for (let i = 0; i <= steps; i++) {
+            const x = lastPointRef.current.x + (dx * i / steps);
+            const y = lastPointRef.current.y + (dy * i / steps);
+            
+            maskCtx.beginPath();
+            maskCtx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+            maskCtx.fill();
+          }
+        } else {
+          // First point for inpaint tool
+          maskCtx.beginPath();
+          maskCtx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2);
+          maskCtx.fill();
+        }
       } else if (lastPointRef.current) {
-        // For eraser tool with previous point, draw a stroke with brush settings
+        // For eraser tool with previous point, use brush textures
         drawBrushStroke(
           maskCtx,
           lastPointRef.current,
@@ -93,7 +111,7 @@ export const useEraser = ({ refs, reapplyMask }: UseEraserProps) => {
           eraserStampFunction
         );
       } else {
-        // For first point with eraser tool
+        // For first point with eraser tool, use brush textures
         drawBrushStamp(
           { ctx: maskCtx, x: point.x, y: point.y },
           {
