@@ -145,7 +145,10 @@ const hasEnabledToggles = (shape: Shape): boolean => {
     (shape.type === "depth" && shape.showDepth === true) ||
     (shape.type === "edges" && shape.showEdges === true) ||
     (shape.type === "pose" && shape.showPose === true) ||
-    (shape.type === "sticky" && (shape.showPrompt === true || shape.showNegativePrompt === true)) ||
+    (shape.type === "sticky" && (
+      (shape.isTextPrompt && shape.content && shape.content.trim() !== "") ||
+      (shape.isNegativePrompt && shape.content && shape.content.trim() !== "")
+    )) ||
     (shape.type === "diffusionSettings" && shape.useSettings) ||
     shape.showContent === true ||
     shape.showSketch === true
@@ -509,12 +512,51 @@ export const generationHandlerSlice: StateCreator<
     // Calculate position based on top-right most shape with toggles or view center
     let position: Position;
     if (topRightMostShape) {
-      // Position to the right of the top-right most shape with a gap
+      // Calculate initial position to the right of the top-right most shape
       const GAP = 20; // Gap between shapes
-      position = {
+      const initialPosition = {
         x: topRightMostShape.position.x + topRightMostShape.width + GAP,
         y: topRightMostShape.position.y
       };
+
+      // Check if there's any shape at the initial position
+      const hasShapeAtPosition = shapes.some(shape => {
+        const shapeRight = shape.position.x + shape.width;
+        const shapeBottom = shape.position.y + shape.height;
+        const initialRight = initialPosition.x + dimensions.width;
+        const initialBottom = initialPosition.y + dimensions.height;
+
+        // Check for overlap
+        return !(
+          initialPosition.x > shapeRight ||
+          initialRight < shape.position.x ||
+          initialPosition.y > shapeBottom ||
+          initialBottom < shape.position.y
+        );
+      });
+
+      if (hasShapeAtPosition) {
+        // Find the bottom-most point of any shapes in this vertical column
+        const bottomMostPoint = shapes.reduce((maxBottom, shape) => {
+          // Only consider shapes that overlap horizontally with our target position
+          const shapeRight = shape.position.x + shape.width;
+          const shapeBottom = shape.position.y + shape.height;
+          
+          if (initialPosition.x < shapeRight && 
+              (initialPosition.x + dimensions.width) > shape.position.x) {
+            return Math.max(maxBottom, shapeBottom);
+          }
+          return maxBottom;
+        }, initialPosition.y);
+
+        // Place the new shape below the bottom-most point
+        position = {
+          x: initialPosition.x,
+          y: bottomMostPoint + GAP
+        };
+      } else {
+        position = initialPosition;
+      }
     } else {
       // Find open space for the shape
       position = findOpenSpace(shapes, dimensions.width, dimensions.height, viewCenter);
