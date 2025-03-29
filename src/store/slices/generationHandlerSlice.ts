@@ -138,6 +138,40 @@ const calculateImageShapeDimensions = (width: number, height: number): { width: 
   return { width: scaledWidth, height: scaledHeight };
 };
 
+// Add utility function to check if a shape has any toggles enabled
+const hasEnabledToggles = (shape: Shape): boolean => {
+  return (
+    (shape.type === "image" && (shape.showImagePrompt || shape.makeVariations)) ||
+    (shape.type === "depth" && shape.showDepth === true) ||
+    (shape.type === "edges" && shape.showEdges === true) ||
+    (shape.type === "pose" && shape.showPose === true) ||
+    (shape.type === "sticky" && (shape.showPrompt === true || shape.showNegativePrompt === true)) ||
+    (shape.type === "diffusionSettings" && shape.useSettings) ||
+    shape.showContent === true ||
+    shape.showSketch === true
+  );
+};
+
+// Add utility function to find the top-right most shape with enabled toggles
+const findTopRightMostShapeWithToggles = (shapes: Shape[]): Shape | null => {
+  let topRightMostShape: Shape | null = null;
+  let topRightMostScore = -Infinity;
+
+  shapes.forEach(shape => {
+    if (hasEnabledToggles(shape)) {
+      // Calculate a score that prioritizes higher y-position (lower y value) and higher x-position
+      // We multiply y by -1 to make lower y values score higher
+      const score = -shape.position.y + (shape.position.x * 0.1);
+      if (score > topRightMostScore) {
+        topRightMostShape = shape;
+        topRightMostScore = score;
+      }
+    }
+  });
+
+  return topRightMostShape;
+};
+
 export const generationHandlerSlice: StateCreator<
   StoreState & GenerationHandlerSlice,
   [],
@@ -455,8 +489,22 @@ export const generationHandlerSlice: StateCreator<
       activeSettings.outputHeight || 512
     );
 
-    // Find open space for the shape
-    const position = findOpenSpace(shapes, dimensions.width, dimensions.height, viewCenter);
+    // Find the top-right most shape with enabled toggles
+    const topRightMostShape = findTopRightMostShapeWithToggles(shapes);
+    
+    // Calculate position based on top-right most shape with toggles or view center
+    let position: Position;
+    if (topRightMostShape) {
+      // Position to the right of the top-right most shape with a gap
+      const GAP = 20; // Gap between shapes
+      position = {
+        x: topRightMostShape.position.x + topRightMostShape.width + GAP,
+        y: topRightMostShape.position.y
+      };
+    } else {
+      // Find open space for the shape
+      position = findOpenSpace(shapes, dimensions.width, dimensions.height, viewCenter);
+    }
 
     // Generate a unique prediction ID early
     const prediction_id = crypto.randomUUID();

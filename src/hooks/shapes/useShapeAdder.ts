@@ -1,5 +1,5 @@
 // src/hooks/useShapeAdder.ts
-import { Shape, Position } from "../../types/shapes";
+import { Shape, Position } from "../../types";
 import { useStore } from "../../store";
 import { getImageDimensions } from "../../utils/image";
 import { findOpenSpace } from "../../utils/spaceUtils";
@@ -32,6 +32,40 @@ interface ShapeAddOptions {
   setSelected?: boolean;
   startEditing?: boolean;
 }
+
+// Add utility function to check if a shape has any toggles enabled
+const hasEnabledToggles = (shape: Shape): boolean => {
+  return (
+    (shape.type === "image" && (shape.showImagePrompt || shape.makeVariations)) ||
+    (shape.type === "depth" && shape.showDepth === true) ||
+    (shape.type === "edges" && shape.showEdges === true) ||
+    (shape.type === "pose" && shape.showPose === true) ||
+    (shape.type === "sticky" && (shape.showPrompt === true || shape.showNegativePrompt === true)) ||
+    (shape.type === "diffusionSettings" && shape.useSettings) ||
+    shape.showContent === true ||
+    shape.showSketch === true
+  );
+};
+
+// Add utility function to find the top-right most shape with enabled toggles
+const findTopRightMostShapeWithToggles = (shapes: Shape[]): Shape | null => {
+  let topRightMostShape: Shape | null = null;
+  let topRightMostScore = -Infinity;
+
+  shapes.forEach(shape => {
+    if (hasEnabledToggles(shape)) {
+      // Calculate a score that prioritizes higher y-position (lower y value) and higher x-position
+      // We multiply y by -1 to make lower y values score higher
+      const score = -shape.position.y + (shape.position.x * 0.1);
+      if (score > topRightMostScore) {
+        topRightMostShape = shape;
+        topRightMostScore = score;
+      }
+    }
+  });
+
+  return topRightMostShape;
+};
 
 export function useShapeAdder() {
   const addShape = useStore((state) => state.addShape);
@@ -66,19 +100,33 @@ export function useShapeAdder() {
       height = scaledDimensions.height;
     }
 
-    // Calculate view center
-    const viewCenter = {
-      x: (-offset.x + window.innerWidth / 2) / zoom,
-      y: (-offset.y + window.innerHeight / 2) / zoom,
-    };
+    // Find the top-right most shape with enabled toggles
+    const topRightMostShape = findTopRightMostShapeWithToggles(shapes);
+    
+    // Calculate position based on top-right most shape with toggles or view center
+    let finalPosition: Position;
+    if (topRightMostShape && !position) {
+      // Position to the right of the top-right most shape with a gap
+      const GAP = 20; // Gap between shapes
+      finalPosition = {
+        x: topRightMostShape.position.x + topRightMostShape.width + GAP,
+        y: topRightMostShape.position.y
+      };
+    } else {
+      // Calculate view center
+      const viewCenter = {
+        x: (-offset.x + window.innerWidth / 2) / zoom,
+        y: (-offset.y + window.innerHeight / 2) / zoom,
+      };
 
-    // Find open space for the shape
-    const openPosition = findOpenSpace(shapes, width, height, viewCenter);
+      // Find open space for the shape
+      finalPosition = position || findOpenSpace(shapes, width, height, viewCenter);
+    }
 
     const newShape: Shape = {
       id: Math.random().toString(36).substr(2, 9),
       type,
-      position: position || openPosition,
+      position: finalPosition,
       width,
       height,
       rotation: 0,
@@ -98,7 +146,6 @@ export function useShapeAdder() {
       showPose: false,
       showSketch: false,
       showImagePrompt: false,
-      isResized: type === "image" ? false : undefined,
       ...props,
       content: content || props.content,
     };
