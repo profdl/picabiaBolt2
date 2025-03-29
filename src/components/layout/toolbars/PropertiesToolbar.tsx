@@ -23,6 +23,7 @@ import { OKColorPicker } from "../../shared/hsl-color-picker";
 import { BrushSettingsPanel } from "./BrushShapeSelector";
 import { SmallSlider } from "../../shared/SmallSlider";
 import { useThemeClass } from "../../../styles/useThemeClass";
+import { MiniToggle } from "../../shared/MiniToggle";
 
 interface PropertiesToolbarProps {
   type: "brush" | "eraser" | "image" | "shape";
@@ -70,11 +71,12 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
   shapes = [],
   actions,
 }) => {
-  const { tool, addShape: storeAddShape, generatePreprocessedImage: storeGeneratePreprocessedImage, setTool } = useStore((state) => ({
+  const { tool, addShape: storeAddShape, generatePreprocessedImage: storeGeneratePreprocessedImage, setTool, unEraseMode } = useStore((state) => ({
     tool: state.tool,
     addShape: state.addShape,
     generatePreprocessedImage: state.generatePreprocessedImage,
     setTool: state.setTool,
+    unEraseMode: state.unEraseMode,
   }));
 
   const [showArrangeSubMenu, setShowArrangeSubMenu] = useState(false);
@@ -594,9 +596,15 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
             {/* Eraser Tool Sub-toolbar */}
             {tool === "eraser" && localProperties && onPropertyChange && (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <MiniToggle
+                    id="un-erase-toggle"
+                    label="Un-Erase"
+                    checked={unEraseMode}
+                    onChange={(checked) => useStore.getState().setUnEraseMode(checked)}
+                  />
                   <div className={styles.controlGroup.container}>
-                    <span className={`${styles.controlGroup.label} whitespace-nowrap`}>Size</span>
+                    <span className={styles.controlGroup.label}>Size</span>
                     <div className="w-[120px]">
                       <SmallSlider
                         value={localProperties.size || 1}

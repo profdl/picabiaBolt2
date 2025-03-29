@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useStore } from '../../store';
 import { ImageCanvasRefs } from './useImageCanvas';
+import { updateImageShapePreview } from '../../utils/imageShapeCanvas';
 
 interface UseEraserProps {
   refs: ImageCanvasRefs;
@@ -22,10 +23,22 @@ export const useEraser = ({ refs, reapplyMask }: UseEraserProps) => {
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
 
-    // Draw transparent/black circle at the eraser position to hide the image
-    maskCtx.save();
-    maskCtx.globalCompositeOperation = 'destination-out';  // This will erase from the mask
     const brushSize = useStore.getState().brushSize;
+    const unEraseMode = useStore.getState().unEraseMode;
+    const brushOpacity = useStore.getState().brushOpacity;
+
+    maskCtx.save();
+    
+    if (unEraseMode) {
+      // For un-erase mode, use source-over with white color to restore opacity
+      maskCtx.globalCompositeOperation = 'source-over';
+      maskCtx.fillStyle = `rgba(255, 255, 255, ${brushOpacity})`;
+    } else {
+      // For erase mode, use destination-out to remove opacity
+      maskCtx.globalCompositeOperation = 'destination-out';
+      maskCtx.globalAlpha = brushOpacity;
+    }
+    
     maskCtx.beginPath();
     maskCtx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
     maskCtx.fill();
@@ -33,7 +46,18 @@ export const useEraser = ({ refs, reapplyMask }: UseEraserProps) => {
 
     // Update the mask
     reapplyMask();
-  }, [refs.maskCanvasRef, reapplyMask]);
+
+    // Update preview in real-time for both modes
+    updateImageShapePreview({
+      backgroundCanvasRef: refs.backgroundCanvasRef,
+      permanentStrokesCanvasRef: refs.permanentStrokesCanvasRef,
+      activeStrokeCanvasRef: refs.activeStrokeCanvasRef,
+      previewCanvasRef: refs.previewCanvasRef,
+      maskCanvasRef: refs.maskCanvasRef,
+      tool: unEraseMode ? 'brush' : 'eraser',
+      opacity: brushOpacity
+    });
+  }, [refs, reapplyMask]);
 
   return {
     handleEraserStroke
