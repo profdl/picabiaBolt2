@@ -83,7 +83,9 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     setInpaintRestoreMode,
     isColorPickerOpen,
     setColorPickerOpen,
-    
+    zoom,
+    offset,
+    setOffset,
   } = useStore((state) => ({
     tool: state.tool,
     addShape: state.addShape,
@@ -93,6 +95,9 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     setInpaintRestoreMode: state.setInpaintRestoreMode,
     isColorPickerOpen: state.isColorPickerOpen,
     setColorPickerOpen: state.setColorPickerOpen,
+    zoom: state.zoom,
+    offset: state.offset,
+    setOffset: state.setOffset,
   }));
 
   const [showArrangeSubMenu, setShowArrangeSubMenu] = useState(false);
@@ -176,6 +181,39 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     .filter(s => s.type !== "group")
     .map(s => s.id);
 
+  // Add function to center on shape
+  const centerOnShape = (newShape: Shape) => {
+    // Calculate the target offset to center the shape
+    const targetOffset = {
+      x: -(newShape.position.x + newShape.width/2) * zoom + window.innerWidth / 2,
+      y: -(newShape.position.y + newShape.height/2) * zoom + window.innerHeight / 2 - (newShape.height * zoom * 0.2), // Subtract 20% of shape height for upward bias
+    };
+
+    // Animate the offset change
+    const startOffset = { ...offset };
+    const duration = 500; // Animation duration in ms
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Easing function (ease-out-cubic)
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+      setOffset({
+        x: startOffset.x + (targetOffset.x - startOffset.x) * easeProgress,
+        y: startOffset.y + (targetOffset.y - startOffset.y) * easeProgress,
+      });
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  };
+
   const handleColorChange = (color: string) => {
     setLocalProperties({ ...localProperties, color });
     onPropertyChange?.("color", color);
@@ -257,8 +295,8 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 id: Math.random().toString(36).substr(2, 9),
                                 type: "depth",
                                 position: {
-                                  x: displayShape.position.x + displayShape.width + 20,
-                                  y: displayShape.position.y,
+                                  x: displayShape.position.x,
+                                  y: displayShape.position.y + displayShape.height + 20,
                                 },
                                 width: displayShape.width,
                                 height: displayShape.height,
@@ -279,6 +317,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               };
                               
                               displayActions.addShape(newDepthShape);
+                              centerOnShape(newDepthShape);
                               await displayActions.generatePreprocessedImage(displayShape.id, "depth");
                             }}
                           >
@@ -294,8 +333,8 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 id: Math.random().toString(36).substr(2, 9),
                                 type: "edges",
                                 position: {
-                                  x: displayShape.position.x + displayShape.width + 20,
-                                  y: displayShape.position.y,
+                                  x: displayShape.position.x,
+                                  y: displayShape.position.y + displayShape.height + 20,
                                 },
                                 width: displayShape.width,
                                 height: displayShape.height,
@@ -316,6 +355,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               };
                               
                               displayActions.addShape(newEdgesShape);
+                              centerOnShape(newEdgesShape);
                               await displayActions.generatePreprocessedImage(displayShape.id, "edge");
                             }}
                           >
@@ -331,8 +371,8 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 id: Math.random().toString(36).substr(2, 9),
                                 type: "pose",
                                 position: {
-                                  x: displayShape.position.x + displayShape.width + 20,
-                                  y: displayShape.position.y,
+                                  x: displayShape.position.x,
+                                  y: displayShape.position.y + displayShape.height + 20,
                                 },
                                 width: displayShape.width,
                                 height: displayShape.height,
@@ -353,6 +393,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               };
                               
                               displayActions.addShape(newPoseShape);
+                              centerOnShape(newPoseShape);
                               await displayActions.generatePreprocessedImage(displayShape.id, "pose");
                             }}
                           >
