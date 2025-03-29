@@ -229,28 +229,64 @@ export const useBrush = ({
     if (!isDrawing.current) return;
 
     const permanentCtx = getImageShapeCanvasContext(permanentStrokesCanvasRef);
+    const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
     
-    if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current) return;
-
-    // First update preview with the active stroke still visible
-    updateImageShapePreview({
-      backgroundCanvasRef,
-      permanentStrokesCanvasRef,
-      activeStrokeCanvasRef,
-      previewCanvasRef,
-      maskCanvasRef,
-      tool,
-      opacity: brushOpacity
-    });
+    if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current || !activeCtx) return;
 
     if (tool === "eraser") {
-      // Handle eraser with mask
-      if (maskCanvasRef) {
-        const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
-        if (maskCtx && maskCanvasRef.current) {
-          maskCtx.globalCompositeOperation = "destination-out";
-          maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+      const unEraseMode = useStore.getState().unEraseMode;
+      const maskMode = useStore.getState().maskMode;
+
+      if (maskMode) {
+        // Handle mask mode erasing
+        if (maskCanvasRef) {
+          const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
+          if (maskCtx && maskCanvasRef.current) {
+            maskCtx.globalCompositeOperation = unEraseMode ? "source-over" : "destination-out";
+            maskCtx.globalAlpha = brushOpacity;
+            maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+          }
         }
+
+        // Clear active stroke before updating preview to prevent blinking
+        clearImageShapeCanvas(activeStrokeCanvasRef);
+
+        // Update preview with the mask changes
+        updateImageShapePreview({
+          backgroundCanvasRef,
+          permanentStrokesCanvasRef,
+          activeStrokeCanvasRef,
+          previewCanvasRef,
+          maskCanvasRef,
+          tool,
+          opacity: brushOpacity
+        });
+      } else {
+        // Handle regular erasing (non-mask mode)
+        // First apply opacity to active stroke
+        activeCtx.save();
+        activeCtx.globalAlpha = brushOpacity;
+        activeCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+        activeCtx.restore();
+
+        // Then apply eraser effect to permanent layer
+        permanentCtx.save();
+        permanentCtx.globalCompositeOperation = "destination-out";
+        permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+        permanentCtx.restore();
+
+        // Clear active stroke
+        clearImageShapeCanvas(activeStrokeCanvasRef);
+
+        // Update preview with final state
+        updateImageShapePreview({
+          backgroundCanvasRef,
+          permanentStrokesCanvasRef,
+          activeStrokeCanvasRef,
+          previewCanvasRef,
+          maskCanvasRef,
+          tool
+        });
       }
     } else {
       // For brush tool, transfer the active stroke to permanent layer
@@ -265,20 +301,20 @@ export const useBrush = ({
         0, 0, permanentStrokesCanvasRef.current.width, permanentStrokesCanvasRef.current.height
       );
       permanentCtx.restore();
+
+      // Clear active stroke after transferring to permanent layer
+      clearImageShapeCanvas(activeStrokeCanvasRef);
+
+      // Update preview with the stroke now in the permanent layer
+      updateImageShapePreview({
+        backgroundCanvasRef,
+        permanentStrokesCanvasRef,
+        activeStrokeCanvasRef,
+        previewCanvasRef,
+        maskCanvasRef,
+        tool
+      });
     }
-
-    // Clear active stroke after transferring to permanent layer
-    clearImageShapeCanvas(activeStrokeCanvasRef);
-
-    // Update preview again with the stroke now in the permanent layer
-    updateImageShapePreview({
-      backgroundCanvasRef,
-      permanentStrokesCanvasRef,
-      activeStrokeCanvasRef,
-      previewCanvasRef,
-      maskCanvasRef,
-      tool
-    });
 
     // Save the canvas data after the stroke is complete
     const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;

@@ -604,23 +604,35 @@ export const generationHandlerSlice: StateCreator<
           }
 
           if (controlShape.showPose && controlShape.poseUrl) {
+            // Add pose image loader
             currentWorkflow["37"] = {
-              ...workflow["37"],
               inputs: {
-                ...workflow["37"].inputs,
                 image: controlShape.poseUrl,
+                upload: "image",
               },
+              class_type: "LoadImage",
             };
-            currentWorkflow["36"] = workflow["36"];
-            currentWorkflow["42"] = {
-              ...workflow["42"],
+            
+            // Add pose control net loader
+            currentWorkflow["38"] = {
               inputs: {
-                ...workflow["42"].inputs,
+                control_net_name: "control_v2_openpose.safetensors",
+              },
+              class_type: "ControlNetLoader",
+            };
+            
+            // Add pose control application node
+            currentWorkflow["42"] = {
+              inputs: {
                 positive: [currentPositiveNode, 0],
                 negative: ["7", 0],
-                control_net: ["36", 0],
+                control_net: ["38", 0],  // Connect to ControlNetLoader instead of LoadImage
+                image: ["37", 0],
                 strength: controlShape.poseStrength || 0.5,
+                start_percent: 0,
+                end_percent: 1,
               },
+              class_type: "ControlNetApplyAdvanced",
             };
             currentPositiveNode = "42";
           }

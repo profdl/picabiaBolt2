@@ -5,6 +5,7 @@ import { ImageEditor } from "./ImageEditor";
 import { useBrush } from "../../layout/toolbars/BrushTool";
 import { useImageCanvas } from "../../../hooks/shapes/useImageCanvas";
 import { useEraser } from "../../../hooks/shapes/useEraser";
+import { updateImageShapePreview } from "../../../utils/imageShapeCanvas";
 
 // Add utility function for consistent sizing
 const calculateImageShapeDimensions = (width: number, height: number): { width: number; height: number } => {
@@ -126,7 +127,16 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
     isDrawing.current = false;
     if (tool === 'eraser') {
       // For eraser tool, we've already updated the mask during the stroke
-      updatePreviewCanvas();
+      // Pass the eraser tool info to ensure consistency with active stroke behavior
+      updateImageShapePreview({
+        backgroundCanvasRef: refs.backgroundCanvasRef,
+        permanentStrokesCanvasRef: refs.permanentStrokesCanvasRef,
+        activeStrokeCanvasRef: refs.activeStrokeCanvasRef,
+        previewCanvasRef: refs.previewCanvasRef,
+        maskCanvasRef: refs.maskCanvasRef,
+        tool: 'eraser',
+        opacity: useStore.getState().brushOpacity
+      });
       return;
     }
     // For brush tool, handle the brush stroke completion and update preview
