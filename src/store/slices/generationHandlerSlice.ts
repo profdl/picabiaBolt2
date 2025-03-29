@@ -644,7 +644,7 @@ export const generationHandlerSlice: StateCreator<
             // Add pose control net loader
             currentWorkflow["38"] = {
               inputs: {
-                control_net_name: "control_v2_openpose.safetensors",
+                control_net_name: "thibaud_xl_openpose.safetensors",
               },
               class_type: "ControlNetLoader",
             };
