@@ -15,6 +15,7 @@ import {
   Eraser,
   Combine,
   Paintbrush,
+  RefreshCw,
 } from "lucide-react";
 import { Shape } from "../../../types";
 import { useStore } from "../../../store";
@@ -25,6 +26,7 @@ import { BrushSettingsPanel } from "./BrushShapeSelector";
 import { SmallSlider } from "../../shared/SmallSlider";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { MiniToggle } from "../../shared/MiniToggle";
+import { resetMask } from "../../../utils/imageShapeCanvas";
 
 interface PropertiesToolbarProps {
   type: "brush" | "eraser" | "inpaint" | "image" | "shape";
@@ -698,6 +700,48 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                       />
                     </div>
                   </div>
+                  
+                  <Tooltip content="Reset Mask" side="top">
+                    <ToolbarButton
+                      icon={<RefreshCw className="w-3.5 h-3.5" />}
+                      onClick={() => {
+                        // Find the active image shape
+                        const activeShape = shapes.find(s => 
+                          selectedShapes.includes(s.id) && 
+                          (s.type === "image" || s.type === "sketchpad")
+                        );
+                        
+                        if (activeShape) {
+                          // Find the mask canvas element
+                          const maskCanvas = document.querySelector(
+                            `canvas[data-shape-id="${activeShape.id}"][data-canvas-type="mask"]`
+                          ) as HTMLCanvasElement;
+                          
+                          if (maskCanvas) {
+                            // Reset the mask 
+                            resetMask({ current: maskCanvas });
+                            
+                            // Save the reset mask state
+                            const maskData = maskCanvas.toDataURL('image/png');
+                            localStorage.setItem(`mask_${activeShape.id}`, maskData);
+                            useStore.getState().updateShape(activeShape.id, { maskCanvasData: maskData });
+                            
+                            // Update preview
+                            const previewCanvas = document.querySelector(
+                              `canvas[data-shape-id="${activeShape.id}"][data-canvas-type="preview"]`
+                            ) as HTMLCanvasElement;
+                            
+                            if (previewCanvas) {
+                              // Apply the reset mask to the preview
+                              previewCanvas.style.webkitMaskImage = `url(${maskData})`;
+                              previewCanvas.style.maskImage = `url(${maskData})`;
+                            }
+                          }
+                        }
+                      }}
+                      className={styles.button}
+                    />
+                  </Tooltip>
                 </div>
               </div>
             )}

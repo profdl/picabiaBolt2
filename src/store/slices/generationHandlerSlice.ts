@@ -203,6 +203,34 @@ export const generationHandlerSlice: StateCreator<
         tempCtx.drawImage(permanentStrokesCanvas, 0, 0);
       }
 
+      // Ensure the mask is binary before creating the blob
+      const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+      if (maskCtx) {
+        const imageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+        const data = imageData.data;
+        
+        // Process each pixel to ensure it's either fully opaque white or fully transparent
+        for (let i = 0; i < data.length; i += 4) {
+          // Check alpha channel (index i+3)
+          const alpha = data[i+3] / 255; // Normalize to 0-1 range
+          
+          // Apply threshold - if over threshold, make fully opaque white, otherwise fully transparent
+          if (alpha > 0.5) {
+            // Fully opaque white
+            data[i] = 255;     // R
+            data[i+1] = 255;   // G
+            data[i+2] = 255;   // B
+            data[i+3] = 255;   // A
+          } else {
+            // Fully transparent
+            data[i+3] = 0;     // A
+          }
+        }
+        
+        // Put the modified pixel data back on the canvas
+        maskCtx.putImageData(imageData, 0, 0);
+      }
+
       // Create blobs from both canvases
       const [sourceBlob, maskBlob] = await Promise.all([
         new Promise<Blob>((resolve, reject) => {

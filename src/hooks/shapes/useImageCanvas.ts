@@ -2,6 +2,27 @@
 import { useRef, useEffect, useCallback, useMemo } from "react";
 import { Shape } from "../../types";
 import { useStore } from "../../store";
+import { ensureBinaryMask } from '../../utils/imageShapeCanvas';
+
+// These utility functions are already used in the file, so let's keep them local
+const getImageShapeCanvasContext = (
+  canvasRef: React.RefObject<HTMLCanvasElement>,
+  options: CanvasRenderingContext2DSettings = { willReadFrequently: true }
+): CanvasRenderingContext2D | null => {
+  return canvasRef.current?.getContext('2d', options) || null;
+};
+
+const clearImageShapeCanvas = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
+  const ctx = getImageShapeCanvasContext(canvasRef);
+  if (!ctx || !canvasRef.current) return;
+
+  ctx.clearRect(
+    0,
+    0,
+    canvasRef.current.width,
+    canvasRef.current.height
+  );
+};
 
 export interface ImageCanvasRefs {
   backgroundCanvasRef: React.RefObject<HTMLCanvasElement>;
@@ -164,6 +185,9 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
     }
 
+    // Ensure the mask is binary
+    ensureBinaryMask(refs.maskCanvasRef);
+
     // Save the scaled mask state
     const maskData = maskCanvas.toDataURL('image/png');
     localStorage.setItem(`mask_${shape.id}`, maskData);
@@ -211,6 +235,9 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     const handleMouseUp = () => {
       // Save mask data to both localStorage and shape state if using eraser or inpaint tool
       if ((tool === 'eraser' || tool === 'inpaint') && refs.maskCanvasRef.current) {
+        // Ensure mask is binary before saving
+        ensureBinaryMask(refs.maskCanvasRef);
+        
         const maskData = refs.maskCanvasRef.current.toDataURL('image/png');
         localStorage.setItem(`mask_${shape.id}`, maskData);
         // Also update the shape state

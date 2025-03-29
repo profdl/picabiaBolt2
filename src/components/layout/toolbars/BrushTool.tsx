@@ -7,6 +7,7 @@ import {
   getScaledPoint,
   updateImageShapePreview,
   saveImageShapeState,
+  ensureBinaryMask,
   type ImageShapeCanvasRefs,
   type Point
 } from "../../../utils/imageShapeCanvas";
@@ -215,6 +216,9 @@ export const useBrush = ({
             maskCtx.globalCompositeOperation = restoreMode ? "source-over" : "destination-out";
             maskCtx.globalAlpha = 1.0;
             maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+            
+            // Ensure binary mask after update
+            ensureBinaryMask(maskCanvasRef);
           }
         }
 
@@ -332,6 +336,9 @@ export const useBrush = ({
           maskCtx.globalCompositeOperation = restoreMode ? "source-over" : "destination-out";
           maskCtx.globalAlpha = 1.0;
           maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+          
+          // Ensure binary mask after update
+          ensureBinaryMask(maskCanvasRef);
         }
       }
 

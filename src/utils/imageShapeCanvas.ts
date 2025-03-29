@@ -173,4 +173,58 @@ export const saveImageShapeState = (
 
   // Update shape with all canvas data
   updateShape(shapeId, canvasData);
+};
+
+/**
+ * Ensures a mask canvas contains only binary values (fully opaque or fully transparent)
+ * This prevents issues with alpha blending when toggling between inpaint modes
+ */
+export const ensureBinaryMask = (canvasRef: RefObject<HTMLCanvasElement>, threshold: number = 0.5) => {
+  const ctx = getImageShapeCanvasContext(canvasRef);
+  if (!ctx || !canvasRef.current) return;
+  
+  const { width, height } = canvasRef.current;
+  
+  // Get current pixel data
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  
+  // Process each pixel to ensure it's either fully opaque or fully transparent
+  for (let i = 0; i < data.length; i += 4) {
+    // Check alpha channel (index i+3)
+    const alpha = data[i+3] / 255; // Normalize to 0-1 range
+    
+    // Apply threshold - if over threshold, make fully opaque (white), otherwise fully transparent
+    if (alpha > threshold) {
+      // Fully opaque white
+      data[i] = 255;     // R
+      data[i+1] = 255;   // G
+      data[i+2] = 255;   // B
+      data[i+3] = 255;   // A
+    } else {
+      // Fully transparent
+      data[i+3] = 0;     // A
+    }
+  }
+  
+  // Put the modified pixel data back on the canvas
+  ctx.putImageData(imageData, 0, 0);
+};
+
+/**
+ * Resets a mask canvas to fully white (fully opaque)
+ * Used when we want to start with a clean mask
+ */
+export const resetMask = (canvasRef: RefObject<HTMLCanvasElement>) => {
+  const ctx = getImageShapeCanvasContext(canvasRef);
+  if (!ctx || !canvasRef.current) return;
+  
+  const { width, height } = canvasRef.current;
+  
+  // Clear the canvas
+  ctx.clearRect(0, 0, width, height);
+  
+  // Fill with white
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, width, height);
 }; 
