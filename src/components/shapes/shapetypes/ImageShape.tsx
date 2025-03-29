@@ -7,6 +7,14 @@ import { useImageCanvas } from "../../../hooks/shapes/useImageCanvas";
 import { useEraser } from "../../../hooks/shapes/useEraser";
 import { updateImageShapePreview } from "../../../utils/imageShapeCanvas";
 
+interface SavedCanvasState {
+  backgroundData?: string;
+  permanentStrokesData?: string;
+  activeStrokeData?: string;
+  maskData?: string;
+  previewData?: string;
+}
+
 // Add utility function for consistent sizing
 const calculateImageShapeDimensions = (width: number, height: number): { width: number; height: number } => {
   const MAX_DIMENSION = 512;
@@ -49,6 +57,56 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
 
   // Add isDrawing ref to track drawing state
   const isDrawing = useRef(false);
+
+  // Add effect to restore canvas state
+  useEffect(() => {
+    if (!shape.isImageEditing && shape.savedCanvasState) {
+      // Restore canvas states from saved data
+      const loadImage = (dataUrl: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.src = dataUrl;
+        });
+      };
+
+      const restoreCanvasState = async () => {
+        const { backgroundData, permanentStrokesData, activeStrokeData, maskData, previewData } = shape.savedCanvasState!;
+
+        if (backgroundData && refs.backgroundCanvasRef.current) {
+          const img = await loadImage(backgroundData);
+          const ctx = refs.backgroundCanvasRef.current.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+        }
+
+        if (permanentStrokesData && refs.permanentStrokesCanvasRef.current) {
+          const img = await loadImage(permanentStrokesData);
+          const ctx = refs.permanentStrokesCanvasRef.current.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+        }
+
+        if (activeStrokeData && refs.activeStrokeCanvasRef.current) {
+          const img = await loadImage(activeStrokeData);
+          const ctx = refs.activeStrokeCanvasRef.current.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+        }
+
+        if (maskData && refs.maskCanvasRef.current) {
+          const img = await loadImage(maskData);
+          const ctx = refs.maskCanvasRef.current.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+        }
+
+        if (previewData && refs.previewCanvasRef.current) {
+          const img = await loadImage(previewData);
+          const ctx = refs.previewCanvasRef.current.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+        }
+      };
+
+      restoreCanvasState();
+    }
+  }, [shape.isImageEditing, shape.savedCanvasState, refs]);
 
   // Add effect to handle initial sizing
   useEffect(() => {
@@ -224,6 +282,57 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
     });
   };
 
+  const handleStartEditing = () => {
+    // First save the current canvas states
+    const canvasState: SavedCanvasState = {
+      backgroundData: refs.backgroundCanvasRef.current?.toDataURL(),
+      permanentStrokesData: refs.permanentStrokesCanvasRef.current?.toDataURL(),
+      activeStrokeData: refs.activeStrokeCanvasRef.current?.toDataURL(),
+      maskData: refs.maskCanvasRef.current?.toDataURL(),
+      previewData: refs.previewCanvasRef.current?.toDataURL()
+    };
+
+    // Save the canvas data to the shape state
+    updateShape(shape.id, {
+      canvasData: refs.backgroundCanvasRef.current?.toDataURL(),
+      backgroundCanvasData: refs.backgroundCanvasRef.current?.toDataURL(),
+      permanentCanvasData: refs.permanentStrokesCanvasRef.current?.toDataURL(),
+      activeCanvasData: refs.activeStrokeCanvasRef.current?.toDataURL(),
+      previewCanvasData: refs.previewCanvasRef.current?.toDataURL(),
+      maskCanvasData: refs.maskCanvasRef.current?.toDataURL(),
+      savedCanvasState: canvasState,
+      isImageEditing: true
+    });
+  };
+
+  // Add effect to initialize canvases from saved data
+  useEffect(() => {
+    if (shape.isImageEditing) {
+        // When entering edit mode, ensure canvases maintain their state
+        if (shape.backgroundCanvasData && refs.backgroundCanvasRef.current) {
+            const img = new Image();
+            img.onload = () => {
+                const ctx = refs.backgroundCanvasRef.current?.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0);
+                }
+            };
+            img.src = shape.backgroundCanvasData;
+        }
+
+        if (shape.previewCanvasData && refs.previewCanvasRef.current) {
+            const img = new Image();
+            img.onload = () => {
+                const ctx = refs.previewCanvasRef.current?.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0);
+                }
+            };
+            img.src = shape.previewCanvasData;
+        }
+    }
+  }, [shape.isImageEditing, shape.backgroundCanvasData, shape.previewCanvasData, refs]);
+
   // Common canvas style with GPU acceleration
   const canvasStyle = {
     touchAction: "none" as const,
@@ -251,8 +360,9 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
             style={{
               ...canvasStyle,
               zIndex: 1,
-              visibility: "hidden"
+              visibility: shape.isImageEditing ? "visible" : "hidden"
             }}
+            onDoubleClick={handleStartEditing}
           />
           <canvas
             ref={refs.permanentStrokesCanvasRef}
@@ -262,7 +372,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
             style={{
               ...canvasStyle,
               zIndex: 2,
-              visibility: "hidden"
+              visibility: shape.isImageEditing ? "visible" : "hidden"
             }}
           />
           <canvas
@@ -273,7 +383,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
             style={{
               ...canvasStyle,
               zIndex: 3,
-              visibility: "hidden"
+              visibility: shape.isImageEditing ? "visible" : "hidden"
             }}
           />
           <canvas
@@ -284,7 +394,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
             style={{
               ...canvasStyle,
               zIndex: 4,
-              visibility: "hidden"
+              visibility: shape.isImageEditing ? "visible" : "hidden"
             }}
           />
           <canvas
@@ -299,6 +409,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
               visibility: "visible"
             }}
             onContextMenu={handleContextMenu}
+            onDoubleClick={handleStartEditing}
             onPointerDown={(e) => {
               e.stopPropagation();
               e.preventDefault();

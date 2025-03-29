@@ -238,6 +238,14 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
     return canvas.toDataURL("image/jpeg");
   };
 
+  const handleCancel = () => {
+    // Restore the saved state and clear it
+    updateShape(shape.id, { 
+      isImageEditing: false,
+      savedCanvasState: undefined  // Clear the saved state
+    });
+  };
+
   const handleSave = async () => {
     const croppedImageUrl = getCroppedImg();
     if (!croppedImageUrl) return;
@@ -302,7 +310,11 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
       console.error("Error uploading cropped image:", error);
     }
 
-    updateShape(shape.id, { isImageEditing: false });
+    // Clear the saved state when saving
+    updateShape(shape.id, { 
+      isImageEditing: false,
+      savedCanvasState: undefined
+    });
   };
 
   return ReactDOM.createPortal(
@@ -363,7 +375,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
         <div className="flex justify-end gap-2 mt-4">
           <Button
             variant="outline"
-            onClick={() => updateShape(shape.id, { isImageEditing: false })}
+            onClick={handleCancel}
           >
             Cancel
           </Button>

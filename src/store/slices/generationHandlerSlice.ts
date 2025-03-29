@@ -574,23 +574,86 @@ export const generationHandlerSlice: StateCreator<
 
         if (hasBlackPixels) {
           // Add in-painting workflow nodes
-          baseWorkflow["36"] = workflow["36"]; // Source image loader
-          baseWorkflow["37"] = workflow["37"]; // Mask image loader
-          baseWorkflow["39"] = workflow["39"]; // ImageToMask node
-          baseWorkflow["41"] = workflow["41"]; // InvertMask node
-          baseWorkflow["38"] = workflow["38"]; // VAEEncode
-          baseWorkflow["40"] = workflow["40"]; // SetLatentNoiseMask
+          baseWorkflow["36"] = {
+            inputs: {
+              image: variationShape.imageUrl || "",
+              upload: "image",
+            },
+            class_type: "LoadImage",
+          };
+
+          baseWorkflow["37"] = {
+            inputs: {
+              image: variationShape.imageUrl || "",
+              upload: "image",
+            },
+            class_type: "LoadImage",
+          };
+
+          // Add ImageToMask node to convert the mask image to the correct type
+          baseWorkflow["39"] = {
+            inputs: {
+              image: ["37", 0],
+              method: "red",
+              channel: "red"
+            },
+            class_type: "ImageToMask",
+          };
+
+          // Add InvertMask node
+          baseWorkflow["41"] = {
+            inputs: {
+              mask: ["39", 0]
+            },
+            class_type: "InvertMask",
+          };
+
+          // Add VAEEncode node for the source image
+          baseWorkflow["38"] = {
+            inputs: {
+              pixels: ["36", 0],
+              vae: ["4", 2]
+            },
+            class_type: "VAEEncode",
+          };
+
+          // Add SetLatentNoiseMask node to combine the encoded image with the inverted mask
+          baseWorkflow["40"] = {
+            inputs: {
+              samples: ["38", 0],
+              mask: ["41", 0]  // Use the inverted mask
+            },
+            class_type: "SetLatentNoiseMask",
+          };
+
           // Remove EmptyLatentImage node since we're using VAEEncode
           delete baseWorkflow["34"];
+          
           // Update KSampler to use the masked latent image
           baseWorkflow["3"].inputs.latent_image = ["40", 0];
           baseWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.8;
         } else {
           // For regular image-to-image workflow
-          baseWorkflow["36"] = workflow["36"]; // Source image loader
-          baseWorkflow["38"] = workflow["38"]; // VAEEncode
+          baseWorkflow["36"] = {
+            inputs: {
+              image: variationShape.imageUrl || "",
+              upload: "image",
+            },
+            class_type: "LoadImage",
+          };
+
+          // Add VAEEncode node for the source image
+          baseWorkflow["38"] = {
+            inputs: {
+              pixels: ["36", 0],
+              vae: ["4", 2]
+            },
+            class_type: "VAEEncode",
+          };
+
           // Remove EmptyLatentImage node since we're using VAEEncode
           delete baseWorkflow["34"];
+          
           // Update KSampler to use the encoded image directly
           baseWorkflow["3"].inputs.latent_image = ["38", 0];
           baseWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;

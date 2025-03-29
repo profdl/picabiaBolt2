@@ -35,6 +35,13 @@ export interface Shape {
   mergedFrom?: string[];
   isMerged?: boolean;
   remixStrength?: number;
+  savedCanvasState?: {
+    backgroundData?: string;
+    permanentStrokesData?: string;
+    activeStrokeData?: string;
+    maskData?: string;
+    previewData?: string;
+  };
   stickyStates?: { [shapeId: string]: { isTextPrompt: boolean; isNegativePrompt: boolean } };
   controlStates?: { [shapeId: string]: {
     isTextPrompt: boolean;
