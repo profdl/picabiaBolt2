@@ -137,7 +137,7 @@ export function useShapeAdder() {
       };
 
       // Check if there's any shape at the initial position
-      const hasShapeAtPosition = shapes.some(shape => {
+      const overlappingShapes = shapes.filter(shape => {
         const shapeDimensions = getShapeDimensions(shape);
         const shapeRight = shape.position.x + shapeDimensions.width;
         const shapeBottom = shape.position.y + shapeDimensions.height;
@@ -153,26 +153,37 @@ export function useShapeAdder() {
         );
       });
 
-      if (hasShapeAtPosition) {
-        // Find the bottom-most point of any shapes in this vertical column
-        const bottomMostPoint = shapes.reduce((maxBottom, shape) => {
-          // Only consider shapes that overlap horizontally with our target position
-          const shapeDimensions = getShapeDimensions(shape);
-          const shapeRight = shape.position.x + shapeDimensions.width;
-          const shapeBottom = shape.position.y + shapeDimensions.height;
-          
-          if (initialPosition.x < shapeRight && 
-              (initialPosition.x + width) > shape.position.x) {
-            return Math.max(maxBottom, shapeBottom);
-          }
-          return maxBottom;
-        }, initialPosition.y);
+      if (overlappingShapes.length > 0) {
+        // Check if any of the overlapping shapes have toggles enabled
+        const hasEnabledOverlappingShape = overlappingShapes.some(shape => hasEnabledToggles(shape));
+        
+        if (hasEnabledOverlappingShape) {
+          // If any overlapping shape has toggles enabled, place the new shape below
+          const bottomMostPoint = shapes.reduce((maxBottom, shape) => {
+            const shapeDimensions = getShapeDimensions(shape);
+            const shapeRight = shape.position.x + shapeDimensions.width;
+            const shapeBottom = shape.position.y + shapeDimensions.height;
+            
+            if (initialPosition.x < shapeRight && 
+                (initialPosition.x + width) > shape.position.x) {
+              return Math.max(maxBottom, shapeBottom);
+            }
+            return maxBottom;
+          }, initialPosition.y);
 
-        // Place the new shape below the bottom-most point
-        finalPosition = {
-          x: initialPosition.x,
-          y: bottomMostPoint + GAP
-        };
+          finalPosition = {
+            x: initialPosition.x,
+            y: bottomMostPoint + GAP
+          };
+        } else {
+          // If no overlapping shapes have toggles enabled, place the new shape on top with progressive offset
+          const BASE_OFFSET = 40; // Base offset in pixels
+          const offset = BASE_OFFSET * overlappingShapes.length; // Double offset for each overlapping shape
+          finalPosition = {
+            x: overlappingShapes[0].position.x + offset,
+            y: overlappingShapes[0].position.y + offset
+          };
+        }
       } else {
         finalPosition = initialPosition;
       }

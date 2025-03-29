@@ -138,6 +138,21 @@ const calculateImageShapeDimensions = (width: number, height: number): { width: 
   return { width: scaledWidth, height: scaledHeight };
 };
 
+// Add utility function to get shape dimensions
+const getShapeDimensions = (shape: Shape): { width: number; height: number } => {
+  if (shape.type === "diffusionSettings") {
+    // DiffusionSettingsPanel has a fixed width and expands vertically based on advanced settings
+    return {
+      width: 200, // Fixed width for diffusion settings panel
+      height: shape.showAdvanced ? 400 : 200 // Height varies based on advanced settings visibility
+    };
+  }
+  return {
+    width: shape.width,
+    height: shape.height
+  };
+};
+
 // Add utility function to check if a shape has any toggles enabled
 const hasEnabledToggles = (shape: Shape): boolean => {
   return (
@@ -515,14 +530,15 @@ export const generationHandlerSlice: StateCreator<
       // Calculate initial position to the right of the top-right most shape
       const GAP = 20; // Gap between shapes
       const initialPosition = {
-        x: topRightMostShape.position.x + topRightMostShape.width + GAP,
+        x: topRightMostShape.position.x + getShapeDimensions(topRightMostShape).width + GAP,
         y: topRightMostShape.position.y
       };
 
       // Check if there's any shape at the initial position
-      const hasShapeAtPosition = shapes.some(shape => {
-        const shapeRight = shape.position.x + shape.width;
-        const shapeBottom = shape.position.y + shape.height;
+      const overlappingShapes = shapes.filter(shape => {
+        const shapeDimensions = getShapeDimensions(shape);
+        const shapeRight = shape.position.x + shapeDimensions.width;
+        const shapeBottom = shape.position.y + shapeDimensions.height;
         const initialRight = initialPosition.x + dimensions.width;
         const initialBottom = initialPosition.y + dimensions.height;
 
@@ -535,25 +551,37 @@ export const generationHandlerSlice: StateCreator<
         );
       });
 
-      if (hasShapeAtPosition) {
-        // Find the bottom-most point of any shapes in this vertical column
-        const bottomMostPoint = shapes.reduce((maxBottom, shape) => {
-          // Only consider shapes that overlap horizontally with our target position
-          const shapeRight = shape.position.x + shape.width;
-          const shapeBottom = shape.position.y + shape.height;
-          
-          if (initialPosition.x < shapeRight && 
-              (initialPosition.x + dimensions.width) > shape.position.x) {
-            return Math.max(maxBottom, shapeBottom);
-          }
-          return maxBottom;
-        }, initialPosition.y);
+      if (overlappingShapes.length > 0) {
+        // Check if any of the overlapping shapes have toggles enabled
+        const hasEnabledOverlappingShape = overlappingShapes.some(shape => hasEnabledToggles(shape));
+        
+        if (hasEnabledOverlappingShape) {
+          // If any overlapping shape has toggles enabled, place the new shape below
+          const bottomMostPoint = shapes.reduce((maxBottom, shape) => {
+            const shapeDimensions = getShapeDimensions(shape);
+            const shapeRight = shape.position.x + shapeDimensions.width;
+            const shapeBottom = shape.position.y + shapeDimensions.height;
+            
+            if (initialPosition.x < shapeRight && 
+                (initialPosition.x + dimensions.width) > shape.position.x) {
+              return Math.max(maxBottom, shapeBottom);
+            }
+            return maxBottom;
+          }, initialPosition.y);
 
-        // Place the new shape below the bottom-most point
-        position = {
-          x: initialPosition.x,
-          y: bottomMostPoint + GAP
-        };
+          position = {
+            x: initialPosition.x,
+            y: bottomMostPoint + GAP
+          };
+        } else {
+          // If no overlapping shapes have toggles enabled, place the new shape on top with progressive offset
+          const BASE_OFFSET = 40; // Base offset in pixels
+          const offset = BASE_OFFSET * overlappingShapes.length; // Double offset for each overlapping shape
+          position = {
+            x: overlappingShapes[0].position.x + offset,
+            y: overlappingShapes[0].position.y + offset
+          };
+        }
       } else {
         position = initialPosition;
       }
