@@ -39,6 +39,8 @@ interface ToolSlice {
   setBrushHardness: (hardness: number) => void;
   unEraseMode: boolean;
   setUnEraseMode: (value: boolean) => void;
+  maskMode: boolean;
+  setMaskMode: (value: boolean) => void;
 }
 
 export const createToolSlice: StateCreator<ToolState> = (set) => ({
@@ -73,6 +75,7 @@ export const toolSlice: StateCreator<
   brushFollowPath: false,
   brushHardness: 1,
   unEraseMode: false,
+  maskMode: true,
   setTool: (tool) => set({ tool }),
   setCurrentColor: (color) => set({ currentColor: color }),
   setStrokeWidth: (width) => set({ strokeWidth: width }),
@@ -84,4 +87,5 @@ export const toolSlice: StateCreator<
   setBrushFollowPath: (value) => set(() => ({ brushFollowPath: value })),
   setBrushHardness: (hardness) => set({ brushHardness: hardness }),
   setUnEraseMode: (value) => set({ unEraseMode: value }),
+  setMaskMode: (value) => set({ maskMode: value }),
 });

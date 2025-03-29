@@ -269,7 +269,7 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
     if (!maskCtx) return;
 
-    // Only reset the mask when explicitly clearing it
+    // Only reset the mask when explicitly switching from eraser to brush
     if (tool === 'brush' && previousTool.current === 'eraser') {
       // Use current shape dimensions
       maskCanvas.width = shape.width;
@@ -289,7 +289,7 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     updatePreviewCanvas();
   }, [refs.maskCanvasRef, refs.previewCanvasRef, tool, shape.width, shape.height, shape.id, updateShape, updatePreviewCanvas]);
 
-  // Remove the tool transition effect since we handle it in reapplyMask
+  // Track the previous tool to detect tool transitions
   useEffect(() => {
     previousTool.current = tool;
   }, [tool]);

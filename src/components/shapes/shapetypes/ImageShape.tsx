@@ -62,21 +62,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
     }
   }, [shape.id, shape.type, shape.width, shape.height, shape.originalWidth, updateShape]);
 
-  // Add effect to handle tool transitions
-  useEffect(() => {
-    // When switching from eraser to brush, reset the mask to fully opaque
-    if (tool === "brush" && refs.maskCanvasRef.current) {
-      const maskCtx = refs.maskCanvasRef.current.getContext("2d", { willReadFrequently: true });
-      if (maskCtx) {
-        maskCtx.clearRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
-        maskCtx.fillStyle = 'white';
-        maskCtx.fillRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
-      }
-      // Update preview to show the reset state
-      updatePreviewCanvas();
-    }
-  }, [tool, refs.maskCanvasRef, updatePreviewCanvas]);
-
   // Add effect to handle tool state on deselection
   useEffect(() => {
     const cleanup = () => {

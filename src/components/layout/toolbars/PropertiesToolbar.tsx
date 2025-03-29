@@ -71,12 +71,13 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
   shapes = [],
   actions,
 }) => {
-  const { tool, addShape: storeAddShape, generatePreprocessedImage: storeGeneratePreprocessedImage, setTool, unEraseMode } = useStore((state) => ({
+  const { tool, addShape: storeAddShape, generatePreprocessedImage: storeGeneratePreprocessedImage, setTool, unEraseMode, maskMode } = useStore((state) => ({
     tool: state.tool,
     addShape: state.addShape,
     generatePreprocessedImage: state.generatePreprocessedImage,
     setTool: state.setTool,
     unEraseMode: state.unEraseMode,
+    maskMode: state.maskMode,
   }));
 
   const [showArrangeSubMenu, setShowArrangeSubMenu] = useState(false);
@@ -602,6 +603,13 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                     label="Un-Erase"
                     checked={unEraseMode}
                     onChange={(checked) => useStore.getState().setUnEraseMode(checked)}
+                    disabled={!maskMode}
+                  />
+                  <MiniToggle
+                    id="mask-mode-toggle"
+                    label="Mask Mode"
+                    checked={maskMode}
+                    onChange={(checked) => useStore.getState().setMaskMode(checked)}
                   />
                   <div className={styles.controlGroup.container}>
                     <span className={styles.controlGroup.label}>Size</span>
