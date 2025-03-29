@@ -56,19 +56,46 @@ const calculateAverageAspectRatio = (shapes: Shape[]) => {
 
   if (enabledShapes.length === 0) return null;
 
-  // Calculate average width and height
+  // Calculate dimensions based on the source image for processed shapes
+  const processedShapes = enabledShapes.filter(shape => 
+    (shape.type === 'depth' || shape.type === 'edges' || shape.type === 'pose') && 
+    shape.sourceImageId
+  );
+
+  // If we have processed shapes, use their source image dimensions
+  if (processedShapes.length > 0) {
+    const sourceShape = shapes.find(s => s.id === processedShapes[0].sourceImageId);
+    if (sourceShape) {
+      const dimensions = calculateImageShapeDimensions(sourceShape.width, sourceShape.height);
+      return dimensions;
+    }
+  }
+
+  // Fallback to average of all enabled shapes
   const totalWidth = enabledShapes.reduce((sum, shape) => sum + shape.width, 0);
   const totalHeight = enabledShapes.reduce((sum, shape) => sum + shape.height, 0);
   const avgWidth = totalWidth / enabledShapes.length;
   const avgHeight = totalHeight / enabledShapes.length;
 
-  // Round to nearest power of 2
+  // Round to nearest power of 2 and ensure SDXL compatibility
   const roundToPowerOf2 = (num: number) => {
     return Math.pow(2, Math.round(Math.log2(num)));
   };
 
-  const roundedWidth = roundToPowerOf2(avgWidth);
-  const roundedHeight = roundToPowerOf2(avgHeight);
+  let roundedWidth = roundToPowerOf2(avgWidth);
+  let roundedHeight = roundToPowerOf2(avgHeight);
+
+  // Ensure dimensions are compatible with SDXL (multiples of 8)
+  roundedWidth = Math.round(roundedWidth / 8) * 8;
+  roundedHeight = Math.round(roundedHeight / 8) * 8;
+
+  // Ensure minimum dimensions for SDXL
+  roundedWidth = Math.max(roundedWidth, 512);
+  roundedHeight = Math.max(roundedHeight, 512);
+
+  // Ensure maximum dimensions for SDXL
+  roundedWidth = Math.min(roundedWidth, 2048);
+  roundedHeight = Math.min(roundedHeight, 2048);
 
   return { width: roundedWidth, height: roundedHeight };
 };
