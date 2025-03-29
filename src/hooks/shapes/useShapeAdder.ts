@@ -112,8 +112,8 @@ export function useShapeAdder() {
     if (shouldCenterOnShape) {
       // Calculate the target offset to center the shape
       const targetOffset = {
-        x: -newShape.position.x * zoom + window.innerWidth / 2,
-        y: -newShape.position.y * zoom + window.innerHeight / 2,
+        x: -(newShape.position.x + newShape.width/2) * zoom + window.innerWidth / 2,
+        y: -(newShape.position.y + newShape.height/2) * zoom + window.innerHeight / 2 - (newShape.height * zoom * 0.2), // Subtract 20% of shape height for upward bias
       };
 
       // Animate the offset change
