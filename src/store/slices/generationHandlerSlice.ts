@@ -47,7 +47,7 @@ const calculateAverageAspectRatio = (shapes: Shape[]) => {
   // Find all enabled control shapes
   const enabledShapes = shapes.filter(shape => {
     const isControlShape = shape.type === 'image' || shape.type === 'depth' || shape.type === 'edges' || shape.type === 'pose';
-    const isEnabled = (shape.type === 'image' && shape.showImagePrompt) ||
+    const isEnabled = (shape.type === 'image' && (shape.showImagePrompt || shape.makeVariations)) ||
                      (shape.type === 'depth' && shape.showDepth) ||
                      (shape.type === 'edges' && shape.showEdges) ||
                      (shape.type === 'pose' && shape.showPose);
@@ -71,7 +71,7 @@ const calculateAverageAspectRatio = (shapes: Shape[]) => {
     }
   }
 
-  // Fallback to average of all enabled shapes
+  // Calculate average dimensions from all enabled shapes
   const totalWidth = enabledShapes.reduce((sum, shape) => sum + shape.width, 0);
   const totalHeight = enabledShapes.reduce((sum, shape) => sum + shape.height, 0);
   const avgWidth = totalWidth / enabledShapes.length;
@@ -211,6 +211,20 @@ export const generationHandlerSlice: StateCreator<
     // Find both variation and image reference shapes
     const variationShape = shapes.find(s => s.type === "image" && s.makeVariations);
     const imageReferenceShape = shapes.find(s => s.type === "image" && s.showImagePrompt);
+
+    // Calculate dimensions based on enabled shapes
+    const calculatedDimensions = calculateAverageAspectRatio(shapes);
+    if (!calculatedDimensions) {
+      set({ error: "No enabled shapes found. Please enable at least one image reference, variation, or control shape." });
+      return;
+    }
+
+    // Update the workflow with the calculated dimensions
+    workflow["34"].inputs.width = calculatedDimensions.width;
+    workflow["34"].inputs.height = calculatedDimensions.height;
+
+    // Handle image reference if present
+    const imageReferenceShapes = shapes.filter(s => s.type === "image" && s.showImagePrompt);
 
     // Handle dimensions based on active shapes
     // First check if we have an active DiffusionSettingsPanel with dimensions
@@ -807,84 +821,91 @@ export const generationHandlerSlice: StateCreator<
       }
 
       // Handle image reference if present
-      if (imageReferenceShape) {
-        // Get the preview canvas for the image reference shape
-        const previewCanvas = document.querySelector(`canvas[data-shape-id="${imageReferenceShape.id}"][data-layer="preview"]`) as HTMLCanvasElement;
-        if (!previewCanvas) {
-          console.error('Preview canvas not found for image reference shape');
-          return;
-        }
+      if (imageReferenceShapes.length > 0) {
+        let currentModelNode = ["4", 0]; // Start with the base model
 
-        // Create a blob from the preview canvas
-        const blob = await new Promise<Blob>((resolve, reject) => {
-          previewCanvas.toBlob((blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to create blob from preview canvas'));
-            }
-          }, 'image/png', 1.0);
-        });
+        for (const imageReferenceShape of imageReferenceShapes) {
+          // Get the preview canvas for the image reference shape
+          const previewCanvas = document.querySelector(`canvas[data-shape-id="${imageReferenceShape.id}"][data-layer="preview"]`) as HTMLCanvasElement;
+          if (!previewCanvas) {
+            console.error('Preview canvas not found for image reference shape');
+            continue;
+          }
 
-        // Upload to Supabase
-        const fileName = `reference_source_${Math.random().toString(36).substring(2)}.png`;
-        const arrayBuffer = await blob.arrayBuffer();
-        const fileData = new Uint8Array(arrayBuffer);
-
-        const { error: uploadError } = await supabase.storage
-          .from("assets")
-          .upload(fileName, fileData, {
-            contentType: 'image/png',
-            upsert: false,
+          // Create a blob from the preview canvas
+          const blob = await new Promise<Blob>((resolve, reject) => {
+            previewCanvas.toBlob((blob) => {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error('Failed to create blob from preview canvas'));
+              }
+            }, 'image/png', 1.0);
           });
 
-        if (uploadError) throw uploadError;
+          // Upload to Supabase
+          const fileName = `reference_source_${Math.random().toString(36).substring(2)}.png`;
+          const arrayBuffer = await blob.arrayBuffer();
+          const fileData = new Uint8Array(arrayBuffer);
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("assets")
-          .getPublicUrl(fileName);
+          const { error: uploadError } = await supabase.storage
+            .from("assets")
+            .upload(fileName, fileData, {
+              contentType: 'image/png',
+              upsert: false,
+            });
 
-        // Add image reference to the workflow using IP Adapter
-        const loaderNodeId = `ipadapter_loader_${Math.random().toString(36).substring(2)}`;
-        const imageNodeId = `image_loader_${Math.random().toString(36).substring(2)}`;
-        const advancedNodeId = `ipadapter_advanced_${Math.random().toString(36).substring(2)}`;
+          if (uploadError) throw uploadError;
 
-        // Add IP Adapter Loader
-        currentWorkflow[loaderNodeId] = {
-          inputs: {
-            preset: "PLUS (high strength)",
-            model: ["4", 0],
-          },
-          class_type: "IPAdapterUnifiedLoader",
-        };
+          const { data: { publicUrl } } = supabase.storage
+            .from("assets")
+            .getPublicUrl(fileName);
 
-        // Add Image Loader
-        currentWorkflow[imageNodeId] = {
-          inputs: {
-            image: publicUrl,
-            upload: "image",
-          },
-          class_type: "LoadImage",
-        };
+          // Generate unique IDs for this IP adapter set
+          const loaderNodeId = `ipadapter_loader_${Math.random().toString(36).substring(2)}`;
+          const imageNodeId = `image_loader_${Math.random().toString(36).substring(2)}`;
+          const advancedNodeId = `ipadapter_advanced_${Math.random().toString(36).substring(2)}`;
 
-        // Add IP Adapter Advanced
-        currentWorkflow[advancedNodeId] = {
-          inputs: {
-            weight: imageReferenceShape.imagePromptStrength || 0.5,
-            weight_type: "linear",
-            combine_embeds: "concat",
-            start_at: 0,
-            end_at: 1,
-            embeds_scaling: "V only",
-            model: ["4", 0],
-            ipadapter: [loaderNodeId, 1],
-            image: [imageNodeId, 0],
-          },
-          class_type: "IPAdapterAdvanced",
-        };
+          // Add IP Adapter Loader
+          currentWorkflow[loaderNodeId] = {
+            inputs: {
+              preset: "PLUS (high strength)",
+              model: currentModelNode,
+            },
+            class_type: "IPAdapterUnifiedLoader",
+          };
 
-        // Update the KSampler to use the IP Adapter output
-        workflow["3"].inputs.model = [advancedNodeId, 0];
+          // Add Image Loader
+          currentWorkflow[imageNodeId] = {
+            inputs: {
+              image: publicUrl,
+              upload: "image",
+            },
+            class_type: "LoadImage",
+          };
+
+          // Add IP Adapter Advanced
+          currentWorkflow[advancedNodeId] = {
+            inputs: {
+              weight: imageReferenceShape.imagePromptStrength || 0.5,
+              weight_type: "linear",
+              combine_embeds: "concat",
+              start_at: 0,
+              end_at: 1,
+              embeds_scaling: "V only",
+              model: currentModelNode,
+              ipadapter: [loaderNodeId, 1],
+              image: [imageNodeId, 0],
+            },
+            class_type: "IPAdapterAdvanced",
+          };
+
+          // Update the current model node for the next iteration
+          currentModelNode = [advancedNodeId, 0];
+        }
+
+        // Update the KSampler to use the final IP adapter output
+        workflow["3"].inputs.model = currentModelNode;
       }
 
       // Apply text prompt strength if available
