@@ -9,7 +9,6 @@ export interface ImageCanvasRefs {
   activeStrokeCanvasRef: React.RefObject<HTMLCanvasElement>;
   previewCanvasRef: React.RefObject<HTMLCanvasElement>;
   maskCanvasRef: React.RefObject<HTMLCanvasElement>;
-  redBackgroundCanvasRef: React.RefObject<HTMLCanvasElement>;
 }
 
 interface UseImageCanvasProps {
@@ -32,7 +31,6 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
   const activeStrokeCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
-  const redBackgroundCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Memoize the refs object
   const refs = useMemo(() => ({
@@ -41,7 +39,6 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     activeStrokeCanvasRef,
     previewCanvasRef,
     maskCanvasRef,
-    redBackgroundCanvasRef,
   }), []); // Empty dependency array since refs are stable
 
   // Store the initial mask dimensions
@@ -53,24 +50,6 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
 
   // Add cache ref for preview during scaling
   const cachedPreview = useRef<HTMLCanvasElement | null>(null);
-
-  const generateNoise = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    const imageData = ctx.createImageData(width, height);
-    const data = imageData.data;
-    
-    for (let i = 0; i < data.length; i += 4) {
-      // Generate noise with higher contrast
-      const noise = 64 + Math.random() * 191; // Range from 64 to 255 for better visibility
-      
-      // Set RGB values - using red with some variation
-      data[i] = noise;     // Red channel
-      data[i + 1] = 0;     // Green channel
-      data[i + 2] = 0;     // Blue channel
-      data[i + 3] = 255;   // Full opacity (will be controlled by CSS)
-    }
-    
-    return imageData;
-  };
 
   const updatePreviewCanvas = useCallback(() => {
     const previewCtx = refs.previewCanvasRef.current?.getContext('2d', { willReadFrequently: true });
@@ -313,12 +292,11 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       const activeCanvas = refs.activeStrokeCanvasRef.current;
       const previewCanvas = refs.previewCanvasRef.current;
       const maskCanvas = refs.maskCanvasRef.current;
-      const redBackgroundCanvas = refs.redBackgroundCanvasRef.current;
 
-      if (!backgroundCanvas || !permanentCanvas || !activeCanvas || !previewCanvas || !maskCanvas || !redBackgroundCanvas) return;
+      if (!backgroundCanvas || !permanentCanvas || !activeCanvas || !previewCanvas || !maskCanvas) return;
 
       // Set dimensions for all canvases
-      [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas, redBackgroundCanvas].forEach(canvas => {
+      [backgroundCanvas, permanentCanvas, activeCanvas, previewCanvas, maskCanvas].forEach(canvas => {
         canvas.width = width;
         canvas.height = height;
       });
@@ -329,16 +307,11 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       const activeCtx = activeCanvas.getContext("2d", { willReadFrequently: true });
       const previewCtx = previewCanvas.getContext("2d", { willReadFrequently: true });
       const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
-      const redBackgroundCtx = redBackgroundCanvas.getContext("2d", { willReadFrequently: true });
 
-      if (!backgroundCtx || !permanentCtx || !activeCtx || !previewCtx || !maskCtx || !redBackgroundCtx) return;
+      if (!backgroundCtx || !permanentCtx || !activeCtx || !previewCtx || !maskCtx) return;
 
       // Draw background
       backgroundCtx.drawImage(img, 0, 0, width, height);
-
-      // Generate noise for red background
-      const noisePattern = generateNoise(redBackgroundCtx, width, height);
-      redBackgroundCtx.putImageData(noisePattern, 0, 0);
 
       // Handle permanent strokes initialization
       if (shape.permanentCanvasData) {

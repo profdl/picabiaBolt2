@@ -45,7 +45,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
   const selectedShapes = useStore((state) => state.selectedShapes);
   
   const { refs, reapplyMask, updatePreviewCanvas } = useImageCanvas({ shape, tool });
-  const { handleEraserStroke, resetEraserStroke } = useEraser({ refs, reapplyMask });
+  const { handleEraserStroke, resetEraserStroke } = useEraser({ refs });
 
   // Add isDrawing ref to track drawing state
   const isDrawing = useRef(false);
@@ -82,6 +82,11 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
       
       // Reset eraser state to ensure clean state between tools
       resetEraserStroke();
+
+      // Reapply mask if using inpainting tool
+      if (tool === "inpaint") {
+        reapplyMask();
+      }
     };
 
     const isSelected = selectedShapes.includes(shape.id);
@@ -96,7 +101,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
         cleanup();
       }
     };
-  }, [selectedShapes, shape.id, refs, updatePreviewCanvas, tool, resetEraserStroke]);
+  }, [selectedShapes, shape.id, refs, updatePreviewCanvas, tool, resetEraserStroke, reapplyMask]);
 
   // Add effect to reset state when switching tools
   useEffect(() => {
@@ -120,13 +125,13 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
   });
 
   // Helper for determining which tool handler to use
-  const isEraserOrInpaintTool = () => tool === 'eraser' || tool === 'inpaint';
+  const isEraserTool = () => tool === 'eraser';
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     isDrawing.current = true;
     
     // Use appropriate handler based on tool
-    if (isEraserOrInpaintTool()) {
+    if (isEraserTool()) {
       handleEraserStroke(e);
     } else {
       originalHandlePointerDown(e);
@@ -137,7 +142,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
     if (!isDrawing.current) return;
     
     // Use appropriate handler based on tool
-    if (isEraserOrInpaintTool()) {
+    if (isEraserTool()) {
       handleEraserStroke(e);
     } else {
       originalHandlePointerMove(e);
@@ -149,23 +154,22 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
     isDrawing.current = false;
     
     // Use appropriate handler based on tool
-    if (isEraserOrInpaintTool()) {
-      // For eraser and inpaint tools, update the view with the appropriate settings
+    if (isEraserTool()) {
+      // For eraser tool, update the view with the appropriate settings
       updateImageShapePreview({
         backgroundCanvasRef: refs.backgroundCanvasRef,
         permanentStrokesCanvasRef: refs.permanentStrokesCanvasRef,
         activeStrokeCanvasRef: refs.activeStrokeCanvasRef,
         previewCanvasRef: refs.previewCanvasRef,
         maskCanvasRef: refs.maskCanvasRef,
-        tool: tool,
-        // Use fixed opacity (1.0) for in-paint tool
-        opacity: tool === 'inpaint' ? 1.0 : useStore.getState().brushOpacity
+        tool: 'eraser',
+        opacity: useStore.getState().brushOpacity
       });
       
       // Reset the eraser's last point
       resetEraserStroke();
     } else {
-      // For brush tool, use the original handler
+      // For brush and inpainting tools, use the original handler
       originalHandlePointerUpOrLeave();
       updatePreviewCanvas();
     }
@@ -239,18 +243,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
         <ImageEditor shape={shape} updateShape={updateShape} />
       ) : (
         <>
-          <canvas
-            ref={refs.redBackgroundCanvasRef}
-            data-shape-id={shape.id}
-            data-layer="redBackground"
-            className="absolute w-full h-full object-cover"
-            style={{
-              ...canvasStyle,
-              opacity: 0.25,
-              zIndex: 0,
-              visibility: "hidden"
-            }}
-          />
           <canvas
             ref={refs.backgroundCanvasRef}
             data-shape-id={shape.id}

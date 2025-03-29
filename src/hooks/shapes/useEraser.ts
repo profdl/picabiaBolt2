@@ -6,7 +6,6 @@ import { drawBrushStroke, drawBrushStamp, type BrushTextureType } from '../../ut
 
 interface UseEraserProps {
   refs: ImageCanvasRefs;
-  reapplyMask: () => void;
 }
 
 // Create a proper stamp function for the eraser tool
@@ -18,18 +17,16 @@ const eraserStampFunction = (ctx: CanvasRenderingContext2D, x: number, y: number
   ctx.fill();
 };
 
-export const useEraser = ({ refs, reapplyMask }: UseEraserProps) => {
+export const useEraser = ({ refs }: UseEraserProps) => {
   // Track last point for proper stroke drawing using ref for persistence
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
   const handleEraserStroke = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    const maskCanvas = refs.maskCanvasRef.current;
     const permanentStrokesCanvas = refs.permanentStrokesCanvasRef.current;
-    if (!maskCanvas || !permanentStrokesCanvas) return;
+    if (!permanentStrokesCanvas) return;
 
-    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
     const permanentCtx = permanentStrokesCanvas.getContext('2d', { willReadFrequently: true });
-    if (!maskCtx || !permanentCtx) return;
+    if (!permanentCtx) return;
 
     // Get the position using the same scaled point function used by brush
     const point = getScaledPoint(e);
@@ -43,65 +40,11 @@ export const useEraser = ({ refs, reapplyMask }: UseEraserProps) => {
       brushSpacing,
       brushHardness,
       brushOpacity,
-      inpaintRestoreMode,
       tool
     } = useStore.getState();
     
-    // Only handle mask operations for inpaint tool
-    if (tool === 'inpaint') {
-      // Mask mode - affect the image transparency
-      maskCtx.save();
-      
-      // For inpaint tool, use restore mode if enabled
-      if (inpaintRestoreMode) {
-        // For un-erase/restore mode, use source-over with white color to restore opacity
-        maskCtx.globalCompositeOperation = 'source-over';
-        maskCtx.globalAlpha = 1.0;
-      } else {
-        // For erase mode, use destination-out to remove opacity
-        maskCtx.globalCompositeOperation = 'destination-out';
-        maskCtx.globalAlpha = 1.0;
-      }
-      
-      // For inpaint tool, always use simple circular shape for better control
-      if (lastPointRef.current) {
-        // Draw a line between points for inpaint tool using simple circles
-        const dx = point.x - lastPointRef.current.x;
-        const dy = point.y - lastPointRef.current.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const steps = Math.max(1, Math.floor(distance / (brushSize / 4)));
-        
-        for (let i = 0; i <= steps; i++) {
-          const x = lastPointRef.current.x + (dx * i / steps);
-          const y = lastPointRef.current.y + (dy * i / steps);
-          
-          maskCtx.beginPath();
-          maskCtx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
-          maskCtx.fill();
-        }
-      } else {
-        // First point for inpaint tool
-        maskCtx.beginPath();
-        maskCtx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2);
-        maskCtx.fill();
-      }
-      
-      maskCtx.restore();
-
-      // Update the mask and preview
-      reapplyMask();
-
-      // Update preview in real-time for both erasing and un-erasing
-      updateImageShapePreview({
-        backgroundCanvasRef: refs.backgroundCanvasRef,
-        permanentStrokesCanvasRef: refs.permanentStrokesCanvasRef,
-        activeStrokeCanvasRef: refs.activeStrokeCanvasRef,
-        previewCanvasRef: refs.previewCanvasRef,
-        maskCanvasRef: refs.maskCanvasRef,
-        tool: 'inpaint',
-        opacity: 1.0
-      });
-    } else if (tool === 'eraser') {
+    // Only handle eraser operations
+    if (tool === 'eraser') {
       // For eraser tool, only affect brush strokes
       permanentCtx.save();
       permanentCtx.globalCompositeOperation = 'destination-out';
@@ -157,7 +100,7 @@ export const useEraser = ({ refs, reapplyMask }: UseEraserProps) => {
 
     // Update last point for next stroke segment
     lastPointRef.current = point;
-  }, [refs, reapplyMask]);
+  }, [refs]);
 
   // Add a function to reset the last point
   const resetEraserStroke = useCallback(() => {

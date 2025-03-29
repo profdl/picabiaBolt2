@@ -170,73 +170,67 @@ export const useBrush = ({
     const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
     if (activeCtx && lastPoint.current) {
       activeCtx.save();
-      activeCtx.globalCompositeOperation = tool === "eraser" || tool === "inpaint" ? "destination-out" : "source-over";
+      activeCtx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
       
-      if (tool === "eraser" || tool === "inpaint") {
-        // Get the tool-specific restore mode
-        const restoreMode = tool === "inpaint" 
-          ? useStore.getState().inpaintRestoreMode 
-          : false;
+      if (tool === "eraser") {
+        // Handle erasing brush strokes
+        if (activeStrokeCanvasRef.current && permanentStrokesCanvasRef.current) {
+          const permanentCtx = getImageShapeCanvasContext(permanentStrokesCanvasRef);
+          const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
+          
+          if (activeCtx && permanentCtx) {
+            // First apply opacity to active stroke
+            activeCtx.save();
+            activeCtx.globalAlpha = brushOpacity;
+            activeCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+            activeCtx.restore();
 
-        if (tool === "inpaint") {
-          // Handle mask mode inpainting
-          if (maskCanvasRef && activeStrokeCanvasRef.current) {
-            const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
-            if (maskCtx && maskCanvasRef.current) {
-              maskCtx.globalCompositeOperation = restoreMode ? "source-over" : "destination-out";
-              maskCtx.globalAlpha = 1.0;
-              maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-            }
+            // Then apply eraser effect to permanent layer
+            permanentCtx.save();
+            permanentCtx.globalCompositeOperation = "destination-out";
+            permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+            permanentCtx.restore();
           }
-
-          // Clear active stroke before updating preview to prevent blinking
-          clearImageShapeCanvas(activeStrokeCanvasRef);
-
-          // Update preview with the mask changes
-          updateImageShapePreview({
-            backgroundCanvasRef,
-            permanentStrokesCanvasRef,
-            activeStrokeCanvasRef,
-            previewCanvasRef,
-            maskCanvasRef,
-            tool: "inpaint",
-            opacity: 1.0
-          });
-        } else if (tool === "eraser") {
-          // Handle erasing brush strokes
-          if (activeStrokeCanvasRef.current && permanentStrokesCanvasRef.current) {
-            const permanentCtx = getImageShapeCanvasContext(permanentStrokesCanvasRef);
-            const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
-            
-            if (activeCtx && permanentCtx) {
-              // First apply opacity to active stroke
-              activeCtx.save();
-              activeCtx.globalAlpha = brushOpacity;
-              activeCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-              activeCtx.restore();
-
-              // Then apply eraser effect to permanent layer
-              permanentCtx.save();
-              permanentCtx.globalCompositeOperation = "destination-out";
-              permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-              permanentCtx.restore();
-            }
-          }
-
-          // Clear active stroke
-          clearImageShapeCanvas(activeStrokeCanvasRef);
-
-          // Update preview with final state
-          updateImageShapePreview({
-            backgroundCanvasRef,
-            permanentStrokesCanvasRef,
-            activeStrokeCanvasRef,
-            previewCanvasRef,
-            maskCanvasRef,
-            tool: "eraser",
-            opacity: brushOpacity
-          });
         }
+
+        // Clear active stroke
+        clearImageShapeCanvas(activeStrokeCanvasRef);
+
+        // Update preview with final state
+        updateImageShapePreview({
+          backgroundCanvasRef,
+          permanentStrokesCanvasRef,
+          activeStrokeCanvasRef,
+          previewCanvasRef,
+          maskCanvasRef,
+          tool: "eraser",
+          opacity: brushOpacity
+        });
+      } else if (tool === "inpaint") {
+        // Handle mask mode inpainting
+        if (maskCanvasRef && activeStrokeCanvasRef.current) {
+          const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
+          if (maskCtx && maskCanvasRef.current) {
+            const restoreMode = useStore.getState().inpaintRestoreMode;
+            maskCtx.globalCompositeOperation = restoreMode ? "source-over" : "destination-out";
+            maskCtx.globalAlpha = 1.0;
+            maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+          }
+        }
+
+        // Clear active stroke before updating preview to prevent blinking
+        clearImageShapeCanvas(activeStrokeCanvasRef);
+
+        // Update preview with the mask changes
+        updateImageShapePreview({
+          backgroundCanvasRef,
+          permanentStrokesCanvasRef,
+          activeStrokeCanvasRef,
+          previewCanvasRef,
+          maskCanvasRef,
+          tool: "inpaint",
+          opacity: 1.0
+        });
       }
       
       // Draw to active canvas for preview - use different approaches for inpaint vs brush/eraser
@@ -296,70 +290,64 @@ export const useBrush = ({
     
     if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current || !activeCtx) return;
 
-    if (tool === "eraser" || tool === "inpaint") {
-      // Get the tool-specific restore mode
-      const restoreMode = tool === "inpaint" 
-        ? useStore.getState().inpaintRestoreMode 
-        : false;
+    if (tool === "eraser") {
+      // Handle regular erasing (non-mask mode)
+      if (activeStrokeCanvasRef.current && permanentStrokesCanvasRef.current) {
+        const permanentCtx = getImageShapeCanvasContext(permanentStrokesCanvasRef);
+        const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
+        
+        if (activeCtx && permanentCtx) {
+          // First apply opacity to active stroke
+          activeCtx.save();
+          activeCtx.globalAlpha = brushOpacity;
+          activeCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+          activeCtx.restore();
 
-      if (tool === "inpaint") {
-        // Handle mask mode erasing/inpainting
-        if (maskCanvasRef && activeStrokeCanvasRef.current) {
-          const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
-          if (maskCtx && maskCanvasRef.current) {
-            maskCtx.globalCompositeOperation = restoreMode ? "source-over" : "destination-out";
-            maskCtx.globalAlpha = brushOpacity;
-            maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-          }
+          // Then apply eraser effect to permanent layer
+          permanentCtx.save();
+          permanentCtx.globalCompositeOperation = "destination-out";
+          permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+          permanentCtx.restore();
         }
-
-        // Clear active stroke before updating preview to prevent blinking
-        clearImageShapeCanvas(activeStrokeCanvasRef);
-
-        // Update preview with the mask changes
-        updateImageShapePreview({
-          backgroundCanvasRef,
-          permanentStrokesCanvasRef,
-          activeStrokeCanvasRef,
-          previewCanvasRef,
-          maskCanvasRef,
-          tool,
-          opacity: brushOpacity
-        });
-      } else if (tool === "eraser") {
-        // Handle regular erasing (non-mask mode)
-        if (activeStrokeCanvasRef.current && permanentStrokesCanvasRef.current) {
-          const permanentCtx = getImageShapeCanvasContext(permanentStrokesCanvasRef);
-          const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
-          
-          if (activeCtx && permanentCtx) {
-            // First apply opacity to active stroke
-            activeCtx.save();
-            activeCtx.globalAlpha = brushOpacity;
-            activeCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-            activeCtx.restore();
-
-            // Then apply eraser effect to permanent layer
-            permanentCtx.save();
-            permanentCtx.globalCompositeOperation = "destination-out";
-            permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-            permanentCtx.restore();
-          }
-        }
-
-        // Clear active stroke
-        clearImageShapeCanvas(activeStrokeCanvasRef);
-
-        // Update preview with final state
-        updateImageShapePreview({
-          backgroundCanvasRef,
-          permanentStrokesCanvasRef,
-          activeStrokeCanvasRef,
-          previewCanvasRef,
-          maskCanvasRef,
-          tool
-        });
       }
+
+      // Clear active stroke
+      clearImageShapeCanvas(activeStrokeCanvasRef);
+
+      // Update preview with final state
+      updateImageShapePreview({
+        backgroundCanvasRef,
+        permanentStrokesCanvasRef,
+        activeStrokeCanvasRef,
+        previewCanvasRef,
+        maskCanvasRef,
+        tool
+      });
+    } else if (tool === "inpaint") {
+      // Handle mask mode erasing/inpainting
+      if (maskCanvasRef && activeStrokeCanvasRef.current) {
+        const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
+        if (maskCtx && maskCanvasRef.current) {
+          const restoreMode = useStore.getState().inpaintRestoreMode;
+          maskCtx.globalCompositeOperation = restoreMode ? "source-over" : "destination-out";
+          maskCtx.globalAlpha = 1.0;
+          maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+        }
+      }
+
+      // Clear active stroke before updating preview to prevent blinking
+      clearImageShapeCanvas(activeStrokeCanvasRef);
+
+      // Update preview with the mask changes
+      updateImageShapePreview({
+        backgroundCanvasRef,
+        permanentStrokesCanvasRef,
+        activeStrokeCanvasRef,
+        previewCanvasRef,
+        maskCanvasRef,
+        tool,
+        opacity: 1.0
+      });
     } else {
       // For brush tool, transfer the active stroke to permanent layer
       permanentCtx.save();
