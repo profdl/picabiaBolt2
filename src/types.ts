@@ -148,6 +148,7 @@ export interface Shape {
   depthUrl?: string;
   edgeUrl?: string;
   poseUrl?: string;
+  showAdvanced?: boolean;
 }
 
 export interface SavedImage {

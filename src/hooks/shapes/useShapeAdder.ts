@@ -33,7 +33,7 @@ interface ShapeAddOptions {
   startEditing?: boolean;
 }
 
-// Add utility function to check if a shape has any toggles enabled
+// Update utility function to check if a shape has any toggles enabled
 const hasEnabledToggles = (shape: Shape): boolean => {
   return (
     (shape.type === "image" && (shape.showImagePrompt || shape.makeVariations)) ||
@@ -50,7 +50,22 @@ const hasEnabledToggles = (shape: Shape): boolean => {
   );
 };
 
-// Add utility function to find the top-right most shape with enabled toggles
+// Add utility function to get shape dimensions
+const getShapeDimensions = (shape: Shape): { width: number; height: number } => {
+  if (shape.type === "diffusionSettings") {
+    // DiffusionSettingsPanel has a fixed width and expands vertically based on advanced settings
+    return {
+      width: 200, // Fixed width for diffusion settings panel
+      height: shape.showAdvanced ? 400 : 200 // Height varies based on advanced settings visibility
+    };
+  }
+  return {
+    width: shape.width,
+    height: shape.height
+  };
+};
+
+// Update utility function to find the top-right most shape with enabled toggles
 const findTopRightMostShapeWithToggles = (shapes: Shape[]): Shape | null => {
   let topRightMostShape: Shape | null = null;
   let topRightMostScore = -Infinity;
@@ -102,6 +117,10 @@ export function useShapeAdder() {
       const scaledDimensions = calculateImageShapeDimensions(dimensions.width, dimensions.height);
       width = scaledDimensions.width;
       height = scaledDimensions.height;
+    } else if (type === "diffusionSettings") {
+      // Set fixed dimensions for diffusion settings panel
+      width = 200;
+      height = props.showAdvanced ? 400 : 200;
     }
 
     // Find the top-right most shape with enabled toggles
@@ -113,14 +132,15 @@ export function useShapeAdder() {
       // Calculate initial position to the right of the top-right most shape
       const GAP = 20; // Gap between shapes
       const initialPosition = {
-        x: topRightMostShape.position.x + topRightMostShape.width + GAP,
+        x: topRightMostShape.position.x + getShapeDimensions(topRightMostShape).width + GAP,
         y: topRightMostShape.position.y
       };
 
       // Check if there's any shape at the initial position
       const hasShapeAtPosition = shapes.some(shape => {
-        const shapeRight = shape.position.x + shape.width;
-        const shapeBottom = shape.position.y + shape.height;
+        const shapeDimensions = getShapeDimensions(shape);
+        const shapeRight = shape.position.x + shapeDimensions.width;
+        const shapeBottom = shape.position.y + shapeDimensions.height;
         const initialRight = initialPosition.x + width;
         const initialBottom = initialPosition.y + height;
 
@@ -137,8 +157,9 @@ export function useShapeAdder() {
         // Find the bottom-most point of any shapes in this vertical column
         const bottomMostPoint = shapes.reduce((maxBottom, shape) => {
           // Only consider shapes that overlap horizontally with our target position
-          const shapeRight = shape.position.x + shape.width;
-          const shapeBottom = shape.position.y + shape.height;
+          const shapeDimensions = getShapeDimensions(shape);
+          const shapeRight = shape.position.x + shapeDimensions.width;
+          const shapeBottom = shape.position.y + shapeDimensions.height;
           
           if (initialPosition.x < shapeRight && 
               (initialPosition.x + width) > shape.position.x) {

@@ -86,6 +86,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     zoom,
     offset,
     setOffset,
+    updateShape,
   } = useStore((state) => ({
     tool: state.tool,
     addShape: state.addShape,
@@ -98,6 +99,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     zoom: state.zoom,
     offset: state.offset,
     setOffset: state.setOffset,
+    updateShape: state.updateShape,
   }));
 
   const [showArrangeSubMenu, setShowArrangeSubMenu] = useState(false);
@@ -316,6 +318,13 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 depthPreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%239ca3af' stroke-width='2'/%3E%3C/svg%3E",
                               };
                               
+                              // Disable all other depth references before adding the new one
+                              shapes.forEach((otherShape) => {
+                                if (otherShape.type === "depth") {
+                                  updateShape(otherShape.id, { showDepth: false });
+                                }
+                              });
+                              
                               displayActions.addShape(newDepthShape);
                               centerOnShape(newDepthShape);
                               await displayActions.generatePreprocessedImage(displayShape.id, "depth");
@@ -354,6 +363,13 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 edgePreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%239ca3af' stroke-width='2'/%3E%3C/svg%3E",
                               };
                               
+                              // Disable all other edge references before adding the new one
+                              shapes.forEach((otherShape) => {
+                                if (otherShape.type === "edges") {
+                                  updateShape(otherShape.id, { showEdges: false });
+                                }
+                              });
+                              
                               displayActions.addShape(newEdgesShape);
                               centerOnShape(newEdgesShape);
                               await displayActions.generatePreprocessedImage(displayShape.id, "edge");
@@ -391,6 +407,13 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 poseStrength: 0.5,
                                 posePreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%239ca3af' stroke-width='2'/%3E%3C/svg%3E",
                               };
+                              
+                              // Disable all other pose references before adding the new one
+                              shapes.forEach((otherShape) => {
+                                if (otherShape.type === "pose") {
+                                  updateShape(otherShape.id, { showPose: false });
+                                }
+                              });
                               
                               displayActions.addShape(newPoseShape);
                               centerOnShape(newPoseShape);

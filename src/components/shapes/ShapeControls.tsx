@@ -485,6 +485,14 @@ export function ShapeControls({
             label="Use Depth Reference"
             checked={shape.showDepth || false}
             onToggleChange={(checked: boolean) => {
+              if (checked) {
+                // If enabling this depth reference, disable all others
+                shapes.forEach((otherShape) => {
+                  if (otherShape.type === "depth" && otherShape.id !== shape.id) {
+                    updateShape(otherShape.id, { showDepth: false });
+                  }
+                });
+              }
               updateShape(shape.id, { showDepth: checked });
             }}
             sliderValue={shape.depthStrength || 0.5}
@@ -511,6 +519,14 @@ export function ShapeControls({
             label="Use Edge Reference"
             checked={shape.showEdges || false}
             onToggleChange={(checked: boolean) => {
+              if (checked) {
+                // If enabling this edge reference, disable all others
+                shapes.forEach((otherShape) => {
+                  if (otherShape.type === "edges" && otherShape.id !== shape.id) {
+                    updateShape(otherShape.id, { showEdges: false });
+                  }
+                });
+              }
               updateShape(shape.id, { showEdges: checked });
             }}
             sliderValue={shape.edgesStrength || 0.5}
@@ -537,6 +553,14 @@ export function ShapeControls({
             label="Use Pose Reference"
             checked={shape.showPose || false}
             onToggleChange={(checked: boolean) => {
+              if (checked) {
+                // If enabling this pose reference, disable all others
+                shapes.forEach((otherShape) => {
+                  if (otherShape.type === "pose" && otherShape.id !== shape.id) {
+                    updateShape(otherShape.id, { showPose: false });
+                  }
+                });
+              }
               updateShape(shape.id, { showPose: checked });
             }}
             sliderValue={shape.poseStrength || 0.5}
