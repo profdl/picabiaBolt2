@@ -173,54 +173,69 @@ export const useBrush = ({
       activeCtx.globalCompositeOperation = tool === "eraser" || tool === "inpaint" ? "destination-out" : "source-over";
       
       if (tool === "eraser" || tool === "inpaint") {
-        // For eraser and inpaint, draw to both active and mask canvases
-        if (maskCanvasRef) {
-          const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
-          if (maskCtx && maskCanvasRef.current) {
-            maskCtx.save();
-            // For inpaint tool or when unEraseMode is true for eraser, restore opacity
-            const unEraseMode = useStore.getState().unEraseMode;
-            if (unEraseMode && (tool === "inpaint" || (tool === "eraser" && useStore.getState().maskMode))) {
-              maskCtx.globalCompositeOperation = "source-over";
-              maskCtx.fillStyle = `rgba(255, 255, 255, ${brushOpacity})`;
-            } else {
-              maskCtx.globalCompositeOperation = "destination-out";
-              maskCtx.globalAlpha = brushOpacity;
+        // Get the tool-specific restore mode
+        const restoreMode = tool === "inpaint" 
+          ? useStore.getState().inpaintRestoreMode 
+          : false;
+
+        if (tool === "inpaint") {
+          // Handle mask mode inpainting
+          if (maskCanvasRef && activeStrokeCanvasRef.current) {
+            const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
+            if (maskCtx && maskCanvasRef.current) {
+              maskCtx.globalCompositeOperation = restoreMode ? "source-over" : "destination-out";
+              maskCtx.globalAlpha = 1.0;
+              maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
             }
-            
-            if (tool === "inpaint") {
-              // For inpaint tool, use simple circular shapes
-              const dx = point.x - lastPoint.current.x;
-              const dy = point.y - lastPoint.current.y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              const steps = Math.max(1, Math.floor(distance / (brushSize / 4)));
-              
-              for (let i = 0; i <= steps; i++) {
-                const x = lastPoint.current.x + (dx * i / steps);
-                const y = lastPoint.current.y + (dy * i / steps);
-                
-                drawInpaintDot(maskCtx, x, y, brushSize);
-              }
-            } else {
-              // For eraser tool, use brush textures 
-              drawBrushStroke(
-                maskCtx,
-                lastPoint.current,
-                point,
-                {
-                  size: brushSize,
-                  color: currentColor,
-                  hardness: brushHardness,
-                  rotation: brushRotation,
-                  followPath: brushFollowPath,
-                  spacing: brushSpacing
-                },
-                brushTexture as BrushTextureType,
-                adaptedDrawMixboxStamp
-              );
-            }
-            maskCtx.restore();
           }
+
+          // Clear active stroke before updating preview to prevent blinking
+          clearImageShapeCanvas(activeStrokeCanvasRef);
+
+          // Update preview with the mask changes
+          updateImageShapePreview({
+            backgroundCanvasRef,
+            permanentStrokesCanvasRef,
+            activeStrokeCanvasRef,
+            previewCanvasRef,
+            maskCanvasRef,
+            tool: "inpaint",
+            opacity: 1.0
+          });
+        } else if (tool === "eraser") {
+          // Handle erasing brush strokes
+          if (activeStrokeCanvasRef.current && permanentStrokesCanvasRef.current) {
+            const permanentCtx = getImageShapeCanvasContext(permanentStrokesCanvasRef);
+            const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
+            
+            if (activeCtx && permanentCtx) {
+              // First apply opacity to active stroke
+              activeCtx.save();
+              activeCtx.globalAlpha = brushOpacity;
+              activeCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+              activeCtx.restore();
+
+              // Then apply eraser effect to permanent layer
+              permanentCtx.save();
+              permanentCtx.globalCompositeOperation = "destination-out";
+              permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+              permanentCtx.restore();
+            }
+          }
+
+          // Clear active stroke
+          clearImageShapeCanvas(activeStrokeCanvasRef);
+
+          // Update preview with final state
+          updateImageShapePreview({
+            backgroundCanvasRef,
+            permanentStrokesCanvasRef,
+            activeStrokeCanvasRef,
+            previewCanvasRef,
+            maskCanvasRef,
+            tool: "eraser",
+            opacity: brushOpacity
+          });
         }
       }
       
@@ -282,16 +297,17 @@ export const useBrush = ({
     if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current || !activeCtx) return;
 
     if (tool === "eraser" || tool === "inpaint") {
-      const unEraseMode = useStore.getState().unEraseMode;
-      const maskMode = useStore.getState().maskMode;
-      const isInMaskMode = tool === "inpaint" || (tool === "eraser" && maskMode);
+      // Get the tool-specific restore mode
+      const restoreMode = tool === "inpaint" 
+        ? useStore.getState().inpaintRestoreMode 
+        : false;
 
-      if (isInMaskMode) {
+      if (tool === "inpaint") {
         // Handle mask mode erasing/inpainting
-        if (maskCanvasRef) {
+        if (maskCanvasRef && activeStrokeCanvasRef.current) {
           const maskCtx = getImageShapeCanvasContext(maskCanvasRef);
           if (maskCtx && maskCanvasRef.current) {
-            maskCtx.globalCompositeOperation = unEraseMode ? "source-over" : "destination-out";
+            maskCtx.globalCompositeOperation = restoreMode ? "source-over" : "destination-out";
             maskCtx.globalAlpha = brushOpacity;
             maskCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
           }
@@ -312,17 +328,24 @@ export const useBrush = ({
         });
       } else if (tool === "eraser") {
         // Handle regular erasing (non-mask mode)
-        // First apply opacity to active stroke
-        activeCtx.save();
-        activeCtx.globalAlpha = brushOpacity;
-        activeCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-        activeCtx.restore();
+        if (activeStrokeCanvasRef.current && permanentStrokesCanvasRef.current) {
+          const permanentCtx = getImageShapeCanvasContext(permanentStrokesCanvasRef);
+          const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
+          
+          if (activeCtx && permanentCtx) {
+            // First apply opacity to active stroke
+            activeCtx.save();
+            activeCtx.globalAlpha = brushOpacity;
+            activeCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+            activeCtx.restore();
 
-        // Then apply eraser effect to permanent layer
-        permanentCtx.save();
-        permanentCtx.globalCompositeOperation = "destination-out";
-        permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
-        permanentCtx.restore();
+            // Then apply eraser effect to permanent layer
+            permanentCtx.save();
+            permanentCtx.globalCompositeOperation = "destination-out";
+            permanentCtx.drawImage(activeStrokeCanvasRef.current, 0, 0);
+            permanentCtx.restore();
+          }
+        }
 
         // Clear active stroke
         clearImageShapeCanvas(activeStrokeCanvasRef);

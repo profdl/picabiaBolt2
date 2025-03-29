@@ -43,87 +43,47 @@ export const useEraser = ({ refs, reapplyMask }: UseEraserProps) => {
       brushSpacing,
       brushHardness,
       brushOpacity,
-      unEraseMode,
-      maskMode,
+      inpaintRestoreMode,
       tool
     } = useStore.getState();
     
-    // For inpaint tool, always use mask mode (affect image transparency)
-    if (maskMode || tool === 'inpaint') {
+    // Only handle mask operations for inpaint tool
+    if (tool === 'inpaint') {
       // Mask mode - affect the image transparency
       maskCtx.save();
       
-      // Determine if we're in un-erase mode based on the tool and explicit unEraseMode setting
-      // Only apply restore mode to in-paint tool, not eraser tool (even in mask mode)
-      const isRestoring = unEraseMode && tool === 'inpaint';
-      
-      if (isRestoring) {
+      // For inpaint tool, use restore mode if enabled
+      if (inpaintRestoreMode) {
         // For un-erase/restore mode, use source-over with white color to restore opacity
         maskCtx.globalCompositeOperation = 'source-over';
-        // Use full opacity (1.0) for in-paint restore
-        maskCtx.globalAlpha = tool === 'inpaint' ? 1.0 : brushOpacity;
+        maskCtx.globalAlpha = 1.0;
       } else {
         // For erase mode, use destination-out to remove opacity
         maskCtx.globalCompositeOperation = 'destination-out';
-        // Use full opacity (1.0) for in-paint erasing
-        maskCtx.globalAlpha = tool === 'inpaint' ? 1.0 : brushOpacity;
+        maskCtx.globalAlpha = 1.0;
       }
       
-      // Use different approaches for inpaint vs eraser tools
-      if (tool === 'inpaint') {
-        // For inpaint tool, always use simple circular shape for better control
-        if (lastPointRef.current) {
-          // Draw a line between points for inpaint tool using simple circles
-          const dx = point.x - lastPointRef.current.x;
-          const dy = point.y - lastPointRef.current.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          const steps = Math.max(1, Math.floor(distance / (brushSize / 4)));
+      // For inpaint tool, always use simple circular shape for better control
+      if (lastPointRef.current) {
+        // Draw a line between points for inpaint tool using simple circles
+        const dx = point.x - lastPointRef.current.x;
+        const dy = point.y - lastPointRef.current.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const steps = Math.max(1, Math.floor(distance / (brushSize / 4)));
+        
+        for (let i = 0; i <= steps; i++) {
+          const x = lastPointRef.current.x + (dx * i / steps);
+          const y = lastPointRef.current.y + (dy * i / steps);
           
-          for (let i = 0; i <= steps; i++) {
-            const x = lastPointRef.current.x + (dx * i / steps);
-            const y = lastPointRef.current.y + (dy * i / steps);
-            
-            maskCtx.beginPath();
-            maskCtx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
-            maskCtx.fill();
-          }
-        } else {
-          // First point for inpaint tool
           maskCtx.beginPath();
-          maskCtx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2);
+          maskCtx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
           maskCtx.fill();
         }
-      } else if (lastPointRef.current) {
-        // For eraser tool with previous point, use brush textures
-        drawBrushStroke(
-          maskCtx,
-          lastPointRef.current,
-          point,
-          {
-            size: brushSize,
-            color: 'white', // Color doesn't matter for eraser operations
-            hardness: brushHardness,
-            rotation: brushRotation,
-            followPath: brushFollowPath,
-            spacing: brushSpacing
-          },
-          brushTexture as BrushTextureType,
-          eraserStampFunction
-        );
       } else {
-        // For first point with eraser tool, use brush textures
-        drawBrushStamp(
-          { ctx: maskCtx, x: point.x, y: point.y },
-          {
-            size: brushSize,
-            color: 'white',
-            hardness: brushHardness,
-            rotation: brushRotation,
-            followPath: brushFollowPath
-          },
-          brushTexture as BrushTextureType,
-          eraserStampFunction
-        );
+        // First point for inpaint tool
+        maskCtx.beginPath();
+        maskCtx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2);
+        maskCtx.fill();
       }
       
       maskCtx.restore();
@@ -138,12 +98,11 @@ export const useEraser = ({ refs, reapplyMask }: UseEraserProps) => {
         activeStrokeCanvasRef: refs.activeStrokeCanvasRef,
         previewCanvasRef: refs.previewCanvasRef,
         maskCanvasRef: refs.maskCanvasRef,
-        tool: tool,
-        // Use full opacity for in-paint, normal opacity for other tools
-        opacity: tool === 'inpaint' ? 1.0 : brushOpacity
+        tool: 'inpaint',
+        opacity: 1.0
       });
     } else if (tool === 'eraser') {
-      // Non-mask mode eraser - only affect brush strokes
+      // For eraser tool, only affect brush strokes
       permanentCtx.save();
       permanentCtx.globalCompositeOperation = 'destination-out';
       permanentCtx.globalAlpha = brushOpacity;

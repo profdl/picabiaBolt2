@@ -37,6 +37,10 @@ interface ToolSlice {
   setBrushRotation: (rotation: number) => void;
   setBrushFollowPath: (value: boolean) => void;
   setBrushHardness: (hardness: number) => void;
+  inpaintRestoreMode: boolean;
+  setInpaintRestoreMode: (value: boolean) => void;
+  eraserRestoreMode: boolean;
+  setEraserRestoreMode: (value: boolean) => void;
   unEraseMode: boolean;
   setUnEraseMode: (value: boolean) => void;
   maskMode: boolean;
@@ -74,6 +78,8 @@ export const toolSlice: StateCreator<
   brushRotation: 0,
   brushFollowPath: false,
   brushHardness: 1,
+  inpaintRestoreMode: false,
+  eraserRestoreMode: false,
   unEraseMode: false,
   maskMode: true,
   setTool: (tool) => set({ tool }),
@@ -86,6 +92,15 @@ export const toolSlice: StateCreator<
   setBrushRotation: (rotation) => set({ brushRotation: rotation }),
   setBrushFollowPath: (value) => set(() => ({ brushFollowPath: value })),
   setBrushHardness: (hardness) => set({ brushHardness: hardness }),
-  setUnEraseMode: (value) => set({ unEraseMode: value }),
+  setUnEraseMode: (value) => set((state) => {
+    if (state.tool === "inpaint") {
+      return { unEraseMode: value, inpaintRestoreMode: value };
+    } else if (state.tool === "eraser") {
+      return { unEraseMode: value, eraserRestoreMode: value };
+    }
+    return { unEraseMode: value };
+  }),
+  setInpaintRestoreMode: (value) => set({ inpaintRestoreMode: value, unEraseMode: value }),
+  setEraserRestoreMode: (value) => set({ eraserRestoreMode: value }),
   setMaskMode: (value) => set({ maskMode: value }),
 });

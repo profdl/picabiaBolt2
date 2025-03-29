@@ -72,12 +72,20 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
   shapes = [],
   actions,
 }) => {
-  const { tool, addShape: storeAddShape, generatePreprocessedImage: storeGeneratePreprocessedImage, setTool, unEraseMode } = useStore((state) => ({
+  const { 
+    tool, 
+    addShape: storeAddShape, 
+    generatePreprocessedImage: storeGeneratePreprocessedImage, 
+    setTool, 
+    inpaintRestoreMode, 
+    setInpaintRestoreMode  } = useStore((state) => ({
     tool: state.tool,
     addShape: state.addShape,
     generatePreprocessedImage: state.generatePreprocessedImage,
     setTool: state.setTool,
-    unEraseMode: state.unEraseMode,
+    inpaintRestoreMode: state.inpaintRestoreMode,
+    setInpaintRestoreMode: state.setInpaintRestoreMode,
+    maskMode: state.maskMode
   }));
 
   const [showArrangeSubMenu, setShowArrangeSubMenu] = useState(false);
@@ -672,10 +680,10 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-3">
                   <MiniToggle
-                    id="un-erase-toggle"
+                    id="inpaint-restore-toggle"
                     label="Restore"
-                    checked={unEraseMode}
-                    onChange={(checked) => useStore.getState().setUnEraseMode(checked)}
+                    checked={inpaintRestoreMode}
+                    onChange={(checked) => setInpaintRestoreMode(checked)}
                   />
                   <div className={styles.controlGroup.container}>
                     <span className={styles.controlGroup.label}>Size</span>
