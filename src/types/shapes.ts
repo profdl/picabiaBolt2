@@ -4,30 +4,7 @@ export interface Position {
 }
 
 export interface Shape {
-  assetId?: string;
-  onClear?: () => void;
-  isCleared?: boolean;
-  canvasData?: string;
-  backgroundCanvasData?: string;
-  permanentCanvasData?: string;
-  activeCanvasData?: string;
-  previewCanvasData?: string;
-  maskCanvasData?: string;
-  redBackgroundCanvasData?: string;
-  sketchPadRef?: React.RefObject<HTMLCanvasElement>;
-  isImageEditing?: boolean;
-  isProcessingSubject?: boolean;
-  subjectPreviewUrl?: string;
-  hasSubjectGenerated?: boolean;
-  getCanvasImage?: () => string | undefined;
-  locked?: boolean;
-  isEditing: boolean;
-  isNew?: boolean;
-  isResized?: boolean;
-  model: string;
-  useSettings: boolean;
-  makeVariations?: boolean;
-  variationStrength?: number;
+  // Core properties
   id: string;
   type:
     | "rectangle"
@@ -45,34 +22,54 @@ export interface Shape {
     | "pose"
     | "stickyNote";
   position: Position;
-  content?: string;
   width: number;
   height: number;
   originalWidth?: number;
   originalHeight?: number;
   color: string;
+  rotation: number;
+  isUploading: boolean;
+  isEditing: boolean;
+  isNew?: boolean;
+  isResized?: boolean;
+  model: string;
+  useSettings: boolean;
+
+  // Optional properties
+  assetId?: string;
+  onClear?: () => void;
+  isCleared?: boolean;
+  canvasData?: string;
+  backgroundCanvasData?: string;
+  permanentCanvasData?: string;
+  activeCanvasData?: string;
+  previewCanvasData?: string;
+  maskCanvasData?: string;
+  redBackgroundCanvasData?: string;
+  sketchPadRef?: React.RefObject<HTMLCanvasElement>;
+  isImageEditing?: boolean;
+  isProcessingSubject?: boolean;
+  subjectPreviewUrl?: string;
+  hasSubjectGenerated?: boolean;
+  getCanvasImage?: () => string | undefined;
+  locked?: boolean;
+  makeVariations?: boolean;
+  variationStrength?: number;
+  content?: string;
   fontSize?: number;
   imageUrl?: string;
   aspectRatio?: number;
   thumbnailUrl?: string;
-  rotation: number;
   points?: Position[];
   strokeWidth?: number;
   showPrompt?: boolean;
   showNegativePrompt?: boolean;
-  isUploading: boolean;
   showContent?: boolean;
   showSketch?: boolean;
   showImagePrompt?: boolean;
   showDepth?: boolean;
   showEdges?: boolean;
   showPose?: boolean;
-  contentStrength: number;
-  sketchStrength: number;
-  imagePromptStrength: number;
-  depthStrength: number;
-  edgesStrength: number;
-  poseStrength: number;
   groupId?: string;
   isGroup?: boolean;
   sketchMapUrl?: string;
@@ -87,17 +84,48 @@ export interface Shape {
   isDepthProcessing?: boolean;
   isEdgeProcessing?: boolean;
   isPoseProcessing?: boolean;
-  depthUrl?: string;
-  edgeUrl?: string;
-  poseUrl?: string;
-  hasSketchGenerated?: boolean;
-  hasDepthGenerated?: boolean;
-  hasEdgeGenerated?: boolean;
-  hasPoseGenerated?: boolean;
-  scheduler?: string;
-  seed?: number;
-  steps?: number;
-  guidanceScale?: number;
+  isOrbiting?: boolean;
+  camera?: {
+    position: {
+      x: number;
+      y: number;
+      z: number;
+    };
+    fov: number;
+  };
+  isTextPrompt?: boolean;
+  isNegativePrompt?: boolean;
+  sourceImageId?: string;
+  savedCanvasState?: {
+    backgroundData?: string;
+    permanentStrokesData?: string;
+    activeStrokeData?: string;
+    maskData?: string;
+    previewData?: string;
+  };
+  stickyStates?: { [shapeId: string]: { isTextPrompt: boolean; isNegativePrompt: boolean } };
+  controlStates?: { [shapeId: string]: {
+    isTextPrompt: boolean;
+    isNegativePrompt: boolean;
+    showImagePrompt: boolean;
+    showDepth: boolean;
+    showEdges: boolean;
+    showPose: boolean;
+    showContent: boolean;
+    showSketch: boolean;
+    useSettings: boolean;
+    color?: string;
+  } };
+  contentStrength: number;
+  sketchStrength: number;
+  imagePromptStrength: number;
+  depthStrength: number;
+  edgesStrength: number;
+  poseStrength: number;
+  remixStrength?: number;
+  isDrawing?: boolean;
+  mergedFrom?: string[];
+  isMerged?: boolean;
 }
 
 export interface DragStart {
