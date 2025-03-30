@@ -245,18 +245,40 @@ export const Board = () => {
       saveTimeoutRef.current = setTimeout(async () => {
         if (isSaving) return;
 
-        try {
-          setIsSaving(true);
-          await updateProject(id, {
-            shapes,
-            updated_at: new Date().toISOString(),
-          });
-          lastSavedRef.current = shapesString;
-        } catch (err) {
-          console.error("Error auto-saving project:", err);
-        } finally {
-          setIsSaving(false);
-        }
+        const attemptSave = async (retryCount = 0, maxRetries = 3): Promise<void> => {
+          try {
+            setIsSaving(true);
+            await updateProject(id, {
+              shapes,
+              updated_at: new Date().toISOString(),
+            });
+            lastSavedRef.current = shapesString;
+          } catch (err) {
+            console.error(`Error auto-saving project (attempt ${retryCount + 1}/${maxRetries}):`, err);
+            
+            // Only retry if we're offline or have connection issues and haven't maxed out retries
+            if (retryCount < maxRetries - 1 && 
+                (!navigator.onLine || 
+                 (err instanceof Error && 
+                  (err.message.includes('connection') || 
+                   err.message.includes('network') || 
+                   err.message.includes('Failed to fetch'))))) {
+              
+              // Exponential backoff
+              const delay = 2000 * Math.pow(2, retryCount);
+              console.log(`Will retry saving in ${delay}ms...`);
+              
+              setTimeout(() => {
+                attemptSave(retryCount + 1, maxRetries);
+              }, delay);
+              return;
+            }
+          } finally {
+            setIsSaving(false);
+          }
+        };
+
+        attemptSave();
       }, 2000);
     };
   }, [id, user, LOCAL_STORAGE_KEY, isSaving, updateProject]);

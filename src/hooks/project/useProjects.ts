@@ -147,36 +147,63 @@ export function useProjects() {
       throw new Error('User not authenticated');
     }
 
-    try {
-      setError(null);
-      const { error } = await supabase
-        .from('projects')
-        .update(updates)
-        .eq('id', id)
-        .eq('user_id', user.id);
+    // Check network connectivity first
+    if (!navigator.onLine) {
+      throw new Error('No internet connection. Please check your network and try again.');
+    }
 
-      if (error) {
-        const errorMessage = handleSupabaseError(error);
+    const retryWithBackoff = async (attempt = 0, maxAttempts = 3) => {
+      try {
+        setError(null);
+        const { error } = await supabase
+          .from('projects')
+          .update(updates)
+          .eq('id', id)
+          .eq('user_id', user.id);
+
+        if (error) {
+          const errorMessage = handleSupabaseError(error);
+          throw new Error(errorMessage);
+        }
+
+        setProjects(prev =>
+          prev.map(project =>
+            project.id === id
+              ? {
+                ...project,
+                ...updates,
+                thumbnail: updates.thumbnail || null,
+              }
+              : project
+          )
+        );
+        
+        return true;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : handleSupabaseError(err);
+        
+        // Check if this is a connection error
+        const isConnectionError = 
+          errorMessage.includes('connection') || 
+          errorMessage.includes('network') || 
+          errorMessage.includes('Failed to fetch');
+
+        // If connection error and we have attempts left, retry with backoff
+        if (isConnectionError && attempt < maxAttempts - 1) {
+          console.warn(`Connection error on attempt ${attempt + 1}, retrying...`);
+          const delay = 1000 * Math.pow(2, attempt); // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return retryWithBackoff(attempt + 1, maxAttempts);
+        }
+        
+        // Otherwise, throw the error
+        console.error('Error updating project:', errorMessage);
+        setError(errorMessage);
         throw new Error(errorMessage);
       }
+    };
 
-      setProjects(prev =>
-        prev.map(project =>
-          project.id === id
-            ? {
-              ...project,
-              ...updates,
-              thumbnail: updates.thumbnail || null,
-            }
-            : project
-        )
-      );
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : handleSupabaseError(err);
-      console.error('Error updating project:', errorMessage);
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
+    return retryWithBackoff();
   };
 
 

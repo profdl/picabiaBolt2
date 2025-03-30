@@ -678,6 +678,16 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         height: bounds.height,
         rotation: 0,
         color: "transparent",
+        isUploading: false,
+        isEditing: false,
+        model: "",
+        useSettings: false,
+        contentStrength: 0,
+        sketchStrength: 0,
+        imagePromptStrength: 0,
+        depthStrength: 0,
+        edgesStrength: 0,
+        poseStrength: 0,
         groupEnabled: true,
       };
 
