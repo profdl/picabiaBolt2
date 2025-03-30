@@ -65,25 +65,40 @@ export const useShapeResize = (
       }
 
       if (shape.type === "group") {
-        // Calculate minimum size for the group
-        const groupedShapes = shapes.filter(s => s.groupId === shape.id);
-        const minSize = groupedShapes.length === 0 
-          ? { width: LAYOUT_CONSTANTS.DEFAULT.WIDTH, height: LAYOUT_CONSTANTS.DEFAULT.HEIGHT }
-          : shapeLayout.calculateGroupBounds(groupedShapes);
+        // For groups, we just want to resize the container
+        // No need to scale or reposition child shapes
         
-        // Ensure the new size is not smaller than the minimum
-        newWidth = Math.max(newWidth, minSize.width);
-        newHeight = Math.max(newHeight, minSize.height);
-
-        updateShapes([
-          {
-            id: shape.id,
-            shape: {
-              width: newWidth,
-              height: newHeight,
-            },
-          },
-        ]);
+        // Calculate the minimum size needed to contain all shapes in the group
+        const groupedShapes = shapes.filter(s => s.groupId === shape.id);
+        
+        // If there are shapes in the group, calculate their bounding box
+        if (groupedShapes.length > 0) {
+          // Find the rightmost and bottommost points of any shape in the group
+          // (relative to the group's top-left corner)
+          const rightEdge = Math.max(...groupedShapes.map(s => 
+            (s.position.x + s.width) - shape.position.x
+          ));
+          
+          const bottomEdge = Math.max(...groupedShapes.map(s => 
+            (s.position.y + s.height) - shape.position.y
+          ));
+          
+          // Ensure the new size is not smaller than what's needed to contain all shapes
+          newWidth = Math.max(newWidth, rightEdge);
+          newHeight = Math.max(newHeight, bottomEdge);
+        } else {
+          // If there are no shapes in the group, use default minimum size
+          newWidth = Math.max(newWidth, LAYOUT_CONSTANTS.DEFAULT.WIDTH);
+          newHeight = Math.max(newHeight, LAYOUT_CONSTANTS.DEFAULT.HEIGHT);
+        }
+        
+        // Only update the width and height of the group
+        updateShape(shape.id, {
+          width: newWidth,
+          height: newHeight,
+        });
+        
+        // Don't update child shape positions at all - they should stay where they are
       } else {
         updateShape(shape.id, {
           width: newWidth,

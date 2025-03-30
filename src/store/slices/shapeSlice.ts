@@ -707,6 +707,11 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         selectedShapes: state.shapes
           .filter((s) => s.groupId === groupId)
           .map((s) => s.id),
+        history: [
+          ...state.history.slice(0, state.historyIndex + 1),
+          updatedShapes,
+        ].slice(-MAX_HISTORY),
+        historyIndex: state.historyIndex + 1,
       };
     }),
 
@@ -907,32 +912,33 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       // Normal case - just update the shape
       const newShapes = state.shapes.map((shape) => {
         if (shape.id === id) {
-          const updatedShape = { ...shape, ...props };
-
-          // If this shape is in a group, update the group's dimensions
-          if (shape.groupId) {
-            const groupShape = state.shapes.find((s) => s.id === shape.groupId);
-            if (groupShape) {
-              const groupedShapes = state.shapes.filter((s) => s.groupId === shape.groupId);
-              const bounds = shapeLayout.calculateGroupBounds(groupedShapes);
-              
-              // Update the group shape with new dimensions
-              const updatedGroupShape = {
-                ...groupShape,
-                position: { x: bounds.x, y: bounds.y },
-                width: bounds.width,
-                height: bounds.height,
-              };
-
-              // Update the group shape in the shapes array
-              return updatedGroupShape;
-            }
-          }
-
-          return updatedShape;
+          return { ...shape, ...props };
         }
         return shape;
       });
+
+      // If the updated shape is part of a group, update the group's dimensions separately
+      const updatedShape = newShapes.find(shape => shape.id === id);
+      if (updatedShape && updatedShape.groupId) {
+        const groupId = updatedShape.groupId;
+        const groupedShapes = newShapes.filter(s => s.groupId === groupId);
+        const groupShape = newShapes.find(s => s.id === groupId);
+        
+        if (groupShape && groupShape.type === "group") {
+          const bounds = shapeLayout.calculateGroupBounds(groupedShapes);
+          
+          // Find the index of the group shape and update it
+          const groupIndex = newShapes.findIndex(s => s.id === groupId);
+          if (groupIndex !== -1) {
+            newShapes[groupIndex] = {
+              ...groupShape,
+              position: { x: bounds.x, y: bounds.y },
+              width: bounds.width,
+              height: bounds.height,
+            };
+          }
+        }
+      }
 
       return {
         shapes: newShapes,
@@ -1007,7 +1013,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
   removeFromGroup: (shapeIds) =>
     set((state) => {
       const shapesToRemove = state.shapes.filter((s) => shapeIds.includes(s.id));
-      const groupIds = [...new Set(shapesToRemove.map(s => s.groupId))].filter(Boolean);
+      const groupIds = [...new Set(shapesToRemove.map(s => s.groupId))].filter(Boolean) as string[];
 
       // Update shapes by removing their groupId
       const updatedShapes = state.shapes.map((shape) =>
@@ -1020,8 +1026,11 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         if (!groupShape) return null;
 
         const remainingGroupedShapes = updatedShapes.filter(s => s.groupId === groupId);
+        
+        // If no shapes remain in the group, don't include the group
         if (remainingGroupedShapes.length === 0) return null;
 
+        // Otherwise, recalculate the group bounds based on remaining shapes
         const bounds = shapeLayout.calculateGroupBounds(remainingGroupedShapes);
 
         return {
@@ -1032,11 +1041,16 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         };
       }).filter((shape): shape is Shape => shape !== null);
 
+      // Combine the updated group shapes with the non-group shapes
+      // Ensure we only include shapes that are not part of a deleted group
+      const shapesToKeep = updatedShapes.filter(s => !groupIds.includes(s.id));
+      
       return {
-        shapes: [...updatedGroupShapes, ...updatedShapes.filter(s => !groupIds.includes(s.id))],
+        shapes: [...updatedGroupShapes, ...shapesToKeep],
+        selectedShapes: shapeIds, // Select the shapes that were removed from their group
         history: [
           ...state.history.slice(0, state.historyIndex + 1),
-          [...updatedGroupShapes, ...updatedShapes.filter(s => !groupIds.includes(s.id))],
+          [...updatedGroupShapes, ...shapesToKeep],
         ].slice(-MAX_HISTORY),
         historyIndex: state.historyIndex + 1,
       };
