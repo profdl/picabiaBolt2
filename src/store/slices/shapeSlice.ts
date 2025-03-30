@@ -805,8 +805,6 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
 
   updateShape: (id: string, props: Partial<Shape>) =>
     set((state) => {
-      console.log('updateShape called with id:', id, 'props:', props);
-      
       // Special case: Handle sticky note text prompt toggling
       if (props.isTextPrompt === true) {
         console.log('Handling text prompt toggle to TRUE');
