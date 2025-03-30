@@ -190,6 +190,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         imageUrl: canvas.toDataURL('image/png'),
         aspectRatio: 1,
         showSketch: true,
+        showImagePrompt: true,
+        isDrawing: true,
+        imagePromptStrength: 0.5,
       },
       "",
       {

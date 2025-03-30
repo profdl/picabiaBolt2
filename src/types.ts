@@ -35,6 +35,7 @@ export interface Shape {
   mergedFrom?: string[];
   isMerged?: boolean;
   remixStrength?: number;
+  isDrawing?: boolean;
   savedCanvasState?: {
     backgroundData?: string;
     permanentStrokesData?: string;

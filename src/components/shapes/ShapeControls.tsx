@@ -424,25 +424,75 @@ export function ShapeControls({
             {/* Image Reference Controls */}
             {(isSelected || shape.showImagePrompt) && (
               <div className="flex justify-start">
-                <EnableReferencePanel
-                  id={`imagePrompt-${shape.id}`}
-                  label="Use Image Reference"
-                  checked={shape.showImagePrompt || false}
-                  onToggleChange={(checked: boolean) => {
-                    updateShape(shape.id, { 
-                      showImagePrompt: checked,
-                      imagePromptStrength: checked ? 0.5 : shape.imagePromptStrength || 0.5  // Preserve existing strength or use default
-                    });
-                    setSelectedShapes([shape.id]); // Keep shape selected when toggling
-                  }}
-                  sliderValue={shape.imagePromptStrength || 0.5}
-                  onSliderChange={(value: number) => {
-                    updateShape(shape.id, { imagePromptStrength: value });
-                  }}
-                  onMouseDown={preventEvent}
-                  onClick={preventEvent}
-                  showSlider={true}
-                />
+                <div className="mb-1">
+                  <div
+                    className={`${styles.sidePanel.container} p-0`}
+                    style={{ minWidth: "140px", width: "max-content" }}
+                    data-shape-control="true"
+                    onMouseDown={preventEvent}
+                    onClick={preventEvent}
+                  >
+                    <div className="py-[2px]">
+                      <div className={`${styles.sidePanel.group} w-full px-1`}>
+                        <MiniToggle
+                          id={`imagePrompt-${shape.id}`}
+                          checked={shape.showImagePrompt || false}
+                          onChange={(checked: boolean) => {
+                            updateShape(shape.id, { 
+                              showImagePrompt: checked,
+                              imagePromptStrength: checked ? 0.5 : shape.imagePromptStrength || 0.5  // Preserve existing strength or use default
+                            });
+                            setSelectedShapes([shape.id]); // Keep shape selected when toggling
+                          }}
+                          label="Use Image Reference"
+                        />
+                      </div>
+                    </div>
+                    
+                    {shape.showImagePrompt && (
+                      <div className="py-[2px]">
+                        <div className={`${styles.sidePanel.group} w-full px-1`}>
+                          <Tooltip
+                            content={
+                              <div>
+                                <h4 className="font-medium mb-1">Image is a drawing</h4>
+                                <p>
+                                  Enable this if your image is a sketch or drawing. The AI will interpret 
+                                  the lines and shapes as guidance rather than trying to reproduce the image exactly.
+                                </p>
+                              </div>
+                            }
+                            side="bottom"
+                          >
+                            <MiniToggle
+                              id={`isDrawing-${shape.id}`}
+                              checked={shape.isDrawing || false}
+                              onChange={(checked: boolean) => {
+                                updateShape(shape.id, { isDrawing: checked });
+                              }}
+                              label="Image is a drawing"
+                            />
+                          </Tooltip>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {shape.showImagePrompt && (
+                      <div className="w-full pl-[2px] pr-2 pt-1 pb-2">
+                        <SmallSlider
+                          value={shape.imagePromptStrength || 0.5}
+                          onChange={(value: number) => {
+                            updateShape(shape.id, { imagePromptStrength: value });
+                          }}
+                          min={0.05}
+                          max={1.00}
+                          step={0.05}
+                          label="Variation Amount"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 

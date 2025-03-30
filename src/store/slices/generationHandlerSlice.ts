@@ -931,51 +931,97 @@ export const generationHandlerSlice: StateCreator<
             .from("assets")
             .getPublicUrl(fileName);
 
-          // Generate unique IDs for this IP adapter set
-          const loaderNodeId = `ipadapter_loader_${Math.random().toString(36).substring(2)}`;
-          const imageNodeId = `image_loader_${Math.random().toString(36).substring(2)}`;
-          const advancedNodeId = `ipadapter_advanced_${Math.random().toString(36).substring(2)}`;
+          // Check if "Image is a Drawing" is enabled
+          if (imageReferenceShape.isDrawing) {
+            // Use Sketch-to-Image ControlNet workflow
+            // Generate unique IDs for this ControlNet set
+            const loaderNodeId = `controlnet_loader_${Math.random().toString(36).substring(2)}`;
+            const imageNodeId = `sketch_image_loader_${Math.random().toString(36).substring(2)}`;
+            const controlNetNodeId = `controlnet_apply_${Math.random().toString(36).substring(2)}`;
+            
+            // Add ControlNet Loader for sketch
+            currentWorkflow[loaderNodeId] = {
+              inputs: {
+                control_net_name: "controlnet-scribble-sdxl-1.0.safetensors",
+              },
+              class_type: "ControlNetLoader",
+            };
+            
+            // Add Image Loader for the sketch
+            currentWorkflow[imageNodeId] = {
+              inputs: {
+                image: publicUrl,
+                upload: "image",
+              },
+              class_type: "LoadImage",
+            };
+            
+            // Add ControlNet Apply Advanced node
+            currentWorkflow[controlNetNodeId] = {
+              inputs: {
+                positive: [currentPositiveNode, 0],
+                negative: ["7", 0],
+                control_net: [loaderNodeId, 0],
+                image: [imageNodeId, 0],
+                strength: imageReferenceShape.imagePromptStrength || 0.5,
+                start_percent: 0,
+                end_percent: 1,
+              },
+              class_type: "ControlNetApplyAdvanced",
+            };
+            
+            // Update current positive node for next iteration
+            currentPositiveNode = controlNetNodeId;
+          } else {
+            // Use IP Adapter for photo reference (existing workflow)
+            // Generate unique IDs for this IP adapter set
+            const loaderNodeId = `ipadapter_loader_${Math.random().toString(36).substring(2)}`;
+            const imageNodeId = `image_loader_${Math.random().toString(36).substring(2)}`;
+            const advancedNodeId = `ipadapter_advanced_${Math.random().toString(36).substring(2)}`;
 
-          // Add IP Adapter Loader
-          currentWorkflow[loaderNodeId] = {
-            inputs: {
-              preset: "PLUS (high strength)",
-              model: currentModelNode,
-            },
-            class_type: "IPAdapterUnifiedLoader",
-          };
+            // Add IP Adapter Loader
+            currentWorkflow[loaderNodeId] = {
+              inputs: {
+                preset: "PLUS (high strength)",
+                model: currentModelNode,
+              },
+              class_type: "IPAdapterUnifiedLoader",
+            };
 
-          // Add Image Loader
-          currentWorkflow[imageNodeId] = {
-            inputs: {
-              image: publicUrl,
-              upload: "image",
-            },
-            class_type: "LoadImage",
-          };
+            // Add Image Loader
+            currentWorkflow[imageNodeId] = {
+              inputs: {
+                image: publicUrl,
+                upload: "image",
+              },
+              class_type: "LoadImage",
+            };
 
-          // Add IP Adapter Advanced
-          currentWorkflow[advancedNodeId] = {
-            inputs: {
-              weight: imageReferenceShape.imagePromptStrength || 0.5,
-              weight_type: "linear",
-              combine_embeds: "concat",
-              start_at: 0,
-              end_at: 1,
-              embeds_scaling: "V only",
-              model: currentModelNode,
-              ipadapter: [loaderNodeId, 1],
-              image: [imageNodeId, 0],
-            },
-            class_type: "IPAdapterAdvanced",
-          };
+            // Add IP Adapter Advanced
+            currentWorkflow[advancedNodeId] = {
+              inputs: {
+                weight: imageReferenceShape.imagePromptStrength || 0.5,
+                weight_type: "linear",
+                combine_embeds: "concat",
+                start_at: 0,
+                end_at: 1,
+                embeds_scaling: "V only",
+                model: currentModelNode,
+                ipadapter: [loaderNodeId, 1],
+                image: [imageNodeId, 0],
+              },
+              class_type: "IPAdapterAdvanced",
+            };
 
-          // Update the current model node for the next iteration
-          currentModelNode = [advancedNodeId, 0];
+            // Update the current model node for the next iteration
+            currentModelNode = [advancedNodeId, 0];
+          }
         }
 
-        // Update the KSampler to use the final IP adapter output
-        workflow["3"].inputs.model = currentModelNode;
+        // Only update the KSampler with the final IP adapter output if we didn't use ControlNet
+        if (!(imageReferenceShapes.some(shape => shape.isDrawing))) {
+          workflow["3"].inputs.model = currentModelNode;
+        }
       }
 
       // Apply text prompt strength if available
