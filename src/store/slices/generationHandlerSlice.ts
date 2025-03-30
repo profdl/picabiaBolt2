@@ -699,201 +699,13 @@ export const generationHandlerSlice: StateCreator<
         "9": workflow["9"],
       };
 
-      // Add variation nodes if needed
-      if (variationShape) {
-        // Get the mask canvas to check for black pixels
-        const maskCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="mask"]`) as HTMLCanvasElement;
-        const hasBlackPixels = maskCanvas ? await hasBlackPixelsInMask(maskCanvas) : false;
-
-        if (hasBlackPixels) {
-          // Add in-painting workflow nodes
-          baseWorkflow["36"] = {
-            inputs: {
-              image: variationShape.imageUrl || "",
-              upload: "image",
-            },
-            class_type: "LoadImage",
-          };
-
-          baseWorkflow["37"] = {
-            inputs: {
-              image: variationShape.imageUrl || "",
-              upload: "image",
-            },
-            class_type: "LoadImage",
-          };
-
-          // Add ImageToMask node to convert the mask image to the correct type
-          baseWorkflow["39"] = {
-            inputs: {
-              image: ["37", 0],
-              method: "red",
-              channel: "red"
-            },
-            class_type: "ImageToMask",
-          };
-
-          // Add InvertMask node
-          baseWorkflow["41"] = {
-            inputs: {
-              mask: ["39", 0]
-            },
-            class_type: "InvertMask",
-          };
-
-          // Add VAEEncode node for the source image
-          baseWorkflow["38"] = {
-            inputs: {
-              pixels: ["36", 0],
-              vae: ["4", 2]
-            },
-            class_type: "VAEEncode",
-          };
-
-          // Add SetLatentNoiseMask node to combine the encoded image with the inverted mask
-          baseWorkflow["40"] = {
-            inputs: {
-              samples: ["38", 0],
-              mask: ["41", 0]  // Use the inverted mask
-            },
-            class_type: "SetLatentNoiseMask",
-          };
-
-          // Remove EmptyLatentImage node since we're using VAEEncode
-          delete baseWorkflow["34"];
-          
-          // Update KSampler to use the masked latent image
-          baseWorkflow["3"].inputs.latent_image = ["40", 0];
-          baseWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.8;
-        } else {
-          // For regular image-to-image workflow
-          baseWorkflow["36"] = {
-            inputs: {
-              image: variationShape.imageUrl || "",
-              upload: "image",
-            },
-            class_type: "LoadImage",
-          };
-
-          // Add VAEEncode node for the source image
-          baseWorkflow["38"] = {
-            inputs: {
-              pixels: ["36", 0],
-              vae: ["4", 2]
-            },
-            class_type: "VAEEncode",
-          };
-
-          // Remove EmptyLatentImage node since we're using VAEEncode
-          delete baseWorkflow["34"];
-          
-          // Update KSampler to use the encoded image directly
-          baseWorkflow["3"].inputs.latent_image = ["38", 0];
-          baseWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
-        }
-      } else {
-        // Use EmptyLatentImage as before
-        baseWorkflow["34"] = workflow["34"];
-        baseWorkflow["3"].inputs.latent_image = ["34", 0];
-        baseWorkflow["3"].inputs.denoise = 1;
-      }
-
+      // Initialize variables that will be used throughout the function
       const currentWorkflow: Workflow = { ...baseWorkflow };
       let currentPositiveNode = "6";
-
-      // Only add ControlNet nodes if depth, edges, or pose controls are enabled
-      const hasControlNetControls = shapes.some(shape => 
-        (shape.showDepth || shape.showEdges || shape.showPose) && 
-        (shape.depthUrl || shape.edgeUrl || shape.poseUrl)
-      );
-
-      if (hasControlNetControls) {
-        for (const controlShape of shapes) {
-          if (controlShape.showEdges && controlShape.edgeUrl) {
-            currentWorkflow["12"] = {
-              ...workflow["12"],
-              inputs: {
-                ...workflow["12"].inputs,
-                image: controlShape.edgeUrl,
-              },
-            };
-            currentWorkflow["18"] = workflow["18"];
-            currentWorkflow["41"] = {
-              ...workflow["41"],
-              inputs: {
-                ...workflow["41"].inputs,
-                positive: [currentPositiveNode, 0],
-                negative: ["7", 0],
-                control_net: ["18", 0],
-                strength: controlShape.edgesStrength || 0.5,
-              },
-            };
-            currentPositiveNode = "41";
-          }
-
-          if (controlShape.showDepth && controlShape.depthUrl) {
-            currentWorkflow["33"] = {
-              ...workflow["33"],
-              inputs: {
-                ...workflow["33"].inputs,
-                image: controlShape.depthUrl,
-              },
-            };
-            currentWorkflow["32"] = workflow["32"];
-            currentWorkflow["31"] = {
-              ...workflow["31"],
-              inputs: {
-                ...workflow["31"].inputs,
-                positive: [currentPositiveNode, 0],
-                negative: ["7", 0],
-                control_net: ["32", 0],
-                image: ["33", 0],
-                strength: controlShape.depthStrength || 0.5,
-              },
-            };
-            currentPositiveNode = "31";
-          }
-
-          if (controlShape.showPose && controlShape.poseUrl) {
-            // Add pose image loader
-            currentWorkflow["37"] = {
-              inputs: {
-                image: controlShape.poseUrl,
-                upload: "image",
-              },
-              class_type: "LoadImage",
-            };
-            
-            // Add pose control net loader
-            currentWorkflow["38"] = {
-              inputs: {
-                control_net_name: "thibaud_xl_openpose.safetensors",
-              },
-              class_type: "ControlNetLoader",
-            };
-            
-            // Add pose control application node
-            currentWorkflow["42"] = {
-              inputs: {
-                positive: [currentPositiveNode, 0],
-                negative: ["7", 0],
-                control_net: ["38", 0],  // Connect to ControlNetLoader instead of LoadImage
-                image: ["37", 0],
-                strength: controlShape.poseStrength || 0.5,
-                start_percent: 0,
-                end_percent: 1,
-              },
-              class_type: "ControlNetApplyAdvanced",
-            };
-            currentPositiveNode = "42";
-          }
-        }
-      }
+      let currentModelNode = ["4", 0];
 
       // Handle image reference if present
       if (imageReferenceShapes.length > 0) {
-        let currentModelNode = ["4", 0]; // Start with the base model
-
         for (const imageReferenceShape of imageReferenceShapes) {
           // Get the preview canvas for the image reference shape
           const previewCanvas = document.querySelector(`canvas[data-shape-id="${imageReferenceShape.id}"][data-layer="preview"]`) as HTMLCanvasElement;
@@ -1021,6 +833,230 @@ export const generationHandlerSlice: StateCreator<
         // Only update the KSampler with the final IP adapter output if we didn't use ControlNet
         if (!(imageReferenceShapes.some(shape => shape.isDrawing))) {
           workflow["3"].inputs.model = currentModelNode;
+        }
+      }
+
+      // Add variation nodes if needed
+      if (variationShape) {
+        // Get the preview canvas for the variation shape
+        const previewCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="preview"]`) as HTMLCanvasElement;
+        const maskCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="mask"]`) as HTMLCanvasElement;
+        
+        if (!previewCanvas) {
+          console.error('Preview canvas not found for variation shape');
+          return;
+        }
+
+        // Create a blob from the preview canvas
+        const previewBlob = await new Promise<Blob>((resolve, reject) => {
+          previewCanvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create blob from preview canvas'));
+            }
+          }, 'image/png', 1.0);
+        });
+
+        // Upload preview image to Supabase
+        const previewFileName = `variation_source_${Math.random().toString(36).substring(2)}.png`;
+        const previewArrayBuffer = await previewBlob.arrayBuffer();
+        const previewFileData = new Uint8Array(previewArrayBuffer);
+
+        const { error: previewUploadError } = await supabase.storage
+          .from("assets")
+          .upload(previewFileName, previewFileData, {
+            contentType: 'image/png',
+            upsert: false,
+          });
+
+        if (previewUploadError) throw previewUploadError;
+
+        const { data: { publicUrl: previewUrl } } = supabase.storage
+          .from("assets")
+          .getPublicUrl(previewFileName);
+
+        const hasBlackPixels = maskCanvas ? await hasBlackPixelsInMask(maskCanvas) : false;
+
+        if (hasBlackPixels) {
+          // Add in-painting workflow nodes
+          currentWorkflow["36"] = {
+            inputs: {
+              image: previewUrl,
+              upload: "image",
+            },
+            class_type: "LoadImage",
+          };
+
+          currentWorkflow["37"] = {
+            inputs: {
+              image: previewUrl,
+              upload: "image",
+            },
+            class_type: "LoadImage",
+          };
+
+          // Add ImageToMask node to convert the mask image to the correct type
+          currentWorkflow["39"] = {
+            inputs: {
+              image: ["37", 0],
+              method: "red",
+              channel: "red"
+            },
+            class_type: "ImageToMask",
+          };
+
+          // Add InvertMask node
+          currentWorkflow["41"] = {
+            inputs: {
+              mask: ["39", 0]
+            },
+            class_type: "InvertMask",
+          };
+
+          // Add VAEEncode node for the source image
+          currentWorkflow["38"] = {
+            inputs: {
+              pixels: ["36", 0],
+              vae: ["4", 2]
+            },
+            class_type: "VAEEncode",
+          };
+
+          // Add SetLatentNoiseMask node to combine the encoded image with the inverted mask
+          currentWorkflow["40"] = {
+            inputs: {
+              samples: ["38", 0],
+              mask: ["41", 0]  // Use the inverted mask
+            },
+            class_type: "SetLatentNoiseMask",
+          };
+
+          // Remove EmptyLatentImage node since we're using VAEEncode
+          delete currentWorkflow["34"];
+          
+          // Update KSampler to use the masked latent image
+          currentWorkflow["3"].inputs.latent_image = ["40", 0];
+          currentWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.8;
+        } else {
+          // For regular image-to-image workflow
+          currentWorkflow["36"] = {
+            inputs: {
+              image: previewUrl,
+              upload: "image",
+            },
+            class_type: "LoadImage",
+          };
+
+          // Add VAEEncode node for the source image
+          currentWorkflow["38"] = {
+            inputs: {
+              pixels: ["36", 0],
+              vae: ["4", 2]
+            },
+            class_type: "VAEEncode",
+          };
+
+          // Remove EmptyLatentImage node since we're using VAEEncode
+          delete currentWorkflow["34"];
+          
+          // Update KSampler to use the encoded image directly
+          currentWorkflow["3"].inputs.latent_image = ["38", 0];
+          currentWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+        }
+      } else {
+        // Use EmptyLatentImage as before
+        currentWorkflow["34"] = workflow["34"];
+        currentWorkflow["3"].inputs.latent_image = ["34", 0];
+        currentWorkflow["3"].inputs.denoise = 1;
+      }
+
+      // Only add ControlNet nodes if depth, edges, or pose controls are enabled
+      const hasControlNetControls = shapes.some(shape => 
+        (shape.showDepth || shape.showEdges || shape.showPose) && 
+        (shape.depthUrl || shape.edgeUrl || shape.poseUrl)
+      );
+
+      if (hasControlNetControls) {
+        for (const controlShape of shapes) {
+          if (controlShape.showEdges && controlShape.edgeUrl) {
+            currentWorkflow["12"] = {
+              ...workflow["12"],
+              inputs: {
+                ...workflow["12"].inputs,
+                image: controlShape.edgeUrl,
+              },
+            };
+            currentWorkflow["18"] = workflow["18"];
+            currentWorkflow["41"] = {
+              ...workflow["41"],
+              inputs: {
+                ...workflow["41"].inputs,
+                positive: [currentPositiveNode, 0],
+                negative: ["7", 0],
+                control_net: ["18", 0],
+                strength: controlShape.edgesStrength || 0.5,
+              },
+            };
+            currentPositiveNode = "41";
+          }
+
+          if (controlShape.showDepth && controlShape.depthUrl) {
+            currentWorkflow["33"] = {
+              ...workflow["33"],
+              inputs: {
+                ...workflow["33"].inputs,
+                image: controlShape.depthUrl,
+              },
+            };
+            currentWorkflow["32"] = workflow["32"];
+            currentWorkflow["31"] = {
+              ...workflow["31"],
+              inputs: {
+                ...workflow["31"].inputs,
+                positive: [currentPositiveNode, 0],
+                negative: ["7", 0],
+                control_net: ["32", 0],
+                image: ["33", 0],
+                strength: controlShape.depthStrength || 0.5,
+              },
+            };
+            currentPositiveNode = "31";
+          }
+
+          if (controlShape.showPose && controlShape.poseUrl) {
+            // Add pose image loader
+            currentWorkflow["37"] = {
+              inputs: {
+                image: controlShape.poseUrl,
+                upload: "image",
+              },
+              class_type: "LoadImage",
+            };
+            
+            // Add pose control net loader
+            currentWorkflow["38"] = {
+              inputs: {
+                control_net_name: "thibaud_xl_openpose.safetensors",
+              },
+              class_type: "ControlNetLoader",
+            };
+            
+            // Add pose control application node
+            currentWorkflow["42"] = {
+              inputs: {
+                positive: [currentPositiveNode, 0],
+                negative: ["7", 0],
+                control_net: ["38", 0],  // Connect to ControlNetLoader instead of LoadImage
+                image: ["37", 0],
+                strength: controlShape.poseStrength || 0.5,
+                start_percent: 0,
+                end_percent: 1,
+              },
+              class_type: "ControlNetApplyAdvanced",
+            };
+            currentPositiveNode = "42";
+          }
         }
       }
 

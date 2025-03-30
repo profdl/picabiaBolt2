@@ -487,7 +487,7 @@ export function ShapeControls({
                           min={0.05}
                           max={1.00}
                           step={0.05}
-                          label="Variation Amount"
+                          label="Reference Strength"
                         />
                       </div>
                     )}
