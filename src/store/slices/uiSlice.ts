@@ -21,6 +21,8 @@ interface UiState {
   showTooltips: boolean;
   isColorPickerOpen: boolean;
   setColorPickerOpen: (isOpen: boolean) => void;
+  isEyedropperActive: boolean;
+  setEyedropperActive: (isActive: boolean) => void;
 }
 
 interface UiSlice {
@@ -52,6 +54,8 @@ interface UiSlice {
   toggleTooltips: () => void;
   isColorPickerOpen: boolean;
   setColorPickerOpen: (isOpen: boolean) => void;
+  isEyedropperActive: boolean;
+  setEyedropperActive: (isActive: boolean) => void;
 }
 
 export const uiSlice: StateCreator<UiState, [], [], UiSlice> = (set) => ({
@@ -122,4 +126,6 @@ export const uiSlice: StateCreator<UiState, [], [], UiSlice> = (set) => ({
   },
   isColorPickerOpen: false,
   setColorPickerOpen: (isOpen: boolean) => set(() => ({ isColorPickerOpen: isOpen })),
+  isEyedropperActive: false,
+  setEyedropperActive: (isActive: boolean) => set(() => ({ isEyedropperActive: isActive })),
 });

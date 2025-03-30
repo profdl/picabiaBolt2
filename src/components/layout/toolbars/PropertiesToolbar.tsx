@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -16,6 +16,7 @@ import {
   Combine,
   Paintbrush,
   RefreshCw,
+  Pipette,
 } from "lucide-react";
 import { Shape } from "../../../types";
 import { useStore } from "../../../store";
@@ -87,6 +88,8 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     offset,
     setOffset,
     updateShape,
+    isEyedropperActive,
+    setEyedropperActive,
   } = useStore((state) => ({
     tool: state.tool,
     addShape: state.addShape,
@@ -100,6 +103,8 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     offset: state.offset,
     setOffset: state.setOffset,
     updateShape: state.updateShape,
+    isEyedropperActive: state.isEyedropperActive,
+    setEyedropperActive: state.setEyedropperActive,
   }));
 
   const [showArrangeSubMenu, setShowArrangeSubMenu] = useState(false);
@@ -216,15 +221,289 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     requestAnimationFrame(animate);
   };
 
-  const handleColorChange = (color: string) => {
-    setLocalProperties({ ...localProperties, color });
+  // Fix handleColorChange to use functional updates
+  const handleColorChange = useCallback((color: string) => {
+    setLocalProperties(prevProps => ({ ...prevProps, color }));
     onPropertyChange?.("color", color);
-  };
+  }, [onPropertyChange]);
 
   const handlePropertyChange = (property: string, value: unknown) => {
     setLocalProperties({ ...localProperties, [property]: value });
     onPropertyChange?.(property, value);
   };
+
+  // Define handleEyedropperClick with useCallback
+  const handleEyedropperClick = useCallback(() => {
+    setEyedropperActive(true);
+    
+    // Create an overlay to intercept all mouse events
+    const overlay = document.createElement('div');
+    overlay.id = 'eyedropper-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.zIndex = '9999';
+    overlay.style.cursor = 'crosshair';
+    overlay.style.backgroundColor = 'transparent';
+    document.body.appendChild(overlay);
+    
+    // Create the preview element once
+    const preview = document.createElement('div');
+    preview.id = 'eyedropper-preview';
+    preview.style.position = 'absolute';
+    preview.style.width = '30px';
+    preview.style.height = '30px';
+    preview.style.borderRadius = '50%';
+    preview.style.border = '2px solid white';
+    preview.style.boxShadow = '0 0 0 1px rgba(0,0,0,0.3)';
+    preview.style.pointerEvents = 'none';
+    preview.style.zIndex = '10000';
+    document.body.appendChild(preview);
+    
+    // Get all visible image and canvas elements
+    const getVisibleCanvases = () => {
+      // Get all image canvases (content or visible canvas)
+      const imageCanvases = Array.from(document.querySelectorAll('canvas[data-canvas-type="content"], canvas[data-canvas-type="visible"]'));
+      
+      // Get all other canvases that might be relevant
+      const otherCanvases = Array.from(document.querySelectorAll('canvas:not([data-canvas-type="mask"])')).filter(
+        canvas => !imageCanvases.includes(canvas as HTMLCanvasElement)
+      );
+      
+      // Combine and filter for visibility
+      return [...imageCanvases, ...otherCanvases]
+        .filter(canvas => {
+          const rect = canvas.getBoundingClientRect();
+          return (
+            rect.width > 0 && 
+            rect.height > 0 && 
+            rect.left < window.innerWidth && 
+            rect.top < window.innerHeight && 
+            rect.right > 0 && 
+            rect.bottom > 0
+          );
+        }) as HTMLCanvasElement[];
+    };
+    
+    // Function to get the current zoom and offset for coordinate conversion
+    const getCurrentTransform = () => {
+      return {
+        zoom: zoom,
+        offset: offset
+      };
+    };
+    
+    // Find ImageShape by checking all elements at a point
+    const findImageShapeAtPoint = (x: number, y: number): HTMLCanvasElement | null => {
+      // Get elements at point
+      let element = document.elementFromPoint(x, y);
+      
+      // Walk up the DOM tree to find the closest canvas element with shape data
+      while (element && element !== document.body) {
+        if (element.tagName === 'CANVAS') {
+          const canvas = element as HTMLCanvasElement;
+          const shapeId = canvas.getAttribute('data-shape-id');
+          const canvasType = canvas.getAttribute('data-canvas-type');
+          
+          if (shapeId && (canvasType === 'content' || canvasType === 'visible')) {
+            return canvas;
+          }
+        }
+        element = element.parentElement;
+      }
+      
+      return null;
+    };
+    
+    // Function to sample color at a point, accounting for zoom and pan
+    const sampleColorAtPoint = (x: number, y: number): string => {
+      // First try to find an ImageShape specifically
+      const imageCanvas = findImageShapeAtPoint(x, y);
+      if (imageCanvas) {
+        try {
+          const ctx = imageCanvas.getContext('2d', { willReadFrequently: true });
+          if (!ctx) throw new Error('Could not get canvas context');
+          
+          const rect = imageCanvas.getBoundingClientRect();
+          
+          // Convert screen coordinates to canvas coordinates
+          const canvasX = Math.floor((x - rect.left) * (imageCanvas.width / rect.width));
+          const canvasY = Math.floor((y - rect.top) * (imageCanvas.height / rect.height));
+          
+          // Sample pixel data
+          const pixelData = ctx.getImageData(canvasX, canvasY, 1, 1).data;
+          
+          // Convert to hex
+          return `#${pixelData[0].toString(16).padStart(2, '0')}${pixelData[1].toString(16).padStart(2, '0')}${pixelData[2].toString(16).padStart(2, '0')}`;
+        } catch (error) {
+          console.error('Error sampling ImageShape:', error);
+        }
+      }
+      
+      // Fall back to checking all visible canvases
+      const visibleCanvases = getVisibleCanvases();
+      const transform = getCurrentTransform();
+      
+      for (const canvas of visibleCanvases) {
+        const rect = canvas.getBoundingClientRect();
+        
+        // Check if point is within canvas bounds
+        if (
+          x >= rect.left && 
+          x <= rect.right && 
+          y >= rect.top && 
+          y <= rect.bottom
+        ) {
+          try {
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            if (!ctx) continue;
+            
+            // Check if this is a main canvas that needs transform adjustment
+            const isMainCanvas = canvas.classList.contains('whiteboard-canvas');
+            let canvasX, canvasY;
+            
+            if (isMainCanvas) {
+              // Convert screen coordinates to canvas coordinates with zoom/pan adjustment
+              canvasX = Math.floor((x - rect.left) / transform.zoom - transform.offset.x / transform.zoom);
+              canvasY = Math.floor((y - rect.top) / transform.zoom - transform.offset.y / transform.zoom);
+            } else {
+              // Normal conversion for other canvases
+              canvasX = Math.floor((x - rect.left) * (canvas.width / rect.width));
+              canvasY = Math.floor((y - rect.top) * (canvas.height / rect.height));
+            }
+            
+            // Check bounds
+            if (canvasX < 0 || canvasY < 0 || canvasX >= canvas.width || canvasY >= canvas.height) continue;
+            
+            // Sample pixel data
+            const pixelData = ctx.getImageData(canvasX, canvasY, 1, 1).data;
+            
+            // Only use color if it's not fully transparent
+            if (pixelData[3] > 0) {
+              return `#${pixelData[0].toString(16).padStart(2, '0')}${pixelData[1].toString(16).padStart(2, '0')}${pixelData[2].toString(16).padStart(2, '0')}`;
+            }
+          } catch (error) {
+            console.error('Error sampling canvas color:', error);
+          }
+        }
+      }
+      
+      // If no canvas found or no color sampled, try to get color from DOM element
+      const element = document.elementFromPoint(x, y);
+      if (element) {
+        const computedStyle = window.getComputedStyle(element);
+        const bgColor = computedStyle.backgroundColor;
+        
+        if (bgColor && bgColor !== 'transparent' && bgColor !== 'rgba(0, 0, 0, 0)') {
+          // Convert rgb/rgba to hex
+          if (bgColor.startsWith('rgb')) {
+            const match = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+            if (match) {
+              const r = parseInt(match[1]);
+              const g = parseInt(match[2]);
+              const b = parseInt(match[3]);
+              return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+            }
+          }
+          return bgColor;
+        }
+        
+        // Check if there's a background image
+        const bgImage = computedStyle.backgroundImage;
+        if (bgImage && bgImage !== 'none') {
+          // For background images, we can't sample the actual color
+          // Return a placeholder or the most prominent color
+          return '#7f7f7f'; // Mid-gray as fallback
+        }
+      }
+      
+      // Default color if nothing found
+      return '#000000';
+    };
+    
+    // Set up event listeners
+    const handleMouseMove = (e: MouseEvent) => {
+      const color = sampleColorAtPoint(e.clientX, e.clientY);
+      
+      // Update preview
+      preview.style.backgroundColor = color;
+      preview.style.left = `${e.clientX + 15}px`;
+      preview.style.top = `${e.clientY + 15}px`;
+    };
+    
+    const cleanup = () => {
+      // Remove event listeners
+      overlay.removeEventListener('mousemove', handleMouseMove);
+      overlay.removeEventListener('click', handleMouseClick);
+      
+      // Remove overlay and preview
+      if (document.body.contains(overlay)) {
+        document.body.removeChild(overlay);
+      }
+      
+      if (document.body.contains(preview)) {
+        document.body.removeChild(preview);
+      }
+      
+      // Reset cursor
+      document.body.style.cursor = 'default';
+      
+      // Reset eyedropper state
+      setEyedropperActive(false);
+    };
+    
+    const handleMouseClick = (e: MouseEvent) => {
+      const color = sampleColorAtPoint(e.clientX, e.clientY);
+      
+      // Update the color in the color picker
+      handleColorChange(color);
+      
+      // Clean up
+      cleanup();
+    };
+    
+    // Add event listeners to the overlay
+    overlay.addEventListener('mousemove', handleMouseMove);
+    overlay.addEventListener('click', handleMouseClick);
+    
+    // Add ESC key listener to cancel
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        cleanup();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Cleanup function
+    return () => {
+      cleanup();
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [setEyedropperActive, handleColorChange, zoom, offset]);
+
+  // Now add the keyboard shortcut useEffect after defining the function
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only activate when brush tool is active and the I key is pressed
+      // Also check that no input elements are focused
+      if (
+        tool === "brush" && 
+        e.key === "i" && 
+        document.activeElement?.tagName !== "INPUT" &&
+        document.activeElement?.tagName !== "TEXTAREA"
+      ) {
+        handleEyedropperClick();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [tool, handleEyedropperClick]);
 
   return (
     <div className="absolute bottom-full left-1/2 -translate-x-[280px] flex flex-col gap-2 mb-2.5">
@@ -609,17 +888,39 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                 <div className="flex items-center gap-3 relative">
                   <div
                     className={styles.colorPicker.trigger}
-                    onClick={() => setColorPickerOpen(!isColorPickerOpen)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setColorPickerOpen(!isColorPickerOpen);
+                    }}
                     style={{ backgroundColor: localProperties.color }}
                   />
+                  
+                  {/* Add Eyedropper Button */}
+                  <Tooltip content="Color Eyedropper (I)" side="top">
+                    <ToolbarButton
+                      icon={<Pipette className="w-4 h-4" />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEyedropperClick();
+                      }}
+                      active={isEyedropperActive}
+                      className={styles.button}
+                    />
+                  </Tooltip>
 
                   {isColorPickerOpen && (
                     <>
                       <div
                         className="fixed inset-0"
-                        onClick={() => setColorPickerOpen(false)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setColorPickerOpen(false);
+                        }}
                       />
-                      <div className={styles.colorPicker.popup}>
+                      <div 
+                        className={styles.colorPicker.popup}
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <OKColorPicker
                           value={localProperties.color}
                           onChange={handleColorChange}
