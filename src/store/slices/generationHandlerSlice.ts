@@ -233,14 +233,29 @@ export const generationHandlerSlice: StateCreator<
 
     // Calculate dimensions based on enabled shapes
     const calculatedDimensions = calculateAverageAspectRatio(shapes);
+    
+    // If no dimensions calculated but we have a text prompt, use default dimensions
     if (!calculatedDimensions) {
-      set({ error: "No enabled shapes found. Please enable at least one image reference, variation, or control shape." });
-      return;
-    }
+      const stickyWithPrompt = shapes.find(
+        (shape): shape is StickyNoteShape => 
+          shape.type === "sticky" && 
+          shape.isTextPrompt === true && 
+          (shape as StickyNoteShape).content !== undefined
+      );
 
-    // Update the workflow with the calculated dimensions
-    workflow["34"].inputs.width = calculatedDimensions.width;
-    workflow["34"].inputs.height = calculatedDimensions.height;
+      if (!stickyWithPrompt?.content) {
+        set({ error: "Please select either a text prompt, image controls, or enable variations." });
+        return;
+      }
+
+      // Use default dimensions for text-only generation
+      activeSettings.outputWidth = 512;
+      activeSettings.outputHeight = 512;
+    } else {
+      // Update the workflow with the calculated dimensions
+      workflow["34"].inputs.width = calculatedDimensions.width;
+      workflow["34"].inputs.height = calculatedDimensions.height;
+    }
 
     // Handle image reference if present
     const imageReferenceShapes = shapes.filter(s => s.type === "image" && s.showImagePrompt);
