@@ -1,5 +1,6 @@
 import { StateCreator } from "zustand";
 import { Shape, Position, StoreState } from "../../types";
+import { ImageShape } from "../../types/shapes";
 import getSubjectWorkflow from "../../lib/getSubject_workflow.json";
 import { supabase } from "../../lib/supabase";
 import { trimTransparentPixels } from "../../utils/imageUtils"; // We'll create this
@@ -16,13 +17,22 @@ export const subjectGenerationSlice: StateCreator<
 > = (set, get) => ({
   handleGenerateSubject: async (sourceShape) => {
     try {
+      // Check if sourceShape is an ImageShape
+      if (sourceShape.type !== "image") {
+        throw new Error("Source shape must be an image");
+      }
+      const imageShape = sourceShape as ImageShape;
+      if (!imageShape.imageUrl) {
+        throw new Error("Source image must have a URL");
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User must be authenticated");
 
       const workflow = JSON.parse(JSON.stringify(getSubjectWorkflow));
-      workflow["14"].inputs.image = sourceShape.imageUrl;
+      workflow["14"].inputs.image = imageShape.imageUrl;
 
       const response = await fetch("/.netlify/functions/generate-image", {
         method: "POST",
@@ -46,13 +56,13 @@ export const subjectGenerationSlice: StateCreator<
         status: "generating",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        originalUrl: sourceShape.imageUrl,
-        width: Math.round(sourceShape.width),
-        height: Math.round(sourceShape.height),
+        originalUrl: imageShape.imageUrl,
+        width: Math.round(imageShape.width),
+        height: Math.round(imageShape.height),
         // Add other required fields with defaults
         prompt: "subject extraction",
-        aspect_ratio: `${Math.round(sourceShape.width)}:${Math.round(
-          sourceShape.height
+        aspect_ratio: `${Math.round(imageShape.width)}:${Math.round(
+          imageShape.height
         )}`,
       };
 
@@ -66,17 +76,17 @@ export const subjectGenerationSlice: StateCreator<
 
       // Create new shape position next to source
       const position: Position = {
-        x: sourceShape.position.x + sourceShape.width + 20,
-        y: sourceShape.position.y,
+        x: imageShape.position.x + imageShape.width + 20,
+        y: imageShape.position.y,
       };
 
       // Add placeholder shape
-      const placeholderShape: Shape = {
+      const placeholderShape: ImageShape = {
         id: prediction_id,
         type: "image",
         position,
-        width: sourceShape.width,
-        height: sourceShape.height,
+        width: imageShape.width,
+        height: imageShape.height,
         isUploading: true,
         imageUrl: "",
         color: "transparent",
@@ -89,7 +99,7 @@ export const subjectGenerationSlice: StateCreator<
         contentStrength: 0.75,
         poseStrength: 0.75,
         sketchStrength: 0.75,
-        remixStrength: 0.75,
+        imagePromptStrength: 0.75,
       };
 
       get().addShape(placeholderShape);
@@ -136,11 +146,11 @@ export const subjectGenerationSlice: StateCreator<
                 }
     
                 // Calculate new position
-                const xOffset = (sourceShape.width - newWidth) / 2;
-                const yOffset = (sourceShape.height - newHeight) / 2;
+                const xOffset = (imageShape.width - newWidth) / 2;
+                const yOffset = (imageShape.height - newHeight) / 2;
                 const newPosition = {
-                  x: sourceShape.position.x + sourceShape.width + 20 + xOffset,
-                  y: sourceShape.position.y + yOffset
+                  x: imageShape.position.x + imageShape.width + 20 + xOffset,
+                  y: imageShape.position.y + yOffset
                 };
     
                 // Update shape with trimmed image

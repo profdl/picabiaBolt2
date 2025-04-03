@@ -83,8 +83,7 @@ export function ShapeControls({
     (shape.type === "edges" && shape.showEdges) ||
     (shape.type === "pose" && shape.showPose) ||
     shape.showContent ||
-    shape.isTextPrompt ||
-    shape.isNegativePrompt ||
+    (shape.type === "sticky" && (shape.isTextPrompt || shape.isNegativePrompt)) ||
     (shape.type === "image" && (shape.showImagePrompt || shape.makeVariations)) ||
     (shape.type === "diffusionSettings" && shape.useSettings);
 

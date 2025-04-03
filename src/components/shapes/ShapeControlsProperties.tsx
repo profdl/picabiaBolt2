@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../../store";
 import { Shape } from "../../types";
+import { ImageShape as ImageShapeType, StickyNoteShape as StickyNoteShapeType } from "../../types/shapes";
 import { generatePrompt } from "../../utils/prompt-generator";
 import { Tooltip } from "../shared/Tooltip";
 import { getControlDescription, ControlType } from "../../utils/tooltips";
@@ -88,16 +89,21 @@ export function ShapeControlsProperties({
   );
 
   const [isHovering, setIsHovering] = useState(false);
+
+  // Type check and cast the shape
+  const imageShape = shape.type === "image" ? (shape as ImageShapeType) : null;
+  const stickyShape = shape.type === "sticky" ? (shape as StickyNoteShapeType) : null;
+
   const controls = [
     {
       type: "Original",
-      preview: shape.imageUrl,
+      preview: imageShape?.imageUrl,
       showKey: null,
       strengthKey: null,
     },
     {
       type: "Depth",
-      preview: shape.depthPreviewUrl,
+      preview: imageShape?.depthPreviewUrl,
       showKey: "showDepth",
       strengthKey: "depthStrength",
       isProcessing: depthProcessing,
@@ -106,7 +112,7 @@ export function ShapeControlsProperties({
     },
     {
       type: "Edges",
-      preview: shape.edgePreviewUrl,
+      preview: imageShape?.edgePreviewUrl,
       showKey: "showEdges",
       strengthKey: "edgesStrength",
       isProcessing: edgeProcessing,
@@ -115,7 +121,7 @@ export function ShapeControlsProperties({
     },
     {
       type: "Pose",
-      preview: shape.posePreviewUrl,
+      preview: imageShape?.posePreviewUrl,
       showKey: "showPose",
       strengthKey: "poseStrength",
       isProcessing: poseProcessing,
@@ -124,7 +130,7 @@ export function ShapeControlsProperties({
     },
     {
       type: "Sketch",
-      preview: shape.sketchPreviewUrl,
+      preview: imageShape?.sketchPreviewUrl,
       showKey: "showSketch",
       strengthKey: "sketchStrength",
       isProcessing: sketchProcessing,
@@ -133,7 +139,7 @@ export function ShapeControlsProperties({
     },
     {
       type: "Image",
-      preview: shape.imageUrl,
+      preview: imageShape?.imageUrl,
       showKey: "showImagePrompt",
       strengthKey: "imagePromptStrength",
       isProcessing: imagePromptProcessing,
@@ -146,8 +152,7 @@ export function ShapeControlsProperties({
     shape.showEdges ||
     shape.showContent ||
     shape.showPose ||
-    shape.showPrompt ||
-    shape.showNegativePrompt ||
+    (stickyShape && (stickyShape.showPrompt || stickyShape.showNegativePrompt)) ||
     shape.showSketch ||
     shape.showImagePrompt ||
     (shape.type === "diffusionSettings" && shape.useSettings); 
@@ -172,7 +177,7 @@ export function ShapeControlsProperties({
     }
 
     // For sketch control, use the original image as preview
-    if (control.processType === "sketch") {
+    if (control.processType === "sketch" && imageShape) {
       // Uncheck sketch on all other shapes first
       shapes.forEach((otherShape) => {
         if (
@@ -191,7 +196,7 @@ export function ShapeControlsProperties({
       // Then update current shape
       updateShape(shape.id, {
         [control.showKey]: isChecked,
-        sketchPreviewUrl: isChecked ? shape.imageUrl : undefined,
+        sketchPreviewUrl: isChecked ? imageShape.imageUrl : undefined,
       });
       return;
     }
@@ -706,7 +711,7 @@ export function ShapeControlsProperties({
               <button
                 onClick={() => {
                   const newId = Math.random().toString(36).substr(2, 9);
-                  const newShape: Shape = {
+                  const newShape: ImageShapeType = {
                     id: newId,
                     type: "image",
                     position: shape.position,
@@ -723,6 +728,7 @@ export function ShapeControlsProperties({
                     contentStrength: 0.25,
                     poseStrength: 0.25,
                     sketchStrength: 0.25,
+                    imagePromptStrength: 0.25,
                     imageUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
                     showSketch: true,
                   };

@@ -92,7 +92,7 @@ export const baseShapeSlice: StateCreator<BaseShapeSlice, [], [], BaseShapeSlice
       const duration = 500;
       const start = performance.now();
 
-      const animate = (currentTime: number) => {
+      const animate = (currentTime: DOMHighResTimeStamp) => {
         const progress = Math.min((currentTime - start) / duration, 1);
         const eased = 1 - Math.pow(1 - progress, 3);
 

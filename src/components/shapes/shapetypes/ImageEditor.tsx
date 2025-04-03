@@ -3,6 +3,7 @@ import { Button } from "../../shared/Button";
 import ReactDOM from "react-dom";
 import { useStore } from "../../../store";
 import { Shape } from "../../../types";
+import { ImageShape as ImageShapeType } from "../../../types/shapes";
 
 interface ImageEditorProps {
   shape: Shape;
@@ -41,6 +42,10 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   const { uploadAsset, addShape, shapes } = useStore();
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Type check and cast the shape
+  const imageShape = shape.type === "image" ? (shape as ImageShapeType) : null;
+  if (!imageShape) return null;
 
   // Handle image load and calculate average color
   const handleImageLoad = () => {
@@ -240,7 +245,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
 
   const handleCancel = () => {
     // Restore the saved state and clear it
-    updateShape(shape.id, { 
+    updateShape(imageShape.id, { 
       isImageEditing: false,
       savedCanvasState: undefined  // Clear the saved state
     });
@@ -258,13 +263,13 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
       const asset = await uploadAsset(file) as unknown as Asset | null;
       if (asset && asset.url) {
         const cropAspectRatio = cropArea.width / cropArea.height;
-        let newWidth = shape.width;
-        let newHeight = shape.height;
+        let newWidth = imageShape.width;
+        let newHeight = imageShape.height;
 
         if (cropAspectRatio > 1) {
-          newHeight = shape.width / cropAspectRatio;
+          newHeight = imageShape.width / cropAspectRatio;
         } else {
-          newWidth = shape.height * cropAspectRatio;
+          newWidth = imageShape.height * cropAspectRatio;
         }
 
         const rightmostX = Math.max(
@@ -274,12 +279,12 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
 
         const newShapePosition = {
           x: rightmostX + spacing,
-          y: shape.position.y,
+          y: imageShape.position.y,
         };
 
-        const newShape = {
+        const newShape: ImageShapeType = {
           id: Math.random().toString(36).substr(2, 9),
-          type: "image" as const,
+          type: "image",
           position: newShapePosition,
           width: newWidth,
           height: newHeight,
@@ -295,7 +300,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           contentStrength: 0.25,
           poseStrength: 0.25,
           sketchStrength: 0.25,
-          remixStrength: 0.25,
+          imagePromptStrength: 0.25,
         };
 
         addShape(newShape);
@@ -311,7 +316,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
     }
 
     // Clear the saved state when saving
-    updateShape(shape.id, { 
+    updateShape(imageShape.id, { 
       isImageEditing: false,
       savedCanvasState: undefined
     });
@@ -334,7 +339,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           <div className="relative w-full h-full flex items-center justify-center">
             <img
               ref={imageRef}
-              src={shape.imageUrl}
+              src={imageShape.imageUrl}
               alt="Edit"
               crossOrigin="anonymous"
               className="max-h-[350px] w-auto object-contain"

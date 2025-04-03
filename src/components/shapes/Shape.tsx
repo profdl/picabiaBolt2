@@ -9,14 +9,11 @@ import { useShapeEvents } from "../../hooks/shapes/useShapeEvents";
 import { getShapeStyles } from "../../utils/shapeStyles";
 import { ShapeControls } from "./ShapeControls";
 import { ImageShape } from "./shapetypes/ImageShape";
-import { ThreeJSShape } from "./shapetypes/ThreeJSShape";
-import { ThreeJSShapeRef } from "../../types/layout";
 import { Loader2 } from "lucide-react";
 import { ProcessedShape } from "./shapetypes/ProcessedShape";
 import { DiffusionSettingsPanel } from "./shapetypes/DiffusionSettingsPanel";
 import { StickyNoteShape } from "./shapetypes/StickyNoteShape";
-import { TextShape } from "./shapetypes/TextShape";
-import { DrawingShape } from "./shapetypes/DrawingShape";
+
 import { useStickyNoteColor } from "../../hooks/ui/useStickyNoteColor";
 import { useThemeClass } from "../../styles/useThemeClass";
 
@@ -66,7 +63,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
 
   const isEditing = shape.isEditing && isEditingText;
   const textRef = useRef<HTMLTextAreaElement>(null);
-  const threeJSRef = useRef<ThreeJSShapeRef>(null);
 
   const { initDragStart, hoveredGroup, isAddedToGroup } = useShapeDrag({
     shape,
@@ -89,7 +85,6 @@ export function ShapeComponent({ shape }: ShapeProps) {
     handleContextMenu,
     handleDoubleClick,
     handleKeyDown,
-    handleRotateStart,
   } = useShapeEvents({
     shape,
     isEditing: isEditing ?? false,
@@ -256,53 +251,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
     );
   }
 
-  if (shape.type === "drawing") {
-    return (
-      <DrawingShape
-        shape={shape}
-        isSelected={isSelected}
-        tool={tool}
-        handleMouseDown={handleMouseDown}
-        handleContextMenu={handleContextMenu}
-        handleResizeStart={handleResizeStart}
-        handleRotateStart={handleRotateStart}
-      />
-    );
-  }
 
-  if (shape.type === "3d") {
-    return (
-      <div
-        style={{
-          position: "absolute",
-          left: shape.position.x,
-          top: shape.position.y,
-          width: shape.width,
-          height: shape.height,
-          transform: `rotate(${shape.rotation}deg)`,
-          cursor: tool === "select" ? "move" : "default",
-          pointerEvents: tool === "select" ? "all" : "none",
-          zIndex: isSelected
-            ? 1000
-            : shapes.findIndex((s) => s.id === shape.id),
-        }}
-        onMouseDown={handleMouseDown}
-        onDoubleClick={handleDoubleClick}
-        onContextMenu={handleContextMenu}
-      >
-        <ThreeJSShape ref={threeJSRef} shape={shape} />
-        {isSelected && tool === "select" && (
-          <ShapeControls
-            shape={shape}
-            isSelected={Boolean(isSelected)}
-            handleResizeStart={handleResizeStart}
-            hoveredGroup={hoveredGroup}
-            isAddedToGroup={isAddedToGroup}
-          />
-        )}
-      </div>
-    );
-  }
 
   if (shape.type === "image") {
     const showControls = isSelected || 
@@ -405,15 +354,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
           />
         )}
   
-        {shape.type === "text" && (
-          <TextShape
-            shape={shape}
-            isEditing={isEditing || false}
-            textRef={textRef}
-            handleKeyDown={handleKeyDown}
-            handleBlur={handleBlur}
-          />
-        )}
+
       </div>
   
       {(tool === "select" ||

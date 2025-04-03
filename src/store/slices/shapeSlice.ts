@@ -49,13 +49,12 @@ interface ShapeSlice extends ShapeState {
   ungroup: (groupId: string) => void;
   addToGroup: (shapeIds: string[], groupId: string) => void;
   removeFromGroup: (shapeIds: string[]) => void;
-  mergeImages: (shapeIds: string[]) => Promise<void>; 
+  mergeImages: (shapeIds: string[]) => Promise<void>;
   resetState: () => void;
   undo: () => void;
   redo: () => void;
   setIsEditingText: (isEditing: boolean) => void;
   create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
-
 }
 
 export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (

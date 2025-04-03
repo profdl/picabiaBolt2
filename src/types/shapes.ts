@@ -6,6 +6,7 @@ export interface Position {
 // Base shape properties that all shapes share
 export interface BaseShape {
   id: string;
+  type: string;
   position: Position;
   width: number;
   height: number;
@@ -13,6 +14,10 @@ export interface BaseShape {
   originalHeight?: number;
   color: string;
   rotation: number;
+  isSelected?: boolean;
+  isDragging?: boolean;
+  isResizing?: boolean;
+  isRotating?: boolean;
   isUploading: boolean;
   isEditing: boolean;
   isNew?: boolean;
@@ -21,6 +26,60 @@ export interface BaseShape {
   useSettings: boolean;
   groupId?: string;
   isGroup?: boolean;
+  sourceImageId?: string;
+  showDepth?: boolean;
+  showEdges?: boolean;
+  showPose?: boolean;
+  showSketch?: boolean;
+  showImagePrompt?: boolean;
+  depthMapUrl?: string;
+  edgeMapUrl?: string;
+  poseMapUrl?: string;
+  sketchMapUrl?: string;
+  depthPreviewUrl?: string;
+  edgePreviewUrl?: string;
+  posePreviewUrl?: string;
+  sketchPreviewUrl?: string;
+  imagePromptPreviewUrl?: string;
+  isSketchProcessing?: boolean;
+  isDepthProcessing?: boolean;
+  isEdgeProcessing?: boolean;
+  isPoseProcessing?: boolean;
+  contentStrength?: number;
+  sketchStrength?: number;
+  imagePromptStrength?: number;
+  depthStrength?: number;
+  edgesStrength?: number;
+  poseStrength?: number;
+  makeVariations?: boolean;
+  isImageEditing?: boolean;
+  showContent?: boolean;
+  showAdvanced?: boolean;
+  outputWidth?: number;
+  outputHeight?: number;
+  scheduler?: string;
+  seed?: number;
+  steps?: number;
+  guidanceScale?: number;
+  outputFormat?: string;
+  outputQuality?: number;
+  randomiseSeeds?: boolean;
+  variationStrength?: number;
+  isDrawing?: boolean;
+  canvasData?: string;
+  backgroundCanvasData?: string;
+  permanentCanvasData?: string;
+  activeCanvasData?: string;
+  previewCanvasData?: string;
+  maskCanvasData?: string;
+  redBackgroundCanvasData?: string;
+  savedCanvasState?: {
+    backgroundData?: string;
+    permanentStrokesData?: string;
+    activeStrokeData?: string;
+    maskData?: string;
+    previewData?: string;
+  };
 }
 
 // Sticky note specific properties
@@ -33,6 +92,7 @@ export interface StickyNoteShape extends BaseShape {
   showPrompt?: boolean;
   showNegativePrompt?: boolean;
   showContent?: boolean;
+  fontSize?: number;
 }
 
 // Image specific properties
@@ -67,6 +127,20 @@ export interface ImageShape extends BaseShape {
   poseStrength: number;
   makeVariations?: boolean;
   isImageEditing?: boolean;
+  canvasData?: string;
+  backgroundCanvasData?: string;
+  permanentCanvasData?: string;
+  activeCanvasData?: string;
+  previewCanvasData?: string;
+  maskCanvasData?: string;
+  redBackgroundCanvasData?: string;
+  savedCanvasState?: {
+    backgroundData?: string;
+    permanentStrokesData?: string;
+    activeStrokeData?: string;
+    maskData?: string;
+    previewData?: string;
+  };
 }
 
 // Group specific properties

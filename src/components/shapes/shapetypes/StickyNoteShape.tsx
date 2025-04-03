@@ -1,4 +1,5 @@
 import { Shape } from '../../../types';
+import { StickyNoteShape as StickyNoteShapeType } from '../../../types/shapes';
 import { useThemeClass } from '../../../styles/useThemeClass';
 import { useStore } from '../../../store';
 import { useStickyNoteColor } from '../../../hooks/ui/useStickyNoteColor';
@@ -25,11 +26,15 @@ export const StickyNoteShape: React.FC<StickyNoteShapeProps> = ({
   const backgroundColor = useStickyNoteColor(shape);
   const { isDark } = useDarkMode();
 
+  // Type check and cast the shape
+  const stickyShape = shape.type === "sticky" ? (shape as StickyNoteShapeType) : null;
+  if (!stickyShape) return null;
+
   const getTextColor = () => {
     if (isDark) {
-      if (shape.showPrompt) {
+      if (stickyShape.showPrompt) {
         return 'text-emerald-100';
-      } else if (shape.showNegativePrompt) {
+      } else if (stickyShape.showNegativePrompt) {
         return 'text-red-100';
       }
       return 'text-amber-100';
@@ -39,18 +44,18 @@ export const StickyNoteShape: React.FC<StickyNoteShapeProps> = ({
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
-    const minSize = shapeLayout.calculateTextContentSize(newContent, shape.fontSize || 16);
-    updateShape(shape.id, {
+    const minSize = shapeLayout.calculateTextContentSize(newContent, stickyShape.fontSize || 16);
+    updateShape(stickyShape.id, {
       content: newContent,
-      width: Math.max(shape.width, minSize.width),
-      height: Math.max(shape.height, minSize.height)
+      width: Math.max(stickyShape.width, minSize.width),
+      height: Math.max(stickyShape.height, minSize.height)
     });
   };
 
   return (
     <textarea
       ref={textRef}
-      value={shape.content || ""}
+      value={stickyShape.content || ""}
       onChange={handleContentChange}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
@@ -58,7 +63,7 @@ export const StickyNoteShape: React.FC<StickyNoteShapeProps> = ({
         isEditing ? "cursor-text" : "cursor-move"
       } ${getTextColor()} w-full h-full resize-none p-3`}
       style={{
-        fontSize: shape.fontSize || 16,
+        fontSize: stickyShape.fontSize || 16,
         scrollbarWidth: "thin",
         pointerEvents: "all",
         backgroundColor,

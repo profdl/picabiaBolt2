@@ -1,5 +1,6 @@
 import { StateCreator } from "zustand";
 import { StoreState } from "../../types";
+import { ImageShape } from "../../types/shapes";
 
 type ImageTrimSliceType = {
   trimTransparentPixels: (shapeId: string) => Promise<void>;
@@ -12,15 +13,18 @@ export const imageTrimSlice: StateCreator<
   [],
   [],
   ImageTrimSliceType
-> = (set, get) => ({
+> = (_, get) => ({
   trimTransparentPixels: async (shapeId: string) => {
     const { shapes, updateShape } = get();
     const shape = shapes.find((s) => s.id === shapeId);
 
-    if (!shape?.imageUrl) return;
+    if (!shape || shape.type !== "image") return;
+    
+    const imageShape = shape as ImageShape;
+    if (!imageShape.imageUrl) return;
 
     const img = new Image();
-    img.src = shape.imageUrl;
+    img.src = imageShape.imageUrl;
 
     await new Promise((resolve) => {
       img.onload = () => {

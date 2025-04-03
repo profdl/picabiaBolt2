@@ -2,6 +2,7 @@ import { StateCreator } from "zustand";
 import { createClient } from "@supabase/supabase-js";
 import multiControlWorkflow from "../../lib/generateWorkflow.json";
 import { Shape, Position } from "../../types";
+import { StickyNoteShape, ImageShape } from "../../types/shapes";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { findOpenSpace } from "../../utils/spaceUtils";
 
@@ -498,7 +499,10 @@ export const generationHandlerSlice: StateCreator<
     );
 
     const stickyWithPrompt = shapes.find(
-      (shape) => shape.type === "sticky" && shape.isTextPrompt && shape.content
+      (shape): shape is StickyNoteShape => 
+        shape.type === "sticky" && 
+        shape.isTextPrompt === true && 
+        (shape as StickyNoteShape).content !== undefined
     );
 
     if (!stickyWithPrompt?.content && !hasActiveControls) {
@@ -680,8 +684,10 @@ export const generationHandlerSlice: StateCreator<
 
       const negativePrompt =
         shapes.find(
-          (shape) =>
-            shape.type === "sticky" && shape.isNegativePrompt && shape.content
+          (shape): shape is StickyNoteShape =>
+            shape.type === "sticky" && 
+            shape.isNegativePrompt === true && 
+            (shape as StickyNoteShape).content !== undefined
         )?.content || "text, watermark";
       workflow["7"].inputs.text = negativePrompt;
       workflow["7"].inputs.clip = ["4", 1];
@@ -974,17 +980,17 @@ export const generationHandlerSlice: StateCreator<
       // Only add ControlNet nodes if depth, edges, or pose controls are enabled
       const hasControlNetControls = shapes.some(shape => 
         (shape.showDepth || shape.showEdges || shape.showPose) && 
-        (shape.depthUrl || shape.edgeUrl || shape.poseUrl)
+        ((shape as ImageShape).depthMapUrl || (shape as ImageShape).edgeMapUrl || (shape as ImageShape).poseMapUrl)
       );
 
       if (hasControlNetControls) {
         for (const controlShape of shapes) {
-          if (controlShape.showEdges && controlShape.edgeUrl) {
+          if (controlShape.showEdges && (controlShape as ImageShape).edgeMapUrl) {
             currentWorkflow["12"] = {
               ...workflow["12"],
               inputs: {
                 ...workflow["12"].inputs,
-                image: controlShape.edgeUrl,
+                image: (controlShape as ImageShape).edgeMapUrl,
               },
             };
             currentWorkflow["18"] = workflow["18"];
@@ -1001,12 +1007,12 @@ export const generationHandlerSlice: StateCreator<
             currentPositiveNode = "41";
           }
 
-          if (controlShape.showDepth && controlShape.depthUrl) {
+          if (controlShape.showDepth && (controlShape as ImageShape).depthMapUrl) {
             currentWorkflow["33"] = {
               ...workflow["33"],
               inputs: {
                 ...workflow["33"].inputs,
-                image: controlShape.depthUrl,
+                image: (controlShape as ImageShape).depthMapUrl,
               },
             };
             currentWorkflow["32"] = workflow["32"];
@@ -1024,11 +1030,11 @@ export const generationHandlerSlice: StateCreator<
             currentPositiveNode = "31";
           }
 
-          if (controlShape.showPose && controlShape.poseUrl) {
+          if (controlShape.showPose && (controlShape as ImageShape).poseMapUrl) {
             // Add pose image loader
             currentWorkflow["37"] = {
               inputs: {
-                image: controlShape.poseUrl,
+                image: (controlShape as ImageShape).poseMapUrl,
                 upload: "image",
               },
               class_type: "LoadImage",
