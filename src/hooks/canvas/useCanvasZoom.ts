@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useStore } from "../../store";
 
+interface GestureEvent extends Event {
+  scale: number;
+  rotation: number;
+  clientX: number;
+  clientY: number;
+}
+
 export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
   const {
     zoom,
@@ -12,6 +19,7 @@ export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
     isEditingText,
   } = useStore();
   const [isMiddleMouseDown, setIsMiddleMouseDown] = useState(false);
+  const [initialScale, setInitialScale] = useState(1);
 
   // Block browser's default zoom behavior
   useEffect(() => {
@@ -35,27 +43,52 @@ export function useCanvasZoom(canvasRef: React.RefObject<HTMLDivElement>) {
         e.preventDefault();
       }
     };
+
+    const handleGestureStart = (e: Event) => {
+      const isCanvas = (e.target as Element)?.closest('#canvas-container');
+      if (!isCanvas) return;
+      
+      e.preventDefault();
+      setInitialScale(zoom);
+    };
+
+    const handleGestureChange = (e: Event) => {
+      const isCanvas = (e.target as Element)?.closest('#canvas-container');
+      if (!isCanvas) return;
+      
+      e.preventDefault();
+      const gestureEvent = e as GestureEvent;
+      const newScale = initialScale * gestureEvent.scale;
+      
+      // Limit zoom range
+      const clampedScale = Math.min(Math.max(newScale, 0.1), 5);
+      
+      // Calculate center point for zoom
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      setZoom(clampedScale);
+      setOffset({
+        x: centerX - (centerX - offset.x) * (clampedScale / zoom),
+        y: centerY - (centerY - offset.y) * (clampedScale / zoom)
+      });
+    };
   
     window.addEventListener("wheel", preventDefaultZoom, { passive: false });
     window.addEventListener("touchmove", preventDefaultGestures, { passive: false });
-    window.addEventListener("gesturestart", (e) => {
-      if ((e.target as Element)?.closest('#canvas-container')) {
-        e.preventDefault();
-      }
-    });
-    window.addEventListener("gesturechange", (e) => {
-      if ((e.target as Element)?.closest('#canvas-container')) {
-        e.preventDefault();
-      }
-    });
+    window.addEventListener("gesturestart", handleGestureStart, { passive: false });
+    window.addEventListener("gesturechange", handleGestureChange, { passive: false });
   
     return () => {
       window.removeEventListener("wheel", preventDefaultZoom);
       window.removeEventListener("touchmove", preventDefaultGestures);
-      window.removeEventListener("gesturestart", (e) => e.preventDefault());
-      window.removeEventListener("gesturechange", (e) => e.preventDefault());
+      window.removeEventListener("gesturestart", handleGestureStart);
+      window.removeEventListener("gesturechange", handleGestureChange);
     };
-  }, []);
+  }, [zoom, offset, setZoom, setOffset, initialScale]);
 
   const handleMouseDown = useCallback((e: MouseEvent) => {
     // Middle mouse button (button 1)

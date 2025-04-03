@@ -448,7 +448,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
   },
 
   pasteShapes: (offset = { x: 20, y: 20 }) => {
-    const { clipboard, shapes, history, historyIndex } = get();
+    const { clipboard, shapes, updateShape, setShapes, setSelectedShapes, addShapes } = get();
     if (clipboard.length === 0) return;
 
     // Handle image shapes specifically
@@ -463,6 +463,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             showPose: boolean;
             showSketch: boolean;
             showImagePrompt: boolean;
+            makeVariations: boolean;
           },
           shape: Shape
         ) => {
@@ -473,6 +474,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
               showPose: acc.showPose || Boolean(shape.showPose),
               showSketch: acc.showSketch || Boolean(shape.showSketch),
               showImagePrompt: acc.showImagePrompt || Boolean(shape.showImagePrompt),
+              makeVariations: acc.makeVariations || Boolean(shape.makeVariations),
             };
           }
           return acc;
@@ -483,6 +485,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           showPose: false,
           showSketch: false,
           showImagePrompt: false,
+          makeVariations: false,
         }
       );
 
@@ -496,155 +499,39 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             showPose: controlStates.showPose ? false : shape.showPose,
             showSketch: controlStates.showSketch ? false : shape.showSketch,
             showImagePrompt: controlStates.showImagePrompt ? false : shape.showImagePrompt,
+            makeVariations: controlStates.makeVariations ? false : shape.makeVariations,
           };
         }
         return shape;
       });
 
-      // Create new shapes preserving control states
-      const newShapes = clipboard.map((shape) => {
-        const newShapeBase = {
-          ...shape,
-          id: Math.random().toString(36).substr(2, 9),
-          position: {
-            x: shape.position.x + offset.x,
-            y: shape.position.y + offset.y,
-          },
-        };
-
-        if (shape.type === "sticky") {
-          return {
-            ...newShapeBase,
-            isTextPrompt: true,
-            color: "var(--sticky-green)",
-          } as StickyNoteShape;
-        } else if (shape.type === "image") {
-          return {
-            ...newShapeBase,
-            // Preserve preview URLs and control states for image shapes
-            depthPreviewUrl: (shape as ImageShape).depthPreviewUrl,
-            edgePreviewUrl: (shape as ImageShape).edgePreviewUrl,
-            posePreviewUrl: (shape as ImageShape).posePreviewUrl,
-            sketchPreviewUrl: (shape as ImageShape).sketchPreviewUrl,
-            imagePromptPreviewUrl: (shape as ImageShape).imagePromptPreviewUrl,
-          } as ImageShape;
-        }
-
-        return newShapeBase;
-      });
-
-      const updatedShapes = [...updatedOriginalShapes, ...newShapes];
-      set({
-        shapes: updatedShapes,
-        selectedShapes: newShapes.map((shape) => shape.id),
-        history: [...history.slice(0, historyIndex + 1), updatedShapes].slice(
-          -MAX_HISTORY
-        ),
-        historyIndex: historyIndex + 1,
-      });
-      return;
-    }
-
-    // Handle sticky notes specifically
-    const hasStickyNotes = clipboard.some((shape) => shape.type === "sticky");
-    if (hasStickyNotes) {
-      // Uncheck all existing sticky notes' text prompts
-      const updatedOriginalShapes = shapes.map((shape) => {
-        if (shape.type === "sticky") {
-          return {
-            ...shape,
-            isTextPrompt: false,
-            color: shape.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)",
-          };
-        }
-        return shape;
-      });
-
-      // Create new shapes with text prompt checked for sticky notes
-      const newShapes = clipboard.map((shape) => {
-        const newShapeBase = {
-          ...shape,
-          id: Math.random().toString(36).substr(2, 9),
-          position: {
-            x: shape.position.x + offset.x,
-            y: shape.position.y + offset.y,
-          },
-        };
-
-        if (shape.type === "sticky") {
-          return {
-            ...newShapeBase,
-            isTextPrompt: true,
-            color: "var(--sticky-green)",
-          } as StickyNoteShape;
-        } else if (shape.type === "image") {
-          return {
-            ...newShapeBase,
-            // Preserve preview URLs and control states for image shapes
-            depthPreviewUrl: (shape as ImageShape).depthPreviewUrl,
-            edgePreviewUrl: (shape as ImageShape).edgePreviewUrl,
-            posePreviewUrl: (shape as ImageShape).posePreviewUrl,
-            sketchPreviewUrl: (shape as ImageShape).sketchPreviewUrl,
-            imagePromptPreviewUrl: (shape as ImageShape).imagePromptPreviewUrl,
-          } as ImageShape;
-        }
-
-        return newShapeBase;
-      });
-
-      const updatedShapes = [...updatedOriginalShapes, ...newShapes];
-      set({
-        shapes: updatedShapes,
-        selectedShapes: newShapes.map((shape) => shape.id),
-        history: [...history.slice(0, historyIndex + 1), updatedShapes].slice(
-          -MAX_HISTORY
-        ),
-        historyIndex: historyIndex + 1,
-      });
-      return;
-    }
-
-    // Handle non-sticky note shapes as before
-    const newShapes = clipboard.map((shape) => {
-      const newShapeBase = {
+      // Create new shapes with updated positions
+      const newShapes = clipboard.map((shape) => ({
         ...shape,
         id: Math.random().toString(36).substr(2, 9),
         position: {
           x: shape.position.x + offset.x,
           y: shape.position.y + offset.y,
         },
-      };
+      }));
 
-      if (shape.type === "sticky") {
-        return {
-          ...newShapeBase,
-          isTextPrompt: true,
-          color: "var(--sticky-green)",
-        } as StickyNoteShape;
-      } else if (shape.type === "image") {
-        return {
-          ...newShapeBase,
-          // Preserve preview URLs and control states for image shapes
-          depthPreviewUrl: (shape as ImageShape).depthPreviewUrl,
-          edgePreviewUrl: (shape as ImageShape).edgePreviewUrl,
-          posePreviewUrl: (shape as ImageShape).posePreviewUrl,
-          sketchPreviewUrl: (shape as ImageShape).sketchPreviewUrl,
-          imagePromptPreviewUrl: (shape as ImageShape).imagePromptPreviewUrl,
-        } as ImageShape;
-      }
+      // Update the shapes array with both the updated original shapes and new shapes
+      setShapes([...updatedOriginalShapes, ...newShapes]);
+      setSelectedShapes(newShapes.map((s) => s.id));
+    } else {
+      // Handle non-image shapes
+      const newShapes = clipboard.map((shape) => ({
+        ...shape,
+        id: Math.random().toString(36).substr(2, 9),
+        position: {
+          x: shape.position.x + offset.x,
+          y: shape.position.y + offset.y,
+        },
+      }));
 
-      return newShapeBase;
-    });
-
-    const updatedShapes = [...shapes, ...newShapes];
-    set({
-      shapes: updatedShapes,
-      selectedShapes: newShapes.map((shape) => shape.id),
-      history: [...history.slice(0, historyIndex + 1), updatedShapes].slice(
-        -MAX_HISTORY
-      ),
-      historyIndex: historyIndex + 1,
-    });
+      addShapes(newShapes);
+      setSelectedShapes(newShapes.map((s) => s.id));
+    }
   },
   sendBackward: () =>
     set((state) => {
@@ -735,18 +622,38 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
     }),
 
   duplicate: () => {
-    const { shapes, selectedShapes, addShapes } = get();
-    const shapesToDuplicate = shapes
-      .filter((s) => selectedShapes.includes(s.id))
-      .map((shape) => ({
+    const { shapes, selectedShapes, updateShape, addShapes, setSelectedShapes } = get();
+    if (selectedShapes.length === 0) return;
+
+    const newShapes = selectedShapes.map((id) => {
+      const shape = shapes.find((s) => s.id === id);
+      if (!shape) return null;
+
+      const newShape = {
         ...shape,
         id: Math.random().toString(36).substr(2, 9),
         position: {
           x: shape.position.x + 20,
           y: shape.position.y + 20,
         },
-      }));
-    addShapes(shapesToDuplicate);
+      };
+
+      // If the duplicated shape has makeVariations enabled, disable it on all other shapes
+      if (shape.type === "image" && shape.makeVariations) {
+        shapes.forEach((otherShape) => {
+          if (otherShape.type === "image" && otherShape.id !== newShape.id) {
+            updateShape(otherShape.id, { makeVariations: false });
+          }
+        });
+      }
+
+      return newShape;
+    }).filter(Boolean) as Shape[];
+
+    if (newShapes.length > 0) {
+      addShapes(newShapes);
+      setSelectedShapes(newShapes.map((s) => s.id));
+    }
   },
 
   createGroup: (shapeIds) =>

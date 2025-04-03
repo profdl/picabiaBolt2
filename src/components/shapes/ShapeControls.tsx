@@ -503,6 +503,14 @@ export function ShapeControls({
                   label="Make Variations"
                   checked={shape.makeVariations || false}
                   onToggleChange={(checked: boolean) => {
+                    if (checked) {
+                      // Disable makeVariations on all other image shapes
+                      shapes.forEach((otherShape) => {
+                        if (otherShape.type === "image" && otherShape.id !== shape.id) {
+                          updateShape(otherShape.id, { makeVariations: false });
+                        }
+                      });
+                    }
                     updateShape(shape.id, { makeVariations: checked });
                     setSelectedShapes([shape.id]); // Keep shape selected when toggling
                   }}
