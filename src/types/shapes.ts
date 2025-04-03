@@ -65,6 +65,8 @@ export interface ImageShape extends BaseShape {
   depthStrength: number;
   edgesStrength: number;
   poseStrength: number;
+  makeVariations?: boolean;
+  isImageEditing?: boolean;
 }
 
 // Group specific properties

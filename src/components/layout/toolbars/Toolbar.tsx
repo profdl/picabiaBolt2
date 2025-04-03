@@ -20,6 +20,7 @@ import { useToolbarGenerate } from "../../../hooks/toolbar/useToolbarGenerate";
 import { useThemeClass } from "../../../styles/useThemeClass";
 import { useShapeAdder } from "../../../hooks/shapes/useShapeAdder";
 import { Shape } from "../../../types";
+import { ImageShape } from "../../../types/shapes";
 import { supabase } from "../../../lib/supabase";
 
 interface ToolbarProps {
@@ -53,7 +54,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
   const {
     handleGenerateSubject,
-    create3DDepth: create3DDepthAction,
+    create3DDepth,
     updateShape,
     selectedShapes,
     shapes,
@@ -77,7 +78,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     generatePreprocessedImage,
   } = useStore((state) => ({
     handleGenerateSubject: state.handleGenerateSubject,
-    create3DDepth: state.create3DDepth as (shape: Shape, position: { x: number; y: number }) => void,
+    create3DDepth: state.create3DDepth,
     updateShape: state.updateShape,
     selectedShapes: state.selectedShapes,
     shapes: state.shapes,
@@ -130,7 +131,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
 
   // Check for any image shapes with makeVariations enabled
   const hasVariationsEnabled = shapes.some(
-    (shape) => shape.type === "image" && shape.makeVariations
+    (shape) => shape.type === "image" && (shape as ImageShape).makeVariations
   );
 
   // Combine with existing hasActivePrompt
@@ -318,16 +319,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     e.preventDefault();
     e.stopPropagation();
     if (selectedShape) {
-      updateShape(selectedShape.id, { isImageEditing: true });
+      updateShape(selectedShape.id, { isImageEditing: true } as Partial<ImageShape>);
     }
   };
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (selectedShape?.imageUrl) {
+    if (selectedShape?.type === "image" && (selectedShape as ImageShape).imageUrl) {
       try {
-        const response = await fetch(selectedShape.imageUrl);
+        const response = await fetch((selectedShape as ImageShape).imageUrl!);
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -394,16 +395,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
           {(tool === "select" && selectedShape) || tool === "pan" ? (
             <PropertiesToolbar
               type={selectedShape?.type === "image" ? "image" : "shape"}
-              shape={selectedShape || {
-                id: "pan-tool",
-                type: "group",
-                position: { x: 0, y: 0 },
-                width: 0,
-                height: 0,
-                rotation: 0,
-                color: "transparent",
-                groupEnabled: true,
-              }}
+              shape={selectedShape ? selectedShape : undefined}
               selectedShapes={selectedShapes}
               shapes={shapes}
               actions={{
@@ -427,7 +419,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 },
                 onCrop: handleCrop,
                 onDownload: handleDownload,
-                create3DDepth: create3DDepthAction,
+                create3DDepth,
                 onFlatten: handleFlatten,
                 addShape,
                 generatePreprocessedImage: async (id: string, type: string) => {
@@ -503,7 +495,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
                 },
                 onCrop: handleCrop,
                 onDownload: handleDownload,
-                create3DDepth: create3DDepthAction,
+                create3DDepth,
                 onFlatten: handleFlatten,
                 addShape,
                 generatePreprocessedImage: async (id: string, type: string) => {

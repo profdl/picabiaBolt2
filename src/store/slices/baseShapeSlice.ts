@@ -1,5 +1,6 @@
 import { StateCreator } from "zustand";
-import { Shape, Position, ImageShape } from "../../types";
+import { Shape, Position } from "../../types";
+import { ImageShape } from "../../types/shapes";
 import { shapeManagement } from '../../utils/shapeManagement';
 
 const MAX_HISTORY = 50;
@@ -165,7 +166,7 @@ export const baseShapeSlice: StateCreator<BaseShapeSlice, [], [], BaseShapeSlice
     set((state) => {
       const newShapes = state.shapes.map((shape) => {
         if (shape.id === id) {
-          return { ...shape, ...props };
+          return { ...shape, ...props } as Shape;
         }
         return shape;
       });
@@ -185,7 +186,7 @@ export const baseShapeSlice: StateCreator<BaseShapeSlice, [], [], BaseShapeSlice
       const newShapes = state.shapes.map((shape) => {
         const update = updates.find((u) => u.id === shape.id);
         if (update) {
-          return { ...shape, ...update.shape };
+          return { ...shape, ...update.shape } as Shape;
         }
         return shape;
       });

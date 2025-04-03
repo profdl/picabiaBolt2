@@ -15,6 +15,7 @@ import { generationHandlerSlice } from "./slices/generationHandlerSlice";
 import { subjectGenerationSlice } from "./slices/subjectGenerationSlice";
 import { imageTrimSlice } from "./slices/imageTrimSlice";
 import { warmupSlice } from './slices/warmupSlice';
+import { shapeSlice } from "./slices/shapeSlice";
 
 // Define the store state that combines all slices
 type StoreSliceState = ReturnType<typeof baseShapeSlice> &
@@ -31,7 +32,8 @@ type StoreSliceState = ReturnType<typeof baseShapeSlice> &
   ReturnType<typeof generationHandlerSlice> &
   ReturnType<typeof subjectGenerationSlice> &
   ReturnType<typeof imageTrimSlice> &
-  ReturnType<typeof warmupSlice>;
+  ReturnType<typeof warmupSlice> &
+  ReturnType<typeof shapeSlice>;
 
 // Create the store with middleware
 export const useStore = create<StoreSliceState>()(
@@ -52,6 +54,7 @@ export const useStore = create<StoreSliceState>()(
       ...subjectGenerationSlice(...a),
       ...imageTrimSlice(...a),
       ...warmupSlice(...a),
+      ...shapeSlice(...a),
     }),
     { name: "PicabiaBolt Store" }
   )

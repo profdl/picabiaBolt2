@@ -8,3 +8,22 @@ export * from './api';
 export * from './storage';
 export * from './events';
 export * from './validation'; 
+
+// Re-export specific types to ensure they are available
+import { 
+  Shape, 
+  ImageShape, 
+  StickyNoteShape, 
+  GroupShape, 
+  Position, 
+  BaseShape 
+} from './shapes';
+
+export type { 
+  Shape, 
+  ImageShape, 
+  StickyNoteShape, 
+  GroupShape, 
+  Position, 
+  BaseShape 
+}; 

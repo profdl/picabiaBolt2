@@ -1,5 +1,6 @@
 import { StateCreator } from "zustand";
 import { Position, Shape } from "../../types";
+import { ImageShape, StickyNoteShape, GroupShape } from "../../types/shapes";
 import { shapeManagement } from '../../utils/shapeManagement';
 import {mergeImages} from '../../utils/mergeImagesShapes';
 import { shapeLayout } from '../../utils/shapeLayout';
@@ -99,13 +100,13 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         console.log('Adding shape type:', shape.type);
         console.log('Shape properties:', {
           id: shape.id,
-          isTextPrompt: shape.isTextPrompt,
+          isTextPrompt: shape.type === "sticky" ? (shape as StickyNoteShape).isTextPrompt : undefined,
           color: shape.color,
           type: shape.type
         });
         
         // Log existing sticky notes before any changes
-        const existingStickies = state.shapes.filter(s => s.type === "sticky");
+        const existingStickies = state.shapes.filter(s => s.type === "sticky") as StickyNoteShape[];
         console.log('Existing sticky notes before update:', existingStickies.length);
         console.log('Existing sticky notes with text prompt:', 
           existingStickies.filter(s => s.isTextPrompt).length);
@@ -118,7 +119,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         // For sticky notes, handle text prompts properly
         if (shape.type === "sticky") {
           console.log('Adding a sticky note, checking text prompt settings');
-          console.log('This sticky note isTextPrompt:', shape.isTextPrompt);
+          console.log('This sticky note isTextPrompt:', (shape as StickyNoteShape).isTextPrompt);
         }
         
         // Get standardized dimensions and position
@@ -127,81 +128,100 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           {
             width: shape.width,
             height: shape.height,
-            aspectRatio: shape.aspectRatio,
+            aspectRatio: shape.type === "image" ? (shape as ImageShape).aspectRatio : undefined,
             position: shape.position
           }
         );
   
         // Create new shape with standardized positioning and existing properties
-        const newShape: Shape = {
+        const newShapeBase = {
           ...shape,
           position,
           width,
           height,
-          depthStrength: shape.depthStrength ?? 0.25,
-          edgesStrength: shape.edgesStrength ?? 0.25,
-          contentStrength: shape.contentStrength ?? 0.25,
-          poseStrength: shape.poseStrength ?? 0.25,
-          sketchStrength: shape.sketchStrength ?? 0.25,
-          imagePromptStrength: shape.imagePromptStrength ?? 0.25,
-          isEditing: shape.type === "sticky",
-          showDepth: shape.showDepth ?? false,
-          showEdges: shape.showEdges ?? false,
-          showPose: shape.showPose ?? false,
-          showPrompt: shape.showPrompt ?? false,
-          showNegativePrompt: shape.showNegativePrompt ?? false,
-          isTextPrompt: shape.isTextPrompt ?? false,
-          isNegativePrompt: shape.isNegativePrompt ?? false,
-          textPromptStrength: shape.textPromptStrength ?? 4.5,
-          aspectRatio: shape.aspectRatio,
         };
+
+        let newShape: Shape;
+
+        // Apply type-specific properties based on shape type
+        if (shape.type === "image") {
+          const imageShape = shape as ImageShape;
+          newShape = {
+            ...newShapeBase,
+            depthStrength: imageShape.depthStrength ?? 0.25,
+            edgesStrength: imageShape.edgesStrength ?? 0.25,
+            contentStrength: imageShape.contentStrength ?? 0.25,
+            poseStrength: imageShape.poseStrength ?? 0.25,
+            sketchStrength: imageShape.sketchStrength ?? 0.25,
+            imagePromptStrength: imageShape.imagePromptStrength ?? 0.25,
+            showDepth: imageShape.showDepth ?? false,
+            showEdges: imageShape.showEdges ?? false,
+            showPose: imageShape.showPose ?? false,
+            showSketch: imageShape.showSketch ?? false,
+            showImagePrompt: imageShape.showImagePrompt ?? false,
+            aspectRatio: imageShape.aspectRatio,
+          } as ImageShape;
+        } else if (shape.type === "sticky") {
+          const stickyShape = shape as StickyNoteShape;
+          newShape = {
+            ...newShapeBase,
+            isEditing: true,
+            showPrompt: stickyShape.showPrompt ?? false,
+            showNegativePrompt: stickyShape.showNegativePrompt ?? false,
+            isTextPrompt: stickyShape.isTextPrompt ?? false,
+            isNegativePrompt: stickyShape.isNegativePrompt ?? false,
+            textPromptStrength: stickyShape.textPromptStrength ?? 4.5,
+            content: stickyShape.content || "Double-Click to Edit...",
+            isNew: true,
+          } as StickyNoteShape;
+        } else {
+          newShape = newShapeBase;
+        }
   
         console.log('New shape created with ID:', newShape.id);
-        console.log('New shape isTextPrompt:', newShape.isTextPrompt);
-        console.log('Adding new shape:', newShape.type, 'isTextPrompt:', newShape.isTextPrompt);
+        if (newShape.type === "sticky") {
+          console.log('New shape isTextPrompt:', (newShape as StickyNoteShape).isTextPrompt);
+          console.log('Adding new shape:', newShape.type, 'isTextPrompt:', (newShape as StickyNoteShape).isTextPrompt);
+        }
         
         // Special handling for sticky notes with text prompt
         let updatedShapes = [...state.shapes];
         
         // If this is a new sticky with isTextPrompt=true, disable all other sticky prompts
-        if (shape.type === "sticky" && shape.isTextPrompt) {
+        if (shape.type === "sticky" && (shape as StickyNoteShape).isTextPrompt) {
           console.log('SPECIAL CASE TRIGGERED: New sticky note with isTextPrompt=true');
           console.log('Disabling text prompts on all other sticky notes...');
           
           const stickyNotesWithTextPrompt = state.shapes.filter(s => 
-            s.type === "sticky" && s.isTextPrompt
+            s.type === "sticky" && (s as StickyNoteShape).isTextPrompt
           );
           console.log('Found', stickyNotesWithTextPrompt.length, 'sticky notes with text prompt enabled');
           console.log('These sticky notes will be updated:', stickyNotesWithTextPrompt.map(s => s.id));
           
           updatedShapes = state.shapes.map(existingShape => {
-            if (existingShape.type === "sticky" && existingShape.isTextPrompt) {
+            if (existingShape.type === "sticky" && (existingShape as StickyNoteShape).isTextPrompt) {
               console.log('Disabling text prompt on existing sticky:', existingShape.id);
               return {
                 ...existingShape,
                 isTextPrompt: false, 
-                color: existingShape.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)"
-              };
+                color: (existingShape as StickyNoteShape).isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)"
+              } as StickyNoteShape;
             }
             return existingShape;
           });
           
           // Make sure the new sticky has the right properties
-          newShape.isTextPrompt = true;
-          newShape.color = "var(--sticky-green)";
-          console.log('New sticky set with isTextPrompt=true and green color');
+          if (newShape.type === "sticky") {
+            (newShape as StickyNoteShape).isTextPrompt = true;
+            newShape.color = "var(--sticky-green)";
+            console.log('New sticky set with isTextPrompt=true and green color');
+          }
         } else {
           console.log('SPECIAL CASE NOT TRIGGERED - conditions not met:');
           console.log('shape.type === "sticky":', shape.type === "sticky");
-          console.log('shape.isTextPrompt:', shape.isTextPrompt);
+          console.log('shape.isTextPrompt:', shape.type === "sticky" ? (shape as StickyNoteShape).isTextPrompt : undefined);
         }
         
-        // Special handling for sticky notes
-        if (shape.type === "sticky") {
-          newShape.content = shape.content || "Double-Click to Edit...";
-          newShape.isNew = true;
-        }
-  
         // Add the shape to the beginning of the array
         updatedShapes = [newShape, ...updatedShapes];
         
@@ -263,7 +283,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             {
               width: shape.width,
               height: shape.height,
-              aspectRatio: shape.aspectRatio,
+              aspectRatio: shape.type === "image" ? (shape as ImageShape).aspectRatio : undefined,
               position: shape.position
             }
           );
@@ -301,16 +321,32 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       const newShapes = state.shapes.map((shape) => {
         const update = updates.find((u) => u.id === shape.id);
         if (update) {
-          return {
-            ...shape,
-            ...update.shape,
-            showDepth: update.shape.showDepth ?? shape.showDepth ?? false,
-            showEdges: update.shape.showEdges ?? shape.showEdges ?? false,
-            showPose: update.shape.showPose ?? shape.showPose ?? false,
-            showSketch: update.shape.showSketch ?? shape.showSketch ?? false,
-            showImagePrompt: update.shape.showImagePrompt ?? shape.showImagePrompt ?? false,
-            showPrompt: update.shape.showPrompt ?? shape.showPrompt ?? false,
-          };
+          // Apply updates based on shape type to avoid type errors
+          if (shape.type === "image") {
+            const imageShape = shape as ImageShape;
+            return {
+              ...imageShape,
+              ...update.shape,
+              showDepth: "showDepth" in update.shape ? update.shape.showDepth : imageShape.showDepth ?? false,
+              showEdges: "showEdges" in update.shape ? update.shape.showEdges : imageShape.showEdges ?? false,
+              showPose: "showPose" in update.shape ? update.shape.showPose : imageShape.showPose ?? false,
+              showSketch: "showSketch" in update.shape ? update.shape.showSketch : imageShape.showSketch ?? false,
+              showImagePrompt: "showImagePrompt" in update.shape ? update.shape.showImagePrompt : imageShape.showImagePrompt ?? false,
+            } as ImageShape;
+          } else if (shape.type === "sticky") {
+            const stickyShape = shape as StickyNoteShape;
+            return {
+              ...stickyShape,
+              ...update.shape,
+              showPrompt: "showPrompt" in update.shape ? update.shape.showPrompt : stickyShape.showPrompt ?? false,
+              showNegativePrompt: "showNegativePrompt" in update.shape ? update.shape.showNegativePrompt : stickyShape.showNegativePrompt ?? false,
+            } as StickyNoteShape;
+          } else {
+            return {
+              ...shape,
+              ...update.shape,
+            } as Shape;
+          }
         }
         return shape;
       });
@@ -467,25 +503,36 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       });
 
       // Create new shapes preserving control states
-      const newShapes = clipboard.map((shape) => ({
-        ...shape,
-        id: Math.random().toString(36).substr(2, 9),
-        position: {
-          x: shape.position.x + offset.x,
-          y: shape.position.y + offset.y,
-        },
-        // Preserve preview URLs and control states for image shapes
-        depthPreviewUrl:
-          shape.type === "image" ? shape.depthPreviewUrl : undefined,
-        edgePreviewUrl:
-          shape.type === "image" ? shape.edgePreviewUrl : undefined,
-        posePreviewUrl:
-          shape.type === "image" ? shape.posePreviewUrl : undefined,
-        sketchPreviewUrl:
-          shape.type === "image" ? shape.sketchPreviewUrl : undefined,
-        imagePromptPreviewUrl:
-          shape.type === "image" ? shape.imagePromptPreviewUrl : undefined,
-      }));
+      const newShapes = clipboard.map((shape) => {
+        const newShapeBase = {
+          ...shape,
+          id: Math.random().toString(36).substr(2, 9),
+          position: {
+            x: shape.position.x + offset.x,
+            y: shape.position.y + offset.y,
+          },
+        };
+
+        if (shape.type === "sticky") {
+          return {
+            ...newShapeBase,
+            isTextPrompt: true,
+            color: "var(--sticky-green)",
+          } as StickyNoteShape;
+        } else if (shape.type === "image") {
+          return {
+            ...newShapeBase,
+            // Preserve preview URLs and control states for image shapes
+            depthPreviewUrl: (shape as ImageShape).depthPreviewUrl,
+            edgePreviewUrl: (shape as ImageShape).edgePreviewUrl,
+            posePreviewUrl: (shape as ImageShape).posePreviewUrl,
+            sketchPreviewUrl: (shape as ImageShape).sketchPreviewUrl,
+            imagePromptPreviewUrl: (shape as ImageShape).imagePromptPreviewUrl,
+          } as ImageShape;
+        }
+
+        return newShapeBase;
+      });
 
       const updatedShapes = [...updatedOriginalShapes, ...newShapes];
       set({
@@ -515,16 +562,36 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       });
 
       // Create new shapes with text prompt checked for sticky notes
-      const newShapes = clipboard.map((shape) => ({
-        ...shape,
-        id: Math.random().toString(36).substr(2, 9),
-        position: {
-          x: shape.position.x + offset.x,
-          y: shape.position.y + offset.y,
-        },
-        isTextPrompt: shape.type === "sticky" ? true : shape.isTextPrompt,
-        color: shape.type === "sticky" ? "var(--sticky-green)" : shape.color,
-      }));
+      const newShapes = clipboard.map((shape) => {
+        const newShapeBase = {
+          ...shape,
+          id: Math.random().toString(36).substr(2, 9),
+          position: {
+            x: shape.position.x + offset.x,
+            y: shape.position.y + offset.y,
+          },
+        };
+
+        if (shape.type === "sticky") {
+          return {
+            ...newShapeBase,
+            isTextPrompt: true,
+            color: "var(--sticky-green)",
+          } as StickyNoteShape;
+        } else if (shape.type === "image") {
+          return {
+            ...newShapeBase,
+            // Preserve preview URLs and control states for image shapes
+            depthPreviewUrl: (shape as ImageShape).depthPreviewUrl,
+            edgePreviewUrl: (shape as ImageShape).edgePreviewUrl,
+            posePreviewUrl: (shape as ImageShape).posePreviewUrl,
+            sketchPreviewUrl: (shape as ImageShape).sketchPreviewUrl,
+            imagePromptPreviewUrl: (shape as ImageShape).imagePromptPreviewUrl,
+          } as ImageShape;
+        }
+
+        return newShapeBase;
+      });
 
       const updatedShapes = [...updatedOriginalShapes, ...newShapes];
       set({
@@ -539,14 +606,36 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
     }
 
     // Handle non-sticky note shapes as before
-    const newShapes = clipboard.map((shape) => ({
-      ...shape,
-      id: Math.random().toString(36).substr(2, 9),
-      position: {
-        x: shape.position.x + offset.x,
-        y: shape.position.y + offset.y,
-      },
-    }));
+    const newShapes = clipboard.map((shape) => {
+      const newShapeBase = {
+        ...shape,
+        id: Math.random().toString(36).substr(2, 9),
+        position: {
+          x: shape.position.x + offset.x,
+          y: shape.position.y + offset.y,
+        },
+      };
+
+      if (shape.type === "sticky") {
+        return {
+          ...newShapeBase,
+          isTextPrompt: true,
+          color: "var(--sticky-green)",
+        } as StickyNoteShape;
+      } else if (shape.type === "image") {
+        return {
+          ...newShapeBase,
+          // Preserve preview URLs and control states for image shapes
+          depthPreviewUrl: (shape as ImageShape).depthPreviewUrl,
+          edgePreviewUrl: (shape as ImageShape).edgePreviewUrl,
+          posePreviewUrl: (shape as ImageShape).posePreviewUrl,
+          sketchPreviewUrl: (shape as ImageShape).sketchPreviewUrl,
+          imagePromptPreviewUrl: (shape as ImageShape).imagePromptPreviewUrl,
+        } as ImageShape;
+      }
+
+      return newShapeBase;
+    });
 
     const updatedShapes = [...shapes, ...newShapes];
     set({
@@ -667,10 +756,10 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       const groupedShapes = state.shapes.filter((s) => shapeIds.includes(s.id));
       
       // Calculate bounds using layout utility
-      const bounds = shapeLayout.calculateGroupBounds(groupedShapes);
+      const bounds = shapeLayout.calculateGroupBounds(groupedShapes as Shape[]);
 
       // Create the group shape
-      const groupShape: Shape = {
+      const groupShape = {
         id: groupId,
         type: "group",
         position: { x: bounds.x, y: bounds.y },
@@ -682,25 +771,21 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         isEditing: false,
         model: "",
         useSettings: false,
-        contentStrength: 0,
-        sketchStrength: 0,
-        imagePromptStrength: 0,
-        depthStrength: 0,
-        edgesStrength: 0,
-        poseStrength: 0,
         groupEnabled: true,
-      };
+      } as GroupShape;
 
       // Update shapes with new groupId
       const updatedShapes = state.shapes.map((shape) =>
-        shapeIds.includes(shape.id) ? { ...shape, groupId } : shape
+        shapeIds.includes(shape.id) ? { ...shape, groupId } as Shape : shape
       );
 
+      const resultShapes = [groupShape as Shape, ...updatedShapes.filter(s => s.id !== groupId)];
+
       return {
-        shapes: [groupShape, ...updatedShapes.filter(s => s.id !== groupId)],
+        shapes: resultShapes,
         history: [
           ...state.history.slice(0, state.historyIndex + 1),
-          [groupShape, ...updatedShapes.filter(s => s.id !== groupId)],
+          resultShapes,
         ].slice(-MAX_HISTORY),
         historyIndex: state.historyIndex + 1,
       };
@@ -760,9 +845,14 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
     }),
   create3DDepth: (sourceShape: Shape) =>
     set((state) => {
-      if (!sourceShape.depthPreviewUrl) return state;
+      // Only proceed if this is an image shape with a depthPreviewUrl
+      if (sourceShape.type !== "image" || !(sourceShape as ImageShape).depthPreviewUrl) {
+        return state;
+      }
 
-      const newShape: Shape = {
+      const imageShape = sourceShape as ImageShape;
+
+      const newShape = {
         id: Math.random().toString(36).substr(2, 9),
         type: "3d",
         width: sourceShape.width,
@@ -778,8 +868,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         isEditing: false,
         color: "#ffffff",
         isOrbiting: false, 
-        imageUrl: sourceShape.imageUrl,
-        depthMap: sourceShape.depthPreviewUrl,
+        depthMap: imageShape.depthPreviewUrl,
         displacementScale: 0.5,
         orbitControls: {
           autoRotate: false,
@@ -796,19 +885,10 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           position: { x: 0, y: 0, z: 2 },
           fov: 75,
         },
-        depthStrength: 0.75,
-        edgesStrength: 0.75,
-        contentStrength: 0.75,
-        poseStrength: 0.75,
-        sketchStrength: 0.75,
-        imagePromptStrength: 0.75,
-        showDepth: false,
-        showEdges: false,
-        showPose: false,
       };
 
       return {
-        shapes: [newShape, ...state.shapes],
+        shapes: [newShape as Shape, ...state.shapes],
         selectedShapes: [newShape.id],
       };
     }),
@@ -816,7 +896,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
   updateShape: (id: string, props: Partial<Shape>) =>
     set((state) => {
       // Special case: Handle sticky note text prompt toggling
-      if (props.isTextPrompt === true) {
+      if ('isTextPrompt' in props && props.isTextPrompt === true) {
         console.log('Handling text prompt toggle to TRUE');
         
         // Find the shape we're updating
@@ -829,7 +909,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           
           // Count how many sticky notes already have text prompts enabled
           const existingPromptStickies = state.shapes.filter(
-            s => s.type === "sticky" && s.isTextPrompt && s.id !== id
+            s => s.type === "sticky" && (s as StickyNoteShape).isTextPrompt && s.id !== id
           );
           console.log('Found', existingPromptStickies.length, 'other sticky notes with text prompt enabled');
           
@@ -843,17 +923,17 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
                 ...props,
                 isNegativePrompt: false, // Can't be both text and negative prompt
                 color: "var(--sticky-green)"  // Ensure correct color
-              };
+              } as Shape;
             }
             
             // For all other sticky notes, disable text prompt
-            if (shape.type === "sticky" && shape.isTextPrompt) {
+            if (shape.type === "sticky" && (shape as StickyNoteShape).isTextPrompt) {
               console.log('Disabling text prompt on other sticky:', shape.id);
               return {
                 ...shape,
                 isTextPrompt: false,
-                color: shape.isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)"
-              };
+                color: (shape as StickyNoteShape).isNegativePrompt ? "var(--sticky-red)" : "var(--sticky-yellow)"
+              } as Shape;
             }
             
             return shape;
@@ -871,12 +951,12 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         } else {
           console.log('Target shape not found or not a sticky note');
         }
-      } else if (props.isTextPrompt === false) {
+      } else if ('isTextPrompt' in props && props.isTextPrompt === false) {
         console.log('Handling text prompt toggle to FALSE');
       }
       
       // Special case: Handle sticky note negative prompt toggling
-      if (props.isNegativePrompt === true) {
+      if ('isNegativePrompt' in props && props.isNegativePrompt === true) {
         // Find the shape we're updating
         const targetShape = state.shapes.find(shape => shape.id === id);
         
@@ -891,16 +971,16 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
                 ...props,
                 isTextPrompt: false, // Can't be both text and negative prompt
                 color: "var(--sticky-red)"  // Ensure correct color
-              };
+              } as Shape;
             }
             
             // For all other sticky notes, disable negative prompt
-            if (shape.type === "sticky" && shape.isNegativePrompt) {
+            if (shape.type === "sticky" && (shape as StickyNoteShape).isNegativePrompt) {
               return {
                 ...shape,
                 isNegativePrompt: false,
-                color: shape.isTextPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)"
-              };
+                color: (shape as StickyNoteShape).isTextPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)"
+              } as Shape;
             }
             
             return shape;
@@ -920,7 +1000,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       // Normal case - just update the shape
       const newShapes = state.shapes.map((shape) => {
         if (shape.id === id) {
-          return { ...shape, ...props };
+          return { ...shape, ...props } as Shape;
         }
         return shape;
       });
@@ -933,7 +1013,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         const groupShape = newShapes.find(s => s.id === groupId);
         
         if (groupShape && groupShape.type === "group") {
-          const bounds = shapeLayout.calculateGroupBounds(groupedShapes);
+          const bounds = shapeLayout.calculateGroupBounds(groupedShapes as Shape[]);
           
           // Find the index of the group shape and update it
           const groupIndex = newShapes.findIndex(s => s.id === groupId);
@@ -943,7 +1023,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
               position: { x: bounds.x, y: bounds.y },
               width: bounds.width,
               height: bounds.height,
-            };
+            } as Shape;
           }
         }
       }
@@ -961,7 +1041,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
   update3DSettings: (id: string, settings: Partial<Shape>) =>
     set((state) => ({
       shapes: state.shapes.map((shape) =>
-        shape.id === id ? { ...shape, ...settings } : shape
+        shape.id === id ? { ...shape, ...settings } as Shape : shape
       ),
     })),
 
@@ -993,7 +1073,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         ...shapesToAdd,
       ];
       
-      const bounds = shapeLayout.calculateGroupBounds(allGroupedShapes);
+      const bounds = shapeLayout.calculateGroupBounds(allGroupedShapes as Shape[]);
 
       // Update the group shape with new dimensions
       const updatedGroupShape = {
@@ -1001,18 +1081,20 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         position: { x: bounds.x, y: bounds.y },
         width: bounds.width,
         height: bounds.height,
-      };
+      } as GroupShape;
 
       // Update shapes with new groupId
       const updatedShapes = state.shapes.map((shape) =>
-        shapeIds.includes(shape.id) ? { ...shape, groupId } : shape
+        shapeIds.includes(shape.id) ? { ...shape, groupId } as Shape : shape
       );
 
+      const resultShapes = [updatedGroupShape as Shape, ...updatedShapes.filter(s => s.id !== groupId)];
+
       return {
-        shapes: [updatedGroupShape, ...updatedShapes.filter(s => s.id !== groupId)],
+        shapes: resultShapes,
         history: [
           ...state.history.slice(0, state.historyIndex + 1),
-          [updatedGroupShape, ...updatedShapes.filter(s => s.id !== groupId)],
+          resultShapes,
         ].slice(-MAX_HISTORY),
         historyIndex: state.historyIndex + 1,
       };
@@ -1021,11 +1103,17 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
   removeFromGroup: (shapeIds) =>
     set((state) => {
       const shapesToRemove = state.shapes.filter((s) => shapeIds.includes(s.id));
-      const groupIds = [...new Set(shapesToRemove.map(s => s.groupId))].filter(Boolean) as string[];
+      const groupIds = Array.from(
+        new Set(
+          shapesToRemove
+            .map(s => s.groupId)
+            .filter(Boolean)
+        )
+      ) as string[];
 
       // Update shapes by removing their groupId
       const updatedShapes = state.shapes.map((shape) =>
-        shapeIds.includes(shape.id) ? { ...shape, groupId: undefined } : shape
+        shapeIds.includes(shape.id) ? { ...shape, groupId: undefined } as Shape : shape
       );
 
       // Update group shapes if needed
@@ -1039,26 +1127,27 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         if (remainingGroupedShapes.length === 0) return null;
 
         // Otherwise, recalculate the group bounds based on remaining shapes
-        const bounds = shapeLayout.calculateGroupBounds(remainingGroupedShapes);
+        const bounds = shapeLayout.calculateGroupBounds(remainingGroupedShapes as Shape[]);
 
         return {
           ...groupShape,
           position: { x: bounds.x, y: bounds.y },
           width: bounds.width,
           height: bounds.height,
-        };
+        } as Shape;
       }).filter((shape): shape is Shape => shape !== null);
 
       // Combine the updated group shapes with the non-group shapes
       // Ensure we only include shapes that are not part of a deleted group
       const shapesToKeep = updatedShapes.filter(s => !groupIds.includes(s.id));
+      const resultShapes = [...updatedGroupShapes, ...shapesToKeep];
       
       return {
-        shapes: [...updatedGroupShapes, ...shapesToKeep],
+        shapes: resultShapes,
         selectedShapes: shapeIds, // Select the shapes that were removed from their group
         history: [
           ...state.history.slice(0, state.historyIndex + 1),
-          [...updatedGroupShapes, ...shapesToKeep],
+          resultShapes,
         ].slice(-MAX_HISTORY),
         historyIndex: state.historyIndex + 1,
       };
