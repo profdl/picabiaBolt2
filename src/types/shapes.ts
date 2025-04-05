@@ -106,6 +106,10 @@ export interface ImageShape extends BaseShape {
   showPose?: boolean;
   showSketch?: boolean;
   showImagePrompt?: boolean;
+  depthUrl?: string;
+  edgeUrl?: string;
+  poseUrl?: string;
+  sketchUrl?: string;
   depthMapUrl?: string;
   edgeMapUrl?: string;
   poseMapUrl?: string;

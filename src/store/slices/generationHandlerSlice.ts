@@ -995,7 +995,7 @@ export const generationHandlerSlice: StateCreator<
       // Only add ControlNet nodes if depth, edges, or pose controls are enabled
       const hasControlNetControls = shapes.some(shape => 
         (shape.showDepth || shape.showEdges || shape.showPose) && 
-        ((shape as ImageShape).depthMapUrl || (shape as ImageShape).edgeMapUrl || (shape as ImageShape).poseMapUrl)
+        ((shape as ImageShape).depthUrl || (shape as ImageShape).edgeMapUrl || (shape as ImageShape).poseMapUrl)
       );
 
       if (hasControlNetControls) {
@@ -1022,12 +1022,12 @@ export const generationHandlerSlice: StateCreator<
             currentPositiveNode = "41";
           }
 
-          if (controlShape.showDepth && (controlShape as ImageShape).depthMapUrl) {
+          if (controlShape.showDepth && (controlShape as ImageShape).depthUrl) {
             currentWorkflow["33"] = {
               ...workflow["33"],
               inputs: {
                 ...workflow["33"].inputs,
-                image: (controlShape as ImageShape).depthMapUrl,
+                image: (controlShape as ImageShape).depthUrl,
               },
             };
             currentWorkflow["32"] = workflow["32"];
