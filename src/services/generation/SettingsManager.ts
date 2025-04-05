@@ -26,8 +26,8 @@ interface Workflow {
 
 export class SettingsManager {
   private static readonly DEFAULT_SETTINGS: DiffusionSettings = {
-    steps: 20,
-    guidanceScale: 7.5,
+    steps: 30,
+    guidanceScale: 4.0,
     scheduler: "dpmpp_2m_sde",
     seed: Math.floor(Math.random() * 32767),
     outputWidth: 1344,
@@ -58,7 +58,7 @@ export class SettingsManager {
         scheduler: activeSettingsPanel.scheduler || settings.scheduler,
         seed: activeSettingsPanel.randomiseSeeds 
           ? Math.floor(Math.random() * 32767) 
-          : (activeSettingsPanel.seed || settings.seed),
+          : (activeSettingsPanel.seed || Math.floor(Math.random() * 32767)),
         model: activeSettingsPanel.model || settings.model,
         outputFormat: activeSettingsPanel.outputFormat || settings.outputFormat,
         outputQuality: activeSettingsPanel.outputQuality || settings.outputQuality,
@@ -113,7 +113,7 @@ export class SettingsManager {
     );
 
     if (hasInpainting) {
-      settings.model = "juggernautXLInpainting_xiInpainting.safetensors";
+      settings.model = "Realistic_Vision_V6.0_NV_B1_inpainting.safetensors";
       settings.scheduler = "dpmpp_2m_sde";
       settings.steps = 30;
       settings.guidanceScale = 4.0;
@@ -137,7 +137,7 @@ export class SettingsManager {
       workflow["9"].inputs.sampler_name = settings.scheduler || "dpmpp_2m_sde";
       workflow["9"].inputs.seed = settings.randomiseSeeds
         ? Math.floor(Math.random() * 32767)
-        : settings.seed || Math.floor(Math.random() * 32767);
+        : settings.seed;
     } else {
       // For regular workflow, update node 3 (KSampler)
       workflow["3"].inputs.steps = settings.steps || 20;
@@ -145,7 +145,7 @@ export class SettingsManager {
       workflow["3"].inputs.sampler_name = settings.scheduler || "dpmpp_2m_sde";
       workflow["3"].inputs.seed = settings.randomiseSeeds
         ? Math.floor(Math.random() * 32767)
-        : settings.seed || Math.floor(Math.random() * 32767);
+        : settings.seed;
     }
 
     // Update image dimensions if EmptyLatentImage node exists

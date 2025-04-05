@@ -1,7 +1,7 @@
 {
     "1": {
       "inputs": {
-        "ckpt_name": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+        "ckpt_name": "juggernautXLInpainting_xiInpainting.safetensors"
       },
       "class_type": "CheckpointLoaderSimple"
     },

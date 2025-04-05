@@ -248,9 +248,40 @@ export const generationHandlerSlice: StateCreator<
           currentWorkflow["1"] = {
             ...currentWorkflow["1"],
             inputs: {
-              ...currentWorkflow["1"].inputs,
-              ckpt_name: "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+              ckpt_name: "juggernautXLInpainting_xiInpainting.safetensors"
             }
+          };
+          
+          // Update default settings for Juggernaut XL Inpaint
+          const defaultInpaintSettings = {
+            steps: 80,
+            guidanceScale: 7.5,
+            scheduler: "dpmpp_2m_karras",
+            denoise: 0.95
+          };
+          
+          // Update workflow with optimized inpainting settings
+          currentWorkflow["9"] = {
+            inputs: {
+              model: ["1", 0],
+              positive: ["2", 0],
+              negative: ["3", 0],
+              latent_image: ["5", 0],
+              mask: ["7a", 0],
+              denoise: defaultInpaintSettings.denoise,
+              seed: activeSettings.seed || Math.floor(Math.random() * 1000000),
+              steps: defaultInpaintSettings.steps,
+              cfg: defaultInpaintSettings.guidanceScale,
+              sampler_name: defaultInpaintSettings.scheduler,
+              scheduler: "normal",
+              add_noise: "enable",
+              noise_seed: activeSettings.seed || Math.floor(Math.random() * 1000000),
+              noise_weight: 1.0,
+              start_at_step: 0,
+              end_at_step: 10000,
+              return_with_leftover_noise: "disable"
+            },
+            class_type: "KSamplerAdvanced"
           };
           
           // Upload images to Supabase
@@ -307,10 +338,42 @@ export const generationHandlerSlice: StateCreator<
             class_type: "InvertMask"
           };
           
-          // Make sure SetLatentNoiseMask is correctly configured with inverted mask
+          // Replace SetLatentNoiseMask with KSamplerAdvanced for inpainting
           if (currentWorkflow["8"] && currentWorkflow["8"].class_type === "SetLatentNoiseMask") {
-            // Update to use inverted mask
-            currentWorkflow["8"].inputs.mask = ["7a", 0];
+            // Remove the old SetLatentNoiseMask node
+            delete currentWorkflow["8"];
+            
+            // Add SetLatentNoiseMask node
+            currentWorkflow["8"] = {
+              inputs: {
+                samples: ["5", 0],
+                mask: ["7a", 0]
+              },
+              class_type: "SetLatentNoiseMask"
+            };
+            
+            // Add KSamplerAdvanced node for inpainting
+            currentWorkflow["9"] = {
+              inputs: {
+                model: ["1", 0],
+                positive: ["2", 0],
+                negative: ["3", 0],
+                latent_image: ["8", 0],
+                denoise: strength,
+                seed: activeSettings.seed || Math.floor(Math.random() * 1000000),
+                steps: activeSettings.steps || 20,
+                cfg: activeSettings.guidanceScale || 7.5,
+                sampler_name: activeSettings.scheduler || "dpmpp_2m_sde",
+                scheduler: "normal",
+                add_noise: "enable",
+                noise_seed: activeSettings.seed || Math.floor(Math.random() * 1000000),
+                noise_weight: 1.0,
+                start_at_step: 0,
+                end_at_step: 10000,
+                return_with_leftover_noise: "disable"
+              },
+              class_type: "KSamplerAdvanced"
+            };
           }
         } catch (error) {
           console.error('Error preparing canvases for inpainting:', error);
