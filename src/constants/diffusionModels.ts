@@ -6,7 +6,8 @@ export type ModelName =
     | 'proteusV0_5'
     | 'sd_xl_base_1_0'
     | 'realismEngineSDXL_v30VAE'
-    | 'copaxTimelessxlSDXL1_v122';
+    | 'copaxTimelessxlSDXL1_v122'
+    | 'juggernautXLInpainting_xiInpainting';
 
 export interface ModelDefaults {
     steps: number;
@@ -54,6 +55,11 @@ export const modelDefaults: Record<ModelName, ModelDefaults> = {
         steps: 28,
         guidanceScale: 7.0,
         scheduler: 'euler'
+    },
+    juggernautXLInpainting_xiInpainting: {
+        steps: 40,
+        guidanceScale: 7.5,
+        scheduler: 'euler_ancestral'
     }
 };
 

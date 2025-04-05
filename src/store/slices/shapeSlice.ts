@@ -95,32 +95,6 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
 
     addShape: (shape: Shape) =>
       set((state) => {
-        console.log('========== START addShape ==========');
-        console.log('Adding shape type:', shape.type);
-        console.log('Shape properties:', {
-          id: shape.id,
-          isTextPrompt: shape.type === "sticky" ? (shape as StickyNoteShape).isTextPrompt : undefined,
-          color: shape.color,
-          type: shape.type
-        });
-        
-        // Log existing sticky notes before any changes
-        const existingStickies = state.shapes.filter(s => s.type === "sticky") as StickyNoteShape[];
-        console.log('Existing sticky notes before update:', existingStickies.length);
-        console.log('Existing sticky notes with text prompt:', 
-          existingStickies.filter(s => s.isTextPrompt).length);
-        console.log('Existing sticky details:', existingStickies.map(s => ({
-          id: s.id,
-          isTextPrompt: s.isTextPrompt,
-          color: s.color
-        })));
-        
-        // For sticky notes, handle text prompts properly
-        if (shape.type === "sticky") {
-          console.log('Adding a sticky note, checking text prompt settings');
-          console.log('This sticky note isTextPrompt:', (shape as StickyNoteShape).isTextPrompt);
-        }
-        
         // Get standardized dimensions and position
         const { position, width, height } = shapeManagement.prepareShapeAddition(
           state.shapes,
@@ -131,7 +105,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             position: shape.position
           }
         );
-  
+
         // Create new shape with standardized positioning and existing properties
         const newShapeBase = {
           ...shape,
@@ -176,30 +150,14 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         } else {
           newShape = newShapeBase;
         }
-  
-        console.log('New shape created with ID:', newShape.id);
-        if (newShape.type === "sticky") {
-          console.log('New shape isTextPrompt:', (newShape as StickyNoteShape).isTextPrompt);
-          console.log('Adding new shape:', newShape.type, 'isTextPrompt:', (newShape as StickyNoteShape).isTextPrompt);
-        }
         
         // Special handling for sticky notes with text prompt
         let updatedShapes = [...state.shapes];
         
         // If this is a new sticky with isTextPrompt=true, disable all other sticky prompts
         if (shape.type === "sticky" && (shape as StickyNoteShape).isTextPrompt) {
-          console.log('SPECIAL CASE TRIGGERED: New sticky note with isTextPrompt=true');
-          console.log('Disabling text prompts on all other sticky notes...');
-          
-          const stickyNotesWithTextPrompt = state.shapes.filter(s => 
-            s.type === "sticky" && (s as StickyNoteShape).isTextPrompt
-          );
-          console.log('Found', stickyNotesWithTextPrompt.length, 'sticky notes with text prompt enabled');
-          console.log('These sticky notes will be updated:', stickyNotesWithTextPrompt.map(s => s.id));
-          
           updatedShapes = state.shapes.map(existingShape => {
             if (existingShape.type === "sticky" && (existingShape as StickyNoteShape).isTextPrompt) {
-              console.log('Disabling text prompt on existing sticky:', existingShape.id);
               return {
                 ...existingShape,
                 isTextPrompt: false, 
@@ -213,52 +171,35 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
           if (newShape.type === "sticky") {
             (newShape as StickyNoteShape).isTextPrompt = true;
             newShape.color = "var(--sticky-green)";
-            console.log('New sticky set with isTextPrompt=true and green color');
           }
-        } else {
-          console.log('SPECIAL CASE NOT TRIGGERED - conditions not met:');
-          console.log('shape.type === "sticky":', shape.type === "sticky");
-          console.log('shape.isTextPrompt:', shape.type === "sticky" ? (shape as StickyNoteShape).isTextPrompt : undefined);
         }
         
         // Add the shape to the beginning of the array
         updatedShapes = [newShape, ...updatedShapes];
         
-        // Log the final state of sticky notes after all updates
-        const updatedStickies = updatedShapes.filter(s => s.type === "sticky");
-        console.log('Sticky notes after update:', updatedStickies.length);
-        console.log('Sticky notes with text prompt after update:', 
-          updatedStickies.filter(s => s.isTextPrompt).length);
-        console.log('Sticky details after update:', updatedStickies.map(s => ({
-          id: s.id,
-          isTextPrompt: s.isTextPrompt,
-          color: s.color
-        })));
-        console.log('========== END addShape ==========');
-  
         // Calculate centering offset for the new shape
         const centeringOffset = shapeManagement.calculateCenteringOffset(newShape, state.zoom);
-  
+
         // Animate to the new center position
-      const startOffset = state.offset;
-      const duration = 500;
-      const start = performance.now();
+        const startOffset = state.offset;
+        const duration = 500;
+        const start = performance.now();
 
-      const animate = (currentTime: number) => {
-        const progress = Math.min((currentTime - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
+        const animate = (currentTime: number) => {
+          const progress = Math.min((currentTime - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
 
-        const currentOffset = {
-          x: startOffset.x + (centeringOffset.x - startOffset.x) * eased,
-          y: startOffset.y + (centeringOffset.y - startOffset.y) * eased
+          const currentOffset = {
+            x: startOffset.x + (centeringOffset.x - startOffset.x) * eased,
+            y: startOffset.y + (centeringOffset.y - startOffset.y) * eased
+          };
+
+          set(state => ({ ...state, offset: currentOffset }));
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          }
         };
-
-        set(state => ({ ...state, offset: currentOffset }));
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        }
-      };
   
         requestAnimationFrame(animate);
   
@@ -803,27 +744,20 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
     set((state) => {
       // Special case: Handle sticky note text prompt toggling
       if ('isTextPrompt' in props && props.isTextPrompt === true) {
-        console.log('Handling text prompt toggle to TRUE');
-        
         // Find the shape we're updating
         const targetShape = state.shapes.find(shape => shape.id === id);
-        console.log('Target shape found:', targetShape?.id, 'type:', targetShape?.type);
         
         // Only process for sticky notes
         if (targetShape && targetShape.type === "sticky") {
-          console.log('Processing sticky note text prompt toggle');
-          
           // Count how many sticky notes already have text prompts enabled
           const existingPromptStickies = state.shapes.filter(
             s => s.type === "sticky" && (s as StickyNoteShape).isTextPrompt && s.id !== id
           );
-          console.log('Found', existingPromptStickies.length, 'other sticky notes with text prompt enabled');
           
           // First, disable isTextPrompt on all other sticky notes 
           const newShapes = state.shapes.map((shape) => {
             // Skip the shape we're currently updating
             if (shape.id === id) {
-              console.log('Updating current sticky:', id);
               return {
                 ...shape,
                 ...props,
@@ -834,7 +768,6 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             
             // For all other sticky notes, disable text prompt
             if (shape.type === "sticky" && (shape as StickyNoteShape).isTextPrompt) {
-              console.log('Disabling text prompt on other sticky:', shape.id);
               return {
                 ...shape,
                 isTextPrompt: false,
@@ -845,7 +778,6 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             return shape;
           });
           
-          console.log('Returning updated state with text prompt toggles applied');
           return {
             shapes: newShapes,
             history: [
@@ -854,52 +786,48 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
             ].slice(-MAX_HISTORY),
             historyIndex: state.historyIndex + 1,
           };
-        } else {
-          console.log('Target shape not found or not a sticky note');
         }
       } else if ('isTextPrompt' in props && props.isTextPrompt === false) {
-        console.log('Handling text prompt toggle to FALSE');
-      }
-      
-      // Special case: Handle sticky note negative prompt toggling
-      if ('isNegativePrompt' in props && props.isNegativePrompt === true) {
-        // Find the shape we're updating
-        const targetShape = state.shapes.find(shape => shape.id === id);
-        
-        // Only process for sticky notes
-        if (targetShape && targetShape.type === "sticky") {
-          // First, disable isNegativePrompt on all other sticky notes 
-          const newShapes = state.shapes.map((shape) => {
-            // Skip the shape we're currently updating
-            if (shape.id === id) {
-              return {
-                ...shape,
-                ...props,
-                isTextPrompt: false, // Can't be both text and negative prompt
-                color: "var(--sticky-red)"  // Ensure correct color
-              } as Shape;
-            }
-            
-            // For all other sticky notes, disable negative prompt
-            if (shape.type === "sticky" && (shape as StickyNoteShape).isNegativePrompt) {
-              return {
-                ...shape,
-                isNegativePrompt: false,
-                color: (shape as StickyNoteShape).isTextPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)"
-              } as Shape;
-            }
-            
-            return shape;
-          });
+        // Special case: Handle sticky note negative prompt toggling
+        if ('isNegativePrompt' in props && props.isNegativePrompt === true) {
+          // Find the shape we're updating
+          const targetShape = state.shapes.find(shape => shape.id === id);
           
-          return {
-            shapes: newShapes,
-            history: [
-              ...state.history.slice(0, state.historyIndex + 1),
-              newShapes,
-            ].slice(-MAX_HISTORY),
-            historyIndex: state.historyIndex + 1,
-          };
+          // Only process for sticky notes
+          if (targetShape && targetShape.type === "sticky") {
+            // First, disable isNegativePrompt on all other sticky notes 
+            const newShapes = state.shapes.map((shape) => {
+              // Skip the shape we're currently updating
+              if (shape.id === id) {
+                return {
+                  ...shape,
+                  ...props,
+                  isTextPrompt: false, // Can't be both text and negative prompt
+                  color: "var(--sticky-red)"  // Ensure correct color
+                } as Shape;
+              }
+              
+              // For all other sticky notes, disable negative prompt
+              if (shape.type === "sticky" && (shape as StickyNoteShape).isNegativePrompt) {
+                return {
+                  ...shape,
+                  isNegativePrompt: false,
+                  color: (shape as StickyNoteShape).isTextPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)"
+                } as Shape;
+              }
+              
+              return shape;
+            });
+            
+            return {
+              shapes: newShapes,
+              history: [
+                ...state.history.slice(0, state.historyIndex + 1),
+                newShapes,
+              ].slice(-MAX_HISTORY),
+              historyIndex: state.historyIndex + 1,
+            };
+          }
         }
       }
       

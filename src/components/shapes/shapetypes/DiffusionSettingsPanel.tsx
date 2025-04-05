@@ -90,6 +90,9 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                   <option value="copaxTimelessxlSDXL1_v122">
                     Copax Timeless XL v1.22
                   </option>
+                  <option value="juggernautXLInpainting_xiInpainting">
+                    Juggernaut XL Inpainting
+                  </option>
                 </select>
               </div>
 

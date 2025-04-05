@@ -105,20 +105,6 @@ export class SettingsManager {
       }
     }
 
-    // Special case: If using inpainting, adjust model and settings
-    const hasInpainting = shapes.some(shape => 
-      shape.type === "image" && 
-      shape.makeVariations && 
-      this.hasActiveMask(shape)
-    );
-
-    if (hasInpainting) {
-      settings.model = "Realistic_Vision_V6.0_NV_B1_inpainting.safetensors";
-      settings.scheduler = "dpmpp_2m_sde";
-      settings.steps = 30;
-      settings.guidanceScale = 4.0;
-    }
-
     return settings;
   }
 

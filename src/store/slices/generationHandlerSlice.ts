@@ -254,10 +254,10 @@ export const generationHandlerSlice: StateCreator<
           
           // Update default settings for Juggernaut XL Inpaint
           const defaultInpaintSettings = {
-            steps: 80,
-            guidanceScale: 7.5,
-            scheduler: "dpmpp_2m_karras",
-            denoise: 0.95
+            steps: activeSettings.steps || 40,  // Use steps from settings panel or default to 40
+            guidanceScale: stickyWithPrompt?.textPromptStrength || 7.5,  // Use strength from sticky note
+            scheduler: "dpmpp_2m_sde",
+            denoise: inpaintShape.variationStrength || 0.75  // Use variation strength from image shape
           };
           
           // Update workflow with optimized inpainting settings
