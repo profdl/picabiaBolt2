@@ -249,7 +249,7 @@ export const generationHandlerSlice: StateCreator<
             ...currentWorkflow["1"],
             inputs: {
               ...currentWorkflow["1"].inputs,
-              ckpt_name: "juggernautXLInpainting_xiInpainting.safetensors"
+              ckpt_name: "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
             }
           };
           
@@ -299,10 +299,18 @@ export const generationHandlerSlice: StateCreator<
             currentWorkflow["7"].inputs.channel = "red";
           }
           
-          // Make sure SetLatentNoiseMask is correctly configured (no inversion needed)
+          // Add InvertMask node
+          currentWorkflow["7a"] = {
+            inputs: {
+              mask: ["7", 0]
+            },
+            class_type: "InvertMask"
+          };
+          
+          // Make sure SetLatentNoiseMask is correctly configured with inverted mask
           if (currentWorkflow["8"] && currentWorkflow["8"].class_type === "SetLatentNoiseMask") {
-            // Ensure it's using the correct mask
-            currentWorkflow["8"].inputs.mask = ["7", 0];
+            // Update to use inverted mask
+            currentWorkflow["8"].inputs.mask = ["7a", 0];
           }
         } catch (error) {
           console.error('Error preparing canvases for inpainting:', error);
