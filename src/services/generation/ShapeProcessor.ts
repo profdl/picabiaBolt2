@@ -1,5 +1,6 @@
 import { Shape, Position } from "../../types";
 import { ImageShape, StickyNoteShape } from "../../types/shapes";
+import { getShapeCanvases } from "./CanvasUtils";
 
 interface ShapeDimensions {
   width: number;
@@ -290,5 +291,55 @@ export class ShapeProcessor {
         shape.isNegativePrompt === true && 
         (shape as StickyNoteShape).content !== undefined
     );
+  }
+
+  /**
+   * Checks if a shape has a valid inpainting mask (contains both black and white pixels)
+   */
+  static hasValidInpaintMask(shape: Shape): boolean {
+    // Only image shapes can have inpainting masks
+    if (shape.type !== "image" && shape.type !== "sketchpad") {
+      return false;
+    }
+    
+    // Get canvases for the shape
+    const canvases = getShapeCanvases(shape.id);
+    
+    // Need both preview and mask canvases
+    if (!canvases.mask || !canvases.preview) {
+      return false;
+    }
+    
+    // Check mask for black pixels
+    const ctx = canvases.mask.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return false;
+    
+    const imageData = ctx.getImageData(0, 0, canvases.mask.width, canvases.mask.height);
+    const data = imageData.data;
+    
+    let hasBlack = false;
+    let hasWhite = false;
+    
+    // Check pixels - need both black and white for valid inpainting
+    for (let i = 0; i < data.length; i += 4) {
+      const alpha = data[i+3];
+      
+      // Check for black areas (transparent in mask)
+      if (alpha < 10) {
+        hasBlack = true;
+      }
+      // Check for white areas (opaque in mask)
+      else if (alpha > 240) {
+        hasWhite = true;
+      }
+      
+      // If we found both black and white areas, this is a valid inpainting mask
+      if (hasBlack && hasWhite) {
+        return true;
+      }
+    }
+    
+    // If we got here, the mask doesn't have both black and white
+    return false;
   }
 } 

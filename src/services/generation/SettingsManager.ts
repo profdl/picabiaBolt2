@@ -126,13 +126,29 @@ export class SettingsManager {
    * Updates workflow with current settings
    */
   static updateWorkflowWithSettings(workflow: Workflow, settings: DiffusionSettings): void {
-    workflow["3"].inputs.steps = settings.steps || 20;
-    workflow["3"].inputs.cfg = settings.guidanceScale || 7.5;
-    workflow["3"].inputs.sampler_name = settings.scheduler || "dpmpp_2m_sde";
-    workflow["3"].inputs.seed = settings.randomiseSeeds
-      ? Math.floor(Math.random() * 32767)
-      : settings.seed || Math.floor(Math.random() * 32767);
+    // Check if this is an inpainting workflow by looking for SetLatentNoiseMask node 8
+    const isInpaintingWorkflow = workflow["8"] && workflow["8"].class_type === "SetLatentNoiseMask";
+    
+    // Update the correct KSampler node (3 for regular workflow, 9 for inpainting workflow)
+    if (isInpaintingWorkflow) {
+      // For inpainting workflow, update node 9 (KSampler)
+      workflow["9"].inputs.steps = settings.steps || 30;
+      workflow["9"].inputs.cfg = settings.guidanceScale || 4.0;
+      workflow["9"].inputs.sampler_name = settings.scheduler || "dpmpp_2m_sde";
+      workflow["9"].inputs.seed = settings.randomiseSeeds
+        ? Math.floor(Math.random() * 32767)
+        : settings.seed || Math.floor(Math.random() * 32767);
+    } else {
+      // For regular workflow, update node 3 (KSampler)
+      workflow["3"].inputs.steps = settings.steps || 20;
+      workflow["3"].inputs.cfg = settings.guidanceScale || 7.5;
+      workflow["3"].inputs.sampler_name = settings.scheduler || "dpmpp_2m_sde";
+      workflow["3"].inputs.seed = settings.randomiseSeeds
+        ? Math.floor(Math.random() * 32767)
+        : settings.seed || Math.floor(Math.random() * 32767);
+    }
 
+    // Update image dimensions if EmptyLatentImage node exists
     if (workflow["34"]) {
       workflow["34"].inputs.width = settings.outputWidth || 1344;
       workflow["34"].inputs.height = settings.outputHeight || 768;

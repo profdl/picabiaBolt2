@@ -1,6 +1,7 @@
 import { StateCreator } from "zustand";
 import { createClient } from "@supabase/supabase-js";
 import multiControlWorkflow from "../../lib/generateWorkflow.json";
+import inpaintWorkflow from "../../lib/inpaintWorkflow.json";
 import { Shape, Position } from "../../types";
 import { ImageShape } from "../../types/shapes";
 import { RealtimeChannel } from "@supabase/supabase-js";
@@ -9,6 +10,7 @@ import { createDatabaseRecord, setupGenerationSubscription, uploadImageToStorage
 import {
   getShapeCanvases,
   prepareCanvasesForGeneration,
+  prepareCanvasesForInpainting,
   canvasToBlob
 } from "../../services/generation/CanvasUtils";
 import { ShapeProcessor } from "../../services/generation/ShapeProcessor";
@@ -202,171 +204,263 @@ export const generationHandlerSlice: StateCreator<
     }));
 
     try {
-      // Initialize the base workflow
-      const baseWorkflow: Workflow = {
-        "3": workflow["3"],
-        "4": workflow["4"],
-        "6": workflow["6"],
-        "7": workflow["7"],
-        "8": workflow["8"],
-        "9": workflow["9"],
-      };
+      // Check for inpainting case - look for shapes with valid inpaint masks
+      const shapesWithInpaintMasks = shapes.filter(shape => 
+        shape.type === "image" && 
+        ShapeProcessor.hasValidInpaintMask(shape)
+      );
+      
+      // If we have a shape with a valid inpaint mask, use the inpaint workflow
+      const useInpaintWorkflow = shapesWithInpaintMasks.length > 0;
+      
+      // Initialize the base workflow - either normal or inpaint
+      const baseWorkflow: Workflow = useInpaintWorkflow 
+        ? JSON.parse(JSON.stringify(inpaintWorkflow))
+        : {
+            "3": workflow["3"],
+            "4": workflow["4"],
+            "6": workflow["6"],
+            "7": workflow["7"],
+            "8": workflow["8"],
+            "9": workflow["9"],
+          };
 
       // Initialize the current workflow
       const currentWorkflow: Workflow = { ...baseWorkflow };
-      let currentPositiveNode = "6";
+      
+      // Default positive node - will be updated based on workflow
+      let currentPositiveNode = useInpaintWorkflow ? "2" : "6";
       let currentModelNode = ["4", 0];
 
-      // Handle variation shape if present
-      if (variationShape) {
-        const canvases = getShapeCanvases(variationShape.id);
+      // Handle shape with inpaint mask if present
+      if (useInpaintWorkflow) {
+        const inpaintShape = shapesWithInpaintMasks[0]; // Use the first shape with inpaint mask
         
-        if (!canvases.preview) {
-          console.error('Preview canvas not found for variation shape');
-          return;
-        }
-
         try {
-          // Prepare canvases for generation
-          const { sourceBlob, maskBlob, hasBlackPixels } = await prepareCanvasesForGeneration(variationShape);
-
-          if (!sourceBlob) {
-            throw new Error('Failed to create source blob');
+          // Use specialized inpainting canvas preparation
+          const { sourceBlob, maskBlob } = await prepareCanvasesForInpainting(inpaintShape);
+          
+          if (!sourceBlob || !maskBlob) {
+            throw new Error('Failed to create source or mask blob');
           }
-
+          
+          // Set the specific inpainting model for better results
+          currentWorkflow["1"] = {
+            ...currentWorkflow["1"],
+            inputs: {
+              ...currentWorkflow["1"].inputs,
+              ckpt_name: "juggernautXLInpainting_xiInpainting.safetensors"
+            }
+          };
+          
           // Upload images to Supabase
           const [sourceFileName, maskFileName] = [
-            `variation_source_${Math.random().toString(36).substring(2)}.png`,
-            `variation_mask_${Math.random().toString(36).substring(2)}.png`
+            `inpaint_source_${Math.random().toString(36).substring(2)}.png`,
+            `inpaint_mask_${Math.random().toString(36).substring(2)}.png`
           ];
-
+          
           const [sourceArrayBuffer, maskArrayBuffer] = await Promise.all([
             sourceBlob.arrayBuffer(),
-            maskBlob?.arrayBuffer()
+            maskBlob.arrayBuffer()
           ]);
-
+          
           const [sourceFileData, maskFileData] = [
             new Uint8Array(sourceArrayBuffer),
-            maskArrayBuffer ? new Uint8Array(maskArrayBuffer) : undefined
+            new Uint8Array(maskArrayBuffer)
           ];
-
+          
           // Upload to storage
           const [sourceUrl, maskUrl] = await Promise.all([
             uploadImageToStorage(sourceFileName, sourceFileData, "preprocessed-images"),
-            maskFileData ? uploadImageToStorage(maskFileName, maskFileData, "preprocessed-images") : undefined
+            uploadImageToStorage(maskFileName, maskFileData, "preprocessed-images")
           ]);
+          
+          // Set up inpainting nodes with our uploaded images
+          currentWorkflow["4"].inputs.image = sourceUrl;
+          currentWorkflow["6"].inputs.image = maskUrl;
+          
+          // Set prompt text in the inpainting workflow
+          const promptText = stickyWithPrompt?.content || "";
+          currentWorkflow["2"].inputs.text = promptText;
+          
+          // Set negative prompt
+          const negativePrompt = ShapeProcessor.findStickyWithNegativePrompt(shapes)?.content || "text, watermark";
+          currentWorkflow["3"].inputs.text = negativePrompt;
+          
+          // Update with strength settings
+          const strength = inpaintShape.variationStrength || 0.75;
+          currentWorkflow["9"].inputs.denoise = strength;
+          
+          // Update settings like seed, steps, etc.
+          SettingsManager.updateWorkflowWithSettings(currentWorkflow, activeSettings);
 
-          if (hasBlackPixels && maskUrl) {
-            // Set up in-painting workflow nodes
-            currentWorkflow["36"] = {
-              inputs: {
-                image: sourceUrl,
-                upload: "image",
-              },
-              class_type: "LoadImage",
-            };
-
-            currentWorkflow["37"] = {
-              inputs: {
-                image: maskUrl,
-                upload: "image",
-              },
-              class_type: "LoadImage",
-            };
-
-            // Add ImageToMask node
-            currentWorkflow["39"] = {
-              inputs: {
-                image: ["37", 0],
-                method: "red",
-                channel: "red"
-              },
-              class_type: "ImageToMask",
-            };
-
-            // Add InvertMask node
-            currentWorkflow["41"] = {
-              inputs: {
-                mask: ["39", 0]
-              },
-              class_type: "InvertMask",
-            };
-
-            currentWorkflow["38"] = {
-              inputs: {
-                pixels: ["36", 0],
-                vae: ["4", 2]
-              },
-              class_type: "VAEEncode",
-            };
-
-            // Add SetLatentNoiseMask node
-            currentWorkflow["40"] = {
-              inputs: {
-                samples: ["38", 0],
-                mask: ["41", 0]
-              },
-              class_type: "SetLatentNoiseMask",
-            };
-
-            // Update the KSampler
-            currentWorkflow["3"].inputs.latent_image = ["40", 0];
-            currentWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.8;
-          } else {
-            // Set up regular image-to-image workflow nodes
-            currentWorkflow["36"] = {
-              inputs: {
-                image: sourceUrl,
-                upload: "image",
-              },
-              class_type: "LoadImage",
-            };
-
-            currentWorkflow["38"] = {
-              inputs: {
-                pixels: ["36", 0],
-                vae: ["4", 2]
-              },
-              class_type: "VAEEncode",
-            };
-
-            // Update the KSampler
-            currentWorkflow["3"].inputs.latent_image = ["38", 0];
-            currentWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+          // Configure ImageToMask node to correctly interpret our mask
+          if (currentWorkflow["7"] && currentWorkflow["7"].class_type === "ImageToMask") {
+            currentWorkflow["7"].inputs.channel = "red";
+          }
+          
+          // Make sure SetLatentNoiseMask is correctly configured (no inversion needed)
+          if (currentWorkflow["8"] && currentWorkflow["8"].class_type === "SetLatentNoiseMask") {
+            // Ensure it's using the correct mask
+            currentWorkflow["8"].inputs.mask = ["7", 0];
           }
         } catch (error) {
-          console.error('Error preparing canvases:', error);
-          set({ error: 'Failed to prepare canvases for generation' });
+          console.error('Error preparing canvases for inpainting:', error);
+          set({ error: 'Failed to prepare canvases for inpainting' });
           return;
         }
       } else {
-        // Use EmptyLatentImage when no variation shape is present
-        currentWorkflow["34"] = {
-          inputs: {
-            width: activeSettings.outputWidth || 1344,
-            height: activeSettings.outputHeight || 768,
-            batch_size: 1
-          },
-          class_type: "EmptyLatentImage",
-        };
-        currentWorkflow["3"].inputs.latent_image = ["34", 0];
-        currentWorkflow["3"].inputs.denoise = 1;
+        // Handle variation shape if present
+        if (variationShape) {
+          const canvases = getShapeCanvases(variationShape.id);
+          
+          if (!canvases.preview) {
+            console.error('Preview canvas not found for variation shape');
+            return;
+          }
+
+          try {
+            // Prepare canvases for generation
+            const { sourceBlob, maskBlob, hasBlackPixels } = await prepareCanvasesForGeneration(variationShape);
+
+            if (!sourceBlob) {
+              throw new Error('Failed to create source blob');
+            }
+
+            // Upload images to Supabase
+            const [sourceFileName, maskFileName] = [
+              `variation_source_${Math.random().toString(36).substring(2)}.png`,
+              `variation_mask_${Math.random().toString(36).substring(2)}.png`
+            ];
+
+            const [sourceArrayBuffer, maskArrayBuffer] = await Promise.all([
+              sourceBlob.arrayBuffer(),
+              maskBlob?.arrayBuffer()
+            ]);
+
+            const [sourceFileData, maskFileData] = [
+              new Uint8Array(sourceArrayBuffer),
+              maskArrayBuffer ? new Uint8Array(maskArrayBuffer) : undefined
+            ];
+
+            // Upload to storage
+            const [sourceUrl, maskUrl] = await Promise.all([
+              uploadImageToStorage(sourceFileName, sourceFileData, "preprocessed-images"),
+              maskFileData ? uploadImageToStorage(maskFileName, maskFileData, "preprocessed-images") : undefined
+            ]);
+
+            if (hasBlackPixels && maskUrl) {
+              // Set up in-painting workflow nodes
+              currentWorkflow["36"] = {
+                inputs: {
+                  image: sourceUrl,
+                  upload: "image",
+                },
+                class_type: "LoadImage",
+              };
+
+              currentWorkflow["37"] = {
+                inputs: {
+                  image: maskUrl,
+                  upload: "image",
+                },
+                class_type: "LoadImage",
+              };
+
+              // Add ImageToMask node
+              currentWorkflow["39"] = {
+                inputs: {
+                  image: ["37", 0],
+                  method: "red",
+                  channel: "red"
+                },
+                class_type: "ImageToMask",
+              };
+
+              // Add InvertMask node
+              currentWorkflow["41"] = {
+                inputs: {
+                  mask: ["39", 0]
+                },
+                class_type: "InvertMask",
+              };
+
+              currentWorkflow["38"] = {
+                inputs: {
+                  pixels: ["36", 0],
+                  vae: ["4", 2]
+                },
+                class_type: "VAEEncode",
+              };
+
+              // Add SetLatentNoiseMask node
+              currentWorkflow["40"] = {
+                inputs: {
+                  samples: ["38", 0],
+                  mask: ["41", 0]
+                },
+                class_type: "SetLatentNoiseMask",
+              };
+
+              // Update the KSampler
+              currentWorkflow["3"].inputs.latent_image = ["40", 0];
+              currentWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.8;
+            } else {
+              // Set up regular image-to-image workflow nodes
+              currentWorkflow["36"] = {
+                inputs: {
+                  image: sourceUrl,
+                  upload: "image",
+                },
+                class_type: "LoadImage",
+              };
+
+              currentWorkflow["38"] = {
+                inputs: {
+                  pixels: ["36", 0],
+                  vae: ["4", 2]
+                },
+                class_type: "VAEEncode",
+              };
+
+              // Update the KSampler
+              currentWorkflow["3"].inputs.latent_image = ["38", 0];
+              currentWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+            }
+          } catch (error) {
+            console.error('Error preparing canvases:', error);
+            set({ error: 'Failed to prepare canvases for generation' });
+            return;
+          }
+        } else {
+          // Use EmptyLatentImage when no variation shape is present
+          currentWorkflow["34"] = {
+            inputs: {
+              width: activeSettings.outputWidth || 1344,
+              height: activeSettings.outputHeight || 768,
+              batch_size: 1
+            },
+            class_type: "EmptyLatentImage",
+          };
+          currentWorkflow["3"].inputs.latent_image = ["34", 0];
+          currentWorkflow["3"].inputs.denoise = 1;
+        }
+
+        // Update workflow with settings
+        SettingsManager.updateWorkflowWithSettings(currentWorkflow, activeSettings);
+
+        // Set up the workflow nodes
+        currentWorkflow["6"].inputs.text = promptText;
+        currentWorkflow["6"].inputs.clip = ["4", 1];
+
+        const negativePrompt = ShapeProcessor.findStickyWithNegativePrompt(shapes)?.content || "text, watermark";
+        currentWorkflow["7"].inputs.text = negativePrompt;
+        currentWorkflow["7"].inputs.clip = ["4", 1];
+
+        currentWorkflow["3"].inputs.model = ["4", 0];
+        currentWorkflow["3"].inputs.positive = ["6", 0];
+        currentWorkflow["3"].inputs.negative = ["7", 0];
       }
-
-      // Update workflow with settings
-      SettingsManager.updateWorkflowWithSettings(currentWorkflow, activeSettings);
-
-      // Set up the workflow nodes
-      currentWorkflow["6"].inputs.text = promptText;
-      currentWorkflow["6"].inputs.clip = ["4", 1];
-
-      const negativePrompt = ShapeProcessor.findStickyWithNegativePrompt(shapes)?.content || "text, watermark";
-      currentWorkflow["7"].inputs.text = negativePrompt;
-      currentWorkflow["7"].inputs.clip = ["4", 1];
-
-      currentWorkflow["3"].inputs.model = ["4", 0];
-      currentWorkflow["3"].inputs.positive = ["6", 0];
-      currentWorkflow["3"].inputs.negative = ["7", 0];
 
       // Handle image reference if present
       if (imageReferenceShapes.length > 0) {
@@ -481,9 +575,20 @@ export const generationHandlerSlice: StateCreator<
           }
         }
 
-        // Only update the KSampler with the final IP adapter output if we didn't use ControlNet
-        if (!(imageReferenceShapes.some(shape => shape.isDrawing))) {
-          currentWorkflow["3"].inputs.model = currentModelNode;
+        // Only update the KSampler if not using inpainting workflow
+        if (!useInpaintWorkflow) {
+          // Only update the KSampler with the final IP adapter output if we didn't use ControlNet
+          if (!(imageReferenceShapes.some(shape => shape.isDrawing))) {
+            currentWorkflow["3"].inputs.model = currentModelNode;
+          }
+          
+          // Apply text prompt strength if available
+          if (stickyWithPrompt && stickyWithPrompt.textPromptStrength !== undefined) {
+            currentWorkflow["3"].inputs.cfg = stickyWithPrompt.textPromptStrength;
+          }
+
+          currentWorkflow["3"].inputs.positive = [currentPositiveNode, 0];
+          currentWorkflow["3"].inputs.negative = ["7", 0];
         }
       }
 
@@ -577,14 +682,6 @@ export const generationHandlerSlice: StateCreator<
           }
         }
       }
-
-      // Apply text prompt strength if available
-      if (stickyWithPrompt && stickyWithPrompt.textPromptStrength !== undefined) {
-        currentWorkflow["3"].inputs.cfg = stickyWithPrompt.textPromptStrength;
-      }
-
-      currentWorkflow["3"].inputs.positive = [currentPositiveNode, 0];
-      currentWorkflow["3"].inputs.negative = ["7", 0];
 
       const response = await fetch("/.netlify/functions/generate-image", {
         method: "POST",

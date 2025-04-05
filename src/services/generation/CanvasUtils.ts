@@ -160,4 +160,125 @@ export const prepareCanvasesForGeneration = async (shape: Shape): Promise<{
     maskBlob,
     hasBlackPixels
   };
+};
+
+/**
+ * Creates a properly formatted inpainting mask canvas (black areas will be inpainted, white preserved)
+ */
+export const createInpaintMask = (maskCanvas: HTMLCanvasElement): HTMLCanvasElement => {
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = maskCanvas.width;
+  tempCanvas.height = maskCanvas.height;
+  const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+  
+  if (!tempCtx) {
+    throw new Error('Failed to create temporary canvas context');
+  }
+
+  // First fill with white (areas to preserve)
+  tempCtx.fillStyle = '#ffffff';
+  tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+  
+  // Get mask data
+  const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+  if (!maskCtx) {
+    throw new Error('Failed to get mask canvas context');
+  }
+  
+  const imageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+  const data = imageData.data;
+  const tempImageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+  const tempData = tempImageData.data;
+  
+  // Process mask - any transparent areas in the mask become black in the inpaint mask
+  for (let i = 0; i < data.length; i += 4) {
+    // If pixel is transparent or black in mask (alpha < 10 or RGB values all < 10)
+    if (data[i+3] < 10 || (data[i] < 10 && data[i+1] < 10 && data[i+2] < 10)) {
+      // Make it black in inpaint mask (areas to inpaint)
+      tempData[i] = 0;     // R
+      tempData[i+1] = 0;   // G
+      tempData[i+2] = 0;   // B
+      tempData[i+3] = 255; // A (fully opaque)
+    } else {
+      // Otherwise make it white (areas to preserve)
+      tempData[i] = 255;   // R
+      tempData[i+1] = 255; // G
+      tempData[i+2] = 255; // B
+      tempData[i+3] = 255; // A (fully opaque)
+    }
+  }
+  
+  // Put the processed data back
+  tempCtx.putImageData(tempImageData, 0, 0);
+  
+  return tempCanvas;
+};
+
+/**
+ * Creates a clean full source image without any masking
+ */
+export const createFullSourceImage = (shape: Shape): HTMLCanvasElement => {
+  const canvases = getShapeCanvases(shape.id);
+  
+  if (!canvases.background) {
+    throw new Error('Background canvas not found for shape');
+  }
+  
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = canvases.background.width;
+  tempCanvas.height = canvases.background.height;
+  const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+  
+  if (!tempCtx) {
+    throw new Error('Failed to create temporary canvas context');
+  }
+  
+  // Draw background first
+  tempCtx.drawImage(canvases.background, 0, 0);
+  
+  // Add permanent strokes if available
+  if (canvases.permanent) {
+    tempCtx.drawImage(canvases.permanent, 0, 0);
+  }
+  
+  // Ensure the image is fully opaque
+  const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+  const data = imageData.data;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    data[i+3] = 255; // Set alpha to fully opaque
+  }
+  
+  tempCtx.putImageData(imageData, 0, 0);
+  
+  return tempCanvas;
+};
+
+/**
+ * Specialized function for preparing canvases for inpainting
+ */
+export const prepareCanvasesForInpainting = async (shape: Shape): Promise<{
+  sourceBlob: Blob;
+  maskBlob: Blob;
+}> => {
+  const canvases = getShapeCanvases(shape.id);
+  
+  if (!canvases.mask) {
+    throw new Error('Mask canvas not found for shape');
+  }
+  
+  // Create proper source and mask canvases
+  const sourceCanvas = createFullSourceImage(shape);
+  const inpaintMaskCanvas = createInpaintMask(canvases.mask);
+  
+  // Convert to blobs
+  const [sourceBlob, maskBlob] = await Promise.all([
+    canvasToBlob(sourceCanvas),
+    canvasToBlob(inpaintMaskCanvas)
+  ]);
+  
+  return {
+    sourceBlob,
+    maskBlob
+  };
 }; 

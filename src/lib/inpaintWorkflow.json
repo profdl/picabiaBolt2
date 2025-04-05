@@ -47,19 +47,19 @@
       },
       "class_type": "ImageToMask"
     },
-    "9": {
+    "8": {
       "inputs": {
         "samples": ["5", 0],
         "mask": ["7", 0]
       },
       "class_type": "SetLatentNoiseMask"
     },
-    "8": {
+    "9": {
       "inputs": {
         "model": ["1", 0],
         "positive": ["2", 0],
         "negative": ["3", 0],
-        "latent_image": ["9", 0],
+        "latent_image": ["8", 0],
         "seed": 791624662564737,
         "steps": 30,
         "cfg": 8,
@@ -71,7 +71,7 @@
     },
     "10": {
       "inputs": {
-        "samples": ["8", 0],
+        "samples": ["9", 0],
         "vae": ["1", 2]
       },
       "class_type": "VAEDecode"
