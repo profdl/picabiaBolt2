@@ -32,9 +32,9 @@ export interface SavedImage {
   updated_at: string;
   image_index: number;
   originalUrl: string;
-  depthMapUrl: string;
-  edgeMapUrl: string;
-  poseMapUrl: string;
+  depthUrl: string;
+  edgeUrl: string;
+  poseUrl: string;
   generated_01: string;
   generated_02: string;
   generated_03: string;
@@ -379,19 +379,19 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
                 </h3>
                 <div className="grid grid-cols-5 gap-1">
                   {[
-                    { url: image.depthMapUrl, label: "Depth" },
-                    { url: image.edgeMapUrl, label: "Edge" },
-                    { url: image.poseMapUrl, label: "Pose" },
+                    { url: image.depthUrl, label: "Depth" },
+                    { url: image.edgeUrl, label: "Edge" },
+                    { url: image.poseUrl, label: "Pose" },
                     { url: image.sketchMapUrl, label: "Sketch" },
-                // Split originalUrl for remix images if remix_scale is present
-    ...(image.remix_scale > 0 
-      ? image.originalUrl.split(',')
-          .map((url, index) => ({
-            url: url.trim(),
-            label: `Remix ${index + 1}`
-          }))
-      : [])
-  ]
+                    // Split originalUrl for remix images if remix_scale is present
+                    ...(image.remix_scale > 0 
+                      ? image.originalUrl.split(',')
+                          .map((url, index) => ({
+                            url: url.trim(),
+                            label: `Remix ${index + 1}`
+                          }))
+                      : [])
+                  ]
                     .filter((map) => map.url)
                     .map((map, i) => (
                       <div key={i} className="text-center">

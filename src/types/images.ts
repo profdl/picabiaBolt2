@@ -23,9 +23,9 @@ export interface SavedImage {
   updated_at: string;
   image_index: number;
   originalUrl: string;
-  depthMapUrl: string;
-  edgeMapUrl: string;
-  poseMapUrl: string;
+  depthUrl: string;
+  edgeUrl: string;
+  poseUrl: string;
   generated_01: string;
   generated_02: string;
   generated_03: string;

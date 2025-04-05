@@ -140,9 +140,9 @@ export interface CanvasProcessingActions {
   updateShapeUrls: (
     id: string,
     urls: {
-      depthMapUrl?: string;
-      edgeMapUrl?: string;
-      poseMapUrl?: string;
+      depthUrl?: string;
+      edgeUrl?: string;
+      poseUrl?: string;
       sketchMapUrl?: string;
       depthPreviewUrl?: string;
       edgePreviewUrl?: string;

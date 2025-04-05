@@ -5,6 +5,7 @@ import { Shape, Position } from "../../types";
 import { StickyNoteShape, ImageShape } from "../../types/shapes";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { findOpenSpace } from "../../utils/spaceUtils";
+import { createDatabaseRecord, setupGenerationSubscription, uploadImageToStorage } from "../../lib/database";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -372,24 +373,10 @@ export const generationHandlerSlice: StateCreator<
         new Uint8Array(maskArrayBuffer)
       ];
 
-      const [{ error: sourceUploadError }, { error: maskUploadError }] = await Promise.all([
-        supabase.storage.from("assets").upload(sourceFileName, sourceFileData, {
-          contentType: 'image/png',
-          upsert: false,
-        }),
-        supabase.storage.from("assets").upload(maskFileName, maskFileData, {
-          contentType: 'image/png',
-          upsert: false,
-        })
-      ]);
-
-      if (sourceUploadError || maskUploadError) {
-        throw new Error('Failed to upload variation images');
-      }
-
-      const [{ data: { publicUrl: sourceUrl } }, { data: { publicUrl: maskUrl } }] = await Promise.all([
-        supabase.storage.from("assets").getPublicUrl(sourceFileName),
-        supabase.storage.from("assets").getPublicUrl(maskFileName)
+      // Use our helper function to upload to the correct bucket
+      const [sourceUrl, maskUrl] = await Promise.all([
+        uploadImageToStorage(sourceFileName, sourceFileData, "preprocessed-images"),
+        uploadImageToStorage(maskFileName, maskFileData, "preprocessed-images")
       ]);
 
       if (hasBlackPixels) {
@@ -681,7 +668,6 @@ export const generationHandlerSlice: StateCreator<
       hasActivePrompt: state.hasActivePrompt,
     }));
 
-    let subscription: RealtimeChannel | null = null;
     try {
       workflow["3"].inputs.steps = activeSettings.steps || 20;
       workflow["3"].inputs.cfg = activeSettings.guidanceScale || 7.5;
@@ -746,23 +732,13 @@ export const generationHandlerSlice: StateCreator<
             }, 'image/png', 1.0);
           });
 
-          // Upload to Supabase
+          // Upload to Supabase using our helper function
           const fileName = `reference_source_${Math.random().toString(36).substring(2)}.png`;
           const arrayBuffer = await blob.arrayBuffer();
           const fileData = new Uint8Array(arrayBuffer);
 
-          const { error: uploadError } = await supabase.storage
-            .from("assets")
-            .upload(fileName, fileData, {
-              contentType: 'image/png',
-              upsert: false,
-            });
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from("assets")
-            .getPublicUrl(fileName);
+          // Use our helper function with the correct bucket
+          const publicUrl = await uploadImageToStorage(fileName, fileData, "preprocessed-images");
 
           // Check if "Image is a Drawing" is enabled
           if (imageReferenceShape.isDrawing) {
@@ -879,23 +855,13 @@ export const generationHandlerSlice: StateCreator<
           }, 'image/png', 1.0);
         });
 
-        // Upload preview image to Supabase
+        // Upload preview image to Supabase using our helper function
         const previewFileName = `variation_source_${Math.random().toString(36).substring(2)}.png`;
         const previewArrayBuffer = await previewBlob.arrayBuffer();
         const previewFileData = new Uint8Array(previewArrayBuffer);
 
-        const { error: previewUploadError } = await supabase.storage
-          .from("assets")
-          .upload(previewFileName, previewFileData, {
-            contentType: 'image/png',
-            upsert: false,
-          });
-
-        if (previewUploadError) throw previewUploadError;
-
-        const { data: { publicUrl: previewUrl } } = supabase.storage
-          .from("assets")
-          .getPublicUrl(previewFileName);
+        // Use the helper function with the correct bucket
+        const previewUrl = await uploadImageToStorage(previewFileName, previewFileData, "preprocessed-images");
 
         const hasBlackPixels = maskCanvas ? await hasBlackPixelsInMask(maskCanvas) : false;
 
@@ -995,17 +961,19 @@ export const generationHandlerSlice: StateCreator<
       // Only add ControlNet nodes if depth, edges, or pose controls are enabled
       const hasControlNetControls = shapes.some(shape => 
         (shape.showDepth || shape.showEdges || shape.showPose) && 
-        ((shape as ImageShape).depthUrl || (shape as ImageShape).edgeMapUrl || (shape as ImageShape).poseMapUrl)
+        ((shape as ImageShape).depthUrl || 
+         (shape as ImageShape).edgeUrl || 
+         (shape as ImageShape).poseUrl)
       );
 
       if (hasControlNetControls) {
         for (const controlShape of shapes) {
-          if (controlShape.showEdges && (controlShape as ImageShape).edgeMapUrl) {
+          if (controlShape.showEdges && (controlShape as ImageShape).edgeUrl) {
             currentWorkflow["12"] = {
               ...workflow["12"],
               inputs: {
                 ...workflow["12"].inputs,
-                image: (controlShape as ImageShape).edgeMapUrl,
+                image: (controlShape as ImageShape).edgeUrl,
               },
             };
             currentWorkflow["18"] = workflow["18"];
@@ -1045,11 +1013,11 @@ export const generationHandlerSlice: StateCreator<
             currentPositiveNode = "31";
           }
 
-          if (controlShape.showPose && (controlShape as ImageShape).poseMapUrl) {
+          if (controlShape.showPose && (controlShape as ImageShape).poseUrl) {
             // Add pose image loader
             currentWorkflow["37"] = {
               inputs: {
-                image: (controlShape as ImageShape).poseMapUrl,
+                image: (controlShape as ImageShape).poseUrl,
                 upload: "image",
               },
               class_type: "LoadImage",
@@ -1103,7 +1071,7 @@ export const generationHandlerSlice: StateCreator<
             imageId: variationShape.id,
             strength: variationShape.variationStrength || 0.75
           } : undefined,
-          prediction_id: prediction_id // Add the prediction ID to the request
+          prediction_id: prediction_id
         }),
       });
 
@@ -1118,84 +1086,38 @@ export const generationHandlerSlice: StateCreator<
       get().removeGeneratingPrediction(prediction_id);
       get().addGeneratingPrediction(replicatePredictionId);
 
-      // Create database record
-      const insertData = {
-        id: crypto.randomUUID(),
-        user_id: user.id,
-        prompt: promptText,
-        aspect_ratio: state.aspectRatio,
-        created_at: new Date().toISOString(),
-        prediction_id: replicatePredictionId, // Use the Replicate prediction ID
-        status: "generating",
-        updated_at: new Date().toISOString(),
-        generated_01: "",
-        generated_02: "",
-        generated_03: "",
-        generated_04: "",
-      };
+      // Create database record using the new function
+      await createDatabaseRecord(
+        user.id,
+        promptText,
+        state.aspectRatio,
+        replicatePredictionId
+      );
 
-      const { error: dbError } = await supabase
-        .from("generated_images")
-        .insert(insertData)
-        .select()
-        .single();
+      // Set up subscription using the new function
+      const newSubscription = setupGenerationSubscription(replicatePredictionId, (payload) => {
+        if (payload.status === "completed" && payload.generated_01) {
+          get().updateShape(payload.prediction_id, {
+            isUploading: false,
+            imageUrl: payload.generated_01,
+          });
+          get().removeGeneratingPrediction(payload.prediction_id);
+        } else if (payload.status === "error" || payload.status === "failed") {
+          get().updateShape(payload.prediction_id, {
+            isUploading: false,
+            color: "#ffcccb"
+          });
+          get().removeGeneratingPrediction(payload.prediction_id);
+          get().setError(payload.error_message || "Generation failed");
+        }
+      });
 
-      if (dbError) throw dbError;
-
-      // Set up subscription for updates
-      subscription = supabase
-        .channel("generated_images")
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "generated_images",
-          },
-          (payload: unknown) => {
-            const typedPayload = payload as {
-              new: {
-                status: string;
-                generated_01: string;
-                prediction_id: string;
-                updated_at: string;
-                error_message?: string;
-              };
-            };
-
-            // Handle completion regardless of window focus
-            if (
-              typedPayload.new.status === "completed" &&
-              typedPayload.new.generated_01
-            ) {
-              get().updateShape(typedPayload.new.prediction_id, {
-                isUploading: false,
-                imageUrl: typedPayload.new.generated_01,
-              });
-              get().removeGeneratingPrediction(typedPayload.new.prediction_id);
-            } else if (
-              typedPayload.new.status === "error" ||
-              typedPayload.new.status === "failed"
-            ) {
-              // Handle error states
-              get().updateShape(typedPayload.new.prediction_id, {
-                isUploading: false,
-                color: "#ffcccb" // Add a visual indicator for error
-              });
-              get().removeGeneratingPrediction(typedPayload.new.prediction_id);
-              get().setError(
-                typedPayload.new.error_message || "Generation failed"
-              );
-            }
-          }
-        )
-        .subscribe();
+      set({ subscription: newSubscription });
 
     } catch (error) {
       console.error("Error generating image:", error);
       set({
-        error:
-          error instanceof Error ? error.message : "Failed to generate image",
+        error: error instanceof Error ? error.message : "Failed to generate image",
         isGenerating: false,
       });
     } finally {
@@ -1203,7 +1125,6 @@ export const generationHandlerSlice: StateCreator<
         set({ isGenerating: false });
       }
     }
-    set({ subscription: subscription });
   },
   cancelGeneration: async (predictionId: string) => {
     try {
@@ -1218,13 +1139,9 @@ export const generationHandlerSlice: StateCreator<
         throw new Error(errorData.error || "Failed to cancel generation");
       }
 
-      // Remove the shape entirely since it's just a placeholder
       get().deleteShape(predictionId);
-      
-      // Remove from generating predictions
       get().removeGeneratingPrediction(predictionId);
 
-      // If no more generating predictions, update isGenerating state
       if (get().generatingPredictions.size === 0) {
         set({ isGenerating: false });
       }

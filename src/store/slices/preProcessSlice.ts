@@ -1,6 +1,6 @@
 import { StateCreator } from "zustand";
 import { Shape } from "../../types";
-import { supabase } from "../../lib/supabase";
+import { uploadPreprocessedImage } from "../../lib/database";
 
 interface GenerationState {
   shapes: Shape[];
@@ -118,8 +118,13 @@ export const preProcessSlice: StateCreator<
 
     try {
       const shape = state.shapes.find((s) => s.id === shapeId);
-      if (!shape?.imageUrl) {
-        throw new Error("No image URL found for shape");
+      if (!shape) {
+        throw new Error("Shape not found");
+      }
+
+      // Type guard to ensure we're working with an image shape
+      if (shape.type !== 'image') {
+        throw new Error("Shape is not an image");
       }
 
       // Get the preview canvas for the shape
@@ -139,23 +144,12 @@ export const preProcessSlice: StateCreator<
         }, 'image/png', 1.0);
       });
 
-      // Upload to Supabase
-      const fileName = `preprocess_source_${Math.random().toString(36).substring(2)}.png`;
+      // Convert blob to Uint8Array
       const arrayBuffer = await blob.arrayBuffer();
       const fileData = new Uint8Array(arrayBuffer);
 
-      const { error: uploadError } = await supabase.storage
-        .from("assets")
-        .upload(fileName, fileData, {
-          contentType: 'image/png',
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("assets")
-        .getPublicUrl(fileName);
+      // Upload to the preprocessed-images bucket using our helper
+      const publicUrl = await uploadPreprocessedImage(fileData, processType, shapeId);
 
       // Set preprocessing state immediately
       set((state) => ({
