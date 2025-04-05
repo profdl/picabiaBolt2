@@ -2,19 +2,17 @@ import { StateCreator } from "zustand";
 import { createClient } from "@supabase/supabase-js";
 import multiControlWorkflow from "../../lib/generateWorkflow.json";
 import { Shape, Position } from "../../types";
-import { StickyNoteShape, ImageShape } from "../../types/shapes";
+import { ImageShape } from "../../types/shapes";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { findOpenSpace } from "../../utils/spaceUtils";
 import { createDatabaseRecord, setupGenerationSubscription, uploadImageToStorage } from "../../lib/database";
 import {
-  getShapeDimensions,
-  hasEnabledToggles,
-  findTopRightMostShapeWithToggles,
-  calculateImageShapeDimensions,
-  calculateAverageAspectRatio,
-  hasBlackPixelsInMask,
-  findStickyWithPrompt
-} from "../generation/shapeProcessing";
+  getShapeCanvases,
+  prepareCanvasesForGeneration,
+  canvasToBlob
+} from "../../services/generation/CanvasUtils";
+import { ShapeProcessor } from "../../services/generation/ShapeProcessor";
+import { SettingsManager } from "../../services/generation/SettingsManager";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -76,273 +74,22 @@ export const generationHandlerSlice: StateCreator<
       });
     }
 
-    const activeSettings = shapes.find(
-      (shape) => shape.type === "diffusionSettings" && shape.useSettings
-    ) || {
-      steps: 30,
-      guidanceScale: 4.5,
-      scheduler: "dpmpp_2m_sde",
-      seed: Math.floor(Math.random() * 32767),
-      outputWidth: null,
-      outputHeight: null,
-      model: "juggernautXL_v9",
-      outputFormat: "png",
-      outputQuality: 100,
-      randomiseSeeds: true,
-    };
+    // Get active settings using SettingsManager
+    const activeSettings = SettingsManager.getActiveSettings(shapes);
 
-    // Find both variation and image reference shapes
+    // Find variation shape
     const variationShape = shapes.find(s => s.type === "image" && s.makeVariations);
-    const imageReferenceShape = shapes.find(s => s.type === "image" && s.showImagePrompt);
-
-    // Calculate dimensions based on enabled shapes
-    const calculatedDimensions = calculateAverageAspectRatio(shapes);
-    
-    // If no dimensions calculated but we have a text prompt, use default dimensions
-    if (!calculatedDimensions) {
-      const stickyWithPrompt = findStickyWithPrompt(shapes);
-
-      if (!stickyWithPrompt?.content) {
-        set({ error: "Please select either a text prompt, image controls, or enable variations." });
-        return;
-      }
-
-      // Use default dimensions for text-only generation
-      activeSettings.outputWidth = 512;
-      activeSettings.outputHeight = 512;
-    } else {
-      // Update the workflow with the calculated dimensions
-      workflow["34"].inputs.width = calculatedDimensions.width;
-      workflow["34"].inputs.height = calculatedDimensions.height;
-    }
 
     // Handle image reference if present
     const imageReferenceShapes = shapes.filter(s => s.type === "image" && s.showImagePrompt);
 
-    // Handle dimensions based on active shapes
-    // First check if we have an active DiffusionSettingsPanel with dimensions
-    if (activeSettings.outputWidth && activeSettings.outputHeight) {
-      // Use the DiffusionSettingsPanel dimensions
-      // No need to modify activeSettings as it already has the correct dimensions
-    } else if (variationShape) {
-      // Use the dimensions from the variation source image
-      const dimensions = calculateImageShapeDimensions(variationShape.width, variationShape.height);
-      activeSettings.outputWidth = dimensions.width;
-      activeSettings.outputHeight = dimensions.height;
-
-      // Get the preview canvas and mask canvas for the variation shape
-      const previewCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="preview"]`) as HTMLCanvasElement;
-      const maskCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="mask"]`) as HTMLCanvasElement;
-      const backgroundCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="background"]`) as HTMLCanvasElement;
-      const permanentStrokesCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="permanent"]`) as HTMLCanvasElement;
-      
-      if (!previewCanvas || !maskCanvas || !backgroundCanvas) {
-        console.error('Required canvases not found for variation shape');
-        return;
-      }
-
-      // Check if there are any black pixels in the mask
-      const hasBlackPixels = await hasBlackPixelsInMask(maskCanvas);
-
-      // If there are black pixels, update settings for inpainting model
-      if (hasBlackPixels) {
-        activeSettings.model = "juggernautXLInpainting_xiInpainting.safetensors";
-        activeSettings.scheduler = "dpmpp_2m_sde";
-        activeSettings.steps = 30;
-        activeSettings.guidanceScale = 4.0;
-        // Keep the variation strength as is, since it's already being used as denoise
-      }
-
-      // Create a temporary canvas to combine background and permanent strokes without mask
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = previewCanvas.width;
-      tempCanvas.height = previewCanvas.height;
-      const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-      if (!tempCtx) {
-        console.error('Failed to create temporary canvas context');
-        return;
-      }
-
-      // Draw background first
-      tempCtx.drawImage(backgroundCanvas, 0, 0);
-      
-      // Draw permanent strokes on top
-      if (permanentStrokesCanvas) {
-        tempCtx.drawImage(permanentStrokesCanvas, 0, 0);
-      }
-
-      // Ensure the mask is binary before creating the blob
-      const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
-      if (maskCtx) {
-        const imageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-        const data = imageData.data;
-        
-        // Process each pixel to ensure it's either fully opaque white or fully transparent
-        for (let i = 0; i < data.length; i += 4) {
-          // Check alpha channel (index i+3)
-          const alpha = data[i+3] / 255; // Normalize to 0-1 range
-          
-          // Apply threshold - if over threshold, make fully opaque white, otherwise fully transparent
-          if (alpha > 0.5) {
-            // Fully opaque white
-            data[i] = 255;     // R
-            data[i+1] = 255;   // G
-            data[i+2] = 255;   // B
-            data[i+3] = 255;   // A
-          } else {
-            // Fully transparent
-            data[i+3] = 0;     // A
-          }
-        }
-        
-        // Put the modified pixel data back on the canvas
-        maskCtx.putImageData(imageData, 0, 0);
-      }
-
-      // Create blobs from both canvases
-      const [sourceBlob, maskBlob] = await Promise.all([
-        new Promise<Blob>((resolve, reject) => {
-          tempCanvas.toBlob((blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error('Failed to create blob from source canvas'));
-          }, 'image/png', 1.0);
-        }),
-        new Promise<Blob>((resolve, reject) => {
-          maskCanvas.toBlob((blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error('Failed to create blob from mask canvas'));
-          }, 'image/png', 1.0);
-        })
-      ]);
-
-      // Upload both images to Supabase
-      const [sourceFileName, maskFileName] = [
-        `variation_source_${Math.random().toString(36).substring(2)}.png`,
-        `variation_mask_${Math.random().toString(36).substring(2)}.png`
-      ];
-
-      const [sourceArrayBuffer, maskArrayBuffer] = await Promise.all([
-        sourceBlob.arrayBuffer(),
-        maskBlob.arrayBuffer()
-      ]);
-
-      const [sourceFileData, maskFileData] = [
-        new Uint8Array(sourceArrayBuffer),
-        new Uint8Array(maskArrayBuffer)
-      ];
-
-      // Use our helper function to upload to the correct bucket
-      const [sourceUrl, maskUrl] = await Promise.all([
-        uploadImageToStorage(sourceFileName, sourceFileData, "preprocessed-images"),
-        uploadImageToStorage(maskFileName, maskFileData, "preprocessed-images")
-      ]);
-
-      if (hasBlackPixels) {
-        // Set up in-painting workflow nodes
-        workflow["36"] = {
-          inputs: {
-            image: sourceUrl,
-            upload: "image",
-          },
-          class_type: "LoadImage",
-        };
-
-        workflow["37"] = {
-          inputs: {
-            image: maskUrl,
-            upload: "image",
-          },
-          class_type: "LoadImage",
-        };
-
-        // Add ImageToMask node to convert the mask image to the correct type
-        workflow["39"] = {
-          inputs: {
-            image: ["37", 0],
-            method: "red",
-            channel: "red"
-          },
-          class_type: "ImageToMask",
-        };
-
-        // Add InvertMask node
-        workflow["41"] = {
-          inputs: {
-            mask: ["39", 0]
-          },
-          class_type: "InvertMask",
-        };
-
-        workflow["38"] = {
-          inputs: {
-            pixels: ["36", 0],
-            vae: ["4", 2]
-          },
-          class_type: "VAEEncode",
-        };
-
-        // Add SetLatentNoiseMask node to combine the encoded image with the inverted mask
-        workflow["40"] = {
-          inputs: {
-            samples: ["38", 0],
-            mask: ["41", 0]  // Use the inverted mask
-          },
-          class_type: "SetLatentNoiseMask",
-        };
-
-        // Update the KSampler to use the masked latent image
-        workflow["3"].inputs.latent_image = ["40", 0];
-        workflow["3"].inputs.denoise = variationShape.variationStrength || 0.8; // Default to 0.8 for inpainting
-      } else {
-        // Set up image-to-image workflow nodes
-        workflow["36"] = {
-          inputs: {
-            image: sourceUrl,
-            upload: "image",
-          },
-          class_type: "LoadImage",
-        };
-
-        workflow["38"] = {
-          inputs: {
-            pixels: ["36", 0],
-            vae: ["4", 2]
-          },
-          class_type: "VAEEncode",
-        };
-
-        // Update the KSampler to use the encoded image directly
-        workflow["3"].inputs.latent_image = ["38", 0];
-        workflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
-      }
-    } else if (imageReferenceShape) {
-      // Use dimensions from the image reference
-      const dimensions = calculateImageShapeDimensions(imageReferenceShape.width, imageReferenceShape.height);
-      activeSettings.outputWidth = dimensions.width;
-      activeSettings.outputHeight = dimensions.height;
-    } else {
-      // Calculate dimensions from control shapes
-      const dimensions = calculateAverageAspectRatio(shapes);
-      if (dimensions) {
-        activeSettings.outputWidth = dimensions.width;
-        activeSettings.outputHeight = dimensions.height;
-      } else {
-        // Default to 512x512 if no control shapes are enabled
-        activeSettings.outputWidth = 512;
-        activeSettings.outputHeight = 512;
-      }
-    }
-
-    if (!activeSettings) {
-      set({ error: "No settings selected. Please select a settings shape." });
-      return;
-    }
-
+    // Check authentication
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) throw new Error("User must be authenticated");
 
+    // Check for active controls
     const hasActiveControls = shapes.some(
       (shape) =>
         (shape.type === "image" || 
@@ -358,12 +105,8 @@ export const generationHandlerSlice: StateCreator<
           shape.makeVariations)
     );
 
-    const stickyWithPrompt = shapes.find(
-      (shape): shape is StickyNoteShape => 
-        shape.type === "sticky" && 
-        shape.isTextPrompt === true && 
-        (shape as StickyNoteShape).content !== undefined
-    );
+    // Get prompt text
+    const stickyWithPrompt = ShapeProcessor.findStickyWithPrompt(shapes);
 
     if (!stickyWithPrompt?.content && !hasActiveControls) {
       set({ error: "Please select either a text prompt, image controls, or enable variations." });
@@ -371,7 +114,6 @@ export const generationHandlerSlice: StateCreator<
     }
 
     const promptText = stickyWithPrompt?.content || "";
-    workflow["6"].inputs.text = promptText;
 
     // Calculate view center
     const viewCenter = {
@@ -380,119 +122,52 @@ export const generationHandlerSlice: StateCreator<
     };
 
     // Calculate dimensions for placeholder shape
-    const dimensions = calculateImageShapeDimensions(
+    const dimensions = ShapeProcessor.calculateImageShapeDimensions(
       activeSettings.outputWidth || 512,
       activeSettings.outputHeight || 512
     );
 
     // Find the top-right most shape with enabled toggles
-    const topRightMostShape = findTopRightMostShapeWithToggles(shapes);
-    
+    const topRightMostShape = shapes.find(shape => 
+      ShapeProcessor.hasEnabledToggles(shape) &&
+      shape.position.x + ShapeProcessor.getShapeDimensions(shape).width === Math.max(
+        ...shapes.filter(s => ShapeProcessor.hasEnabledToggles(s))
+          .map(s => s.position.x + ShapeProcessor.getShapeDimensions(s).width)
+      )
+    );
+
     // Calculate position based on top-right most shape with toggles or view center
     let position: Position;
     if (topRightMostShape) {
-      // Calculate initial position to the right of the top-right most shape
-      const GAP = 20; // Gap between shapes
-      const initialPosition = {
-        x: topRightMostShape.position.x + getShapeDimensions(topRightMostShape).width + GAP,
-        y: topRightMostShape.position.y
-      };
-
-      // Check if there's any shape at the initial position
-      const overlappingShapes = shapes.filter(shape => {
-        const shapeDimensions = getShapeDimensions(shape);
-        const shapeRight = shape.position.x + shapeDimensions.width;
-        const shapeBottom = shape.position.y + shapeDimensions.height;
-        const initialRight = initialPosition.x + dimensions.width;
-        const initialBottom = initialPosition.y + dimensions.height;
-
-        // Check for overlap
-        return !(
-          initialPosition.x > shapeRight ||
-          initialRight < shape.position.x ||
-          initialPosition.y > shapeBottom ||
-          initialBottom < shape.position.y
-        );
-      });
-
-      if (overlappingShapes.length > 0) {
-        // Check if any of the overlapping shapes have toggles enabled
-        const hasEnabledOverlappingShape = overlappingShapes.some(shape => hasEnabledToggles(shape));
-        
-        if (hasEnabledOverlappingShape) {
-          // If any overlapping shape has toggles enabled, place the new shape below
-          const bottomMostPoint = shapes.reduce((maxBottom, shape) => {
-            const shapeDimensions = getShapeDimensions(shape);
-            const shapeRight = shape.position.x + shapeDimensions.width;
-            const shapeBottom = shape.position.y + shapeDimensions.height;
-            
-            if (initialPosition.x < shapeRight && 
-                (initialPosition.x + dimensions.width) > shape.position.x) {
-              return Math.max(maxBottom, shapeBottom);
-            }
-            return maxBottom;
-          }, initialPosition.y);
-
-          position = {
-            x: initialPosition.x,
-            y: bottomMostPoint + GAP
-          };
-        } else {
-          // If no overlapping shapes have toggles enabled, place the new shape on top with progressive offset
-          const BASE_OFFSET = 40; // Base offset in pixels
-          const offset = BASE_OFFSET * overlappingShapes.length; // Double offset for each overlapping shape
-          position = {
-            x: overlappingShapes[0].position.x + offset,
-            y: overlappingShapes[0].position.y + offset
-          };
-        }
-      } else {
-        position = initialPosition;
-      }
+      position = ShapeProcessor.calculatePositionFromReference(
+        topRightMostShape,
+        dimensions,
+        shapes
+      );
     } else {
-      // Find open space for the shape
       position = findOpenSpace(shapes, dimensions.width, dimensions.height, viewCenter);
     }
 
     // Generate a unique prediction ID early
     const prediction_id = crypto.randomUUID();
 
-    // Create placeholder shape immediately
-    const placeholderShape: Shape = {
-      id: prediction_id,
-      type: "image",
+    // Create placeholder shape
+    const placeholderShape = ShapeProcessor.createPlaceholderShape(
+      prediction_id,
       position,
-      width: dimensions.width,
-      height: dimensions.height,
-      isUploading: true,
-      imageUrl: "",
-      color: "transparent",
-      rotation: 0,
-      model: "",
-      useSettings: false,
-      isEditing: false,
-      depthStrength: 0,
-      edgesStrength: 0,
-      contentStrength: 0,
-      poseStrength: 0,
-      sketchStrength: 0,
-      imagePromptStrength: 0,
-      showDepth: false,
-      showEdges: false,
-      showPose: false,
-      showSketch: false,
-      showImagePrompt: false,
-    };
+      dimensions
+    );
 
     // Add placeholder shape and set it as selected
     get().addShape(placeholderShape);
     get().setSelectedShapes([prediction_id]);
 
     // Calculate the target offset to center the shape
-    const targetOffset = {
-      x: -(position.x + dimensions.width/2) * zoom + window.innerWidth / 2,
-      y: -(position.y + dimensions.height/2) * zoom + window.innerHeight / 2 - (dimensions.height * zoom * 0.2), // Subtract 20% of shape height for upward bias
-    };
+    const targetOffset = ShapeProcessor.calculateCenteringOffset(
+      position,
+      dimensions,
+      zoom
+    );
 
     // Animate the offset change
     const startOffset = { ...offset };
@@ -527,34 +202,7 @@ export const generationHandlerSlice: StateCreator<
     }));
 
     try {
-      workflow["3"].inputs.steps = activeSettings.steps || 20;
-      workflow["3"].inputs.cfg = activeSettings.guidanceScale || 7.5;
-      workflow["3"].inputs.sampler_name =
-        activeSettings.scheduler || "dpmpp_2m_sde";
-      workflow["3"].inputs.seed = activeSettings.randomiseSeeds
-        ? Math.floor(Math.random() * 32767)
-        : activeSettings.seed || Math.floor(Math.random() * 32767);
-
-      workflow["34"].inputs.width = activeSettings.outputWidth || 1344;
-      workflow["34"].inputs.height = activeSettings.outputHeight || 768;
-
-      workflow["6"].inputs.text = promptText;
-      workflow["6"].inputs.clip = ["4", 1];
-
-      const negativePrompt =
-        shapes.find(
-          (shape): shape is StickyNoteShape =>
-            shape.type === "sticky" && 
-            shape.isNegativePrompt === true && 
-            (shape as StickyNoteShape).content !== undefined
-        )?.content || "text, watermark";
-      workflow["7"].inputs.text = negativePrompt;
-      workflow["7"].inputs.clip = ["4", 1];
-
-      workflow["3"].inputs.model = ["4", 0];
-      workflow["3"].inputs.positive = ["6", 0];
-      workflow["3"].inputs.negative = ["7", 0];
-
+      // Initialize the base workflow
       const baseWorkflow: Workflow = {
         "3": workflow["3"],
         "4": workflow["4"],
@@ -564,256 +212,279 @@ export const generationHandlerSlice: StateCreator<
         "9": workflow["9"],
       };
 
-      // Initialize variables that will be used throughout the function
+      // Initialize the current workflow
       const currentWorkflow: Workflow = { ...baseWorkflow };
       let currentPositiveNode = "6";
       let currentModelNode = ["4", 0];
 
+      // Handle variation shape if present
+      if (variationShape) {
+        const canvases = getShapeCanvases(variationShape.id);
+        
+        if (!canvases.preview) {
+          console.error('Preview canvas not found for variation shape');
+          return;
+        }
+
+        try {
+          // Prepare canvases for generation
+          const { sourceBlob, maskBlob, hasBlackPixels } = await prepareCanvasesForGeneration(variationShape);
+
+          if (!sourceBlob) {
+            throw new Error('Failed to create source blob');
+          }
+
+          // Upload images to Supabase
+          const [sourceFileName, maskFileName] = [
+            `variation_source_${Math.random().toString(36).substring(2)}.png`,
+            `variation_mask_${Math.random().toString(36).substring(2)}.png`
+          ];
+
+          const [sourceArrayBuffer, maskArrayBuffer] = await Promise.all([
+            sourceBlob.arrayBuffer(),
+            maskBlob?.arrayBuffer()
+          ]);
+
+          const [sourceFileData, maskFileData] = [
+            new Uint8Array(sourceArrayBuffer),
+            maskArrayBuffer ? new Uint8Array(maskArrayBuffer) : undefined
+          ];
+
+          // Upload to storage
+          const [sourceUrl, maskUrl] = await Promise.all([
+            uploadImageToStorage(sourceFileName, sourceFileData, "preprocessed-images"),
+            maskFileData ? uploadImageToStorage(maskFileName, maskFileData, "preprocessed-images") : undefined
+          ]);
+
+          if (hasBlackPixels && maskUrl) {
+            // Set up in-painting workflow nodes
+            currentWorkflow["36"] = {
+              inputs: {
+                image: sourceUrl,
+                upload: "image",
+              },
+              class_type: "LoadImage",
+            };
+
+            currentWorkflow["37"] = {
+              inputs: {
+                image: maskUrl,
+                upload: "image",
+              },
+              class_type: "LoadImage",
+            };
+
+            // Add ImageToMask node
+            currentWorkflow["39"] = {
+              inputs: {
+                image: ["37", 0],
+                method: "red",
+                channel: "red"
+              },
+              class_type: "ImageToMask",
+            };
+
+            // Add InvertMask node
+            currentWorkflow["41"] = {
+              inputs: {
+                mask: ["39", 0]
+              },
+              class_type: "InvertMask",
+            };
+
+            currentWorkflow["38"] = {
+              inputs: {
+                pixels: ["36", 0],
+                vae: ["4", 2]
+              },
+              class_type: "VAEEncode",
+            };
+
+            // Add SetLatentNoiseMask node
+            currentWorkflow["40"] = {
+              inputs: {
+                samples: ["38", 0],
+                mask: ["41", 0]
+              },
+              class_type: "SetLatentNoiseMask",
+            };
+
+            // Update the KSampler
+            currentWorkflow["3"].inputs.latent_image = ["40", 0];
+            currentWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.8;
+          } else {
+            // Set up regular image-to-image workflow nodes
+            currentWorkflow["36"] = {
+              inputs: {
+                image: sourceUrl,
+                upload: "image",
+              },
+              class_type: "LoadImage",
+            };
+
+            currentWorkflow["38"] = {
+              inputs: {
+                pixels: ["36", 0],
+                vae: ["4", 2]
+              },
+              class_type: "VAEEncode",
+            };
+
+            // Update the KSampler
+            currentWorkflow["3"].inputs.latent_image = ["38", 0];
+            currentWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
+          }
+        } catch (error) {
+          console.error('Error preparing canvases:', error);
+          set({ error: 'Failed to prepare canvases for generation' });
+          return;
+        }
+      } else {
+        // Use EmptyLatentImage when no variation shape is present
+        currentWorkflow["34"] = {
+          inputs: {
+            width: activeSettings.outputWidth || 1344,
+            height: activeSettings.outputHeight || 768,
+            batch_size: 1
+          },
+          class_type: "EmptyLatentImage",
+        };
+        currentWorkflow["3"].inputs.latent_image = ["34", 0];
+        currentWorkflow["3"].inputs.denoise = 1;
+      }
+
+      // Update workflow with settings
+      SettingsManager.updateWorkflowWithSettings(currentWorkflow, activeSettings);
+
+      // Set up the workflow nodes
+      currentWorkflow["6"].inputs.text = promptText;
+      currentWorkflow["6"].inputs.clip = ["4", 1];
+
+      const negativePrompt = ShapeProcessor.findStickyWithNegativePrompt(shapes)?.content || "text, watermark";
+      currentWorkflow["7"].inputs.text = negativePrompt;
+      currentWorkflow["7"].inputs.clip = ["4", 1];
+
+      currentWorkflow["3"].inputs.model = ["4", 0];
+      currentWorkflow["3"].inputs.positive = ["6", 0];
+      currentWorkflow["3"].inputs.negative = ["7", 0];
+
       // Handle image reference if present
       if (imageReferenceShapes.length > 0) {
         for (const imageReferenceShape of imageReferenceShapes) {
-          // Get the preview canvas for the image reference shape
-          const previewCanvas = document.querySelector(`canvas[data-shape-id="${imageReferenceShape.id}"][data-layer="preview"]`) as HTMLCanvasElement;
-          if (!previewCanvas) {
+          const canvases = getShapeCanvases(imageReferenceShape.id);
+          
+          if (!canvases.preview) {
             console.error('Preview canvas not found for image reference shape');
             continue;
           }
 
-          // Create a blob from the preview canvas
-          const blob = await new Promise<Blob>((resolve, reject) => {
-            previewCanvas.toBlob((blob) => {
-              if (blob) {
-                resolve(blob);
-              } else {
-                reject(new Error('Failed to create blob from preview canvas'));
-              }
-            }, 'image/png', 1.0);
-          });
+          try {
+            // Convert preview canvas to blob
+            const blob = await canvasToBlob(canvases.preview);
 
-          // Upload to Supabase using our helper function
-          const fileName = `reference_source_${Math.random().toString(36).substring(2)}.png`;
-          const arrayBuffer = await blob.arrayBuffer();
-          const fileData = new Uint8Array(arrayBuffer);
+            // Upload to Supabase
+            const fileName = `reference_source_${Math.random().toString(36).substring(2)}.png`;
+            const arrayBuffer = await blob.arrayBuffer();
+            const fileData = new Uint8Array(arrayBuffer);
 
-          // Use our helper function with the correct bucket
-          const publicUrl = await uploadImageToStorage(fileName, fileData, "preprocessed-images");
+            // Upload to storage
+            const publicUrl = await uploadImageToStorage(fileName, fileData, "preprocessed-images");
 
-          // Check if "Image is a Drawing" is enabled
-          if (imageReferenceShape.isDrawing) {
-            // Use Sketch-to-Image ControlNet workflow
-            // Generate unique IDs for this ControlNet set
-            const loaderNodeId = `controlnet_loader_${Math.random().toString(36).substring(2)}`;
-            const imageNodeId = `sketch_image_loader_${Math.random().toString(36).substring(2)}`;
-            const controlNetNodeId = `controlnet_apply_${Math.random().toString(36).substring(2)}`;
-            
-            // Add ControlNet Loader for sketch
-            currentWorkflow[loaderNodeId] = {
-              inputs: {
-                control_net_name: "controlnet-scribble-sdxl-1.0.safetensors",
-              },
-              class_type: "ControlNetLoader",
-            };
-            
-            // Add Image Loader for the sketch
-            currentWorkflow[imageNodeId] = {
-              inputs: {
-                image: publicUrl,
-                upload: "image",
-              },
-              class_type: "LoadImage",
-            };
-            
-            // Add ControlNet Apply Advanced node
-            currentWorkflow[controlNetNodeId] = {
-              inputs: {
-                positive: [currentPositiveNode, 0],
-                negative: ["7", 0],
-                control_net: [loaderNodeId, 0],
-                image: [imageNodeId, 0],
-                strength: imageReferenceShape.imagePromptStrength || 0.5,
-                start_percent: 0,
-                end_percent: 1,
-              },
-              class_type: "ControlNetApplyAdvanced",
-            };
-            
-            // Update current positive node for next iteration
-            currentPositiveNode = controlNetNodeId;
-          } else {
-            // Use IP Adapter for photo reference (existing workflow)
-            // Generate unique IDs for this IP adapter set
-            const loaderNodeId = `ipadapter_loader_${Math.random().toString(36).substring(2)}`;
-            const imageNodeId = `image_loader_${Math.random().toString(36).substring(2)}`;
-            const advancedNodeId = `ipadapter_advanced_${Math.random().toString(36).substring(2)}`;
+            // Check if "Image is a Drawing" is enabled
+            if (imageReferenceShape.isDrawing) {
+              // Use Sketch-to-Image ControlNet workflow
+              // Generate unique IDs for this ControlNet set
+              const loaderNodeId = `controlnet_loader_${Math.random().toString(36).substring(2)}`;
+              const imageNodeId = `sketch_image_loader_${Math.random().toString(36).substring(2)}`;
+              const controlNetNodeId = `controlnet_apply_${Math.random().toString(36).substring(2)}`;
+              
+              // Add ControlNet Loader for sketch
+              currentWorkflow[loaderNodeId] = {
+                inputs: {
+                  control_net_name: "controlnet-scribble-sdxl-1.0.safetensors",
+                },
+                class_type: "ControlNetLoader",
+              };
+              
+              // Add Image Loader for the sketch
+              currentWorkflow[imageNodeId] = {
+                inputs: {
+                  image: publicUrl,
+                  upload: "image",
+                },
+                class_type: "LoadImage",
+              };
+              
+              // Add ControlNet Apply Advanced node
+              currentWorkflow[controlNetNodeId] = {
+                inputs: {
+                  positive: [currentPositiveNode, 0],
+                  negative: ["7", 0],
+                  control_net: [loaderNodeId, 0],
+                  image: [imageNodeId, 0],
+                  strength: imageReferenceShape.imagePromptStrength || 0.5,
+                  start_percent: 0,
+                  end_percent: 1,
+                },
+                class_type: "ControlNetApplyAdvanced",
+              };
+              
+              // Update current positive node for next iteration
+              currentPositiveNode = controlNetNodeId;
+            } else {
+              // Use IP Adapter for photo reference
+              // Generate unique IDs for this IP adapter set
+              const loaderNodeId = `ipadapter_loader_${Math.random().toString(36).substring(2)}`;
+              const imageNodeId = `image_loader_${Math.random().toString(36).substring(2)}`;
+              const advancedNodeId = `ipadapter_advanced_${Math.random().toString(36).substring(2)}`;
 
-            // Add IP Adapter Loader
-            currentWorkflow[loaderNodeId] = {
-              inputs: {
-                preset: "PLUS (high strength)",
-                model: currentModelNode,
-              },
-              class_type: "IPAdapterUnifiedLoader",
-            };
+              // Add IP Adapter Loader
+              currentWorkflow[loaderNodeId] = {
+                inputs: {
+                  preset: "PLUS (high strength)",
+                  model: currentModelNode,
+                },
+                class_type: "IPAdapterUnifiedLoader",
+              };
 
-            // Add Image Loader
-            currentWorkflow[imageNodeId] = {
-              inputs: {
-                image: publicUrl,
-                upload: "image",
-              },
-              class_type: "LoadImage",
-            };
+              // Add Image Loader
+              currentWorkflow[imageNodeId] = {
+                inputs: {
+                  image: publicUrl,
+                  upload: "image",
+                },
+                class_type: "LoadImage",
+              };
 
-            // Add IP Adapter Advanced
-            currentWorkflow[advancedNodeId] = {
-              inputs: {
-                weight: imageReferenceShape.imagePromptStrength || 0.5,
-                weight_type: "linear",
-                combine_embeds: "concat",
-                start_at: 0,
-                end_at: 1,
-                embeds_scaling: "V only",
-                model: currentModelNode,
-                ipadapter: [loaderNodeId, 1],
-                image: [imageNodeId, 0],
-              },
-              class_type: "IPAdapterAdvanced",
-            };
+              // Add IP Adapter Advanced
+              currentWorkflow[advancedNodeId] = {
+                inputs: {
+                  weight: imageReferenceShape.imagePromptStrength || 0.5,
+                  weight_type: "linear",
+                  combine_embeds: "concat",
+                  start_at: 0,
+                  end_at: 1,
+                  embeds_scaling: "V only",
+                  model: currentModelNode,
+                  ipadapter: [loaderNodeId, 1],
+                  image: [imageNodeId, 0],
+                },
+                class_type: "IPAdapterAdvanced",
+              };
 
-            // Update the current model node for the next iteration
-            currentModelNode = [advancedNodeId, 0];
+              // Update the current model node for the next iteration
+              currentModelNode = [advancedNodeId, 0];
+            }
+          } catch (error) {
+            console.error('Error processing image reference:', error);
+            continue;
           }
         }
 
         // Only update the KSampler with the final IP adapter output if we didn't use ControlNet
         if (!(imageReferenceShapes.some(shape => shape.isDrawing))) {
-          workflow["3"].inputs.model = currentModelNode;
+          currentWorkflow["3"].inputs.model = currentModelNode;
         }
-      }
-
-      // Add variation nodes if needed
-      if (variationShape) {
-        // Get the preview canvas for the variation shape
-        const previewCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="preview"]`) as HTMLCanvasElement;
-        const maskCanvas = document.querySelector(`canvas[data-shape-id="${variationShape.id}"][data-layer="mask"]`) as HTMLCanvasElement;
-        
-        if (!previewCanvas) {
-          console.error('Preview canvas not found for variation shape');
-          return;
-        }
-
-        // Create a blob from the preview canvas
-        const previewBlob = await new Promise<Blob>((resolve, reject) => {
-          previewCanvas.toBlob((blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to create blob from preview canvas'));
-            }
-          }, 'image/png', 1.0);
-        });
-
-        // Upload preview image to Supabase using our helper function
-        const previewFileName = `variation_source_${Math.random().toString(36).substring(2)}.png`;
-        const previewArrayBuffer = await previewBlob.arrayBuffer();
-        const previewFileData = new Uint8Array(previewArrayBuffer);
-
-        // Use the helper function with the correct bucket
-        const previewUrl = await uploadImageToStorage(previewFileName, previewFileData, "preprocessed-images");
-
-        const hasBlackPixels = maskCanvas ? await hasBlackPixelsInMask(maskCanvas) : false;
-
-        if (hasBlackPixels) {
-          // Add in-painting workflow nodes
-          currentWorkflow["36"] = {
-            inputs: {
-              image: previewUrl,
-              upload: "image",
-            },
-            class_type: "LoadImage",
-          };
-
-          currentWorkflow["37"] = {
-            inputs: {
-              image: previewUrl,
-              upload: "image",
-            },
-            class_type: "LoadImage",
-          };
-
-          // Add ImageToMask node to convert the mask image to the correct type
-          currentWorkflow["39"] = {
-            inputs: {
-              image: ["37", 0],
-              method: "red",
-              channel: "red"
-            },
-            class_type: "ImageToMask",
-          };
-
-          // Add InvertMask node
-          currentWorkflow["41"] = {
-            inputs: {
-              mask: ["39", 0]
-            },
-            class_type: "InvertMask",
-          };
-
-          // Add VAEEncode node for the source image
-          currentWorkflow["38"] = {
-            inputs: {
-              pixels: ["36", 0],
-              vae: ["4", 2]
-            },
-            class_type: "VAEEncode",
-          };
-
-          // Add SetLatentNoiseMask node to combine the encoded image with the inverted mask
-          currentWorkflow["40"] = {
-            inputs: {
-              samples: ["38", 0],
-              mask: ["41", 0]  // Use the inverted mask
-            },
-            class_type: "SetLatentNoiseMask",
-          };
-
-          // Remove EmptyLatentImage node since we're using VAEEncode
-          delete currentWorkflow["34"];
-          
-          // Update KSampler to use the masked latent image
-          currentWorkflow["3"].inputs.latent_image = ["40", 0];
-          currentWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.8;
-        } else {
-          // For regular image-to-image workflow
-          currentWorkflow["36"] = {
-            inputs: {
-              image: previewUrl,
-              upload: "image",
-            },
-            class_type: "LoadImage",
-          };
-
-          // Add VAEEncode node for the source image
-          currentWorkflow["38"] = {
-            inputs: {
-              pixels: ["36", 0],
-              vae: ["4", 2]
-            },
-            class_type: "VAEEncode",
-          };
-
-          // Remove EmptyLatentImage node since we're using VAEEncode
-          delete currentWorkflow["34"];
-          
-          // Update KSampler to use the encoded image directly
-          currentWorkflow["3"].inputs.latent_image = ["38", 0];
-          currentWorkflow["3"].inputs.denoise = variationShape.variationStrength || 0.75;
-        }
-      } else {
-        // Use EmptyLatentImage as before
-        currentWorkflow["34"] = workflow["34"];
-        currentWorkflow["3"].inputs.latent_image = ["34", 0];
-        currentWorkflow["3"].inputs.denoise = 1;
       }
 
       // Only add ControlNet nodes if depth, edges, or pose controls are enabled
@@ -894,7 +565,7 @@ export const generationHandlerSlice: StateCreator<
               inputs: {
                 positive: [currentPositiveNode, 0],
                 negative: ["7", 0],
-                control_net: ["38", 0],  // Connect to ControlNetLoader instead of LoadImage
+                control_net: ["38", 0],
                 image: ["37", 0],
                 strength: controlShape.poseStrength || 0.5,
                 start_percent: 0,
@@ -909,13 +580,11 @@ export const generationHandlerSlice: StateCreator<
 
       // Apply text prompt strength if available
       if (stickyWithPrompt && stickyWithPrompt.textPromptStrength !== undefined) {
-        // Use the text prompt strength directly as the CFG value
-        // The slider now ranges from 1-10, which maps directly to CFG values
-        workflow["3"].inputs.cfg = stickyWithPrompt.textPromptStrength;
+        currentWorkflow["3"].inputs.cfg = stickyWithPrompt.textPromptStrength;
       }
 
-      workflow["3"].inputs.positive = [currentPositiveNode, 0];
-      workflow["3"].inputs.negative = ["7", 0];
+      currentWorkflow["3"].inputs.positive = [currentPositiveNode, 0];
+      currentWorkflow["3"].inputs.negative = ["7", 0];
 
       const response = await fetch("/.netlify/functions/generate-image", {
         method: "POST",
