@@ -55,6 +55,32 @@ export interface GenerationHandlerSlice {
   cancelGeneration: (predictionId: string) => Promise<void>;
 }
 
+// Add content safety check function
+const checkContentSafety = (prompt: string, imageReferences: Shape[]): { isSafe: boolean; reason?: string } => {
+  // List of explicit content indicators
+  const explicitKeywords = [
+    'nude', 'naked', 'nsfw', 'explicit', 'porn', 'sex', 'sexual', 'adult', 'xxx',
+    'hentai', 'erotic', 'lewd', 'nudity', 'bare', 'undressed', 'unclothed'
+  ];
+
+  // Check prompt text
+  const promptLower = prompt.toLowerCase();
+  for (const keyword of explicitKeywords) {
+    if (promptLower.includes(keyword)) {
+      return { isSafe: false, reason: `Content contains explicit keyword: ${keyword}` };
+    }
+  }
+
+  // Check image references for NSFW tags
+  for (const imageRef of imageReferences) {
+    if (imageRef.type === 'image' && imageRef.tags?.includes('nsfw')) {
+      return { isSafe: false, reason: 'Image reference contains NSFW tag' };
+    }
+  }
+
+  return { isSafe: true };
+};
+
 export const generationHandlerSlice: StateCreator<
   StoreState & GenerationHandlerSlice,
   [],
@@ -109,13 +135,19 @@ export const generationHandlerSlice: StateCreator<
 
     // Get prompt text
     const stickyWithPrompt = ShapeProcessor.findStickyWithPrompt(shapes);
+    const promptText = stickyWithPrompt?.content || "";
 
-    if (!stickyWithPrompt?.content && !hasActiveControls) {
+    if (!promptText && !hasActiveControls) {
       set({ error: "Please select either a text prompt, image controls, or enable variations." });
       return;
     }
 
-    const promptText = stickyWithPrompt?.content || "";
+    // Perform content safety check
+    const safetyCheck = checkContentSafety(promptText, imageReferenceShapes);
+    if (!safetyCheck.isSafe) {
+      set({ error: `Content safety check failed: ${safetyCheck.reason}` });
+      return;
+    }
 
     // Calculate view center
     const viewCenter = {

@@ -109,38 +109,6 @@ export function ShapeControls({
   // Hide controls only if no conditions are met
   if (!showControlPanel && !shape.isNew && shape.type !== "group" && !hasExternalControls) return null;
 
-  const handleAddDiffusionSettings = async () => {
-    shapes.forEach((shape) => {
-      if (shape.type === "diffusionSettings" && shape.useSettings) {
-        updateShape(shape.id, { useSettings: false });
-      }
-    });
-
-    await addNewShape(
-      "diffusionSettings",
-      {
-        useSettings: true,
-        steps: 30,
-        guidanceScale: 4.0,
-        scheduler: "dpmpp_2m_sde",
-        model: "juggernautXL_v9",
-        outputFormat: "png",
-        outputQuality: 100,
-        randomiseSeeds: true,
-        outputWidth: 1024,
-        outputHeight: 1024,
-        width: 280,
-        height: 200
-      },
-      "",
-      {
-        centerOnShape: true,
-        setSelected: true,
-        defaultWidth: 280,
-      }
-    );
-  };
-
   return (
     <>
       {/* Only render the main container if showControlPanel is true */}

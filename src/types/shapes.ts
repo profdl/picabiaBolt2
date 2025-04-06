@@ -142,6 +142,7 @@ export interface ImageShape extends BaseShape {
     maskData?: string;
     previewData?: string;
   };
+  tags?: string[];
 }
 
 // Group specific properties
