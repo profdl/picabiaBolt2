@@ -338,7 +338,7 @@ export function ShapeComponent({ shape }: ShapeProps) {
             updateShape={updateShape}
             onAdvancedToggle={(isExpanded) => {
               updateShape(shape.id, {
-                height: isExpanded ? 550 : 170,
+                height: isExpanded ? 550 : 200,
               });
             }}
           />

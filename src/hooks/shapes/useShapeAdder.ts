@@ -55,7 +55,7 @@ const getShapeDimensions = (shape: Shape): { width: number; height: number } => 
   if (shape.type === "diffusionSettings") {
     // DiffusionSettingsPanel has a fixed width and expands vertically based on advanced settings
     return {
-      width: 200, // Fixed width for diffusion settings panel
+      width: 280, // Fixed width for diffusion settings panel
       height: shape.showAdvanced ? 400 : 200 // Height varies based on advanced settings visibility
     };
   }

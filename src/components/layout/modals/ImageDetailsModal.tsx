@@ -94,7 +94,7 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
       {
         centerOnShape: true,
         setSelected: true,
-        defaultWidth: 300,
+        defaultWidth: 280,
       }
     );
 

@@ -84,9 +84,11 @@ export function useToolbarShapes(): UseToolbarShapesResult {
         color: "var(--sticky-green)", 
         isEditing: true,
         isTextPrompt: true,  // Enable text prompt by default
-        textPromptStrength: 4.5
+        textPromptStrength: 4.5,
+        width: 220,
+        height: 180
       }, "", {
-        defaultWidth: 200,
+        defaultWidth: 220,
         setSelected: true,
         startEditing: true,
       });

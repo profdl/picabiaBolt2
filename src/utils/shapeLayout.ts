@@ -18,12 +18,12 @@ export const LAYOUT_CONSTANTS = {
   },
   MINIMUM: {
     STICKY: {
-      width: 200,
-      height: 100,
+      width: 220,
+      height: 180,
     },
     DEFAULT: {
-      width: 200,
-      height: 200,
+      width: 220,
+      height: 180,
     }
   },
   VIEWPORT: {

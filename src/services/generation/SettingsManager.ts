@@ -105,6 +105,23 @@ export class SettingsManager {
       }
     }
 
+    // If no settings panel is enabled, check for inpainting conditions
+    if (!activeSettingsPanel) {
+      const hasInpainting = shapes.some(shape => 
+        shape.type === "image" && 
+        shape.makeVariations && 
+        this.hasActiveMask(shape)
+      );
+
+      if (hasInpainting) {
+        // Apply default inpainting settings
+        settings.model = "juggernautXLInpainting_xiInpainting.safetensors";
+        settings.steps = 45;
+        settings.scheduler = "euler";
+        settings.seed = Math.floor(Math.random() * 32767);
+      }
+    }
+
     return settings;
   }
 

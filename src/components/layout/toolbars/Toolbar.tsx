@@ -162,14 +162,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         isTextPrompt: true,
         textPromptStrength: 4.5,
         content: "Double-Click to Edit...",
-        isNew: true
+        isNew: true,
+        width: 220,
+        height: 180
       } as Partial<Shape>,
       "",
       {
         centerOnShape: true,
         setSelected: true,
         startEditing: true,
-        defaultWidth: 200,
+        defaultWidth: 220,
       }
     );
   };
@@ -215,12 +217,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
       "diffusionSettings",
       {
         useSettings: true, // Set useSettings to true for the new shape
+        width: 280,
+        height: 200
       },
       "",
       {
         centerOnShape: true,
         setSelected: true,
-        defaultWidth: 300,
+        defaultWidth: 280,
       }
     );
   };
