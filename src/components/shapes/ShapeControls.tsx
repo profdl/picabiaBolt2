@@ -431,7 +431,8 @@ export function ShapeControls({
                     // Just update this sticky note - the store will handle the rest
                     updateShape(shape.id, {
                       isNegativePrompt: checked,
-                      color: checked ? "var(--sticky-red)" : (shape.isTextPrompt ? "var(--sticky-green)" : "var(--sticky-yellow)")
+                      isTextPrompt: false, // Can't be both text and negative prompt
+                      color: checked ? "var(--sticky-red)" : "var(--sticky-yellow)"
                     });
                   }}
                   label="Negative Prompt"
