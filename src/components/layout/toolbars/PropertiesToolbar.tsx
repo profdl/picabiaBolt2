@@ -1043,6 +1043,60 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                     </div>
                   )}
                 </div>
+                <div className="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-0.5" />
+                <Tooltip content="Clear Brush Strokes" side="top">
+                  <button
+                    className="text-[10px] font-medium tracking-wide uppercase text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 rounded px-1.5 py-0.5 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                    onClick={() => {
+                      // Find the active image shape
+                      const activeShape = shapes.find(s => 
+                        selectedShapes.includes(s.id) && 
+                        (s.type === "image" || s.type === "sketchpad")
+                      );
+                      
+                      if (activeShape) {
+                        // Find the permanent strokes canvas element
+                        const permanentCanvas = document.querySelector(
+                          `canvas[data-shape-id="${activeShape.id}"][data-layer="permanent"]`
+                        ) as HTMLCanvasElement;
+                        
+                        if (permanentCanvas) {
+                          // Clear the permanent strokes canvas
+                          const ctx = permanentCanvas.getContext('2d');
+                          if (ctx) {
+                            ctx.clearRect(0, 0, permanentCanvas.width, permanentCanvas.height);
+                          }
+                          
+                          // Update the shape state
+                          updateShape(activeShape.id, {
+                            permanentCanvasData: permanentCanvas.toDataURL('image/png')
+                          });
+                          
+                          // Update preview
+                          const previewCanvas = document.querySelector(
+                            `canvas[data-shape-id="${activeShape.id}"][data-layer="preview"]`
+                          ) as HTMLCanvasElement;
+                          
+                          if (previewCanvas) {
+                            const previewCtx = previewCanvas.getContext('2d');
+                            if (previewCtx) {
+                              previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+                              // Redraw the background
+                              const backgroundCanvas = document.querySelector(
+                                `canvas[data-shape-id="${activeShape.id}"][data-layer="background"]`
+                              ) as HTMLCanvasElement;
+                              if (backgroundCanvas) {
+                                previewCtx.drawImage(backgroundCanvas, 0, 0);
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }}
+                  >
+                    Reset
+                  </button>
+                </Tooltip>
               </div>
             )}
 
@@ -1083,7 +1137,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                         if (activeShape) {
                           // Find the mask canvas element
                           const maskCanvas = document.querySelector(
-                            `canvas[data-shape-id="${activeShape.id}"][data-canvas-type="mask"]`
+                            `canvas[data-shape-id="${activeShape.id}"][data-layer="mask"]`
                           ) as HTMLCanvasElement;
                           
                           if (maskCanvas) {
@@ -1097,13 +1151,17 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                             
                             // Update preview
                             const previewCanvas = document.querySelector(
-                              `canvas[data-shape-id="${activeShape.id}"][data-canvas-type="preview"]`
+                              `canvas[data-shape-id="${activeShape.id}"][data-layer="preview"]`
                             ) as HTMLCanvasElement;
                             
                             if (previewCanvas) {
                               // Apply the reset mask to the preview
                               previewCanvas.style.webkitMaskImage = `url(${maskData})`;
                               previewCanvas.style.maskImage = `url(${maskData})`;
+                              previewCanvas.style.webkitMaskSize = 'cover';
+                              previewCanvas.style.maskSize = 'cover';
+                              previewCanvas.style.webkitMaskPosition = 'center';
+                              previewCanvas.style.maskPosition = 'center';
                             }
                           }
                         }

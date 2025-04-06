@@ -233,55 +233,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
     }
   };
 
-  // Handle clearing strokes
-  const handleClear = () => {
-    if (!refs.permanentStrokesCanvasRef.current || !refs.previewCanvasRef.current) return;
-    
-    // Clear permanent strokes
-    const permanentCtx = refs.permanentStrokesCanvasRef.current.getContext('2d', { willReadFrequently: true });
-    if (permanentCtx) {
-      permanentCtx.clearRect(0, 0, refs.permanentStrokesCanvasRef.current.width, refs.permanentStrokesCanvasRef.current.height);
-    }
-    
-    // Clear active stroke
-    if (refs.activeStrokeCanvasRef.current) {
-      const activeCtx = refs.activeStrokeCanvasRef.current.getContext('2d', { willReadFrequently: true });
-      if (activeCtx) {
-        activeCtx.clearRect(0, 0, refs.activeStrokeCanvasRef.current.width, refs.activeStrokeCanvasRef.current.height);
-      }
-    }
-    
-    // Reset mask to fully opaque
-    if (refs.maskCanvasRef?.current) {
-      const maskCtx = refs.maskCanvasRef.current.getContext('2d', { willReadFrequently: true });
-      if (maskCtx) {
-        maskCtx.clearRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
-        maskCtx.fillStyle = 'white';
-        maskCtx.fillRect(0, 0, refs.maskCanvasRef.current.width, refs.maskCanvasRef.current.height);
-      }
-    }
-    
-    // Clear preview
-    const previewCtx = refs.previewCanvasRef.current.getContext('2d', { willReadFrequently: true });
-    if (previewCtx) {
-      previewCtx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
-    }
-    
-    // Update preview with all layers
-    updatePreviewCanvas();
-    
-    // Reset all canvas data
-    updateShape(shape.id, {
-      canvasData: undefined,
-      backgroundCanvasData: undefined,
-      permanentCanvasData: undefined,
-      activeCanvasData: undefined,
-      previewCanvasData: undefined,
-      maskCanvasData: undefined,
-      redBackgroundCanvasData: undefined
-    });
-  };
-
   const handleStartEditing = () => {
     // First save the current canvas states
     const canvasState: SavedCanvasState = {
@@ -446,15 +397,6 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
               handlePointerUpOrLeave();
             }}
           />
-          {(tool === "brush" || tool === "eraser" || tool === "inpaint") && (
-            <button
-              className="absolute -bottom-6 right-0 text-xs px-1.5 py-0.5 bg-gray-300 text-gray-800 rounded hover:bg-red-600 transition-colors"
-              style={{ pointerEvents: "all" }}
-              onClick={handleClear}
-            >
-              Reset
-            </button>
-          )}
         </>
       )}
     </div>
