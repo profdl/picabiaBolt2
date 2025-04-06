@@ -30,8 +30,8 @@ export class SettingsManager {
     guidanceScale: 4.0,
     scheduler: "dpmpp_2m_sde",
     seed: Math.floor(Math.random() * 32767),
-    outputWidth: 1344,
-    outputHeight: 768,
+    outputWidth: 1024,
+    outputHeight: 1024,
     model: "juggernautXL_v9",
     outputFormat: "png",
     outputQuality: 100,
@@ -98,9 +98,9 @@ export class SettingsManager {
           settings.outputWidth = calculatedDimensions.width;
           settings.outputHeight = calculatedDimensions.height;
         } else {
-          // Default to 512x512 if no other dimensions are available
-          settings.outputWidth = 512;
-          settings.outputHeight = 512;
+          // Default to 1024x1024 if no other dimensions are available
+          settings.outputWidth = 1024;
+          settings.outputHeight = 1024;
         }
       }
     }

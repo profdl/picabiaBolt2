@@ -145,7 +145,7 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                   </label>
                   <input
                     type="number"
-                    value={shape.steps?.toString() || "20"}
+                    value={shape.steps?.toString() || "30"}
                     onChange={(e) =>
                       updateShape(shape.id, { steps: Number(e.target.value) })
                     }

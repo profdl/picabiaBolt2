@@ -672,55 +672,108 @@ export const generationHandlerSlice: StateCreator<
       );
 
       if (hasControlNetControls) {
+        // Store the last controlnet node ID to connect to KSampler
+        let lastControlNetNodeId = null;
+
         for (const controlShape of shapes) {
           if (controlShape.showEdges && (controlShape as ImageShape).edgeUrl) {
-            currentWorkflow["12"] = {
-              ...workflow["12"],
+            // Generate unique IDs for this ControlNet set
+            const loaderNodeId = `controlnet_loader_${Math.random().toString(36).substring(2)}`;
+            const imageNodeId = `edge_image_loader_${Math.random().toString(36).substring(2)}`;
+            const controlNetNodeId = `controlnet_apply_${Math.random().toString(36).substring(2)}`;
+            
+            // Add ControlNet Loader for edges
+            currentWorkflow[loaderNodeId] = {
               inputs: {
-                ...workflow["12"].inputs,
+                control_net_name: "controlnet-canny-sdxl-1.0_V2.safetensors",
+              },
+              class_type: "ControlNetLoader",
+            };
+            
+            // Add Image Loader for the edge image
+            currentWorkflow[imageNodeId] = {
+              inputs: {
                 image: (controlShape as ImageShape).edgeUrl,
+                upload: "image",
               },
+              class_type: "LoadImage",
             };
-            currentWorkflow["18"] = workflow["18"];
-            currentWorkflow["41"] = {
-              ...workflow["41"],
+            
+            // Add ControlNet Apply Advanced node
+            currentWorkflow[controlNetNodeId] = {
               inputs: {
-                ...workflow["41"].inputs,
-                positive: [currentPositiveNode, 0],
+                positive: [lastControlNetNodeId || "6", 0],
                 negative: ["7", 0],
-                control_net: ["18", 0],
+                control_net: [loaderNodeId, 0],
+                image: [imageNodeId, 0],
                 strength: controlShape.edgesStrength || 0.5,
+                start_percent: 0,
+                end_percent: 1,
               },
+              class_type: "ControlNetApplyAdvanced",
             };
-            currentPositiveNode = "41";
+            
+            // Update last controlnet node ID
+            lastControlNetNodeId = controlNetNodeId;
           }
 
           if (controlShape.showDepth && (controlShape as ImageShape).depthUrl) {
-            currentWorkflow["33"] = {
-              ...workflow["33"],
+            // Generate unique IDs for this ControlNet set
+            const loaderNodeId = `controlnet_loader_${Math.random().toString(36).substring(2)}`;
+            const imageNodeId = `depth_image_loader_${Math.random().toString(36).substring(2)}`;
+            const controlNetNodeId = `controlnet_apply_${Math.random().toString(36).substring(2)}`;
+            
+            // Add ControlNet Loader for depth
+            currentWorkflow[loaderNodeId] = {
               inputs: {
-                ...workflow["33"].inputs,
+                control_net_name: "controlnet-depth-sdxl-1.0.safetensors",
+              },
+              class_type: "ControlNetLoader",
+            };
+            
+            // Add Image Loader for the depth image
+            currentWorkflow[imageNodeId] = {
+              inputs: {
                 image: (controlShape as ImageShape).depthUrl,
+                upload: "image",
               },
+              class_type: "LoadImage",
             };
-            currentWorkflow["32"] = workflow["32"];
-            currentWorkflow["31"] = {
-              ...workflow["31"],
+            
+            // Add ControlNet Apply Advanced node
+            currentWorkflow[controlNetNodeId] = {
               inputs: {
-                ...workflow["31"].inputs,
-                positive: [currentPositiveNode, 0],
+                positive: [lastControlNetNodeId || "6", 0],
                 negative: ["7", 0],
-                control_net: ["32", 0],
-                image: ["33", 0],
+                control_net: [loaderNodeId, 0],
+                image: [imageNodeId, 0],
                 strength: controlShape.depthStrength || 0.5,
+                start_percent: 0,
+                end_percent: 1,
               },
+              class_type: "ControlNetApplyAdvanced",
             };
-            currentPositiveNode = "31";
+            
+            // Update last controlnet node ID
+            lastControlNetNodeId = controlNetNodeId;
           }
 
           if (controlShape.showPose && (controlShape as ImageShape).poseUrl) {
-            // Add pose image loader
-            currentWorkflow["37"] = {
+            // Generate unique IDs for this ControlNet set
+            const loaderNodeId = `controlnet_loader_${Math.random().toString(36).substring(2)}`;
+            const imageNodeId = `pose_image_loader_${Math.random().toString(36).substring(2)}`;
+            const controlNetNodeId = `controlnet_apply_${Math.random().toString(36).substring(2)}`;
+            
+            // Add ControlNet Loader for pose
+            currentWorkflow[loaderNodeId] = {
+              inputs: {
+                control_net_name: "thibaud_xl_openpose.safetensors",
+              },
+              class_type: "ControlNetLoader",
+            };
+            
+            // Add Image Loader for the pose image
+            currentWorkflow[imageNodeId] = {
               inputs: {
                 image: (controlShape as ImageShape).poseUrl,
                 upload: "image",
@@ -728,29 +781,28 @@ export const generationHandlerSlice: StateCreator<
               class_type: "LoadImage",
             };
             
-            // Add pose control net loader
-            currentWorkflow["38"] = {
+            // Add ControlNet Apply Advanced node
+            currentWorkflow[controlNetNodeId] = {
               inputs: {
-                control_net_name: "thibaud_xl_openpose.safetensors",
-              },
-              class_type: "ControlNetLoader",
-            };
-            
-            // Add pose control application node
-            currentWorkflow["42"] = {
-              inputs: {
-                positive: [currentPositiveNode, 0],
+                positive: [lastControlNetNodeId || "6", 0],
                 negative: ["7", 0],
-                control_net: ["38", 0],
-                image: ["37", 0],
+                control_net: [loaderNodeId, 0],
+                image: [imageNodeId, 0],
                 strength: controlShape.poseStrength || 0.5,
                 start_percent: 0,
                 end_percent: 1,
               },
               class_type: "ControlNetApplyAdvanced",
             };
-            currentPositiveNode = "42";
+            
+            // Update last controlnet node ID
+            lastControlNetNodeId = controlNetNodeId;
           }
+        }
+
+        // Connect the last controlnet node to the KSampler
+        if (lastControlNetNodeId) {
+          currentWorkflow["3"].inputs.positive = [lastControlNetNodeId, 0];
         }
       }
 

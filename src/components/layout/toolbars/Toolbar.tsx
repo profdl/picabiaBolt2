@@ -216,7 +216,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
     await addNewShape(
       "diffusionSettings",
       {
-        useSettings: true, // Set useSettings to true for the new shape
+        useSettings: true,
+        steps: 30,
+        guidanceScale: 4.0,
+        scheduler: "dpmpp_2m_sde",
+        model: "juggernautXL_v9",
+        outputFormat: "png",
+        outputQuality: 100,
+        randomiseSeeds: true,
+        outputWidth: 1024,
+        outputHeight: 1024,
         width: 280,
         height: 200
       },
