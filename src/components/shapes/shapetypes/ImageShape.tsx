@@ -311,7 +311,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
             style={{
               ...canvasStyle,
               zIndex: 1,
-              visibility: shape.isImageEditing ? "visible" : "hidden"
+              visibility: "visible"
             }}
             onDoubleClick={handleStartEditing}
           />
@@ -323,7 +323,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
             style={{
               ...canvasStyle,
               zIndex: 2,
-              visibility: shape.isImageEditing ? "visible" : "hidden"
+              visibility: "visible"
             }}
           />
           <canvas
@@ -334,7 +334,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
             style={{
               ...canvasStyle,
               zIndex: 3,
-              visibility: shape.isImageEditing ? "visible" : "hidden"
+              visibility: "visible"
             }}
           />
           <canvas
@@ -345,7 +345,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
             style={{
               ...canvasStyle,
               zIndex: 4,
-              visibility: shape.isImageEditing ? "visible" : "hidden"
+              visibility: "visible"
             }}
           />
           <canvas

@@ -244,10 +244,10 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   };
 
   const handleCancel = () => {
-    // Restore the saved state and clear it
+    // Just exit edit mode without clearing the saved state
     updateShape(imageShape.id, { 
-      isImageEditing: false,
-      savedCanvasState: undefined  // Clear the saved state
+      isImageEditing: false
+      // Don't clear savedCanvasState here
     });
   };
 
@@ -305,6 +305,12 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
 
         addShape(newShape);
 
+        // Just exit edit mode without affecting the saved state
+        updateShape(imageShape.id, { 
+          isImageEditing: false
+          // Don't touch savedCanvasState
+        });
+
         window.scrollTo({
           left: newShapePosition.x + newWidth / 2 - window.innerWidth / 2,
           top: newShapePosition.y + newHeight / 2 - window.innerHeight / 2,
@@ -314,12 +320,6 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
     } catch (error) {
       console.error("Error uploading cropped image:", error);
     }
-
-    // Clear the saved state when saving
-    updateShape(imageShape.id, { 
-      isImageEditing: false,
-      savedCanvasState: undefined
-    });
   };
 
   return ReactDOM.createPortal(
