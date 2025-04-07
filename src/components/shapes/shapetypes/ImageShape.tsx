@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useStore } from "../../../store";
 import { Shape } from "../../../types";
-import { ImageEditor } from "./ImageEditor";
+import { ImageCropper } from "../../shared/ImageCropper";
 import { useBrush } from "../../layout/toolbars/BrushTool";
 import { useImageCanvas } from "../../../hooks/shapes/useImageCanvas";
 import { useEraser } from "../../../hooks/shapes/useEraser";
@@ -256,6 +256,12 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
     });
   };
 
+  const handleCloseEditing = () => {
+    updateShape(shape.id, {
+      isImageEditing: false
+    });
+  };
+
   // Add effect to initialize canvases from saved data
   useEffect(() => {
     if (shape.isImageEditing) {
@@ -297,108 +303,112 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
     WebkitWillChange: "transform" as const,
   };
 
+  if (shape.isImageEditing && shape.type === "image") {
+    return (
+      <ImageCropper
+        imageUrl={shape.imageUrl || ''}
+        sourceShape={shape}
+        onClose={handleCloseEditing}
+      />
+    );
+  }
+
   return (
     <div className="relative w-full h-full">
-      {shape.isImageEditing ? (
-        <ImageEditor shape={shape} updateShape={updateShape} />
-      ) : (
-        <>
-          <canvas
-            ref={refs.backgroundCanvasRef}
-            data-shape-id={shape.id}
-            data-layer="background"
-            className="absolute w-full h-full object-cover"
-            style={{
-              ...canvasStyle,
-              zIndex: 1,
-              visibility: "visible"
-            }}
-            onDoubleClick={handleStartEditing}
-          />
-          <canvas
-            ref={refs.permanentStrokesCanvasRef}
-            data-shape-id={shape.id}
-            data-layer="permanent"
-            className="absolute w-full h-full object-cover"
-            style={{
-              ...canvasStyle,
-              zIndex: 2,
-              visibility: "visible"
-            }}
-          />
-          <canvas
-            ref={refs.activeStrokeCanvasRef}
-            data-shape-id={shape.id}
-            data-layer="active"
-            className="absolute w-full h-full object-cover"
-            style={{
-              ...canvasStyle,
-              zIndex: 3,
-              visibility: "visible"
-            }}
-          />
-          <canvas
-            ref={refs.maskCanvasRef}
-            data-shape-id={shape.id}
-            data-layer="mask"
-            className="absolute w-full h-full object-cover"
-            style={{
-              ...canvasStyle,
-              zIndex: 4,
-              visibility: "visible"
-            }}
-          />
-          <canvas
-            ref={refs.previewCanvasRef}
-            data-shape-id={shape.id}
-            data-layer="preview"
-            className="absolute w-full h-full object-cover"
-            style={{
-              ...canvasStyle,
-              pointerEvents: tool === "select" ? "none" : "all",
-              zIndex: 5,
-              visibility: "visible"
-            }}
-            onContextMenu={handleContextMenu}
-            onDoubleClick={handleStartEditing}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              e.currentTarget.setPointerCapture(e.pointerId);
-              handlePointerDown(e);
-            }}
-            onPointerMove={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              handlePointerMove(e);
-            }}
-            onPointerUp={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-                e.currentTarget.releasePointerCapture(e.pointerId);
-              }
-              handlePointerUpOrLeave();
-            }}
-            onPointerLeave={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-                e.currentTarget.releasePointerCapture(e.pointerId);
-              }
-              handlePointerUpOrLeave();
-            }}
-            onPointerCancel={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-                e.currentTarget.releasePointerCapture(e.pointerId);
-              }
-              handlePointerUpOrLeave();
-            }}
-          />
-        </>
-      )}
+      <canvas
+        ref={refs.backgroundCanvasRef}
+        data-shape-id={shape.id}
+        data-layer="background"
+        className="absolute w-full h-full object-cover"
+        style={{
+          ...canvasStyle,
+          zIndex: 1,
+          visibility: "visible"
+        }}
+        onDoubleClick={handleStartEditing}
+      />
+      <canvas
+        ref={refs.permanentStrokesCanvasRef}
+        data-shape-id={shape.id}
+        data-layer="permanent"
+        className="absolute w-full h-full object-cover"
+        style={{
+          ...canvasStyle,
+          zIndex: 2,
+          visibility: "visible"
+        }}
+      />
+      <canvas
+        ref={refs.activeStrokeCanvasRef}
+        data-shape-id={shape.id}
+        data-layer="active"
+        className="absolute w-full h-full object-cover"
+        style={{
+          ...canvasStyle,
+          zIndex: 3,
+          visibility: "visible"
+        }}
+      />
+      <canvas
+        ref={refs.maskCanvasRef}
+        data-shape-id={shape.id}
+        data-layer="mask"
+        className="absolute w-full h-full object-cover"
+        style={{
+          ...canvasStyle,
+          zIndex: 4,
+          visibility: "visible"
+        }}
+      />
+      <canvas
+        ref={refs.previewCanvasRef}
+        data-shape-id={shape.id}
+        data-layer="preview"
+        className="absolute w-full h-full object-cover"
+        style={{
+          ...canvasStyle,
+          pointerEvents: tool === "select" ? "none" : "all",
+          zIndex: 5,
+          visibility: "visible"
+        }}
+        onContextMenu={handleContextMenu}
+        onDoubleClick={handleStartEditing}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          handlePointerDown(e);
+        }}
+        onPointerMove={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          handlePointerMove(e);
+        }}
+        onPointerUp={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }
+          handlePointerUpOrLeave();
+        }}
+        onPointerLeave={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }
+          handlePointerUpOrLeave();
+        }}
+        onPointerCancel={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }
+          handlePointerUpOrLeave();
+        }}
+      />
     </div>
   );
 };
