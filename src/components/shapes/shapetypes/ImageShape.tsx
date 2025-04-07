@@ -335,7 +335,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
         style={{
           ...canvasStyle,
           zIndex: 2,
-          visibility: "visible"
+          visibility: "hidden"
         }}
       />
       <canvas
@@ -346,7 +346,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
         style={{
           ...canvasStyle,
           zIndex: 3,
-          visibility: "visible"
+          visibility: "hidden"
         }}
       />
       <canvas
@@ -357,7 +357,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
         style={{
           ...canvasStyle,
           zIndex: 4,
-          visibility: "visible"
+          visibility: "hidden"
         }}
       />
       <canvas
