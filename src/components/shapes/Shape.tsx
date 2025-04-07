@@ -83,7 +83,7 @@ const LoadingPlaceholder: React.FC<{ isGenerating: boolean; logs?: string[] }> =
               {i < processedLogs.length - 1 && <div className="mb-6" />}
             </div>
           );
-        }) : 'Waiting for logs...'}
+        }) : 'Waiting for A.I. to start...'}
       </pre>
     </div>
   );
