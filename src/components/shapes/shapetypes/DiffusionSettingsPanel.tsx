@@ -7,6 +7,7 @@ import {
   SCHEDULER_OPTIONS,
 } from "../../../constants/diffusionModels";
 import { useThemeClass } from "../../../styles/useThemeClass";
+import { SmallSlider } from "../../shared/SmallSlider";
 
 interface DiffusionSettingsPanelProps {
   shape: Shape;
@@ -143,32 +144,13 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                   <label className="text-xs text-neutral-600 dark:text-neutral-400">
                     Steps
                   </label>
-                  <input
-                    type="number"
-                    value={shape.steps?.toString() || "45"}
-                    onChange={(e) =>
-                      updateShape(shape.id, { steps: Number(e.target.value) })
-                    }
-                    min="1"
-                    max="100"
-                    className="w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs text-neutral-600 dark:text-neutral-400">
-                    Guidance Scale
-                  </label>
-                  <input
-                    type="number"
-                    value={shape.guidanceScale?.toString() || "6.5"}
-                    onChange={(e) =>
-                      updateShape(shape.id, { guidanceScale: Number(e.target.value) })
-                    }
-                    min="1"
-                    max="20"
-                    step="0.1"
-                    className="w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block"
+                  <SmallSlider
+                    value={shape.steps || 45}
+                    onChange={(value) => updateShape(shape.id, { steps: value })}
+                    min={1}
+                    max={100}
+                    step={1}
+                    label="Steps"
                   />
                 </div>
 
@@ -197,11 +179,14 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                   </label>
                   <input
                     type="number"
-                    value={shape.seed?.toString() || "-1"}
+                    value={shape.seed?.toString() || Math.floor(Math.random() * 1000000).toString()}
                     onChange={(e) =>
                       updateShape(shape.id, { seed: Number(e.target.value) })
                     }
-                    className="w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block"
+                    disabled={shape.randomiseSeeds}
+                    className={`w-full py-1 px-2 text-xs border rounded bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 block ${
+                      shape.randomiseSeeds ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                   />
                 </div>
 
@@ -210,11 +195,14 @@ export const DiffusionSettingsPanel: React.FC<DiffusionSettingsPanelProps> = ({
                     type="checkbox"
                     id={`randomize-${shape.id}`}
                     checked={shape.randomiseSeeds ?? true}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const isRandom = e.target.checked;
+                      const newSeed = isRandom ? Math.floor(Math.random() * 1000000) : (shape.seed || Math.floor(Math.random() * 1000000));
                       updateShape(shape.id, {
-                        randomiseSeeds: e.target.checked,
-                      })
-                    }
+                        randomiseSeeds: isRandom,
+                        seed: newSeed
+                      });
+                    }}
                     className="w-3 h-3 text-blue-600 bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 rounded"
                   />
                   <label
