@@ -906,19 +906,33 @@ export const generationHandlerSlice: StateCreator<
 
       // Set up subscription using the new function
       const newSubscription = setupGenerationSubscription(replicatePredictionId, (payload) => {
-        if (payload.status === "completed" && payload.generated_01) {
+        if (payload.status === "completed" || payload.status === "Completed!") {
+          if (payload.generated_01) {
+            get().updateShape(payload.prediction_id, {
+              isUploading: false,
+              imageUrl: payload.generated_01,
+              logs: payload.logs || [] // Keep the final logs
+            });
+            get().removeGeneratingPrediction(payload.prediction_id);
+          } else {
+            // Just update logs
+            get().updateShape(payload.prediction_id, {
+              logs: payload.logs || []
+            });
+          }
+        } else if (payload.status === "error" || payload.status === "failed" || payload.status === "Generation failed") {
           get().updateShape(payload.prediction_id, {
             isUploading: false,
-            imageUrl: payload.generated_01,
-          });
-          get().removeGeneratingPrediction(payload.prediction_id);
-        } else if (payload.status === "error" || payload.status === "failed") {
-          get().updateShape(payload.prediction_id, {
-            isUploading: false,
-            color: "#ffcccb"
+            color: "#ffcccb",
+            logs: payload.logs || [] // Keep the logs visible on error
           });
           get().removeGeneratingPrediction(payload.prediction_id);
           get().setError(payload.error_message || "Generation failed");
+        } else {
+          // For all other updates, only update logs
+          get().updateShape(payload.prediction_id, {
+            logs: payload.logs || []
+          });
         }
       });
 

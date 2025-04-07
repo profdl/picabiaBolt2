@@ -128,10 +128,16 @@ export const subjectGenerationSlice: StateCreator<
               };
             };
             
-            if (typedPayload.new.status === "completed" && typedPayload.new.generated_01) {
+            console.log('Processing update with status:', typedPayload.new.status);
+            console.log('Has generated image:', !!typedPayload.new.generated_01);
+            
+            if ((typedPayload.new.status === "completed" || typedPayload.new.status === "Completed!") && typedPayload.new.generated_01) {
               try {
+                console.log('Processing completed image:', typedPayload.new.generated_01);
                 // Get the trimmed dimensions of the processed image
                 const { url: trimmedUrl, bounds } = await trimTransparentPixels(typedPayload.new.generated_01);
+                console.log('Trimmed image URL:', trimmedUrl);
+                console.log('Trimmed bounds:', bounds);
                 
                 // Calculate scale to fit within 512px while maintaining aspect ratio
                 const aspectRatio = bounds.width / bounds.height;
@@ -145,6 +151,8 @@ export const subjectGenerationSlice: StateCreator<
                   newWidth = 512 * aspectRatio;
                 }
     
+                console.log('New dimensions:', { newWidth, newHeight });
+    
                 // Calculate new position
                 const xOffset = (imageShape.width - newWidth) / 2;
                 const yOffset = (imageShape.height - newHeight) / 2;
@@ -152,6 +160,8 @@ export const subjectGenerationSlice: StateCreator<
                   x: imageShape.position.x + imageShape.width + 20 + xOffset,
                   y: imageShape.position.y + yOffset
                 };
+    
+                console.log('New position:', newPosition);
     
                 // Update shape with trimmed image
                 get().updateShape(prediction_id, {
@@ -162,6 +172,7 @@ export const subjectGenerationSlice: StateCreator<
                   position: newPosition
                 });
                 
+                console.log('Successfully updated shape with new image');
                 get().removeGeneratingPrediction(prediction_id);
               } catch (error) {
                 console.error('Error processing completed image:', error);

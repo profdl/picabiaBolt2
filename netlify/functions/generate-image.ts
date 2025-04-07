@@ -44,7 +44,7 @@ export const handler: Handler = async (event) => {
             randomise_seeds: payload.randomiseSeeds,
           },
           webhook: process.env.WEBHOOK_URL,
-          webhook_events_filter: ["completed"],
+          webhook_events_filter: ["start", "output", "logs", "completed"],
         }),
       }
     );

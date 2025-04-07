@@ -80,6 +80,8 @@ export interface BaseShape {
     maskData?: string;
     previewData?: string;
   };
+  status?: string;
+  logs?: string[];
 }
 
 // Sticky note specific properties

@@ -130,6 +130,7 @@ export const setupGenerationSubscription = (
     prediction_id: string;
     updated_at: string;
     error_message?: string;
+    logs?: string[];
   }) => void
 ): GenerationSubscription => {
   // Set up polling interval
@@ -146,9 +147,12 @@ export const setupGenerationSubscription = (
         return;
       }
 
-      if (data && (data.status === 'completed' || data.status === 'error' || data.status === 'failed')) {
+      if (data) {
         onUpdate(data);
-        clearInterval(pollInterval);
+        // Only clear interval if generation is complete or failed
+        if (data.status === 'completed' || data.status === 'error' || data.status === 'failed') {
+          clearInterval(pollInterval);
+        }
       }
     } catch (error) {
       console.error('Polling error:', error);
@@ -174,6 +178,7 @@ export const setupGenerationSubscription = (
             prediction_id: string;
             updated_at: string;
             error_message?: string;
+            logs?: string[];
           };
         };
         onUpdate(typedPayload.new);

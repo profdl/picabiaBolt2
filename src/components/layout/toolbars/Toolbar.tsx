@@ -162,7 +162,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
         color: "var(--sticky-green)",
         isEditing: true,
         isTextPrompt: true,
-        textPromptStrength: 4.5,
+        textPromptStrength: 6.5,
         content: "Double-Click to Edit...",
         isNew: true,
         width: 220,
