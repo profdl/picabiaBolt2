@@ -1,4 +1,4 @@
-import { Shape } from "../types";
+import { Shape, GroupShape } from "../types/shapes";
 
 export const getShapeStyles = (
   shape: Shape,
@@ -8,8 +8,8 @@ export const getShapeStyles = (
   isEditing?: boolean,
   isDark: boolean = false
 ): React.CSSProperties => {
-  // Find if this shape is in a disabled group
-  const isInDisabledGroup = shape.groupId && shapes.find(s => s.id === shape.groupId)?.groupEnabled === false;
+  // Find if this shape is in an inactive group
+  const isInInactiveGroup = shape.groupId && shapes.find(s => s.id === shape.groupId)?.type === "group" && !(shapes.find(s => s.id === shape.groupId) as GroupShape).isActive;
 
   // Check if any controls are enabled
   const hasEnabledControls = 
@@ -43,9 +43,9 @@ export const getShapeStyles = (
       : isSelected
       ? 1000 // Selected non-grouped objects go to top
       : shapes.findIndex((s) => s.id === shape.id),
-    pointerEvents: isInDisabledGroup ? "none" : (tool === "select" ? "all" : "none"),
-    cursor: isInDisabledGroup ? "not-allowed" : (tool === "select" ? "move" : "default"),
-    opacity: isInDisabledGroup ? 0.3 : 1,
+    pointerEvents: isInInactiveGroup ? "none" : (tool === "select" ? "all" : "none"),
+    cursor: isInInactiveGroup ? "not-allowed" : (tool === "select" ? "move" : "default"),
+    opacity: isInInactiveGroup ? 0.25 : 1,
     border:
       shape.type === "group"
         ? isDark
