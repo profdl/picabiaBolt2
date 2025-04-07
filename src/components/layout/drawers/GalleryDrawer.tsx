@@ -3,53 +3,120 @@ import React, { useEffect, useState } from "react";
 import { Drawer } from "../../shared/Drawer";
 import ImageGrid from "../../shared/ImageGrid";
 import { ImageItem } from "../../shared/ImageGrid";
-import { ImageDetailsModal } from "../../layout/modals/ImageDetailsModal";
+import { ImageDetailsModal, SavedImage as ModalSavedImage } from "../../layout/modals/ImageDetailsModal";
 import { useStore } from "../../../store";
 import { SavedImage } from '../../../types';
 import { useShapeAdder } from "../../../hooks/shapes/useShapeAdder";
 import { getImageDimensions } from "../../../utils/image";
 
-interface GalleryDrawerProps {
+// Use the SavedImage type from ImageDetailsModal to ensure compatibility
+type StoreGeneratedImage = ModalSavedImage;
 
+// Define a partial store state for what we need at runtime
+interface PartialStoreState {
+  generatedImages?: StoreGeneratedImage[];
+  hasMore?: boolean;
+}
+
+interface GalleryDrawerProps {
   onClose: () => void;
   viewingImage: SavedImage | null;
 }
 
 export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
-  const [viewingImage, setViewingImage] = useState<SavedImage | null>(null);
+  const [viewingImage, setViewingImage] = useState<StoreGeneratedImage | null>(null);
   const [page, setPage] = useState(1);
+  const [generatedImages, setGeneratedImages] = useState<StoreGeneratedImage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const IMAGES_PER_PAGE = 20;
 
   const { addNewShape } = useShapeAdder();
 
-  const {
-    generatedImages,
-    fetchGeneratedImages,
-    deleteGeneratedImage,
-    isLoading,
-    showGallery,
-    toggleGallery,
-    hasMore
-  } = useStore((state) => ({
-    generatedImages: state.generatedImages,
-    fetchGeneratedImages: state.fetchGeneratedImages,
-    deleteGeneratedImage: state.deleteGeneratedImage,
-    isLoading: state.isLoading,
-    showGallery: state.showGallery,
-    toggleGallery: state.toggleGallery,
-    hasMore: state.hasMore
-  }));
+  // Get UI store properties
+  const showGallery = useStore(state => state.showGallery);
+  const toggleGallery = useStore(state => state.toggleGallery);
+  
+  // Get action functions
+  const fetchGeneratedImages = useStore(state => state.fetchGeneratedImages);
+  const deleteGeneratedImage = useStore(state => state.deleteGeneratedImage);
 
+  // Reset state when gallery is opened
   useEffect(() => {
     if (showGallery) {
-      fetchGeneratedImages(page, IMAGES_PER_PAGE);
+      setPage(1);
+      setGeneratedImages([]);
     }
+  }, [showGallery]);
+
+  // Custom handler for image deletion that updates local state
+  const handleDeleteImage = async (imageId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      // Delete from server first
+      const success = await deleteGeneratedImage(imageId);
+      if (success) {
+        // Then update local state if successful
+        setGeneratedImages(prevImages => {
+          return prevImages.filter(img => img.id !== imageId);
+        });
+        
+        // Reset viewingImage if it was deleted
+        if (viewingImage && viewingImage.id === imageId) {
+          setViewingImage(null);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete image:", error);
+    }
+  };
+
+  // Load images when drawer is opened or page changes
+  useEffect(() => {
+    if (!showGallery) return;
+    
+    const loadImages = async () => {
+      setIsLoading(true);
+      try {
+        // Call the global fetchGeneratedImages function
+        await fetchGeneratedImages(page, IMAGES_PER_PAGE);
+        
+        // We can't directly use the result due to TS errors, so let's retrieve it via selector
+        const state = useStore.getState() as PartialStoreState;
+        
+        // Get values with proper type assertion
+        const newImages = state.generatedImages || [];
+        const hasMoreImages = state.hasMore || false;
+        
+        // Update our local state to avoid direct store access in render
+        // Ensure we don't add duplicates by checking IDs
+        setGeneratedImages(prev => {
+          if (page === 1) return newImages;
+          
+          // Create a map of existing image IDs for quick lookup
+          const existingIds = new Set(prev.map(img => img.id));
+          
+          // Filter out any images that already exist in our state
+          const uniqueNewImages = newImages.filter(img => !existingIds.has(img.id));
+          
+          return [...prev, ...uniqueNewImages];
+        });
+        
+        setHasMore(hasMoreImages);
+      } catch (error) {
+        console.error("Failed to fetch images:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadImages();
   }, [showGallery, page, fetchGeneratedImages]);
 
   const loadMore = () => {
     if (!isLoading && hasMore) {
-      setPage((prevPage) => prevPage + 1);
+      setPage(prevPage => prevPage + 1);
     }
   };
 
@@ -69,8 +136,7 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
         image.url,
         {
           centerOnShape: true,
-          setSelected: true,
-          animate: true
+          setSelected: true
         }
       );
   
@@ -82,9 +148,9 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
     }
   };
 
-  const displayImages: ImageItem[] = generatedImages
-    .filter(img => img.generated_01) // Filter out images with no URL
-    .map((img) => ({
+  const displayImages: ImageItem[] = (generatedImages || [])
+    .filter((img: StoreGeneratedImage) => img?.generated_01) // Filter out images with no URL
+    .map((img: StoreGeneratedImage) => ({
       id: img.id,
       url: img.generated_01,
       prompt: img.prompt,
@@ -100,7 +166,7 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
     }));
 
   const handleImageViewClick = (image: ImageItem) => {
-    const fullImage = generatedImages.find((img) => img.id === image.id) as SavedImage;
+    const fullImage = generatedImages.find((img: StoreGeneratedImage) => img.id === image.id);
     if (fullImage) {
       const index = generatedImages.indexOf(fullImage);
       setCurrentImageIndex(index);
@@ -112,7 +178,7 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
     const nextIndex = currentImageIndex + 1;
     if (nextIndex < generatedImages.length) {
       setCurrentImageIndex(nextIndex);
-      setViewingImage(generatedImages[nextIndex] as SavedImage);
+      setViewingImage(generatedImages[nextIndex]);
     }
   };
 
@@ -120,7 +186,7 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
     const prevIndex = currentImageIndex - 1;
     if (prevIndex >= 0) {
       setCurrentImageIndex(prevIndex);
-      setViewingImage(generatedImages[prevIndex] as SavedImage);
+      setViewingImage(generatedImages[prevIndex]);
     }
   };
 
@@ -130,8 +196,6 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
       loadMore();
     }
   };
-
-
 
   return (
     <>
@@ -147,7 +211,7 @@ export const GalleryDrawer: React.FC<GalleryDrawerProps> = () => {
             loading={isLoading && page === 1}
             emptyMessage="No generated images yet"
             onImageClick={handleImageClick}
-            onImageDelete={deleteGeneratedImage}
+            onImageDelete={handleDeleteImage}
             onViewDetails={handleImageViewClick}
             showViewButton={true}
             imageUrlKey="url"
