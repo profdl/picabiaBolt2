@@ -4,6 +4,7 @@ import { ImageShape, StickyNoteShape, GroupShape } from "../../types/shapes";
 import { shapeManagement } from '../../utils/shapeManagement';
 import {mergeImages} from '../../utils/mergeImagesShapes';
 import { shapeLayout } from '../../utils/shapeLayout';
+import { nanoid } from 'nanoid';
 
 
 const MAX_HISTORY = 50;
@@ -55,6 +56,7 @@ interface ShapeSlice extends ShapeState {
   redo: () => void;
   setIsEditingText: (isEditing: boolean) => void;
   create3DDepth: (shape: Shape, position: { x: number; y: number }) => void;
+  toggleGroupActive: (groupId: string) => void;
 }
 
 export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
@@ -389,7 +391,7 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
   },
 
   pasteShapes: (offset = { x: 20, y: 20 }) => {
-    const { clipboard, shapes, updateShape, setShapes, setSelectedShapes, addShapes } = get();
+    const { clipboard, shapes, setShapes, setSelectedShapes, addShapes } = get();
     if (clipboard.length === 0) return;
 
     // Handle image shapes specifically
@@ -562,40 +564,40 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       };
     }),
 
-  duplicate: () => {
-    const { shapes, selectedShapes, updateShape, addShapes, setSelectedShapes } = get();
-    if (selectedShapes.length === 0) return;
+  duplicate: () =>
+    set((state) => {
+      const { shapes, selectedShapes, addShapes, setSelectedShapes, updateShape } = get();
+      if (selectedShapes.length === 0) return state;
 
-    const newShapes = selectedShapes.map((id) => {
-      const shape = shapes.find((s) => s.id === id);
-      if (!shape) return null;
+      const newShapes = selectedShapes.map((id) => {
+        const shape = shapes.find((s) => s.id === id);
+        if (!shape) return null;
 
-      const newShape = {
-        ...shape,
-        id: Math.random().toString(36).substr(2, 9),
-        position: {
-          x: shape.position.x + 20,
-          y: shape.position.y + 20,
-        },
-      };
+        const newShape = {
+          ...shape,
+          id: nanoid(),
+          position: {
+            x: shape.position.x + 20,
+            y: shape.position.y + 20,
+          },
+        };
 
-      // If the duplicated shape has makeVariations enabled, disable it on all other shapes
-      if (shape.type === "image" && shape.makeVariations) {
-        shapes.forEach((otherShape) => {
-          if (otherShape.type === "image" && otherShape.id !== newShape.id) {
-            updateShape(otherShape.id, { makeVariations: false });
-          }
-        });
-      }
+        // If this is an image shape, disable makeVariations on all other image shapes
+        if (newShape.type === "image") {
+          shapes.forEach((otherShape) => {
+            if (otherShape.type === "image" && otherShape.id !== newShape.id) {
+              updateShape(otherShape.id, { makeVariations: false });
+            }
+          });
+        }
 
-      return newShape;
-    }).filter(Boolean) as Shape[];
+        return newShape;
+      }).filter((shape): shape is Shape => shape !== null);
 
-    if (newShapes.length > 0) {
       addShapes(newShapes);
       setSelectedShapes(newShapes.map((s) => s.id));
-    }
-  },
+      return state;
+    }),
 
   createGroup: (shapeIds) =>
     set((state) => {
@@ -604,6 +606,21 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       
       // Calculate bounds using layout utility
       const bounds = shapeLayout.calculateGroupBounds(groupedShapes as Shape[]);
+
+      // Store initial toggle states for each shape
+      const shapeToggleStates = groupedShapes.reduce((acc, shape) => {
+        acc[shape.id] = {
+          showDepth: shape.type === "depth" ? shape.showDepth : undefined,
+          showEdges: shape.type === "edges" ? shape.showEdges : undefined,
+          showPose: shape.type === "pose" ? shape.showPose : undefined,
+          showImagePrompt: shape.type === "image" ? shape.showImagePrompt : undefined,
+          makeVariations: shape.type === "image" ? shape.makeVariations : undefined,
+          useSettings: shape.type === "diffusionSettings" ? shape.useSettings : undefined,
+          isTextPrompt: shape.type === "sticky" ? shape.isTextPrompt : undefined,
+          isNegativePrompt: shape.type === "sticky" ? shape.isNegativePrompt : undefined,
+        };
+        return acc;
+      }, {} as GroupShape['shapeToggleStates']);
 
       // Create the group shape
       const groupShape = {
@@ -619,6 +636,8 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         model: "",
         useSettings: false,
         groupEnabled: true,
+        isActive: true,
+        shapeToggleStates,
       } as GroupShape;
 
       // Update shapes with new groupId
@@ -749,11 +768,6 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
         
         // Only process for sticky notes
         if (targetShape && targetShape.type === "sticky") {
-          // Count how many sticky notes already have text prompts enabled
-          const existingPromptStickies = state.shapes.filter(
-            s => s.type === "sticky" && (s as StickyNoteShape).isTextPrompt && s.id !== id
-          );
-          
           // First, disable isTextPrompt on all other sticky notes 
           const newShapes = state.shapes.map((shape) => {
             // Skip the shape we're currently updating
@@ -979,6 +993,78 @@ export const shapeSlice: StateCreator<ShapeSlice, [], [], ShapeSlice> = (
       return {
         shapes: resultShapes,
         selectedShapes: shapeIds, // Select the shapes that were removed from their group
+        history: [
+          ...state.history.slice(0, state.historyIndex + 1),
+          resultShapes,
+        ].slice(-MAX_HISTORY),
+        historyIndex: state.historyIndex + 1,
+      };
+    }),
+
+  toggleGroupActive: (groupId: string) =>
+    set((state) => {
+      const groupShape = state.shapes.find((s) => s.id === groupId) as GroupShape;
+      if (!groupShape || groupShape.type !== "group") return state;
+
+      const newActiveState = !groupShape.isActive;
+
+      // Update the group's active state
+      const updatedGroupShape = {
+        ...groupShape,
+        isActive: newActiveState,
+      };
+
+      // Update all shapes in the group
+      const updatedShapes = state.shapes.map((shape) => {
+        if (shape.groupId === groupId) {
+          if (newActiveState) {
+            // Restore previous toggle states
+            const previousStates = groupShape.shapeToggleStates[shape.id] || {};
+            return {
+              ...shape,
+              ...previousStates,
+            };
+          } else {
+            // Store current toggle states and disable all toggles
+            const currentStates = {
+              showDepth: shape.type === "depth" ? shape.showDepth : undefined,
+              showEdges: shape.type === "edges" ? shape.showEdges : undefined,
+              showPose: shape.type === "pose" ? shape.showPose : undefined,
+              showImagePrompt: shape.type === "image" ? shape.showImagePrompt : undefined,
+              makeVariations: shape.type === "image" ? shape.makeVariations : undefined,
+              useSettings: shape.type === "diffusionSettings" ? shape.useSettings : undefined,
+              isTextPrompt: shape.type === "sticky" ? shape.isTextPrompt : undefined,
+              isNegativePrompt: shape.type === "sticky" ? shape.isNegativePrompt : undefined,
+            };
+
+            // Update the group's shapeToggleStates
+            updatedGroupShape.shapeToggleStates[shape.id] = currentStates;
+
+            // Disable all toggles
+            return {
+              ...shape,
+              showDepth: false,
+              showEdges: false,
+              showPose: false,
+              showImagePrompt: false,
+              makeVariations: false,
+              useSettings: false,
+              isTextPrompt: false,
+              isNegativePrompt: false,
+            };
+          }
+        }
+        return shape;
+      });
+
+      // Replace the group shape with the updated version
+      const resultShapes = [
+        ...updatedShapes.filter((s) => s.id !== groupId),
+        updatedGroupShape as Shape,
+      ];
+
+      return {
+        shapes: resultShapes,
         history: [
           ...state.history.slice(0, state.historyIndex + 1),
           resultShapes,

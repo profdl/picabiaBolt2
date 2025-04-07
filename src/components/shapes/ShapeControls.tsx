@@ -32,13 +32,15 @@ export function ShapeControls({
     shapes,
     setSelectedShapes,
     tool,
-    selectedShapes
+    selectedShapes,
+    toggleGroupActive,
   } = useStore((state) => ({
     updateShape: state.updateShape,
     shapes: state.shapes,
     setSelectedShapes: state.setSelectedShapes,
     tool: state.tool as "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint",
-    selectedShapes: state.selectedShapes
+    selectedShapes: state.selectedShapes,
+    toggleGroupActive: state.toggleGroupActive,
   }));
 
   // Define theme classes
@@ -628,6 +630,30 @@ export function ShapeControls({
             onMouseDown={preventEvent}
             onClick={preventEvent}
           />
+        </div>
+      )}
+
+      {shape.type === "group" && (
+        <div
+          className={`absolute left-1/2 -bottom-10 transform -translate-x-1/2 ${styles.sidePanel.container}`}
+          data-shape-control="true"
+          style={{ zIndex: 1000, pointerEvents: "all", width: "160px" }}
+          onMouseDown={preventEvent}
+          onClick={preventEvent}
+        >
+          <div 
+            className={styles.sidePanel.group}
+            data-shape-control="true"
+            onMouseDown={preventEvent}
+            onClick={preventEvent}
+          >
+            <MiniToggle
+              id={`group-active-${shape.id}`}
+              checked={shape.isActive}
+              onChange={() => toggleGroupActive(shape.id)}
+              label="Active"
+            />
+          </div>
         </div>
       )}
     </>

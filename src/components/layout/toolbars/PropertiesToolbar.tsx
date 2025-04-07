@@ -505,7 +505,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     };
   }, [tool, handleEyedropperClick]);
 
-  const calculateNewShapePosition = (type: "depth" | "edges" | "pose") => {
+  const calculateNewShapePosition = () => {
     if (!displayShape) {
       return { x: 0, y: 0 };
     }
@@ -610,7 +610,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               const newDepthShape: Shape = {
                                 id: Math.random().toString(36).substr(2, 9),
                                 type: "depth",
-                                position: calculateNewShapePosition("depth"),
+                                position: calculateNewShapePosition(),
                                 width: displayShape.width,
                                 height: displayShape.height,
                                 rotation: 0,
@@ -653,7 +653,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               const newEdgesShape: Shape = {
                                 id: Math.random().toString(36).substr(2, 9),
                                 type: "edges",
-                                position: calculateNewShapePosition("edges"),
+                                position: calculateNewShapePosition(),
                                 width: displayShape.width,
                                 height: displayShape.height,
                                 rotation: 0,
@@ -696,7 +696,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               const newPoseShape: Shape = {
                                 id: Math.random().toString(36).substr(2, 9),
                                 type: "pose",
-                                position: calculateNewShapePosition("pose"),
+                                position: calculateNewShapePosition(),
                                 width: displayShape.width,
                                 height: displayShape.height,
                                 rotation: 0,

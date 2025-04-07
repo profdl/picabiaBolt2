@@ -151,6 +151,19 @@ export interface ImageShape extends BaseShape {
 export interface GroupShape extends BaseShape {
   type: "group";
   groupEnabled: boolean;
+  isActive: boolean;
+  shapeToggleStates: {
+    [shapeId: string]: {
+      showDepth?: boolean;
+      showEdges?: boolean;
+      showPose?: boolean;
+      showImagePrompt?: boolean;
+      makeVariations?: boolean;
+      useSettings?: boolean;
+      isTextPrompt?: boolean;
+      isNegativePrompt?: boolean;
+    };
+  };
 }
 
 // 3D specific properties
