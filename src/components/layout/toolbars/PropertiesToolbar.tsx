@@ -505,6 +505,41 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     };
   }, [tool, handleEyedropperClick]);
 
+  const calculateNewShapePosition = (type: "depth" | "edges" | "pose") => {
+    if (!displayShape) {
+      return { x: 0, y: 0 };
+    }
+    
+    const baseX = displayShape.position.x + displayShape.width + 20;
+    const baseY = displayShape.position.y;
+    
+    // Find all reference shapes (depth, edges, pose) that are to the right of the source shape
+    const existingShapes = shapes.filter(shape => 
+      (shape.type === "depth" || shape.type === "edges" || shape.type === "pose") && 
+      shape.position.x >= baseX - 20 && // Include shapes within 20px to the left
+      shape.position.x <= baseX + 20 && // Include shapes within 20px to the right
+      Math.abs(shape.position.y - baseY) < displayShape.height + 20
+    );
+    
+    // If there are existing shapes, place the new shape to the right of the rightmost shape
+    if (existingShapes.length > 0) {
+      // Find the shape with the highest x position (rightmost)
+      const rightmostShape = existingShapes.reduce((prev, current) => 
+        (prev.position.x + prev.width > current.position.x + current.width) ? prev : current
+      );
+      
+      return {
+        x: rightmostShape.position.x + rightmostShape.width + 20, // Place 20px to the right of the rightmost shape
+        y: baseY
+      };
+    }
+    
+    return {
+      x: baseX,
+      y: baseY
+    };
+  };
+
   return (
     <div className="absolute bottom-full left-1/2 -translate-x-[280px] flex flex-col gap-2 mb-2.5">
       <div className="bg-neutral-100 dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-300 dark:border-neutral-800 py-1 px-1 h-[44px] inline-block">
@@ -575,10 +610,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               const newDepthShape: Shape = {
                                 id: Math.random().toString(36).substr(2, 9),
                                 type: "depth",
-                                position: {
-                                  x: displayShape.position.x,
-                                  y: displayShape.position.y + displayShape.height + 20,
-                                },
+                                position: calculateNewShapePosition("depth"),
                                 width: displayShape.width,
                                 height: displayShape.height,
                                 rotation: 0,
@@ -607,6 +639,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               displayActions.addShape(newDepthShape);
                               centerOnShape(newDepthShape);
                               await displayActions.generatePreprocessedImage(displayShape.id, "depth");
+                              displayActions.sendToFront();
                             }}
                           >
                             Depth
@@ -620,10 +653,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               const newEdgesShape: Shape = {
                                 id: Math.random().toString(36).substr(2, 9),
                                 type: "edges",
-                                position: {
-                                  x: displayShape.position.x,
-                                  y: displayShape.position.y + displayShape.height + 20,
-                                },
+                                position: calculateNewShapePosition("edges"),
                                 width: displayShape.width,
                                 height: displayShape.height,
                                 rotation: 0,
@@ -652,6 +682,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               displayActions.addShape(newEdgesShape);
                               centerOnShape(newEdgesShape);
                               await displayActions.generatePreprocessedImage(displayShape.id, "edge");
+                              displayActions.sendToFront();
                             }}
                           >
                             Edges
@@ -665,10 +696,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               const newPoseShape: Shape = {
                                 id: Math.random().toString(36).substr(2, 9),
                                 type: "pose",
-                                position: {
-                                  x: displayShape.position.x,
-                                  y: displayShape.position.y + displayShape.height + 20,
-                                },
+                                position: calculateNewShapePosition("pose"),
                                 width: displayShape.width,
                                 height: displayShape.height,
                                 rotation: 0,
@@ -697,6 +725,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                               displayActions.addShape(newPoseShape);
                               centerOnShape(newPoseShape);
                               await displayActions.generatePreprocessedImage(displayShape.id, "pose");
+                              displayActions.sendToFront();
                             }}
                           >
                             Pose
