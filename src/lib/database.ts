@@ -19,13 +19,57 @@ interface DatabaseRecord {
   generated_02: string;
   generated_03: string;
   generated_04: string;
+  model: string;
+  num_inference_steps: number;
+  guidance_scale: number;
+  scheduler: string;
+  seed: number;
+  width: number;
+  height: number;
+  num_outputs: number;
+  output_format: string;
+  output_quality: number;
+  prompt_negative: string;
+  prompt_strength: number;
+  depth_scale: number;
+  edge_scale: number;
+  pose_scale: number;
+  sketch_scale: number;
+  remix_scale: number;
+  lora_scale: number;
+  lora_weights: string;
+  refine: boolean;
+  refine_steps: number;
 }
 
 export const createDatabaseRecord = async (
   userId: string,
   prompt: string,
   aspectRatio: string,
-  predictionId: string
+  predictionId: string,
+  generationParams: {
+    model?: string;
+    num_inference_steps?: number;
+    guidance_scale?: number;
+    scheduler?: string;
+    seed?: number;
+    width?: number;
+    height?: number;
+    num_outputs?: number;
+    output_format?: string;
+    output_quality?: number;
+    prompt_negative?: string;
+    prompt_strength?: number;
+    depth_scale?: number;
+    edge_scale?: number;
+    pose_scale?: number;
+    sketch_scale?: number;
+    remix_scale?: number;
+    lora_scale?: number;
+    lora_weights?: string;
+    refine?: boolean;
+    refine_steps?: number;
+  } = {}
 ): Promise<DatabaseRecord> => {
   const insertData = {
     id: crypto.randomUUID(),
@@ -40,6 +84,29 @@ export const createDatabaseRecord = async (
     generated_02: "",
     generated_03: "",
     generated_04: "",
+    
+    // Add all generation parameters
+    model: generationParams.model || "juggernautXL_v9",
+    num_inference_steps: generationParams.num_inference_steps || 45,
+    guidance_scale: generationParams.guidance_scale || 7.5,
+    scheduler: generationParams.scheduler || "dpmpp_2m_sde",
+    seed: generationParams.seed || Math.floor(Math.random() * 1000000),
+    width: generationParams.width || 1024,
+    height: generationParams.height || 1024,
+    num_outputs: generationParams.num_outputs || 1,
+    output_format: generationParams.output_format || "png",
+    output_quality: generationParams.output_quality || 100,
+    prompt_negative: generationParams.prompt_negative || "",
+    prompt_strength: generationParams.prompt_strength || 1.0,
+    depth_scale: generationParams.depth_scale || 0,
+    edge_scale: generationParams.edge_scale || 0,
+    pose_scale: generationParams.pose_scale || 0,
+    sketch_scale: generationParams.sketch_scale || 0,
+    remix_scale: generationParams.remix_scale || 0,
+    lora_scale: generationParams.lora_scale || 0,
+    lora_weights: generationParams.lora_weights || "",
+    refine: generationParams.refine || false,
+    refine_steps: generationParams.refine_steps || 0,
   };
 
   const { data, error } = await supabase

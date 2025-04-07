@@ -314,10 +314,7 @@ export const ImageDetailsModal: React.FC<ImageDetailsModalProps> = ({
                 </h3>
                 <button
                   onClick={handleReuseSettings}
-                  className={`w-full py-2 px-4 mb-4 ${
-                    styles.sidebar.button ||
-                    "bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
-                  }`}
+                  className="w-full py-2 px-4 mb-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
                 >
                   Reuse These Settings
                 </button>

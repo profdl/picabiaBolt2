@@ -91,10 +91,22 @@ export const handler: Handler = async (event) => {
         throw new Error("No images were successfully processed");
       }
 
+      const { data: existingRecord, error: fetchError } = await supabase
+        .from("generated_images")
+        .select("*")
+        .eq("prediction_id", id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update only the necessary fields while preserving all other fields
       const { error } = await supabase
         .from("generated_images")
         .update({
           generated_01: validUrls[0],
+          generated_02: validUrls[1] || existingRecord.generated_02 || null,
+          generated_03: validUrls[2] || existingRecord.generated_03 || null,
+          generated_04: validUrls[3] || existingRecord.generated_04 || null,
           status: "completed",
           updated_at: new Date().toISOString(),
         })

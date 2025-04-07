@@ -870,7 +870,39 @@ export const generationHandlerSlice: StateCreator<
         user.id,
         promptText,
         state.aspectRatio,
-        replicatePredictionId
+        replicatePredictionId,
+        {
+          // Add model parameter
+          model: activeSettings.model,
+          // Add steps parameter
+          num_inference_steps: activeSettings.steps,
+          // Add guidance scale parameter
+          guidance_scale: activeSettings.guidanceScale,
+          // Add scheduler parameter
+          scheduler: activeSettings.scheduler,
+          // Add seed parameter
+          seed: activeSettings.seed,
+          // Add width parameter
+          width: activeSettings.outputWidth || 1024,
+          // Add height parameter
+          height: activeSettings.outputHeight || 1024,
+          // Add output format parameter
+          output_format: activeSettings.outputFormat,
+          // Add output quality parameter
+          output_quality: activeSettings.outputQuality,
+          // Add negative prompt
+          prompt_negative: ShapeProcessor.findStickyWithNegativePrompt(shapes)?.content || "",
+          // Add prompt strength if available
+          prompt_strength: stickyWithPrompt?.textPromptStrength || 1.0,
+          // Add num outputs
+          num_outputs: 1,
+          // Add control strengths if applicable
+          depth_scale: shapes.find(s => s.showDepth)?.depthStrength || 0,
+          edge_scale: shapes.find(s => s.showEdges)?.edgesStrength || 0,
+          pose_scale: shapes.find(s => s.showPose)?.poseStrength || 0,
+          sketch_scale: shapes.find(s => s.showSketch)?.sketchStrength || 0,
+          remix_scale: shapes.find(s => s.type === "image" && s.makeVariations)?.variationStrength || 0
+        }
       );
 
       // Set up subscription using the new function
