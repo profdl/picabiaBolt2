@@ -219,8 +219,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
       "diffusionSettings",
       {
         useSettings: true,
-        steps: 30,
-        guidanceScale: 4.0,
+        steps: 45,
+        guidanceScale: 6.5,
         scheduler: "dpmpp_2m_sde",
         model: "juggernautXL_v9",
         outputFormat: "png",

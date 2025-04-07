@@ -26,8 +26,8 @@ interface Workflow {
 
 export class SettingsManager {
   private static readonly DEFAULT_SETTINGS: DiffusionSettings = {
-    steps: 30,
-    guidanceScale: 4.0,
+    steps: 45,
+    guidanceScale: 6.5,
     scheduler: "dpmpp_2m_sde",
     seed: Math.floor(Math.random() * 32767),
     outputWidth: 1024,

@@ -17,9 +17,9 @@ export interface ModelDefaults {
 
 export const modelDefaults: Record<ModelName, ModelDefaults> = {
     juggernautXL_v9: {
-        steps: 30,
+        steps: 45,
         guidanceScale: 6.5,
-        scheduler: 'dpmpp_2m'
+        scheduler: 'dpmpp_2m_sde'
     },
     RealVisXL_V4_0: {
         steps: 35,
