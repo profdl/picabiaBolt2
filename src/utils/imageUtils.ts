@@ -58,26 +58,10 @@ export async function trimTransparentPixels(imageUrl: string): Promise<{ url: st
       const trimmedWidth = maxX - minX;
       const trimmedHeight = maxY - minY;
       
-      // Calculate scale to match original aspect ratio
-      const originalAspectRatio = img.width / img.height;
-      const trimmedAspectRatio = trimmedWidth / trimmedHeight;
-      
-      // Scale dimensions to match original image size while maintaining aspect ratio
-      let finalWidth = img.width;
-      let finalHeight = img.height;
-      
-      if (trimmedAspectRatio > originalAspectRatio) {
-        // Width is limiting factor
-        finalHeight = finalWidth / trimmedAspectRatio;
-      } else {
-        // Height is limiting factor
-        finalWidth = finalHeight * trimmedAspectRatio;
-      }
-      
-      // Create final canvas with scaled dimensions
+      // Create final canvas with exact trimmed dimensions
       const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = finalWidth;
-      finalCanvas.height = finalHeight;
+      finalCanvas.width = trimmedWidth;
+      finalCanvas.height = trimmedHeight;
       
       const finalCtx = finalCanvas.getContext('2d');
       if (!finalCtx) {
@@ -85,11 +69,11 @@ export async function trimTransparentPixels(imageUrl: string): Promise<{ url: st
         return;
       }
       
-      // Draw trimmed image scaled to final dimensions
+      // Draw trimmed image without any scaling
       finalCtx.drawImage(
         canvas,
         minX, minY, trimmedWidth, trimmedHeight,
-        0, 0, finalWidth, finalHeight
+        0, 0, trimmedWidth, trimmedHeight
       );
       
       // Convert to URL
@@ -98,11 +82,51 @@ export async function trimTransparentPixels(imageUrl: string): Promise<{ url: st
       resolve({
         url: trimmedUrl,
         bounds: {
-          width: finalWidth,
-          height: finalHeight,
+          width: trimmedWidth,
+          height: trimmedHeight,
           top: minY,
           left: minX
         }
+      });
+    };
+    
+    img.onerror = () => {
+      reject(new Error('Failed to load image'));
+    };
+    
+    img.src = imageUrl;
+  });
+}
+
+export async function trimImageToBounds(imageUrl: string, bounds: Bounds): Promise<{ url: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    
+    img.onload = () => {
+      // Create canvas matching the exact dimensions from bounds
+      const canvas = document.createElement('canvas');
+      canvas.width = bounds.width;
+      canvas.height = bounds.height;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      
+      // Draw the exact same portion of the original image that was used in the mask
+      ctx.drawImage(
+        img,
+        bounds.left, bounds.top, bounds.width, bounds.height, // Source rectangle
+        0, 0, bounds.width, bounds.height                     // Destination rectangle
+      );
+      
+      // Convert to URL
+      const trimmedUrl = canvas.toDataURL('image/png');
+      
+      resolve({
+        url: trimmedUrl
       });
     };
     

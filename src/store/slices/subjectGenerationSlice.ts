@@ -3,7 +3,7 @@ import { Shape, Position, StoreState } from "../../types";
 import { ImageShape } from "../../types/shapes";
 import getSubjectWorkflow from "../../lib/getSubject_workflow.json";
 import { supabase } from "../../lib/supabase";
-import { trimTransparentPixels } from "../../utils/imageUtils"; // We'll create this
+import { trimTransparentPixels, trimImageToBounds } from "../../utils/imageUtils";
 
 interface SubjectGenerationSlice {
   handleGenerateSubject: (shape: Shape) => Promise<void>;
@@ -139,6 +139,17 @@ export const subjectGenerationSlice: StateCreator<
                 console.log('Trimmed image URL:', trimmedUrl);
                 console.log('Trimmed bounds:', bounds);
                 
+                // Now trim the original source image to the same dimensions as the processed image
+                let trimmedOriginalUrl = trimmedUrl; // Default to the generated image if original URL is missing
+                
+                if (imageShape.imageUrl) {
+                  // Use the original image if available
+                  const result = await trimImageToBounds(imageShape.imageUrl, bounds);
+                  trimmedOriginalUrl = result.url;
+                }
+                
+                console.log('Trimmed original image URL:', trimmedOriginalUrl);
+                
                 // Calculate scale to fit within 512px while maintaining aspect ratio
                 const aspectRatio = bounds.width / bounds.height;
                 let newWidth, newHeight;
@@ -177,12 +188,18 @@ export const subjectGenerationSlice: StateCreator<
                     img.onload = resolve;
                   });
                   
-                  // Draw the image
+                  // Draw the image for mask creation
                   tempCtx.drawImage(img, 0, 0, newWidth, newHeight);
                   
-                  // Get the image data
+                  // Get the image data for creating the mask
                   const imageData = tempCtx.getImageData(0, 0, newWidth, newHeight);
                   const data = imageData.data;
+                  
+                  // Store the original alpha values before creating the mask
+                  const originalAlpha = new Uint8ClampedArray(data.length / 4);
+                  for (let i = 0; i < data.length; i += 4) {
+                    originalAlpha[i / 4] = data[i + 3];
+                  }
                   
                   // Create a binary mask (white for non-transparent pixels, transparent for transparent pixels)
                   for (let i = 0; i < data.length; i += 4) {
@@ -202,23 +219,119 @@ export const subjectGenerationSlice: StateCreator<
                   // Put the modified data back
                   tempCtx.putImageData(imageData, 0, 0);
                   
-                  // Get the mask data URL
-                  const maskDataUrl = tempCanvas.toDataURL('image/png');
+                  // Apply Gaussian blur to smooth edges
+                  const blurRadius = 4;
+                  const blurData = new Uint8ClampedArray(data);
                   
-                  // Update shape with trimmed image and mask
+                  for (let y = blurRadius; y < newHeight - blurRadius; y++) {
+                    for (let x = blurRadius; x < newWidth - blurRadius; x++) {
+                      const i = (y * newWidth + x) * 4;
+                      
+                      // Calculate weighted average of surrounding pixels
+                      let sum = 0;
+                      let weight = 0;
+                      let hasTransparentNeighbor = false;
+                      
+                      for (let dy = -blurRadius; dy <= blurRadius; dy++) {
+                        for (let dx = -blurRadius; dx <= blurRadius; dx++) {
+                          const ni = ((y + dy) * newWidth + (x + dx)) * 4;
+                          const distance = Math.sqrt(dx * dx + dy * dy);
+                          const gaussianWeight = Math.exp(-(distance * distance) / (blurRadius));
+                          
+                          if (blurData[ni + 3] === 0) {
+                            hasTransparentNeighbor = true;
+                          }
+                          
+                          sum += blurData[ni + 3] * gaussianWeight;
+                          weight += gaussianWeight;
+                        }
+                      }
+                      
+                      // More aggressive edge handling
+                      if (hasTransparentNeighbor) {
+                        data[i + 3] = Math.round((sum / weight) * 0.8);
+                      } else {
+                        data[i + 3] = Math.round(sum / weight);
+                      }
+                    }
+                  }
+                  
+                  // Put the blurred data back
+                  tempCtx.putImageData(imageData, 0, 0);
+                  
+                  // Contract the mask - use a more effective erosion technique
+                  const contractionAmount = 4;
+                  const originalData = new Uint8ClampedArray(data);
+                  const newMask = new Uint8ClampedArray(data.length);
+                  
+                  // First copy the original data to the new mask
+                  for (let i = 0; i < data.length; i++) {
+                    newMask[i] = originalData[i];
+                  }
+                  
+                  // Perform erosion multiple times for stronger effect
+                  for (let iteration = 0; iteration < contractionAmount; iteration++) {
+                    // Make a copy of the current mask for this iteration
+                    const currentMask = new Uint8ClampedArray(newMask);
+                    
+                    // Single-pixel erosion
+                    for (let y = 1; y < newHeight - 1; y++) {
+                      for (let x = 1; x < newWidth - 1; x++) {
+                        const i = (y * newWidth + x) * 4;
+                        
+                        // Check if any of the 8 neighboring pixels are transparent
+                        let hasTransparentNeighbor = false;
+                        
+                        // Check the 8 neighboring pixels
+                        // Top-left, top, top-right, left, right, bottom-left, bottom, bottom-right
+                        const neighbors = [
+                          ((y - 1) * newWidth + (x - 1)) * 4 + 3, // top-left
+                          ((y - 1) * newWidth + x) * 4 + 3,       // top
+                          ((y - 1) * newWidth + (x + 1)) * 4 + 3, // top-right
+                          (y * newWidth + (x - 1)) * 4 + 3,       // left
+                          (y * newWidth + (x + 1)) * 4 + 3,       // right
+                          ((y + 1) * newWidth + (x - 1)) * 4 + 3, // bottom-left
+                          ((y + 1) * newWidth + x) * 4 + 3,       // bottom
+                          ((y + 1) * newWidth + (x + 1)) * 4 + 3  // bottom-right
+                        ];
+                        
+                        for (const ni of neighbors) {
+                          if (currentMask[ni] < 128) { // Any pixel with alpha < 128 is considered transparent
+                            hasTransparentNeighbor = true;
+                            break;
+                          }
+                        }
+                        
+                        // If this pixel has a transparent neighbor, make it transparent in the new mask
+                        if (hasTransparentNeighbor) {
+                          newMask[i + 3] = 0;
+                        }
+                      }
+                    }
+                  }
+                  
+                  // Apply the eroded mask back to the data
+                  for (let i = 0; i < data.length; i++) {
+                    data[i] = newMask[i];
+                  }
+                  
+                  // Put the contracted mask data back
+                  tempCtx.putImageData(imageData, 0, 0);
+                  
+                  // Update shape with trimmed original image and mask
                   get().updateShape(prediction_id, {
                     isUploading: false,
-                    imageUrl: trimmedUrl,
+                    imageUrl: trimmedOriginalUrl, // Use the trimmed original image
                     width: newWidth,
                     height: newHeight,
                     position: newPosition,
-                    maskCanvasData: maskDataUrl
+                    maskCanvasData: tempCanvas.toDataURL('image/png') // Apply our processed mask
                   });
                 } else {
                   // Fallback to updating without mask if canvas context creation fails
                   get().updateShape(prediction_id, {
                     isUploading: false,
-                    imageUrl: trimmedUrl,
+                    imageUrl: trimmedOriginalUrl,
                     width: newWidth,
                     height: newHeight,
                     position: newPosition
