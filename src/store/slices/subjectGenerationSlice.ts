@@ -163,16 +163,69 @@ export const subjectGenerationSlice: StateCreator<
     
                 console.log('New position:', newPosition);
     
-                // Update shape with trimmed image
-                get().updateShape(prediction_id, {
-                  isUploading: false,
-                  imageUrl: trimmedUrl,
-                  width: newWidth,
-                  height: newHeight,
-                  position: newPosition
-                });
+                // Create a temporary canvas to generate the mask
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = newWidth;
+                tempCanvas.height = newHeight;
+                const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
                 
-                console.log('Successfully updated shape with new image');
+                if (tempCtx) {
+                  // Load the trimmed image
+                  const img = new Image();
+                  img.src = trimmedUrl;
+                  await new Promise((resolve) => {
+                    img.onload = resolve;
+                  });
+                  
+                  // Draw the image
+                  tempCtx.drawImage(img, 0, 0, newWidth, newHeight);
+                  
+                  // Get the image data
+                  const imageData = tempCtx.getImageData(0, 0, newWidth, newHeight);
+                  const data = imageData.data;
+                  
+                  // Create a binary mask (white for non-transparent pixels, transparent for transparent pixels)
+                  for (let i = 0; i < data.length; i += 4) {
+                    // If pixel is not transparent (alpha > 0)
+                    if (data[i + 3] > 0) {
+                      // Make it white
+                      data[i] = 255;     // R
+                      data[i + 1] = 255; // G
+                      data[i + 2] = 255; // B
+                      data[i + 3] = 255; // A
+                    } else {
+                      // Make it transparent
+                      data[i + 3] = 0;   // A
+                    }
+                  }
+                  
+                  // Put the modified data back
+                  tempCtx.putImageData(imageData, 0, 0);
+                  
+                  // Get the mask data URL
+                  const maskDataUrl = tempCanvas.toDataURL('image/png');
+                  
+                  // Update shape with trimmed image and mask
+                  get().updateShape(prediction_id, {
+                    isUploading: false,
+                    imageUrl: trimmedUrl,
+                    width: newWidth,
+                    height: newHeight,
+                    position: newPosition,
+                    maskCanvasData: maskDataUrl
+                  });
+                } else {
+                  // Fallback to updating without mask if canvas context creation fails
+                  get().updateShape(prediction_id, {
+                    isUploading: false,
+                    imageUrl: trimmedUrl,
+                    width: newWidth,
+                    height: newHeight,
+                    position: newPosition
+                  });
+                }
+                
+                console.log('Successfully updated shape with new image and mask');
                 get().removeGeneratingPrediction(prediction_id);
               } catch (error) {
                 console.error('Error processing completed image:', error);
