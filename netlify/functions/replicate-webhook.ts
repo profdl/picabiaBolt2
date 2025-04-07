@@ -116,13 +116,12 @@ export const handler: Handler = async (event) => {
           const filename = `${id}-${index}-${Date.now()}.png`;
           console.log(`Uploading to Supabase as: ${filename}`);
 
-          // Upload to Supabase bucket with proper content type for PNG with transparency
+          // Upload to Supabase bucket
           const { error: uploadError } = await supabase.storage
             .from("generated-images")
             .upload(filename, imageData, {
               contentType: "image/png",
               cacheControl: "3600",
-              upsert: true // Ensure we overwrite if file exists
             });
 
           if (uploadError) {

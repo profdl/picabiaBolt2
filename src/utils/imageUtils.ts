@@ -12,7 +12,7 @@ export async function trimTransparentPixels(imageUrl: string): Promise<{ url: st
     
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const ctx = canvas.getContext('2d');
       if (!ctx) {
         reject(new Error('Could not get canvas context'));
         return;
@@ -79,14 +79,11 @@ export async function trimTransparentPixels(imageUrl: string): Promise<{ url: st
       finalCanvas.width = finalWidth;
       finalCanvas.height = finalHeight;
       
-      const finalCtx = finalCanvas.getContext('2d', { willReadFrequently: true });
+      const finalCtx = finalCanvas.getContext('2d');
       if (!finalCtx) {
         reject(new Error('Could not get final canvas context'));
         return;
       }
-      
-      // Clear the canvas to ensure transparency
-      finalCtx.clearRect(0, 0, finalWidth, finalHeight);
       
       // Draw trimmed image scaled to final dimensions
       finalCtx.drawImage(
@@ -95,7 +92,7 @@ export async function trimTransparentPixels(imageUrl: string): Promise<{ url: st
         0, 0, finalWidth, finalHeight
       );
       
-      // Convert to URL with transparency preserved
+      // Convert to URL
       const trimmedUrl = finalCanvas.toDataURL('image/png');
       
       resolve({

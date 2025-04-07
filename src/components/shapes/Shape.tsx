@@ -62,7 +62,7 @@ const LoadingPlaceholder: React.FC<{ isGenerating: boolean; logs?: string[] }> =
       </div>
       <pre 
         ref={logsRef}
-        className="bg-[#1C1C1C] text-gray-400 px-6 py-3 m-0 text-[16px] leading-7 font-sans overflow-x-hidden overflow-y-scroll scrollbar-none whitespace-pre-wrap break-all h-[120px]"
+        className="bg-[#151515] text-gray-400 px-6 py-3 m-0 text-[16px] leading-7 font-sans overflow-x-hidden overflow-y-scroll scrollbar-none whitespace-pre-wrap break-all h-[120px]"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {processedLogs.length > 0 ? processedLogs.map((log, i) => {
