@@ -4,7 +4,6 @@ import multiControlWorkflow from "../../lib/generateWorkflow.json";
 import inpaintWorkflow from "../../lib/inpaintWorkflow.json";
 import { Shape, Position } from "../../types";
 import { ImageShape } from "../../types/shapes";
-import { RealtimeChannel } from "@supabase/supabase-js";
 import { findOpenSpace } from "../../utils/spaceUtils";
 import { createDatabaseRecord, setupGenerationSubscription, uploadImageToStorage } from "../../lib/database";
 import {
@@ -50,7 +49,7 @@ interface StoreState {
 }
 
 export interface GenerationHandlerSlice {
-  subscription: RealtimeChannel | null;
+  subscription: { unsubscribe: () => void } | null;
   handleGenerate: () => Promise<void>;
   cancelGeneration: (predictionId: string) => Promise<void>;
 }

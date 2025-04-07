@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import { RealtimeChannel } from "@supabase/supabase-js";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -40,6 +39,10 @@ interface DatabaseRecord {
   lora_weights: string;
   refine: boolean;
   refine_steps: number;
+}
+
+interface GenerationSubscription {
+  unsubscribe: () => void;
 }
 
 export const createDatabaseRecord = async (
@@ -128,8 +131,32 @@ export const setupGenerationSubscription = (
     updated_at: string;
     error_message?: string;
   }) => void
-): RealtimeChannel => {
-  return supabase
+): GenerationSubscription => {
+  // Set up polling interval
+  const pollInterval = setInterval(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('generated_images')
+        .select('*')
+        .eq('prediction_id', predictionId)
+        .single();
+
+      if (error) {
+        console.error('Polling error:', error);
+        return;
+      }
+
+      if (data && (data.status === 'completed' || data.status === 'error' || data.status === 'failed')) {
+        onUpdate(data);
+        clearInterval(pollInterval);
+      }
+    } catch (error) {
+      console.error('Polling error:', error);
+    }
+  }, 5000); // Poll every 5 seconds
+
+  // Set up realtime subscription
+  const channel = supabase
     .channel(`generated_images_${predictionId}`)
     .on(
       "postgres_changes",
@@ -150,9 +177,19 @@ export const setupGenerationSubscription = (
           };
         };
         onUpdate(typedPayload.new);
+        // Clear polling interval when we get a realtime update
+        clearInterval(pollInterval);
       }
     )
     .subscribe();
+
+  // Return a cleanup function
+  return {
+    unsubscribe: () => {
+      clearInterval(pollInterval);
+      channel.unsubscribe();
+    }
+  };
 };
 
 export const uploadImageToStorage = async (
