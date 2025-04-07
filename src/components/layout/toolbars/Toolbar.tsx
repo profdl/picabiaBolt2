@@ -8,7 +8,7 @@ import {
   Settings,
   Sparkles,
   StickyNote,
-  X,
+  XCircle,
 } from "lucide-react";
 import { useStore } from "../../../store";
 import { Tooltip } from "../../shared/Tooltip";
@@ -605,7 +605,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ showGallery }) => {
             {generatingPredictions.size > 0 && (
               <Tooltip content="Cancel generation" side="top">
                 <ToolbarButton
-                  icon={<X className="w-4 h-4" />}
+                  icon={<XCircle className="w-4 h-4 text-red-500" />}
                   onClick={() => {
                     // Cancel all generating predictions
                     Array.from(generatingPredictions).forEach(predictionId => {
