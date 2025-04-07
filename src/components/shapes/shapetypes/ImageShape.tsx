@@ -323,7 +323,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
         style={{
           ...canvasStyle,
           zIndex: 1,
-          visibility: "visible"
+          visibility: "hidden"
         }}
         onDoubleClick={handleStartEditing}
       />
