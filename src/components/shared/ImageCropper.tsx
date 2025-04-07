@@ -41,22 +41,52 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     selection.style.top = `${cropArea.y}px`;
     selection.style.width = `${cropArea.width}px`;
     selection.style.height = `${cropArea.height}px`;
+    
+    // Update overlay clip path
+    const overlay = document.getElementById('crop-overlay');
+    if (overlay && imageContainerRef.current) {
+      const clipPath = `polygon(
+        0% 0%, 100% 0%, 100% 100%, 0% 100%,
+        0% 0%,
+        ${cropArea.x}px ${cropArea.y}px,
+        ${cropArea.x}px ${cropArea.y + cropArea.height}px,
+        ${cropArea.x + cropArea.width}px ${cropArea.y + cropArea.height}px,
+        ${cropArea.x + cropArea.width}px ${cropArea.y}px,
+        ${cropArea.x}px ${cropArea.y}px
+      )`;
+      overlay.style.clipPath = clipPath;
+    }
   };
   
   // Initialize crop area when image loads
   useEffect(() => {
     const img = imageRef.current;
-    if (!img) return;
+    const container = imageContainerRef.current;
+    if (!img || !container) return;
     
     const handleImageLoad = () => {
-      const imgRect = img.getBoundingClientRect();
-      const initialSize = Math.min(imgRect.width, imgRect.height) * 0.8;
-      
-      setCropArea({
-        x: (imgRect.width - initialSize) / 2,
-        y: (imgRect.height - initialSize) / 2,
-        width: initialSize,
-        height: initialSize
+      // Use requestAnimationFrame to ensure the image has been rendered
+      // and measurements are accurate
+      window.requestAnimationFrame(() => {
+        const imgRect = img.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        
+        // Calculate image's position inside the container (may be centered by flexbox)
+        const imgOffset = {
+          x: imgRect.left - containerRect.left,
+          y: imgRect.top - containerRect.top
+        };
+        
+        // Set initial crop size to 80% of the smaller dimension
+        const initialSize = Math.min(imgRect.width, imgRect.height) * 0.8;
+        
+        // Position the crop area in the center of the image
+        setCropArea({
+          x: imgOffset.x + (imgRect.width - initialSize) / 2,
+          y: imgOffset.y + (imgRect.height - initialSize) / 2,
+          width: initialSize,
+          height: initialSize
+        });
       });
     };
     
@@ -326,37 +356,62 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
       const scaleX = img.naturalWidth / imgRect.width;
       const scaleY = img.naturalHeight / imgRect.height;
       
-      console.log('Debug - Image dimensions:', {
-        naturalWidth: img.naturalWidth,
-        naturalHeight: img.naturalHeight,
-        displayWidth: imgRect.width,
-        displayHeight: imgRect.height,
-        cropArea,
-        scaleX,
-        scaleY
-      });
+      // Fill canvas with transparent background
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Draw the cropped portion
-      ctx.drawImage(
-        img,
-        cropArea.x * scaleX,
-        cropArea.y * scaleY,
-        cropArea.width * scaleX,
-        cropArea.height * scaleY,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
+      // Calculate the boundaries of the image within the container
+      const containerRect = imageContainerRef.current!.getBoundingClientRect();
+      const imgBounds = {
+        left: imgRect.left - containerRect.left,
+        top: imgRect.top - containerRect.top,
+        right: imgRect.left - containerRect.left + imgRect.width,
+        bottom: imgRect.top - containerRect.top + imgRect.height
+      };
+      
+      // Calculate which portion of the crop area overlaps with the actual image
+      const overlap = {
+        left: Math.max(cropArea.x, imgBounds.left),
+        top: Math.max(cropArea.y, imgBounds.top),
+        right: Math.min(cropArea.x + cropArea.width, imgBounds.right),
+        bottom: Math.min(cropArea.y + cropArea.height, imgBounds.bottom)
+      };
+      
+      // Only draw the part of the image that is inside both the crop area and image bounds
+      if (overlap.right > overlap.left && overlap.bottom > overlap.top) {
+        // Source coordinates in the original image
+        const sx = (overlap.left - imgBounds.left) * scaleX;
+        const sy = (overlap.top - imgBounds.top) * scaleY;
+        const sWidth = (overlap.right - overlap.left) * scaleX;
+        const sHeight = (overlap.bottom - overlap.top) * scaleY;
+        
+        // Destination coordinates on the canvas
+        const dx = overlap.left - cropArea.x;
+        const dy = overlap.top - cropArea.y;
+        const dWidth = overlap.right - overlap.left;
+        const dHeight = overlap.bottom - overlap.top;
+        
+        // Draw the portion of the image that is inside the crop area
+        ctx.drawImage(
+          img,
+          Math.max(0, sx),
+          Math.max(0, sy),
+          Math.max(1, sWidth),
+          Math.max(1, sHeight),
+          Math.max(0, dx),
+          Math.max(0, dy),
+          Math.max(1, dWidth),
+          Math.max(1, dHeight)
+        );
+      }
       
       let file: File;
       
       try {
         // Try to get the cropped image via canvas
-        const croppedImageUrl = canvas.toDataURL('image/jpeg');
+        const croppedImageUrl = canvas.toDataURL('image/png');  // Change to PNG to support transparency
         const response = await fetch(croppedImageUrl);
         const blob = await response.blob();
-        file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
+        file = new File([blob], 'cropped-image.png', { type: 'image/png' });  // Changed to PNG
       } catch (e) {
         console.warn('Canvas is tainted, using direct crop parameters instead:', e);
         
@@ -379,15 +434,8 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
         file = new File([imgBlob], 'original-image.jpg', { type: imgBlob.type });
       }
       
-      console.log('Debug - Created file:', {
-        size: file.size,
-        type: file.type
-      });
-      
       // Upload the file
       const asset = await uploadAsset(file) as unknown as Asset | null;
-      
-      console.log('Debug - Uploaded asset:', asset);
       
       if (asset && asset.url) {
         // Calculate new position for the cropped image
@@ -432,8 +480,6 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
           imagePromptStrength: 0.25,
         };
         
-        console.log('Debug - Adding new shape:', newShape);
-        
         // Add the new shape
         addShape(newShape);
         
@@ -469,14 +515,21 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
         
         <div 
           ref={imageContainerRef}
-          className="relative overflow-hidden w-[800px] h-[600px] max-w-[80vw] max-h-[70vh]"
+          className="relative overflow-hidden w-[800px] h-[600px] max-w-[80vw] max-h-[70vh] flex items-center justify-center bg-neutral-900"
         >
           <img
             ref={imageRef}
             src={imageUrl}
             crossOrigin="anonymous"
-            className="max-w-full max-h-full object-contain"
+            className="max-w-[90%] max-h-[90%] object-contain transform scale-90"
             alt="Crop preview"
+            style={{ backgroundColor: 'transparent' }}
+          />
+          
+          {/* Add dimmed overlay for areas outside crop selection */}
+          <div
+            id="crop-overlay"
+            className="absolute inset-0 bg-black bg-opacity-50 pointer-events-none"
           />
           
           <div
@@ -541,7 +594,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
             onClick={handleSave}
           >
-            Save Changes
+            Crop Image
           </button>
         </div>
       </div>
