@@ -607,15 +607,18 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                           <button
                             className="text-[10px] font-medium tracking-wide uppercase text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 rounded px-1.5 py-0.5 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                             onClick={async () => {
+                              // Generate a unique prediction ID using crypto like in handleGenerate
+                              const prediction_id = crypto.randomUUID();
+                              
                               const newDepthShape: Shape = {
-                                id: Math.random().toString(36).substr(2, 9),
+                                id: prediction_id,
                                 type: "depth",
                                 position: calculateNewShapePosition(),
                                 width: displayShape.width,
                                 height: displayShape.height,
                                 rotation: 0,
                                 isEditing: false,
-                                color: "transparent",
+                                color: "#1a1a1a", // Dark background color to match Generate placeholder
                                 sourceImageId: displayShape.id,
                                 showDepth: true,
                                 model: "",
@@ -626,7 +629,8 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 depthStrength: 0.5,
                                 edgesStrength: 0.5,
                                 poseStrength: 0.5,
-                                depthPreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%239ca3af' stroke-width='2'/%3E%3C/svg%3E",
+                                logs: ["Initializing depth map generation...", "Preparing image for depth detection..."],
+                                depthPreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a1a1a'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%235f6368' stroke-width='2'/%3E%3C/svg%3E",
                               };
                               
                               // Disable all other depth references before adding the new one
@@ -636,10 +640,52 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 }
                               });
                               
+                              // Add the shape
                               displayActions.addShape(newDepthShape);
+                              
+                              // Add to generating predictions
+                              useStore.getState().addGeneratingPrediction(prediction_id);
+                              
+                              // Center on shape with animation like in handleGenerate
                               centerOnShape(newDepthShape);
-                              await displayActions.generatePreprocessedImage(displayShape.id, "depth");
-                              displayActions.sendToFront();
+                              
+                              try {
+                                // Update logs with progress information
+                                setTimeout(() => {
+                                  updateShape(prediction_id, { 
+                                    logs: ["Initializing depth map generation...", 
+                                           "Preparing image for depth detection...",
+                                           "Loading MiDaS depth estimation model..."]
+                                  });
+                                }, 500);
+                                
+                                setTimeout(() => {
+                                  updateShape(prediction_id, { 
+                                    logs: ["Initializing depth map generation...", 
+                                           "Preparing image for depth detection...",
+                                           "Loading MiDaS depth estimation model...",
+                                           "Analyzing image geometry and structure..."]
+                                  });
+                                }, 2000);
+                                
+                                // Generate the depth map
+                                await displayActions.generatePreprocessedImage(displayShape.id, "depth");
+                                
+                                // Final update to show completion
+                                updateShape(prediction_id, { 
+                                  logs: ["Initializing depth map generation...", 
+                                         "Preparing image for depth detection...",
+                                         "Loading MiDaS depth estimation model...",
+                                         "Analyzing image geometry and structure...",
+                                         "Depth map generation complete!"]
+                                });
+                                
+                                // Bring to front
+                                displayActions.sendToFront();
+                              } finally {
+                                // Remove from generating predictions when complete
+                                useStore.getState().removeGeneratingPrediction(prediction_id);
+                              }
                             }}
                           >
                             Depth
@@ -650,15 +696,18 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                           <button
                             className="text-[10px] font-medium tracking-wide uppercase text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 rounded px-1.5 py-0.5 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                             onClick={async () => {
+                              // Generate a unique prediction ID using crypto like in handleGenerate
+                              const prediction_id = crypto.randomUUID();
+                              
                               const newEdgesShape: Shape = {
-                                id: Math.random().toString(36).substr(2, 9),
+                                id: prediction_id,
                                 type: "edges",
                                 position: calculateNewShapePosition(),
                                 width: displayShape.width,
                                 height: displayShape.height,
                                 rotation: 0,
                                 isEditing: false,
-                                color: "transparent",
+                                color: "#1a1a1a", // Dark background color to match Generate placeholder
                                 sourceImageId: displayShape.id,
                                 showEdges: true,
                                 model: "",
@@ -669,7 +718,8 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 depthStrength: 0.5,
                                 edgesStrength: 0.5,
                                 poseStrength: 0.5,
-                                edgePreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%239ca3af' stroke-width='2'/%3E%3C/svg%3E",
+                                logs: ["Initializing edge detection...", "Preparing image for edge extraction..."],
+                                edgePreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a1a1a'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%235f6368' stroke-width='2'/%3E%3C/svg%3E",
                               };
                               
                               // Disable all other edge references before adding the new one
@@ -679,10 +729,52 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 }
                               });
                               
+                              // Add the shape
                               displayActions.addShape(newEdgesShape);
+                              
+                              // Add to generating predictions
+                              useStore.getState().addGeneratingPrediction(prediction_id);
+                              
+                              // Center on shape with animation like in handleGenerate
                               centerOnShape(newEdgesShape);
-                              await displayActions.generatePreprocessedImage(displayShape.id, "edge");
-                              displayActions.sendToFront();
+                              
+                              try {
+                                // Update logs with progress information
+                                setTimeout(() => {
+                                  updateShape(prediction_id, { 
+                                    logs: ["Initializing edge detection...", 
+                                           "Preparing image for edge extraction...",
+                                           "Loading Canny edge detection model..."]
+                                  });
+                                }, 500);
+                                
+                                setTimeout(() => {
+                                  updateShape(prediction_id, { 
+                                    logs: ["Initializing edge detection...", 
+                                           "Preparing image for edge extraction...",
+                                           "Loading Canny edge detection model...",
+                                           "Detecting contours and edges..."]
+                                  });
+                                }, 2000);
+                                
+                                // Generate the edges
+                                await displayActions.generatePreprocessedImage(displayShape.id, "edge");
+                                
+                                // Final update to show completion
+                                updateShape(prediction_id, { 
+                                  logs: ["Initializing edge detection...", 
+                                         "Preparing image for edge extraction...",
+                                         "Loading Canny edge detection model...",
+                                         "Detecting contours and edges...",
+                                         "Edge detection complete!"]
+                                });
+                                
+                                // Bring to front
+                                displayActions.sendToFront();
+                              } finally {
+                                // Remove from generating predictions when complete
+                                useStore.getState().removeGeneratingPrediction(prediction_id);
+                              }
                             }}
                           >
                             Edges
@@ -693,15 +785,18 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                           <button
                             className="text-[10px] font-medium tracking-wide uppercase text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 rounded px-1.5 py-0.5 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                             onClick={async () => {
+                              // Generate a unique prediction ID using crypto like in handleGenerate
+                              const prediction_id = crypto.randomUUID();
+                              
                               const newPoseShape: Shape = {
-                                id: Math.random().toString(36).substr(2, 9),
+                                id: prediction_id,
                                 type: "pose",
                                 position: calculateNewShapePosition(),
                                 width: displayShape.width,
                                 height: displayShape.height,
                                 rotation: 0,
                                 isEditing: false,
-                                color: "transparent",
+                                color: "#1a1a1a", // Dark background color to match Generate placeholder
                                 sourceImageId: displayShape.id,
                                 showPose: true,
                                 model: "",
@@ -712,7 +807,8 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 depthStrength: 0.5,
                                 edgesStrength: 0.5,
                                 poseStrength: 0.5,
-                                posePreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%239ca3af' stroke-width='2'/%3E%3C/svg%3E",
+                                logs: ["Initializing pose detection...", "Preparing image for pose analysis..."],
+                                posePreviewUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a1a1a'/%3E%3Cpath d='M50 30 L50 70 M30 50 L70 50' stroke='%235f6368' stroke-width='2'/%3E%3C/svg%3E",
                               };
                               
                               // Disable all other pose references before adding the new one
@@ -722,10 +818,52 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                                 }
                               });
                               
+                              // Add the shape
                               displayActions.addShape(newPoseShape);
+                              
+                              // Add to generating predictions
+                              useStore.getState().addGeneratingPrediction(prediction_id);
+                              
+                              // Center on shape with animation like in handleGenerate
                               centerOnShape(newPoseShape);
-                              await displayActions.generatePreprocessedImage(displayShape.id, "pose");
-                              displayActions.sendToFront();
+                              
+                              try {
+                                // Update logs with progress information
+                                setTimeout(() => {
+                                  updateShape(prediction_id, { 
+                                    logs: ["Initializing pose detection...", 
+                                           "Preparing image for pose analysis...",
+                                           "Loading OpenPose detection model..."] 
+                                  });
+                                }, 500);
+                                
+                                setTimeout(() => {
+                                  updateShape(prediction_id, { 
+                                    logs: ["Initializing pose detection...", 
+                                           "Preparing image for pose analysis...",
+                                           "Loading OpenPose detection model...",
+                                           "Detecting human figures and body keypoints..."]
+                                  });
+                                }, 2000);
+                                
+                                // Generate the pose
+                                await displayActions.generatePreprocessedImage(displayShape.id, "pose");
+                                
+                                // Final update to show completion
+                                updateShape(prediction_id, { 
+                                  logs: ["Initializing pose detection...", 
+                                         "Preparing image for pose analysis...",
+                                         "Loading OpenPose detection model...",
+                                         "Detecting human figures and body keypoints...",
+                                         "Pose detection complete!"]
+                                });
+                                
+                                // Bring to front
+                                displayActions.sendToFront();
+                              } finally {
+                                // Remove from generating predictions when complete
+                                useStore.getState().removeGeneratingPrediction(prediction_id);
+                              }
                             }}
                           >
                             Pose
