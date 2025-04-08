@@ -79,14 +79,14 @@ export class SettingsManager {
       const imageReferenceShape = shapes.find(s => s.type === "image" && s.showImagePrompt);
 
       if (variationShape) {
-        const dimensions = ShapeProcessor.calculateImageShapeDimensions(
+        const dimensions = ShapeProcessor.mapToStandardAspectRatio(
           variationShape.width,
           variationShape.height
         );
         settings.outputWidth = dimensions.width;
         settings.outputHeight = dimensions.height;
       } else if (imageReferenceShape) {
-        const dimensions = ShapeProcessor.calculateImageShapeDimensions(
+        const dimensions = ShapeProcessor.mapToStandardAspectRatio(
           imageReferenceShape.width,
           imageReferenceShape.height
         );

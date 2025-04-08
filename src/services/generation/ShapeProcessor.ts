@@ -15,6 +15,21 @@ export class ShapeProcessor {
   private static readonly MAX_SDXL_DIMENSION = 2048; // Maximum dimension for SDXL
 
   /**
+   * Standard aspect ratio presets with optimal dimensions
+   */
+  private static readonly ASPECT_RATIO_PRESETS = {
+    "Square (1:1)": { width: 1024, height: 1024, ratio: 1 },
+    "Landscape SD (4:3)": { width: 1176, height: 888, ratio: 1.324 },
+    "Widescreen IMAX (1.43:1)": { width: 1224, height: 856, ratio: 1.43 },
+    "Widescreen HD (16:9)": { width: 1360, height: 768, ratio: 1.77 },
+    "Golden Ratio (1.618:1)": { width: 1296, height: 800, ratio: 1.62 },
+    "Portrait (2:3)": { width: 832, height: 1248, ratio: 0.667 },
+    "Portrait Standard (3:4)": { width: 880, height: 1176, ratio: 0.748 },
+    "Portrait Large Format (4:5)": { width: 912, height: 1144, ratio: 0.797 },
+    "Portrait Social Video (9:16)": { width: 768, height: 1360, ratio: 0.565 }
+  };
+
+  /**
    * Calculates the dimensions of a shape
    */
   static getShapeDimensions(shape: Shape): ShapeDimensions {
@@ -211,6 +226,31 @@ export class ShapeProcessor {
   }
 
   /**
+   * Maps a given aspect ratio to the closest standard preset
+   */
+  static mapToStandardAspectRatio(width: number, height: number): ShapeDimensions {
+    const aspectRatio = width / height;
+    
+    // Find the preset with the closest aspect ratio
+    let closestPreset = null;
+    let minDifference = Infinity;
+    
+    for (const preset of Object.values(this.ASPECT_RATIO_PRESETS)) {
+      const difference = Math.abs(preset.ratio - aspectRatio);
+      if (difference < minDifference) {
+        minDifference = difference;
+        closestPreset = preset;
+      }
+    }
+    
+    // Return the dimensions from the closest preset
+    return {
+      width: closestPreset!.width,
+      height: closestPreset!.height
+    };
+  }
+
+  /**
    * Calculates average aspect ratio and dimensions from enabled control shapes
    */
   static calculateAverageAspectRatio(shapes: Shape[]): ShapeDimensions | null {
@@ -236,7 +276,7 @@ export class ShapeProcessor {
     if (processedShapes.length > 0) {
       const sourceShape = shapes.find(s => s.id === processedShapes[0].sourceImageId);
       if (sourceShape) {
-        return this.calculateImageShapeDimensions(sourceShape.width, sourceShape.height);
+        return this.mapToStandardAspectRatio(sourceShape.width, sourceShape.height);
       }
     }
 
@@ -246,27 +286,8 @@ export class ShapeProcessor {
     const avgWidth = totalWidth / enabledShapes.length;
     const avgHeight = totalHeight / enabledShapes.length;
 
-    // Round to nearest power of 2 and ensure SDXL compatibility
-    const roundToPowerOf2 = (num: number) => {
-      return Math.pow(2, Math.round(Math.log2(num)));
-    };
-
-    let roundedWidth = roundToPowerOf2(avgWidth);
-    let roundedHeight = roundToPowerOf2(avgHeight);
-
-    // Ensure dimensions are compatible with SDXL (multiples of 8)
-    roundedWidth = Math.round(roundedWidth / 8) * 8;
-    roundedHeight = Math.round(roundedHeight / 8) * 8;
-
-    // Ensure minimum dimensions for SDXL
-    roundedWidth = Math.max(roundedWidth, this.MIN_DIMENSION);
-    roundedHeight = Math.max(roundedHeight, this.MIN_DIMENSION);
-
-    // Ensure maximum dimensions for SDXL
-    roundedWidth = Math.min(roundedWidth, this.MAX_SDXL_DIMENSION);
-    roundedHeight = Math.min(roundedHeight, this.MAX_SDXL_DIMENSION);
-
-    return { width: roundedWidth, height: roundedHeight };
+    // Map to standard aspect ratio instead of custom calculations
+    return this.mapToStandardAspectRatio(avgWidth, avgHeight);
   }
 
   /**

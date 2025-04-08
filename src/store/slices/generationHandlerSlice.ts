@@ -155,7 +155,7 @@ export const generationHandlerSlice: StateCreator<
     };
 
     // Calculate dimensions for placeholder shape
-    const dimensions = ShapeProcessor.calculateImageShapeDimensions(
+    const dimensions = ShapeProcessor.mapToStandardAspectRatio(
       activeSettings.outputWidth || 512,
       activeSettings.outputHeight || 512
     );
