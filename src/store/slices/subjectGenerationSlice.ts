@@ -210,7 +210,7 @@ export const subjectGenerationSlice: StateCreator<
               tempCtx.putImageData(imageData, 0, 0);
               
               // Apply Gaussian blur to smooth edges
-              const blurRadius = 4;
+              const blurRadius = 3;
               const blurData = new Uint8ClampedArray(data);
               
               for (let y = blurRadius; y < newHeight - blurRadius; y++) {
@@ -239,7 +239,7 @@ export const subjectGenerationSlice: StateCreator<
                   
                   // More aggressive edge handling
                   if (hasTransparentNeighbor) {
-                    data[i + 3] = Math.round((sum / weight) * 0.8);
+                    data[i + 3] = Math.round((sum / weight) * 0.85);
                   } else {
                     data[i + 3] = Math.round(sum / weight);
                   }
@@ -250,7 +250,7 @@ export const subjectGenerationSlice: StateCreator<
               tempCtx.putImageData(imageData, 0, 0);
               
               // Contract the mask - use a more effective erosion technique
-              const contractionAmount = 4;
+              const contractionAmount = 3;
               const originalData = new Uint8ClampedArray(data);
               const newMask = new Uint8ClampedArray(data.length);
               
