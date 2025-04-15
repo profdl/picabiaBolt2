@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useStore } from "../../../store";
 import { ImageShape as ImageShapeType } from "../../../types/shapes";
 import { ImageCropper } from "../../shared/ImageCropper";
@@ -6,6 +6,7 @@ import { useBrush } from "../../layout/toolbars/BrushTool";
 import { useImageCanvas } from "../../../hooks/shapes/useImageCanvas";
 import { useEraser } from "../../../hooks/shapes/useEraser";
 import { updateImageShapePreview } from "../../../utils/imageShapeCanvas";
+import { createShaderProgram, vertexShaderSource, fragmentShaderSource, createTexture, createBuffer } from "../../../utils/shaders";
 
 interface SavedCanvasState {
   backgroundData?: string;
@@ -57,6 +58,144 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
 
   // Add isDrawing ref to track drawing state
   const isDrawing = useRef(false);
+
+  // Add WebGL canvas ref and program ref
+  const webglCanvasRef = useRef<HTMLCanvasElement>(null);
+  const programRef = useRef<WebGLProgram | null>(null);
+  const textureRef = useRef<WebGLTexture | null>(null);
+  const positionBufferRef = useRef<WebGLBuffer | null>(null);
+  const texCoordBufferRef = useRef<WebGLBuffer | null>(null);
+
+  // Initialize WebGL
+  const initWebGL = useCallback(() => {
+    const canvas = webglCanvasRef.current;
+    if (!canvas) return;
+
+    const gl = canvas.getContext('webgl');
+    if (!gl) return;
+
+    // Create shader program
+    const program = createShaderProgram(gl, vertexShaderSource, fragmentShaderSource);
+    programRef.current = program;
+
+    // Create position buffer
+    const positions = new Float32Array([
+      -1, -1,
+       1, -1,
+      -1,  1,
+       1,  1,
+    ]);
+    positionBufferRef.current = createBuffer(gl, positions);
+
+    // Create texture coordinate buffer
+    const texCoords = new Float32Array([
+      0, 0,
+      1, 0,
+      0, 1,
+      1, 1,
+    ]);
+    texCoordBufferRef.current = createBuffer(gl, texCoords);
+
+    // Set up the program
+    gl.useProgram(program);
+
+    // Get attribute locations
+    const positionLocation = gl.getAttribLocation(program, 'a_position');
+    const texCoordLocation = gl.getAttribLocation(program, 'a_texCoord');
+
+    // Set up position attribute
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBufferRef.current);
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    // Set up texture coordinate attribute
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBufferRef.current);
+    gl.enableVertexAttribArray(texCoordLocation);
+    gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+    // Get uniform locations
+    const contrastLocation = gl.getUniformLocation(program, 'u_contrast');
+    const saturationLocation = gl.getUniformLocation(program, 'u_saturation');
+    const brightnessLocation = gl.getUniformLocation(program, 'u_brightness');
+
+    // Set initial uniform values
+    gl.uniform1f(contrastLocation, shape.contrast ?? 1.0);
+    gl.uniform1f(saturationLocation, shape.saturation ?? 1.0);
+    gl.uniform1f(brightnessLocation, shape.brightness ?? 1.0);
+  }, [shape.contrast, shape.saturation, shape.brightness]);
+
+  // Update WebGL rendering
+  const updateWebGL = useCallback(() => {
+    const canvas = webglCanvasRef.current;
+    if (!canvas) return;
+
+    const gl = canvas.getContext('webgl');
+    if (!gl || !programRef.current) return;
+
+    // Set up the program
+    gl.useProgram(programRef.current);
+
+    // Get uniform locations
+    const contrastLocation = gl.getUniformLocation(programRef.current, 'u_contrast');
+    const saturationLocation = gl.getUniformLocation(programRef.current, 'u_saturation');
+    const brightnessLocation = gl.getUniformLocation(programRef.current, 'u_brightness');
+
+    // Update uniform values
+    gl.uniform1f(contrastLocation, shape.contrast ?? 1.0);
+    gl.uniform1f(saturationLocation, shape.saturation ?? 1.0);
+    gl.uniform1f(brightnessLocation, shape.brightness ?? 1.0);
+
+    // Draw the quad
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }, [shape.contrast, shape.saturation, shape.brightness]);
+
+  // Update texture when source changes
+  const updateTexture = useCallback(() => {
+    const canvas = webglCanvasRef.current;
+    if (!canvas) return;
+
+    const gl = canvas.getContext('webgl');
+    if (!gl || !programRef.current) return;
+
+    // Create a temporary canvas to combine all layers
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    if (!tempCtx) return;
+
+    // Draw all layers in order
+    if (refs.backgroundCanvasRef.current) {
+      tempCtx.drawImage(refs.backgroundCanvasRef.current, 0, 0);
+    }
+    if (refs.permanentStrokesCanvasRef.current) {
+      tempCtx.drawImage(refs.permanentStrokesCanvasRef.current, 0, 0);
+    }
+    if (refs.activeStrokeCanvasRef.current) {
+      tempCtx.drawImage(refs.activeStrokeCanvasRef.current, 0, 0);
+    }
+
+    // Create or update texture
+    if (!textureRef.current) {
+      textureRef.current = createTexture(gl, tempCanvas);
+    } else {
+      gl.bindTexture(gl.TEXTURE_2D, textureRef.current);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tempCanvas);
+    }
+
+    // Update WebGL rendering
+    updateWebGL();
+  }, [refs, updateWebGL]);
+
+  // Initialize WebGL on mount
+  useEffect(() => {
+    initWebGL();
+  }, [initWebGL]);
+
+  // Update texture and rendering when layers change
+  useEffect(() => {
+    updateTexture();
+  }, [updateTexture]);
 
   // Add effect to restore canvas state
   useEffect(() => {
