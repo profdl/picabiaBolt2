@@ -53,6 +53,10 @@ export function ShapeControls({
     }
   };
 
+  // Define border theme classes
+  const selectedBorderStyle = useThemeClass(["shape", "selected"]);
+  const selectedWithToggleBorderStyle = useThemeClass(["shape", "selectedWithToggle"]);
+
   // Utility function to prevent event propagation
   const preventEvent = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -111,12 +115,19 @@ export function ShapeControls({
   // Hide controls only if no conditions are met
   if (!showControlPanel && !shape.isNew && shape.type !== "group" && !hasExternalControls) return null;
 
+  // Determine which border style to use
+  const borderStyle = isSelected && anyCheckboxChecked 
+    ? selectedWithToggleBorderStyle
+    : isSelected 
+      ? selectedBorderStyle
+      : "";
+
   return (
     <>
       {/* Only render the main container if showControlPanel is true */}
       {showControlPanel && (
         <div
-          className={`absolute inset-0 ${isAddedToGroup ? 'group-add-blink' : ''}`}
+          className={`absolute inset-0 ${isAddedToGroup ? 'group-add-blink' : ''} ${borderStyle}`}
           data-shape-control="true"
           style={{
             pointerEvents: "none",

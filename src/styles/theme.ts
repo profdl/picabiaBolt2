@@ -92,6 +92,7 @@ export const theme = {
   shape: {
     base: "transition-shadow hover:shadow-xl relative",
     selected: "ring-2 ring-neutral-500 dark:ring-[#0d99ff]",
+    selectedWithToggle: "ring-2 ring-emerald-500 dark:ring-[#80dbbd]",
     container: "absolute inset-0 bg-transparent",
     diffusionPanel: "bg-neutral-200 dark:bg-[#262626]",
     edge: {
