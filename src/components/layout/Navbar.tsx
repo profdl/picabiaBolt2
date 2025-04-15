@@ -201,19 +201,10 @@ export const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-4 ml-auto">
-            {user ? (
+            {user && (
               <button onClick={handleLogout} className={styles.auth.signOut}>
                 Sign Out
               </button>
-            ) : (
-              <div className="flex items-center gap-4">
-                <Link to="/login" className={styles.auth.login}>
-                  Login
-                </Link>
-                <Link to="/register" className={styles.auth.signUp}>
-                  Sign Up
-                </Link>
-              </div>
             )}
           </div>
         </div>
