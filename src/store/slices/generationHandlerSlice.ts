@@ -1,5 +1,5 @@
 import { StateCreator } from "zustand";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../../lib/supabase/client";
 import multiControlWorkflow from "../../lib/generateWorkflow.json";
 import inpaintWorkflow from "../../lib/inpaintWorkflow.json";
 import { Shape, Position } from "../../types";
@@ -14,11 +14,6 @@ import {
 } from "../../services/generation/CanvasUtils";
 import { ShapeProcessor } from "../../services/generation/ShapeProcessor";
 import { SettingsManager } from "../../services/generation/SettingsManager";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 interface Workflow {
   [key: string]: {

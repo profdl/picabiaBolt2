@@ -109,7 +109,7 @@ export class SettingsManager {
     if (!activeSettingsPanel) {
       const hasInpainting = shapes.some(shape => 
         shape.type === "image" && 
-        shape.makeVariations && 
+        shape.makeVariations &&
         this.hasActiveMask(shape)
       );
 

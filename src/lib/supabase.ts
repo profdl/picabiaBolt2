@@ -1,9 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './supabase/client';
+import type { Project } from '../types';
 
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+export { supabase };
 
 export const handleSupabaseError = (error: unknown): string => {
   if (!navigator.onLine) {
@@ -40,6 +38,7 @@ export const handleSupabaseError = (error: unknown): string => {
 
   return 'An unexpected error occurred. Please try again.';
 };
+
 export const retryOperation = async <T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
@@ -63,81 +62,6 @@ export const retryOperation = async <T>(
   }
 
   throw lastError || new Error('Operation failed after multiple retries');
-};
-
-
-
-
-export async function saveGeneratedImage(imageUrls: string[], prompt: string, aspectRatio: string) {
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) throw new Error('User must be authenticated to save images')
-
-  // Upload all images in parallel
-  const uploadPromises = imageUrls.map(async (imageUrl, index) => {
-    const response = await fetch(imageUrl)
-    const arrayBuffer = await response.arrayBuffer()
-    const imageData = new Uint8Array(arrayBuffer)
-    const filename = `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}.png`
-
-    const { error: uploadError } = await supabase
-      .storage
-      .from('generated-images')
-      .upload(filename, imageData, {
-        contentType: 'image/png',
-        cacheControl: '3600'
-      })
-
-    if (uploadError) throw uploadError
-
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('generated-images')
-      .getPublicUrl(filename)
-
-    return publicUrl
-  })
-
-  const publicUrls = await Promise.all(uploadPromises)
-
-  const [width, height] = aspectRatio.split(':').map(Number)
-  const aspectRatioValue = width / height
-
-  const { data, error } = await supabase
-    .from('generated_images')
-    .insert({
-      user_id: user.id,
-      image_url: publicUrls[0],
-      image_url_2: publicUrls[1] || null,
-      image_url_3: publicUrls[2] || null,
-      image_url_4: publicUrls[3] || null,
-      prompt: prompt,
-      aspect_ratio: aspectRatioValue
-    })
-    .select()
-    .single()
-
-  if (error) throw error
-  return data
-}
-
-export const convertToWebP = async (file: File): Promise<Blob> => {
-  const img = new Image();
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d')!;
-
-  await new Promise((resolve) => {
-    img.onload = resolve;
-    img.src = URL.createObjectURL(file);
-  });
-
-  canvas.width = img.width;
-  canvas.height = img.height;
-  ctx.drawImage(img, 0, 0);
-
-  return new Promise((resolve) => {
-    canvas.toBlob(blob => resolve(blob!), 'image/webp', 0.95);
-  });
 };
 
 export const uploadAssetToSupabase = async (blob: Blob) => {
@@ -214,8 +138,113 @@ export async function savePreprocessedImage(
   return data;
 }
 
+export const handleAuthError = (error: unknown): string => {
+  if (typeof error === 'string') return error;
 
+  const errorObj = error as { message?: string };
+  if (errorObj.message) return errorObj.message;
 
+  return 'An unexpected error occurred';
+};
+
+export async function createWelcomeProjects(userId: string) {
+  // Fetch all template projects
+  const { data: templates, error: templatesError } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('is_template', true);
+
+  if (templatesError) throw templatesError;
+
+  // Create each template project for the new user
+  const projectPromises = templates.map((template: Project) =>
+    supabase
+      .from('projects')
+      .insert({
+        ...template,
+        id: undefined, // Let Supabase generate a new ID
+        user_id: userId,
+        is_template: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+  );
+
+  const results = await Promise.all(projectPromises);
+  return results;
+}
+
+export async function saveGeneratedImage(imageUrls: string[], prompt: string, aspectRatio: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error('User must be authenticated to save images')
+
+  // Upload all images in parallel
+  const uploadPromises = imageUrls.map(async (imageUrl, index) => {
+    const response = await fetch(imageUrl)
+    const arrayBuffer = await response.arrayBuffer()
+    const imageData = new Uint8Array(arrayBuffer)
+    const filename = `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}.png`
+
+    const { error: uploadError } = await supabase
+      .storage
+      .from('generated-images')
+      .upload(filename, imageData, {
+        contentType: 'image/png',
+        cacheControl: '3600'
+      })
+
+    if (uploadError) throw uploadError
+
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('generated-images')
+      .getPublicUrl(filename)
+
+    return publicUrl
+  })
+
+  const publicUrls = await Promise.all(uploadPromises)
+
+  const [width, height] = aspectRatio.split(':').map(Number)
+  const aspectRatioValue = width / height
+
+  const { data, error } = await supabase
+    .from('generated_images')
+    .insert({
+      user_id: user.id,
+      image_url: publicUrls[0],
+      image_url_2: publicUrls[1] || null,
+      image_url_3: publicUrls[2] || null,
+      image_url_4: publicUrls[3] || null,
+      prompt: prompt,
+      aspect_ratio: aspectRatioValue
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export const convertToWebP = async (file: File): Promise<Blob> => {
+  const img = new Image();
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+
+  await new Promise((resolve) => {
+    img.onload = resolve;
+    img.src = URL.createObjectURL(file);
+  });
+
+  canvas.width = img.width;
+  canvas.height = img.height;
+  ctx.drawImage(img, 0, 0);
+
+  return new Promise((resolve) => {
+    canvas.toBlob(blob => resolve(blob!), 'image/webp', 0.95);
+  });
+};
 
 export const getPublicImageUrl = (imageUrl: string | undefined): string => {
   if (!imageUrl) return '';
@@ -237,40 +266,3 @@ export const getPublicImageUrl = (imageUrl: string | undefined): string => {
 
   return publicUrl;
 };
-
-export const handleAuthError = (error: unknown): string => {
-  if (typeof error === 'string') return error;
-
-  const errorObj = error as { message?: string };
-  if (errorObj.message) return errorObj.message;
-
-  return 'An unexpected error occurred';
-};
-
-
-export async function createWelcomeProjects(userId: string) {
-  // Fetch all template projects
-  const { data: templates, error: templatesError } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('is_template', true);
-
-  if (templatesError) throw templatesError;
-
-  // Create each template project for the new user
-  const projectPromises = templates.map(template =>
-    supabase
-      .from('projects')
-      .insert({
-        ...template,
-        id: undefined, // Let Supabase generate a new ID
-        user_id: userId,
-        is_template: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-  );
-
-  const results = await Promise.all(projectPromises);
-  return results;
-}

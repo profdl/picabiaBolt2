@@ -1,28 +1,8 @@
 // src/hooks/shapes/useImageCanvas.ts
 import { useRef, useEffect, useCallback, useMemo } from "react";
-import { Shape } from "../../types";
+import { ImageShape } from "../../types/shapes";
 import { useStore } from "../../store";
 import { ensureBinaryMask } from '../../utils/imageShapeCanvas';
-
-// These utility functions are already used in the file, so let's keep them local
-const getImageShapeCanvasContext = (
-  canvasRef: React.RefObject<HTMLCanvasElement>,
-  options: CanvasRenderingContext2DSettings = { willReadFrequently: true }
-): CanvasRenderingContext2D | null => {
-  return canvasRef.current?.getContext('2d', options) || null;
-};
-
-const clearImageShapeCanvas = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
-  const ctx = getImageShapeCanvasContext(canvasRef);
-  if (!ctx || !canvasRef.current) return;
-
-  ctx.clearRect(
-    0,
-    0,
-    canvasRef.current.width,
-    canvasRef.current.height
-  );
-};
 
 export interface ImageCanvasRefs {
   backgroundCanvasRef: React.RefObject<HTMLCanvasElement>;
@@ -33,7 +13,7 @@ export interface ImageCanvasRefs {
 }
 
 interface UseImageCanvasProps {
-  shape: Shape;
+  shape: ImageShape;
   tool: "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint";
 }
 

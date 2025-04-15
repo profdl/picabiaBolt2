@@ -1,10 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
-import { ConnectionError, handleError } from './errors';
+import { ConnectionError } from './errors';
 
 const supabaseUrl = 'https://tobdhxhfijeznhtfntsj.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvYmRoeGhmaWplem5odGZudHNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ3MjczOTMsImV4cCI6MjA0MDMwMzM5M30.gHrx60MyBvxBtN83WrWTc0LGuk3QDmNn3L-7WXVrZVs';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// Create a single instance of the Supabase client
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -25,12 +26,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
+// Export the single instance
+export { supabase };
+
 export async function checkConnection(): Promise<boolean> {
   try {
-    const { data, error } = await supabase.from('projects').select('id').limit(1);
+    const { error } = await supabase.from('projects').select('id').limit(1);
     if (error) throw error;
     return true;
-  } catch (error) {
+  } catch {
     throw new ConnectionError('Unable to connect to the server');
   }
 }

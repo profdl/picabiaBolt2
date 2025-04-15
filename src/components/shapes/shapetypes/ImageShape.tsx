@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useStore } from "../../../store";
-import { Shape } from "../../../types";
+import { ImageShape as ImageShapeType } from "../../../types/shapes";
 import { ImageCropper } from "../../shared/ImageCropper";
 import { useBrush } from "../../layout/toolbars/BrushTool";
 import { useImageCanvas } from "../../../hooks/shapes/useImageCanvas";
@@ -37,7 +37,7 @@ const calculateImageShapeDimensions = (width: number, height: number): { width: 
 };
 
 interface ImageShapeProps {
-  shape: Shape;
+  shape: ImageShapeType;
   tool: "select" | "pan" | "pen" | "brush" | "eraser" | "inpaint";
   handleContextMenu: (e: React.MouseEvent) => void;
   onResizeStart?: () => void;

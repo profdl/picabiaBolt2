@@ -11,8 +11,6 @@ export class ShapeProcessor {
   private static readonly GAP = 20; // Standard gap between shapes
   private static readonly BASE_OFFSET = 40; // Base offset for overlapping shapes
   private static readonly MAX_DIMENSION = 512; // Maximum dimension for image shapes
-  private static readonly MIN_DIMENSION = 512; // Minimum dimension for SDXL
-  private static readonly MAX_SDXL_DIMENSION = 2048; // Maximum dimension for SDXL
 
   /**
    * Standard aspect ratio presets with optimal dimensions
@@ -243,10 +241,25 @@ export class ShapeProcessor {
       }
     }
     
-    // Return the dimensions from the closest preset
+    // Get aspect ratio from the closest preset
+    const presetRatio = closestPreset!.ratio;
+    
+    // Scale dimensions to fit within 512x512 area while maintaining aspect ratio
+    let scaledWidth, scaledHeight;
+    
+    if (presetRatio >= 1) {
+      // Landscape or square orientation
+      scaledWidth = 512;
+      scaledHeight = Math.round(scaledWidth / presetRatio);
+    } else {
+      // Portrait orientation
+      scaledHeight = 512;
+      scaledWidth = Math.round(scaledHeight * presetRatio);
+    }
+    
     return {
-      width: closestPreset!.width,
-      height: closestPreset!.height
+      width: scaledWidth,
+      height: scaledHeight
     };
   }
 

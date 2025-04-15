@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabase";
 import { Shape } from "../types";
+import { ImageShape } from "../types/shapes";
 
 export const canvasToFile = async (
   canvas: HTMLCanvasElement
@@ -59,7 +60,14 @@ export const uploadCanvasToSupabase = async (canvas: HTMLCanvasElement) => {
 };
 
 export const mergeImageWithStrokes = async (shape: Shape): Promise<string> => {
-  if (!shape.imageUrl) {
+  // Type guard to ensure we're working with an ImageShape
+  if (shape.type !== "image") {
+    throw new Error("Shape is not an image");
+  }
+
+  const imageShape = shape as ImageShape;
+  
+  if (!imageShape.imageUrl) {
     throw new Error("No image URL provided");
   }
 
@@ -67,14 +75,14 @@ export const mergeImageWithStrokes = async (shape: Shape): Promise<string> => {
   const previewCanvas = document.querySelector(`canvas[data-shape-id="${shape.id}"]`) as HTMLCanvasElement;
   if (!previewCanvas) {
     console.error('Preview canvas not found');
-    return shape.imageUrl;
+    return imageShape.imageUrl;
   }
 
   // Get the image data to check for non-transparent pixels
   const ctx = previewCanvas.getContext('2d');
   if (!ctx) {
     console.error('Could not get canvas context');
-    return shape.imageUrl;
+    return imageShape.imageUrl;
   }
 
   const imageData = ctx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
@@ -85,7 +93,7 @@ export const mergeImageWithStrokes = async (shape: Shape): Promise<string> => {
 
   if (!hasNonTransparentPixels) {
     // If no brush strokes, return the original image URL
-    return shape.imageUrl;
+    return imageShape.imageUrl;
   }
 
   // If there are brush strokes, create a blob from the preview canvas
