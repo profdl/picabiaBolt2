@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Project } from '../../types';
+import { Project, PartialProject } from '../../types';
 
 
 
 export function useProjects() {
   const { user } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<PartialProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,10 +21,10 @@ export function useProjects() {
       setLoading(true);
       setError(null);
   
-      // First, fetch user's projects
+      // First, fetch user's projects with only essential metadata
       const { data: userProjects, error: userProjectsError } = await supabase
         .from('projects')
-        .select('*')
+        .select('id, name, thumbnail, updated_at, is_template')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
   
@@ -34,7 +34,7 @@ export function useProjects() {
       if (userProjects?.length === 0) {
         const { data: templateProjects, error: templateError } = await supabase
           .from('projects')
-          .select('*')
+          .select('id, name, thumbnail, updated_at, is_template')
           .eq('is_template', true)
           .order('updated_at', { ascending: false });
   
@@ -46,16 +46,16 @@ export function useProjects() {
           const clonedProjects = templateProjects.map(template => ({
             name: template.name,
             user_id: user.id,
-            shapes: template.shapes,
+            shapes: [], // Don't clone shapes initially
             thumbnail: template.thumbnail,
             is_template: false,
-            cloned_from: template.id  // Add this to track which template it was cloned from
+            cloned_from: template.id
           }));
   
           const { data: insertedProjects, error: insertError } = await supabase
             .from('projects')
             .insert(clonedProjects)
-            .select();
+            .select('id, name, thumbnail, updated_at, is_template');
   
           if (insertError) throw insertError;
           setProjects(insertedProjects || []);
@@ -82,7 +82,7 @@ export function useProjects() {
     try {
       const { data, error } = await supabase
         .from('projects')
-        .select('id, created_at, updated_at, name, user_id, shapes, thumbnail')
+        .select('*')
         .eq('user_id', user.id)
         .eq('id', id)
         .single();
@@ -97,7 +97,7 @@ export function useProjects() {
         throw new Error('Project not found');
       }
 
-      return data;
+      return data as Project;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : handleSupabaseError(err);
       console.error('Error fetching project:', errorMessage);

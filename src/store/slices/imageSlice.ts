@@ -23,6 +23,7 @@ interface ImageSettings {
   showPose?: boolean;
   showSketch?: boolean;
   showImagePrompt?: boolean;
+  contrast?: number;
 }
 
 export const imageSlice: StateCreator<ImageSlice, [], [], ImageSlice> = (
@@ -75,6 +76,7 @@ export const imageSlice: StateCreator<ImageSlice, [], [], ImageSlice> = (
             showPose: imageSettings.showPose ?? imageShape.showPose ?? false,
             showSketch: imageSettings.showSketch ?? imageShape.showSketch ?? false,
             showImagePrompt: imageSettings.showImagePrompt ?? imageShape.showImagePrompt ?? false,
+            contrast: imageSettings.contrast ?? imageShape.contrast ?? 1.0,
           } as Shape;
           return updatedShape;
         }

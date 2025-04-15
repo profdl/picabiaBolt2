@@ -4,7 +4,7 @@ import { ProjectCard } from '../components/shared/ProjectCard';
 import { useNavigate } from 'react-router-dom';
 import { useThemeClass } from '../styles/useThemeClass';
 import { cn } from '../utils/cn';
-
+import { PartialProject } from '../types';
 
 export function Dashboard() {
   const { projects, createProject, updateProject, deleteProject, loading, error } = useProjects();
@@ -45,7 +45,7 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className={styles.page}> {/* Update loading wrapper */}
+      <div className={styles.page}>
         <div className={styles.loading.container}>
           <div className={styles.loading.spinner}></div>
         </div>
@@ -55,7 +55,7 @@ export function Dashboard() {
 
   if (error) {
     return (
-      <div className={styles.page}> {/* Update error wrapper */}
+      <div className={styles.page}>
         <div className={styles.error.container}>
           <div className={styles.error.text}>Failed to load projects</div>
         </div>
@@ -64,16 +64,16 @@ export function Dashboard() {
   }
 
   return (
-    <div className={styles.page}> {/* Add page wrapper */}
+    <div className={styles.page}>
       <div className={styles.container}>
         <div className={styles.header.container}>
-        <button onClick={handleCreateProject} className={cn(
-  styles.header.button,
-  "inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-[#0d99ff] hover:bg-[#0b87e3]"
-)}>
-  <Plus className="w-5 h-5 mr-2" />
-  New Board
-</button>
+          <button onClick={handleCreateProject} className={cn(
+            styles.header.button,
+            "inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-[#0d99ff] hover:bg-[#0b87e3]"
+          )}>
+            <Plus className="w-5 h-5 mr-2" />
+            New Board
+          </button>
         </div>
 
         {projects.length === 0 ? (
@@ -83,7 +83,7 @@ export function Dashboard() {
           </div>
         ) : (
           <div className={styles.grid}>
-            {projects.map((project) => (
+            {projects.map((project: PartialProject) => (
               <ProjectCard
                 key={project.id}
                 project={project}

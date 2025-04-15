@@ -101,6 +101,11 @@ export interface StickyNoteShape extends BaseShape {
 export interface ImageShape extends BaseShape {
   type: "image";
   imageUrl?: string;
+  originalWidth?: number;
+  originalHeight?: number;
+  contrast?: number;
+  saturation?: number;
+  brightness?: number;
   aspectRatio?: number;
   thumbnailUrl?: string;
   showDepth?: boolean;

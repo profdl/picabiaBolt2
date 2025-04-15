@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Edit2, Trash2, X, Check, Image as ImageIcon } from "lucide-react";
-import { Project } from "../../types";
+import { PartialProject } from "../../types";
 import { useThemeClass } from '../../styles/useThemeClass';
 
 interface ProjectCardProps {
-  project: Project;
+  project: PartialProject;
   onOpen: () => void;
   onRename: (newName: string) => Promise<void>;
   onDelete: () => Promise<void>;

@@ -121,6 +121,37 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
     }
   }, [shape.id, shape.type, shape.width, shape.height, shape.originalWidth, updateShape]);
 
+  // Add effect to apply contrast filter
+  useEffect(() => {
+    if (refs.previewCanvasRef.current) {
+      const previewCtx = refs.previewCanvasRef.current.getContext('2d');
+      if (previewCtx) {
+        // Clear the preview canvas
+        previewCtx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
+        
+        // Apply filters
+        const contrast = shape.contrast ?? 1.0;
+        const saturation = shape.saturation ?? 1.0;
+        const brightness = shape.brightness ?? 1.0;
+        previewCtx.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
+        
+        // Draw all layers
+        if (refs.backgroundCanvasRef.current) {
+          previewCtx.drawImage(refs.backgroundCanvasRef.current, 0, 0);
+        }
+        if (refs.permanentStrokesCanvasRef.current) {
+          previewCtx.drawImage(refs.permanentStrokesCanvasRef.current, 0, 0);
+        }
+        if (refs.activeStrokeCanvasRef.current) {
+          previewCtx.drawImage(refs.activeStrokeCanvasRef.current, 0, 0);
+        }
+        
+        // Reset filter for next draw
+        previewCtx.filter = 'none';
+      }
+    }
+  }, [shape.contrast, shape.saturation, shape.brightness, refs]);
+
   // Add effect to handle tool state on deselection
   useEffect(() => {
     const cleanup = () => {

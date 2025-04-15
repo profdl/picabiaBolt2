@@ -29,15 +29,19 @@ export interface SavedImage {
   // ... existing code ...
 }
 
-export interface Project {
+export interface PartialProject {
   id: string;
   name: string;
-  shapes: Shape[];
   thumbnail: string | null;
-  user_id: string;
-  created_at: string;
   updated_at: string;
   is_template: boolean;
+}
+
+export interface Project extends PartialProject {
+  shapes: Shape[];
+  user_id: string;
+  created_at: string;
+  cloned_from?: string;
 }
 
 export interface StoreState {

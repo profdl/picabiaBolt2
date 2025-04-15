@@ -17,6 +17,7 @@ import {
   Paintbrush,
   RefreshCw,
   Pipette,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Shape } from "../../../types";
 import { useStore } from "../../../store";
@@ -40,6 +41,7 @@ interface PropertiesToolbarProps {
     followPath?: boolean;
     spacing?: number;
     hardness?: number;
+    contrast?: number;
   };
   onPropertyChange?: (property: string, value: unknown) => void;
   shape?: Shape;
@@ -64,6 +66,7 @@ interface PropertiesToolbarProps {
     onFlatten: (e: React.MouseEvent) => void;
     addShape: (shape: Shape) => void;
     generatePreprocessedImage: (id: string, type: string) => Promise<void>;
+    updateImageSettings: (id: string, settings: Partial<Shape>) => void;
   };
 }
 
@@ -108,6 +111,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
   }));
 
   const [showArrangeSubMenu, setShowArrangeSubMenu] = useState(false);
+  const [showAdjustmentsMenu, setShowAdjustmentsMenu] = useState(false);
   const [localProperties, setLocalProperties] = useState(properties || {});
 
   const styles = {
@@ -116,6 +120,10 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     divider: "w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1.5",
     arrangeMenu: {
       container: "absolute bottom-full mb-1 left-0 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1 min-w-[160px]",
+      item: "flex items-center gap-2 w-full px-2 py-1.5 text-sm text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded transition-colors",
+    },
+    adjustmentsMenu: {
+      container: "absolute bottom-full mb-1 left-0 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-2 min-w-[200px]",
       item: "flex items-center gap-2 w-full px-2 py-1.5 text-sm text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded transition-colors",
     },
     colorPicker: {
@@ -162,6 +170,7 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
     }),
     addShape: (actions?.addShape || storeAddShape) as (shape: Shape) => void,
     generatePreprocessedImage: (actions?.generatePreprocessedImage || storeGeneratePreprocessedImage) as (id: string, type: string) => Promise<void>,
+    updateImageSettings: (actions?.updateImageSettings || updateShape) as (id: string, settings: Partial<Shape>) => void,
   };
 
   const selectedShapeObjects = shapes.filter((s) =>
@@ -1043,6 +1052,85 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                           />
                         </Tooltip>
                       )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Image Properties Section */}
+            {tool === "select" && displayShape?.type === "image" && (
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Tooltip content="Image Adjustments" side="top">
+                    <ToolbarButton
+                      icon={<SlidersHorizontal className="w-4 h-4" />}
+                      onClick={() => setShowAdjustmentsMenu(!showAdjustmentsMenu)}
+                      active={showAdjustmentsMenu}
+                      className={styles.button}
+                    />
+                  </Tooltip>
+                  
+                  {showAdjustmentsMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0"
+                        onClick={() => setShowAdjustmentsMenu(false)}
+                      />
+                      <div className={styles.adjustmentsMenu.container}>
+                        <div className="flex flex-col gap-2">
+                          <div className={styles.controlGroup.container}>
+                            <span className={styles.controlGroup.label}>Contrast</span>
+                            <div className="w-[120px]">
+                              <SmallSlider
+                                value={(displayShape.contrast ?? 1.0) * 100}
+                                onChange={(value) => {
+                                  const contrast = value / 100;
+                                  displayActions.updateImageSettings(displayShape.id, { contrast });
+                                }}
+                                min={0}
+                                max={200}
+                                step={1}
+                                label="Contrast"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className={styles.controlGroup.container}>
+                            <span className={styles.controlGroup.label}>Saturation</span>
+                            <div className="w-[120px]">
+                              <SmallSlider
+                                value={(displayShape.saturation ?? 1.0) * 100}
+                                onChange={(value) => {
+                                  const saturation = value / 100;
+                                  displayActions.updateImageSettings(displayShape.id, { saturation });
+                                }}
+                                min={0}
+                                max={200}
+                                step={1}
+                                label="Saturation"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className={styles.controlGroup.container}>
+                            <span className={styles.controlGroup.label}>Brightness</span>
+                            <div className="w-[120px]">
+                              <SmallSlider
+                                value={(displayShape.brightness ?? 1.0) * 100}
+                                onChange={(value) => {
+                                  const brightness = value / 100;
+                                  displayActions.updateImageSettings(displayShape.id, { brightness });
+                                }}
+                                min={0}
+                                max={200}
+                                step={1}
+                                label="Brightness"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </>
                   )}
                 </div>
