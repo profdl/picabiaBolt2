@@ -57,8 +57,17 @@ export const updateImageShapePreview = ({
   previewCanvasRef,
   maskCanvasRef,
   tool,
-  opacity = 1
-}: ImageShapeCanvasRefs & { tool: string; opacity?: number }) => {
+  opacity = 1,
+  contrast = 1.0,
+  saturation = 1.0,
+  brightness = 1.0
+}: ImageShapeCanvasRefs & { 
+  tool: string; 
+  opacity?: number;
+  contrast?: number;
+  saturation?: number;
+  brightness?: number;
+}) => {
   const previewCtx = getImageShapeCanvasContext(previewCanvasRef);
   if (!previewCtx || !previewCanvasRef.current) return;
 
@@ -73,6 +82,9 @@ export const updateImageShapePreview = ({
 
     // 1. Clear the preview canvas
     previewCtx.clearRect(0, 0, originalWidth, originalHeight);
+
+    // Apply shader filters
+    previewCtx.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
 
     // 2. Draw background with NO opacity changes
     previewCtx.globalAlpha = 1;
@@ -104,6 +116,9 @@ export const updateImageShapePreview = ({
       );
     }
 
+    // Reset filter after drawing
+    previewCtx.filter = 'none';
+
     // 5. Apply mask using CSS transforms for better performance
     if (maskCanvasRef?.current) {
       const maskUrl = maskCanvasRef.current.toDataURL();
@@ -134,12 +149,20 @@ export const saveImageShapeState = (
     previewCanvasData?: string;
     maskCanvasData?: string;
     redBackgroundCanvasData?: string;
-  }) => void
+    contrast?: number;
+    saturation?: number;
+    brightness?: number;
+  }) => void,
+  shaderParams?: {
+    contrast?: number;
+    saturation?: number;
+    brightness?: number;
+  }
 ) => {
   if (!refs.backgroundCanvasRef.current || !refs.permanentStrokesCanvasRef.current) return;
 
   // Save each layer separately
-  const canvasData: Record<string, string | null> = {};
+  const canvasData: Record<string, string | number | null> = {};
   
   // Save background
   if (refs.backgroundCanvasRef.current) {
@@ -171,8 +194,32 @@ export const saveImageShapeState = (
     canvasData.redBackgroundCanvasData = refs.redBackgroundCanvasRef.current.toDataURL("image/jpeg", 0.7);
   }
 
+  // Include shader parameters if provided
+  if (shaderParams) {
+    if (shaderParams.contrast !== undefined) {
+      canvasData.contrast = shaderParams.contrast;
+    }
+    if (shaderParams.saturation !== undefined) {
+      canvasData.saturation = shaderParams.saturation;
+    }
+    if (shaderParams.brightness !== undefined) {
+      canvasData.brightness = shaderParams.brightness;
+    }
+  }
+
   // Update shape with all canvas data
-  updateShape(shapeId, canvasData);
+  updateShape(shapeId, canvasData as {
+    canvasData?: string;
+    backgroundCanvasData?: string;
+    permanentCanvasData?: string;
+    activeCanvasData?: string;
+    previewCanvasData?: string;
+    maskCanvasData?: string;
+    redBackgroundCanvasData?: string;
+    contrast?: number;
+    saturation?: number;
+    brightness?: number;
+  });
 };
 
 /**

@@ -118,19 +118,29 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
     const saturationLocation = gl.getUniformLocation(program, 'u_saturation');
     const brightnessLocation = gl.getUniformLocation(program, 'u_brightness');
 
-    // Set initial uniform values
+    // Set initial uniform values from shape properties
     gl.uniform1f(contrastLocation, shape.contrast ?? 1.0);
     gl.uniform1f(saturationLocation, shape.saturation ?? 1.0);
     gl.uniform1f(brightnessLocation, shape.brightness ?? 1.0);
+
+    // Save the initial state
+    const shapeId = canvas.dataset.shapeId;
+    if (shapeId) {
+      useStore.getState().updateShape(shapeId, {
+        contrast: shape.contrast ?? 1.0,
+        saturation: shape.saturation ?? 1.0,
+        brightness: shape.brightness ?? 1.0
+      });
+    }
   }, [shape.contrast, shape.saturation, shape.brightness]);
 
   // Update WebGL rendering
   const updateWebGL = useCallback(() => {
     const canvas = webglCanvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !programRef.current) return;
 
     const gl = canvas.getContext('webgl');
-    if (!gl || !programRef.current) return;
+    if (!gl) return;
 
     // Set up the program
     gl.useProgram(programRef.current);
@@ -152,10 +162,10 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
   // Update texture when source changes
   const updateTexture = useCallback(() => {
     const canvas = webglCanvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !programRef.current) return;
 
     const gl = canvas.getContext('webgl');
-    if (!gl || !programRef.current) return;
+    if (!gl) return;
 
     // Create a temporary canvas to combine all layers
     const tempCanvas = document.createElement('canvas');
@@ -183,7 +193,7 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tempCanvas);
     }
 
-    // Update WebGL rendering
+    // Update WebGL rendering with current shader settings
     updateWebGL();
   }, [refs, updateWebGL]);
 
@@ -391,7 +401,10 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
         previewCanvasRef: refs.previewCanvasRef,
         maskCanvasRef: refs.maskCanvasRef,
         tool: 'eraser',
-        opacity: useStore.getState().brushOpacity
+        opacity: useStore.getState().brushOpacity,
+        contrast: shape.contrast ?? 1.0,
+        saturation: shape.saturation ?? 1.0,
+        brightness: shape.brightness ?? 1.0
       });
       
       // Reset the eraser's last point
@@ -401,6 +414,13 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
       originalHandlePointerUpOrLeave();
       updatePreviewCanvas();
     }
+
+    // Save shader settings after any tool operation
+    updateShape(shape.id, {
+      contrast: shape.contrast ?? 1.0,
+      saturation: shape.saturation ?? 1.0,
+      brightness: shape.brightness ?? 1.0
+    });
   };
 
   const handleStartEditing = () => {
@@ -422,7 +442,11 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
       previewCanvasData: refs.previewCanvasRef.current?.toDataURL(),
       maskCanvasData: refs.maskCanvasRef.current?.toDataURL(),
       savedCanvasState: canvasState,
-      isImageEditing: true
+      isImageEditing: true,
+      // Save shader settings
+      contrast: shape.contrast ?? 1.0,
+      saturation: shape.saturation ?? 1.0,
+      brightness: shape.brightness ?? 1.0
     });
   };
 
@@ -459,6 +483,56 @@ export const ImageShape: React.FC<ImageShapeProps> = ({
         }
     }
   }, [shape.isImageEditing, shape.backgroundCanvasData, shape.previewCanvasData, refs]);
+
+  // Add a new effect to handle shader updates
+  useEffect(() => {
+    const canvas = webglCanvasRef.current;
+    if (!canvas || !programRef.current) return;
+
+    const gl = canvas.getContext('webgl');
+    if (!gl) return;
+
+    // Get uniform locations
+    const contrastLocation = gl.getUniformLocation(programRef.current, 'u_contrast');
+    const saturationLocation = gl.getUniformLocation(programRef.current, 'u_saturation');
+    const brightnessLocation = gl.getUniformLocation(programRef.current, 'u_brightness');
+
+    // Update uniform values
+    gl.uniform1f(contrastLocation, shape.contrast ?? 1.0);
+    gl.uniform1f(saturationLocation, shape.saturation ?? 1.0);
+    gl.uniform1f(brightnessLocation, shape.brightness ?? 1.0);
+
+    // Save the updated state
+    const shapeId = canvas.dataset.shapeId;
+    if (shapeId) {
+      useStore.getState().updateShape(shapeId, {
+        contrast: shape.contrast ?? 1.0,
+        saturation: shape.saturation ?? 1.0,
+        brightness: shape.brightness ?? 1.0
+      });
+    }
+
+    // Redraw with new settings
+    updateWebGL();
+  }, [shape.contrast, shape.saturation, shape.brightness, updateWebGL]);
+
+  // Add effect to save shader settings whenever they change
+  useEffect(() => {
+    // Skip initial render
+    if (!shape.id) return;
+    
+    // Save shader settings to store
+    updateShape(shape.id, {
+      contrast: shape.contrast ?? 1.0,
+      saturation: shape.saturation ?? 1.0,
+      brightness: shape.brightness ?? 1.0
+    });
+    
+    // Also update WebGL rendering if available
+    if (webglCanvasRef.current && programRef.current) {
+      updateWebGL();
+    }
+  }, [shape.contrast, shape.saturation, shape.brightness, shape.id, updateShape, updateWebGL]);
 
   // Common canvas style with GPU acceleration
   const canvasStyle = {

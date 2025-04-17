@@ -3,6 +3,7 @@ import { useStore } from '../../store';
 import { ImageCanvasRefs } from './useImageCanvas';
 import { updateImageShapePreview, getScaledPoint } from '../../utils/imageShapeCanvas';
 import { drawBrushStroke, drawBrushStamp, type BrushTextureType } from '../../utils/brushTexture';
+import { ImageShape } from '../../types/shapes';
 
 interface UseEraserProps {
   refs: ImageCanvasRefs;
@@ -40,7 +41,8 @@ export const useEraser = ({ refs }: UseEraserProps) => {
       brushSpacing,
       brushHardness,
       brushOpacity,
-      tool
+      tool,
+      shapes
     } = useStore.getState();
     
     // Only handle eraser operations
@@ -86,6 +88,23 @@ export const useEraser = ({ refs }: UseEraserProps) => {
       
       permanentCtx.restore();
 
+      // Get current shape to extract shader parameters
+      const canvasElement = e.currentTarget;
+      const shapeId = canvasElement.dataset.shapeId;
+      const currentShape = shapeId ? shapes.find(s => s.id === shapeId) : null;
+      
+      // Safely extract shader parameters if it's an image shape
+      let contrast = 1.0;
+      let saturation = 1.0;
+      let brightness = 1.0;
+      
+      if (currentShape && currentShape.type === 'image') {
+        const imageShape = currentShape as ImageShape;
+        contrast = imageShape.contrast ?? 1.0;
+        saturation = imageShape.saturation ?? 1.0;
+        brightness = imageShape.brightness ?? 1.0;
+      }
+      
       // Update preview to show the erased strokes
       updateImageShapePreview({
         backgroundCanvasRef: refs.backgroundCanvasRef,
@@ -94,7 +113,10 @@ export const useEraser = ({ refs }: UseEraserProps) => {
         previewCanvasRef: refs.previewCanvasRef,
         maskCanvasRef: refs.maskCanvasRef,
         tool: 'eraser',
-        opacity: brushOpacity
+        opacity: brushOpacity,
+        contrast,
+        saturation,
+        brightness
       });
     }
 

@@ -1,6 +1,7 @@
 // src/hooks/useShapeEvents.ts
 import { useState, useEffect } from 'react';
 import { Shape } from '../../types';
+import { GroupShape } from '../../types/shapes';
 import { useStore } from '../../store';
 import { createShapeContextMenu } from '../../utils/shapeContextMenu';
 
@@ -62,7 +63,8 @@ export function useShapeEvents({
     if (tool === "pan" || (isEditing && !shape.isNew)) return;
     
     // Check if shape is in a disabled group
-    const isInDisabledGroup = shape.groupId && shapes.find(s => s.id === shape.groupId)?.groupEnabled === false;
+    const isInDisabledGroup = shape.groupId && shapes.find(s => s.id === shape.groupId)?.type === 'group' && 
+      (shapes.find(s => s.id === shape.groupId) as GroupShape).groupEnabled === false;
     if (isInDisabledGroup) {
       e.stopPropagation();
       return;

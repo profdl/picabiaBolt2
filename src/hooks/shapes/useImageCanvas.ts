@@ -63,6 +63,12 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
     // Clear preview
     previewCtx.clearRect(0, 0, width, height);
 
+    // Apply shader filters
+    const contrast = shape.contrast ?? 1.0;
+    const saturation = shape.saturation ?? 1.0;
+    const brightness = shape.brightness ?? 1.0;
+    previewCtx.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
+
     if (isScaling.current) {
       // If we don't have a cached preview, create one from the current state
       if (!cachedPreview.current) {
@@ -103,6 +109,9 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
         );
       }
 
+      // Reset filter after drawing
+      previewCtx.filter = 'none';
+
       return;
     }
 
@@ -129,7 +138,10 @@ export const useImageCanvas = ({ shape, tool }: UseImageCanvasProps) => {
       previewCtx.drawImage(maskCanvas, 0, 0, width, height);
       previewCtx.globalCompositeOperation = 'source-over';
     }
-  }, [refs, isScaling]);
+
+    // Reset filter after drawing
+    previewCtx.filter = 'none';
+  }, [refs, isScaling, shape.contrast, shape.saturation, shape.brightness]);
 
   const updateMaskScaling = useCallback(() => {
     if (!refs.maskCanvasRef.current || !refs.previewCanvasRef.current) return;

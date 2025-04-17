@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { useStore } from "../../../store";
 import { useMixboxBrush } from "../../../hooks/ui/useMixbox";
 import { 
@@ -80,6 +80,57 @@ export const useBrush = ({
     setColorPickerOpen: state.setColorPickerOpen
   }));
 
+  // A consistent function to apply shader filters and update canvas
+  const applyFiltersAndUpdateCanvas = useCallback((e: React.PointerEvent<HTMLCanvasElement> | null, currentTool: string, currentOpacity: number = brushOpacity) => {
+    // Extract shape information to get shader parameters
+    let shapeId;
+    if (e) {
+      const canvasElement = e.currentTarget;
+      shapeId = canvasElement.dataset.shapeId;
+    } else if (activeStrokeCanvasRef.current) {
+      shapeId = activeStrokeCanvasRef.current.dataset.shapeId;
+    }
+
+    const shapes = useStore.getState().shapes;
+    const currentShape = shapeId ? shapes.find(s => s.id === shapeId) : null;
+    
+    // Get shader parameters with safe defaults
+    let contrast = 1.0;
+    let saturation = 1.0;
+    let brightness = 1.0;
+    
+    if (currentShape && currentShape.type === 'image') {
+      contrast = currentShape.contrast ?? 1.0;
+      saturation = currentShape.saturation ?? 1.0;
+      brightness = currentShape.brightness ?? 1.0;
+    }
+
+    // Update preview with filters
+    updateImageShapePreview({
+      backgroundCanvasRef,
+      permanentStrokesCanvasRef,
+      activeStrokeCanvasRef,
+      previewCanvasRef,
+      maskCanvasRef,
+      tool: currentTool,
+      opacity: currentOpacity,
+      contrast,
+      saturation,
+      brightness
+    });
+
+    // If we have a shape ID, also ensure shader filters are persisted to shape
+    if (shapeId && currentShape && currentShape.type === 'image') {
+      useStore.getState().updateShape(shapeId, {
+        contrast,
+        saturation,
+        brightness
+      });
+    }
+
+    return { shapeId, contrast, saturation, brightness };
+  }, [backgroundCanvasRef, permanentStrokesCanvasRef, activeStrokeCanvasRef, previewCanvasRef, maskCanvasRef, brushOpacity]);
+
   // Add cleanup effect when tool changes or component unmounts
   useEffect(() => {
     const cleanup = () => {
@@ -92,16 +143,9 @@ export const useBrush = ({
         clearImageShapeCanvas(activeStrokeCanvasRef);
       }
 
-      // Update preview if it exists
+      // Update preview if it exists with consistent function
       if (previewCanvasRef.current) {
-        updateImageShapePreview({
-          backgroundCanvasRef,
-          permanentStrokesCanvasRef,
-          activeStrokeCanvasRef,
-          previewCanvasRef,
-          maskCanvasRef,
-          tool: tool || 'brush'
-        });
+        applyFiltersAndUpdateCanvas(null, tool || 'brush');
       }
     };
 
@@ -112,7 +156,7 @@ export const useBrush = ({
 
     // Clean up on unmount
     return cleanup;
-  }, [activeStrokeCanvasRef, backgroundCanvasRef, permanentStrokesCanvasRef, previewCanvasRef, maskCanvasRef, tool]);
+  }, [activeStrokeCanvasRef, backgroundCanvasRef, permanentStrokesCanvasRef, previewCanvasRef, maskCanvasRef, tool, applyFiltersAndUpdateCanvas]);
 
   // Preload brush textures
   useEffect(() => {
@@ -137,19 +181,10 @@ export const useBrush = ({
       // Draw the initial dot at full opacity on active canvas
       drawBrushDot(activeStrokeCanvasRef.current, point);
       
-      // Update preview with proper opacity
-      updateImageShapePreview({
-        backgroundCanvasRef,
-        permanentStrokesCanvasRef,
-        activeStrokeCanvasRef,
-        previewCanvasRef,
-        maskCanvasRef,
-        tool,
-        opacity: brushOpacity
-      });
+      // Apply filters and update canvas using our consistent function
+      const { shapeId, contrast, saturation, brightness } = applyFiltersAndUpdateCanvas(e, tool);
 
       // Save initial state to ensure it persists
-      const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;
       if (shapeId) {
         saveImageShapeState(
           {
@@ -160,7 +195,8 @@ export const useBrush = ({
             maskCanvasRef
           },
           shapeId,
-          useStore.getState().updateShape
+          useStore.getState().updateShape,
+          { contrast, saturation, brightness }
         );
       }
     }
@@ -202,16 +238,8 @@ export const useBrush = ({
         // Clear active stroke
         clearImageShapeCanvas(activeStrokeCanvasRef);
 
-        // Update preview with final state
-        updateImageShapePreview({
-          backgroundCanvasRef,
-          permanentStrokesCanvasRef,
-          activeStrokeCanvasRef,
-          previewCanvasRef,
-          maskCanvasRef,
-          tool: "eraser",
-          opacity: brushOpacity
-        });
+        // Apply filters and update canvas using our consistent function
+        applyFiltersAndUpdateCanvas(e, "eraser");
       } else if (tool === "inpaint") {
         // Handle mask mode inpainting
         if (maskCanvasRef && activeStrokeCanvasRef.current) {
@@ -230,16 +258,8 @@ export const useBrush = ({
         // Clear active stroke before updating preview to prevent blinking
         clearImageShapeCanvas(activeStrokeCanvasRef);
 
-        // Update preview with the mask changes
-        updateImageShapePreview({
-          backgroundCanvasRef,
-          permanentStrokesCanvasRef,
-          activeStrokeCanvasRef,
-          previewCanvasRef,
-          maskCanvasRef,
-          tool: "inpaint",
-          opacity: 1.0
-        });
+        // Apply filters and update canvas using our consistent function
+        applyFiltersAndUpdateCanvas(e, "inpaint", 1.0);
       }
       
       // Draw to active canvas for preview - use different approaches for inpaint vs brush/eraser
@@ -277,15 +297,8 @@ export const useBrush = ({
       
       activeCtx.restore();
       
-      updateImageShapePreview({
-        backgroundCanvasRef,
-        permanentStrokesCanvasRef,
-        activeStrokeCanvasRef,
-        previewCanvasRef,
-        maskCanvasRef,
-        tool,
-        opacity: brushOpacity
-      });
+      // Apply filters and update preview with each stroke movement
+      applyFiltersAndUpdateCanvas(e, tool);
     }
 
     lastPoint.current = point;
@@ -298,6 +311,8 @@ export const useBrush = ({
     const activeCtx = getImageShapeCanvasContext(activeStrokeCanvasRef);
     
     if (!permanentCtx || !permanentStrokesCanvasRef.current || !activeStrokeCanvasRef.current || !activeCtx) return;
+
+    const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;
 
     if (tool === "eraser") {
       // Handle regular erasing (non-mask mode)
@@ -323,15 +338,24 @@ export const useBrush = ({
       // Clear active stroke
       clearImageShapeCanvas(activeStrokeCanvasRef);
 
-      // Update preview with final state
-      updateImageShapePreview({
-        backgroundCanvasRef,
-        permanentStrokesCanvasRef,
-        activeStrokeCanvasRef,
-        previewCanvasRef,
-        maskCanvasRef,
-        tool
-      });
+      // Apply filters and update with consistent function
+      const { contrast, saturation, brightness } = applyFiltersAndUpdateCanvas(null, tool);
+      
+      // Save the canvas data after the stroke is complete
+      if (shapeId) {
+        saveImageShapeState(
+          {
+            backgroundCanvasRef,
+            permanentStrokesCanvasRef,
+            activeStrokeCanvasRef,
+            previewCanvasRef,
+            maskCanvasRef
+          },
+          shapeId,
+          useStore.getState().updateShape,
+          { contrast, saturation, brightness }
+        );
+      }
     } else if (tool === "inpaint") {
       // Handle mask mode erasing/inpainting
       if (maskCanvasRef && activeStrokeCanvasRef.current) {
@@ -350,16 +374,24 @@ export const useBrush = ({
       // Clear active stroke before updating preview to prevent blinking
       clearImageShapeCanvas(activeStrokeCanvasRef);
 
-      // Update preview with the mask changes
-      updateImageShapePreview({
-        backgroundCanvasRef,
-        permanentStrokesCanvasRef,
-        activeStrokeCanvasRef,
-        previewCanvasRef,
-        maskCanvasRef,
-        tool,
-        opacity: 1.0
-      });
+      // Apply filters and update with consistent function
+      const { contrast, saturation, brightness } = applyFiltersAndUpdateCanvas(null, tool, 1.0);
+      
+      // Save the canvas data after the stroke is complete
+      if (shapeId) {
+        saveImageShapeState(
+          {
+            backgroundCanvasRef,
+            permanentStrokesCanvasRef,
+            activeStrokeCanvasRef,
+            previewCanvasRef,
+            maskCanvasRef
+          },
+          shapeId,
+          useStore.getState().updateShape,
+          { contrast, saturation, brightness }
+        );
+      }
     } else {
       // For brush tool, transfer the active stroke to permanent layer
       permanentCtx.save();
@@ -377,31 +409,49 @@ export const useBrush = ({
       // Clear active stroke after transferring to permanent layer
       clearImageShapeCanvas(activeStrokeCanvasRef);
 
-      // Update preview with the stroke now in the permanent layer
-      updateImageShapePreview({
-        backgroundCanvasRef,
-        permanentStrokesCanvasRef,
-        activeStrokeCanvasRef,
-        previewCanvasRef,
-        maskCanvasRef,
-        tool
-      });
+      // Apply filters and update with consistent function
+      const { contrast, saturation, brightness } = applyFiltersAndUpdateCanvas(null, tool);
+      
+      // Save the canvas data after the stroke is complete
+      if (shapeId) {
+        saveImageShapeState(
+          {
+            backgroundCanvasRef,
+            permanentStrokesCanvasRef,
+            activeStrokeCanvasRef,
+            previewCanvasRef,
+            maskCanvasRef
+          },
+          shapeId,
+          useStore.getState().updateShape,
+          { contrast, saturation, brightness }
+        );
+      }
     }
 
-    // Save the canvas data after the stroke is complete
-    const shapeId = activeStrokeCanvasRef.current.dataset.shapeId;
+    // Force one more refresh with requestAnimationFrame to ensure filters are applied
     if (shapeId) {
-      saveImageShapeState(
-        {
-          backgroundCanvasRef,
-          permanentStrokesCanvasRef,
-          activeStrokeCanvasRef,
-          previewCanvasRef,
-          maskCanvasRef
-        },
-        shapeId,
-        useStore.getState().updateShape
-      );
+      requestAnimationFrame(() => {
+        const shapes = useStore.getState().shapes;
+        const currentShape = shapes.find(s => s.id === shapeId);
+        if (currentShape && currentShape.type === 'image') {
+          const contrast = currentShape.contrast ?? 1.0;
+          const saturation = currentShape.saturation ?? 1.0;
+          const brightness = currentShape.brightness ?? 1.0;
+          
+          updateImageShapePreview({
+            backgroundCanvasRef,
+            permanentStrokesCanvasRef,
+            activeStrokeCanvasRef,
+            previewCanvasRef,
+            maskCanvasRef,
+            tool,
+            contrast,
+            saturation,
+            brightness
+          });
+        }
+      });
     }
 
     isDrawing.current = false;
