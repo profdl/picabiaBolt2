@@ -150,6 +150,8 @@ export interface ImageShape extends BaseShape {
     previewData?: string;
   };
   tags?: string[];
+  mergedFrom?: string[];
+  isMerged?: boolean;
 }
 
 // Group specific properties

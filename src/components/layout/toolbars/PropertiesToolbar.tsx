@@ -1079,6 +1079,25 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                       />
                       <div className={styles.adjustmentsMenu.container}>
                         <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium">Image Adjustments</span>
+                            <Tooltip content="Reset All Adjustments" side="top">
+                              <button
+                                className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded transition-colors"
+                                onClick={() => {
+                                  if (displayShape) {
+                                    displayActions.updateImageSettings(displayShape.id, {
+                                      contrast: 1.0,
+                                      saturation: 1.0,
+                                      brightness: 1.0
+                                    });
+                                  }
+                                }}
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                              </button>
+                            </Tooltip>
+                          </div>
                           <div className={styles.controlGroup.container}>
                             <span className={styles.controlGroup.label}>Contrast</span>
                             <div className="w-[120px]">

@@ -1,7 +1,7 @@
-import { Shape } from "../types";
+import { ImageShape } from "../types/shapes";
 import { supabase } from "../lib/supabase";
 
-export async function mergeImages(images: Shape[]): Promise<Shape> {
+export async function mergeImages(images: ImageShape[]): Promise<ImageShape> {
   try {
     // Find the absolute bounds of all images in their display coordinates
     const minX = Math.min(...images.map(img => img.position.x));
@@ -29,6 +29,8 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
       const backgroundCanvas = document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="background"]`) as HTMLCanvasElement;
       const permanentStrokesCanvas = document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="permanent"]`) as HTMLCanvasElement;
       const maskCanvas = document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="mask"]`) as HTMLCanvasElement;
+      // Get the preview canvas which already has filters applied
+      const previewCanvas = document.querySelector(`canvas[data-shape-id="${shape.id}"][data-layer="preview"]`) as HTMLCanvasElement;
 
       if (!backgroundCanvas || !permanentStrokesCanvas || !maskCanvas) {
         console.error('Required canvas layers not found for shape:', shape.id);
@@ -46,17 +48,41 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
       const shapeCtx = shapeCanvas.getContext('2d', { willReadFrequently: true });
       if (!shapeCtx) continue;
 
-      // Draw each layer at original canvas dimensions
-      // 1. Draw background
-      shapeCtx.drawImage(backgroundCanvas, 0, 0);
+      // If we have a preview canvas with filters already applied, use it
+      if (previewCanvas) {
+        shapeCtx.drawImage(previewCanvas, 0, 0);
+      } else {
+        // Otherwise apply the filters manually
+        // Draw each layer at original canvas dimensions
+        // 1. Draw background
+        shapeCtx.drawImage(backgroundCanvas, 0, 0);
 
-      // 2. Draw permanent strokes
-      shapeCtx.drawImage(permanentStrokesCanvas, 0, 0);
+        // 2. Draw permanent strokes
+        shapeCtx.drawImage(permanentStrokesCanvas, 0, 0);
 
-      // 3. Apply mask
-      shapeCtx.globalCompositeOperation = 'destination-in';
-      shapeCtx.drawImage(maskCanvas, 0, 0);
-      shapeCtx.globalCompositeOperation = 'source-over';
+        // 3. Apply mask
+        shapeCtx.globalCompositeOperation = 'destination-in';
+        shapeCtx.drawImage(maskCanvas, 0, 0);
+        shapeCtx.globalCompositeOperation = 'source-over';
+
+        // Apply CSS filters instead of WebGL for simplicity and consistency
+        if (shape.contrast !== undefined || shape.saturation !== undefined || shape.brightness !== undefined) {
+          const tempFilterCanvas = document.createElement('canvas');
+          tempFilterCanvas.width = shapeCanvas.width;
+          tempFilterCanvas.height = shapeCanvas.height;
+          const tempFilterCtx = tempFilterCanvas.getContext('2d');
+          
+          if (tempFilterCtx) {
+            // Apply filters using CSS filter
+            tempFilterCtx.filter = `contrast(${shape.contrast ?? 1.0}) saturate(${shape.saturation ?? 1.0}) brightness(${shape.brightness ?? 1.0})`;
+            tempFilterCtx.drawImage(shapeCanvas, 0, 0);
+            
+            // Draw back to shape canvas
+            shapeCtx.clearRect(0, 0, shapeCanvas.width, shapeCanvas.height);
+            shapeCtx.drawImage(tempFilterCanvas, 0, 0);
+          }
+        }
+      }
 
       // Calculate the scale to maintain original quality
       const scaleX = shape.width / backgroundCanvas.width;
@@ -111,7 +137,7 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
     } = supabase.storage.from("assets").getPublicUrl(fileName);
 
     // Create new shape with raw dimensions
-    const newShape: Shape = {
+    const newShape: ImageShape = {
       id: Math.random().toString(36).substr(2, 9),
       type: 'image',
       position: {
@@ -133,7 +159,12 @@ export async function mergeImages(images: Shape[]): Promise<Shape> {
       poseStrength: 0.75,
       sketchStrength: 0.75,
       mergedFrom: images.map(img => img.id),
-      isMerged: true
+      isMerged: true,
+      // Reset shader settings to defaults for the merged image
+      contrast: 1.0,
+      saturation: 1.0, 
+      brightness: 1.0,
+      imagePromptStrength: 0.75
     };
 
     return newShape;
