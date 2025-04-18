@@ -881,6 +881,101 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                       </div>
 
                       <div className="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-0.5 mr-1.5" />
+                      
+                      {/* Image Adjustments button moved here */}
+                      <div className="relative mr-1.5">
+                        <Tooltip content="Image Adjustments" side="top">
+                          <ToolbarButton
+                            icon={<SlidersHorizontal className="w-4 h-4" />}
+                            onClick={() => setShowAdjustmentsMenu(!showAdjustmentsMenu)}
+                            active={showAdjustmentsMenu}
+                            className={styles.button}
+                          />
+                        </Tooltip>
+                        
+                        {showAdjustmentsMenu && (
+                          <>
+                            <div
+                              className="fixed inset-0"
+                              onClick={() => setShowAdjustmentsMenu(false)}
+                            />
+                            <div className={styles.adjustmentsMenu.container}>
+                              <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm font-medium">Image Adjustments</span>
+                                  <Tooltip content="Reset All Adjustments" side="top">
+                                    <button
+                                      className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded transition-colors"
+                                      onClick={() => {
+                                        if (displayShape) {
+                                          displayActions.updateImageSettings(displayShape.id, {
+                                            contrast: 1.0,
+                                            saturation: 1.0,
+                                            brightness: 1.0
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      <RefreshCw className="w-4 h-4" />
+                                    </button>
+                                  </Tooltip>
+                                </div>
+                                <div className={styles.controlGroup.container}>
+                                  <span className={styles.controlGroup.label}>Contrast</span>
+                                  <div className="w-[120px]">
+                                    <SmallSlider
+                                      value={(displayShape.contrast ?? 1.0) * 100}
+                                      onChange={(value) => {
+                                        const contrast = value / 100;
+                                        displayActions.updateImageSettings(displayShape.id, { contrast });
+                                      }}
+                                      min={0}
+                                      max={200}
+                                      step={1}
+                                      label="Contrast"
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div className={styles.controlGroup.container}>
+                                  <span className={styles.controlGroup.label}>Saturation</span>
+                                  <div className="w-[120px]">
+                                    <SmallSlider
+                                      value={(displayShape.saturation ?? 1.0) * 100}
+                                      onChange={(value) => {
+                                        const saturation = value / 100;
+                                        displayActions.updateImageSettings(displayShape.id, { saturation });
+                                      }}
+                                      min={0}
+                                      max={200}
+                                      step={1}
+                                      label="Saturation"
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div className={styles.controlGroup.container}>
+                                  <span className={styles.controlGroup.label}>Brightness</span>
+                                  <div className="w-[120px]">
+                                    <SmallSlider
+                                      value={(displayShape.brightness ?? 1.0) * 100}
+                                      onChange={(value) => {
+                                        const brightness = value / 100;
+                                        displayActions.updateImageSettings(displayShape.id, { brightness });
+                                      }}
+                                      min={0}
+                                      max={200}
+                                      step={1}
+                                      label="Brightness"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      
                       <Tooltip content="Remove Background" side="top">
                         <button
                           className="text-[10px] font-medium tracking-wide uppercase text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 rounded px-1.5 py-0.5 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
@@ -1052,104 +1147,6 @@ export const PropertiesToolbar: React.FC<PropertiesToolbarProps> = ({
                           />
                         </Tooltip>
                       )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Image Properties Section */}
-            {tool === "select" && displayShape?.type === "image" && (
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Tooltip content="Image Adjustments" side="top">
-                    <ToolbarButton
-                      icon={<SlidersHorizontal className="w-4 h-4" />}
-                      onClick={() => setShowAdjustmentsMenu(!showAdjustmentsMenu)}
-                      active={showAdjustmentsMenu}
-                      className={styles.button}
-                    />
-                  </Tooltip>
-                  
-                  {showAdjustmentsMenu && (
-                    <>
-                      <div
-                        className="fixed inset-0"
-                        onClick={() => setShowAdjustmentsMenu(false)}
-                      />
-                      <div className={styles.adjustmentsMenu.container}>
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium">Image Adjustments</span>
-                            <Tooltip content="Reset All Adjustments" side="top">
-                              <button
-                                className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded transition-colors"
-                                onClick={() => {
-                                  if (displayShape) {
-                                    displayActions.updateImageSettings(displayShape.id, {
-                                      contrast: 1.0,
-                                      saturation: 1.0,
-                                      brightness: 1.0
-                                    });
-                                  }
-                                }}
-                              >
-                                <RefreshCw className="w-4 h-4" />
-                              </button>
-                            </Tooltip>
-                          </div>
-                          <div className={styles.controlGroup.container}>
-                            <span className={styles.controlGroup.label}>Contrast</span>
-                            <div className="w-[120px]">
-                              <SmallSlider
-                                value={(displayShape.contrast ?? 1.0) * 100}
-                                onChange={(value) => {
-                                  const contrast = value / 100;
-                                  displayActions.updateImageSettings(displayShape.id, { contrast });
-                                }}
-                                min={0}
-                                max={200}
-                                step={1}
-                                label="Contrast"
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className={styles.controlGroup.container}>
-                            <span className={styles.controlGroup.label}>Saturation</span>
-                            <div className="w-[120px]">
-                              <SmallSlider
-                                value={(displayShape.saturation ?? 1.0) * 100}
-                                onChange={(value) => {
-                                  const saturation = value / 100;
-                                  displayActions.updateImageSettings(displayShape.id, { saturation });
-                                }}
-                                min={0}
-                                max={200}
-                                step={1}
-                                label="Saturation"
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className={styles.controlGroup.container}>
-                            <span className={styles.controlGroup.label}>Brightness</span>
-                            <div className="w-[120px]">
-                              <SmallSlider
-                                value={(displayShape.brightness ?? 1.0) * 100}
-                                onChange={(value) => {
-                                  const brightness = value / 100;
-                                  displayActions.updateImageSettings(displayShape.id, { brightness });
-                                }}
-                                min={0}
-                                max={200}
-                                step={1}
-                                label="Brightness"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
                     </>
                   )}
                 </div>
